@@ -1,0 +1,97 @@
+[
+    {
+        "level": "2de",
+        "chapters": [
+            {
+                "name": "Calcul_Algebrique",
+                "resources": [
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/19Calc_algebriqueM.pdf",
+                        "title": "Cours Calcul Algébrique"
+                    },
+                    {
+                        "type": "word",
+                        "url": "https://www.maths-et-tiques.fr/telech/19Calc_algebriqueM.docx",
+                        "title": "Source Word Calcul Algébrique"
+                    }
+                ]
+            },
+            {
+                "name": "Fractions_Puissances_Racines",
+                "resources": [
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/19RacPuissM.pdf",
+                        "title": "Cours Fractions, Puissances, Racines"
+                    },
+                    {
+                        "type": "word",
+                        "url": "https://www.maths-et-tiques.fr/telech/19RacPuissM.docx",
+                        "title": "Source Word Fractions"
+                    }
+                ]
+            },
+            {
+                "name": "Nombres_Reels",
+                "resources": [
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/19NombresReels1M.pdf",
+                        "title": "Cours Nombres Réels (Partie 1)"
+                    },
+                    {
+                        "type": "word",
+                        "url": "https://www.maths-et-tiques.fr/telech/19NombresReels1M.docx",
+                        "title": "Source Word Nombres Réels (Partie 1)"
+                    },
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/19NombresReels2M.pdf",
+                        "title": "Cours Nombres Réels (Partie 2)"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "level": "1ere",
+        "chapters": [
+            {
+                "name": "Second_Degre",
+                "resources": [
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/19SecdegP1M.pdf",
+                        "title": "Cours Second Degré (Partie 1)"
+                    },
+                    {
+                        "type": "word",
+                        "url": "https://www.maths-et-tiques.fr/telech/19SecdegP1M.docx",
+                        "title": "Source Word Second Degré (Partie 1)"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "level": "term",
+        "chapters": [
+            {
+                "name": "Suites",
+                "resources": [
+                    {
+                        "type": "pdf",
+                        "url": "https://www.maths-et-tiques.fr/telech/20SuitesTS1.pdf",
+                        "title": "Cours Suites (Partie 1)"
+                    },
+                    {
+                        "type": "word",
+                        "url": "https://www.maths-et-tiques.fr/telech/20SuitesTS1.docx",
+                        "title": "Source Word Suites (Partie 1)"
+                    }
+                ]
+            }
+        ]
+    }
+]

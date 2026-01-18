@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath, amssymb}
+
+\title{Cours : Le Second Degré}
+\author{Tuteur Maths}
+\date{Janvier 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Fonction Polynôme du Second Degré}
+Une fonction polynôme du second degré est définie sur $\mathbb{R}$ par :
+\[ f(x) = ax^2 + bx + c \]
+avec $a \neq 0$.
+
+\subsection{Forme canonique}
+\[ f(x) = a(x - \alpha)^2 + \beta \]
+où $\alpha = -\frac{b}{2a}$ et $\beta = f(\alpha)$.
+
+\section{Résolution d'équations}
+On calcule le discriminant : $\Delta = b^2 - 4ac$.
+\begin{itemize}
+    \item Si $\Delta > 0$ : deux racines $x_1, x_2 = \frac{-b \pm \sqrt{\Delta}}{2a}$.
+    \item Si $\Delta = 0$ : une racine double $x_0 = -\frac{b}{2a}$.
+    \item Si $\Delta < 0$ : aucune racine réelle.
+\end{itemize}
+
+\end{document}

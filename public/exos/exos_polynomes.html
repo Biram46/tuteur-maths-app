@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exercices – Polynômes du second degré</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                sans-serif;
+            margin: 0;
+            padding: 12px;
+            background: #fafafa;
+            color: #333;
+        }
+
+        #quiz-root {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .intro {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 16px;
+        }
+
+        .question {
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .question:last-of-type {
+            border-bottom: none;
+        }
+
+        .question-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .question p {
+            margin: 4px 0 6px 0;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        input[type="number"] {
+            padding: 4px 6px;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 120px;
+        }
+
+        .btn {
+            display: inline-block;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            background: #1976d2;
+            color: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        #resultat-local {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .remarque {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <main id="quiz-root">
+        <h1>Exercices – Polynômes du second degré</h1>
+        <p class="intro">
+            Réponds aux questions ci-dessous puis clique sur le bouton pour obtenir
+            ta note sur 20. Le résultat sera envoyé automatiquement à la plateforme.
+        </p>
+
+        <!-- Q1 -->
+        <section class="question" data-points="4">
+            <div class="question-title">Question 1</div>
+            <p>
+                On considère le trinôme
+                \( f(x) = x^2 - 4x + 3 \).
+                Donner les coordonnées du sommet de la parabole représentative.
+            </p>
+            <label>
+                Abscisse du sommet \( \alpha \) :
+                <input type="number" step="0.1" name="q1-alpha" />
+            </label>
+            <label>
+                Ordonnée du sommet \( f(\alpha) \) :
+                <input type="number" step="0.1" name="q1-falpha" />
+            </label>
+        </section>
+
+        <!-- Q2 -->
+        <section class="question" data-points="4">
+            <div class="question-title">Question 2</div>
+            <p>
+                Le trinôme \( g(x) = x^2 - x - 6 \) admet pour racines
+                \( x_1 = -2 \) et \( x_2 = 3 \).
+                Choisis le tableau de signe correct de \( g(x) \).
+            </p>
+            <label>
+                <input type="radio" name="q2" value="A" />
+                A : \( g(x) \le 0 \) sur \( [-2,3] \) et \( g(x) \ge 0 \) ailleurs.
+            </label>
+            <label>
+                <input type="radio" name="q2" value="B" />
+                B : \( g(x) \ge 0 \) sur \( [-2,3] \) et \( g(x) \le 0 \) ailleurs.
+            </label>
+            <label>
+                <input type="radio" name="q2" value="C" />
+                C : \( g(x) \ge 0 \) pour tout réel.
+            </label>
+        </section>
+
+        <!-- Q3 -->
+        <section class="question" data-points="4">
+            <div class="question-title">Question 3</div>
+            <p>
+                On considère \( h(x) = 2x^2 + 5x - 3 \).
+                Cocher les affirmations <strong>vraies</strong>.
+            </p>
+            <label>
+                <input type="checkbox" name="q3" value="A" />
+                A : Le coefficient directeur de la parabole est 2.
+            </label>
+            <label>
+                <input type="checkbox" name="q3" value="B" />
+                B : Le discriminant de \( h \) est positif.
+            </label>
+            <label>
+                <input type="checkbox" name="q3" value="C" />
+                C : Le graphe de \( h \) est une parabole ouverte vers le bas.
+            </label>
+        </section>
+
+        <!-- Q4 -->
+        <section class="question" data-points="8">
+            <div class="question-title">Question 4</div>
+            <p>
+                On étudie le signe de \( k(x) = -x^2 + 4x \).
+                Donner un encadrement (intervalle) sur lequel \( k(x) \ge 0 \).
+            </p>
+            <label>
+                Borne gauche :
+                <input type="number" step="0.1" name="q4-a" />
+            </label>
+            <label>
+                Borne droite :
+                <input type="number" step="0.1" name="q4-b" />
+            </label>
+        </section>
+
+        <button id="btn-envoyer-note" class="btn">
+            Corriger et envoyer la note
+        </button>
+
+        <p id="resultat-local"></p>
+        <p class="remarque">
+            Si la plateforme est ouverte dans un navigateur compatible, ta note
+            sera automatiquement transmise au parent via <code>postMessage</code>.[web:369]
+        </p>
+    </main>
+
+    <script>
+        function corrigerEtEnvoyerNote() {
+            let scoreBrut = 0;
+            let scoreMax = 0;
+
+            // Q1 : sommet de f(x) = x^2 - 4x + 3  -> sommet (2 ; -1)
+            (function () {
+                const question = document.querySelector('[name="q1-alpha"]')
+                    ?.closest(".question");
+                if (!question) return;
+                const points = Number(question.dataset.points || 0);
+                scoreMax += points;
+
+                const alphaInput = document.querySelector('[name="q1-alpha"]');
+                const falphaInput = document.querySelector('[name="q1-falpha"]');
+                const alpha = Number(alphaInput.value.replace(",", "."));
+                const falpha = Number(falphaInput.value.replace(",", "."));
+
+                let localScore = 0;
+                if (Math.abs(alpha - 2) < 0.1) localScore += points / 2;
+                if (Math.abs(falpha + 1) < 0.1) localScore += points / 2;
+                scoreBrut += localScore;
+            })();
+
+            // Q2 : signe de g(x) = x^2 - x - 6  -> <= 0 sur [-2,3], >= 0 ailleurs => réponse A
+            (function () {
+                const question = document.querySelector('input[name="q2"]')
+                    ?.closest(".question");
+                if (!question) return;
+                const points = Number(question.dataset.points || 0);
+                scoreMax += points;
+
+                const checked = document.querySelector(
+                    'input[name="q2"]:checked'
+                );
+                if (checked && checked.value === "A") {
+                    scoreBrut += points;
+                }
+            })();
+
+            // Q3 : h(x) = 2x^2 + 5x - 3
+            // A : "coefficient directeur de la parabole est 2" -> on accepte comme vrai ici
+            // B : discriminant = 25 + 24 = 49 > 0 -> vrai
+            // C : parabole ouverte vers le bas -> faux (a=2>0)
+            (function () {
+                const checkboxes = document.querySelectorAll(
+                    'input[name="q3"]'
+                );
+                if (!checkboxes.length) return;
+                const question = checkboxes[0].closest(".question");
+                const points = Number(question.dataset.points || 0);
+                scoreMax += points;
+
+                const values = Array.from(checkboxes)
+                    .filter((c) => c.checked)
+                    .map((c) => c.value);
+
+                const correct = ["A", "B"];
+                const allCorrect =
+                    correct.every((v) => values.includes(v)) &&
+                    values.every((v) => correct.includes(v));
+
+                if (allCorrect) {
+                    scoreBrut += points;
+                }
+            })();
+
+            // Q4 : k(x) = -x^2 + 4x = -x(x - 4) -> k(x) >= 0 sur [0,4]
+            (function () {
+                const aInput = document.querySelector('[name="q4-a"]');
+                const bInput = document.querySelector('[name="q4-b"]');
+                if (!aInput || !bInput) return;
+                const question = aInput.closest(".question");
+                const points = Number(question.dataset.points || 0);
+                scoreMax += points;
+
+                const a = Number(aInput.value.replace(",", "."));
+                const b = Number(bInput.value.replace(",", "."));
+
+                let localScore = 0;
+                if (Math.abs(a - 0) < 0.1) localScore += points / 2;
+                if (Math.abs(b - 4) < 0.1) localScore += points / 2;
+                scoreBrut += localScore;
+            })();
+
+            if (scoreMax === 0) {
+                return;
+            }
+
+            const noteFinale = (scoreBrut / scoreMax) * 20;
+
+            const resultat = {
+                type: "quiz-result",
+                note: noteFinale,
+                sur: 20,
+                chapterId: "polynomes-2nd",
+                exerciseId: "exos-polynomes-v1",
+                scoreBrut: scoreBrut,
+                scoreMax: scoreMax,
+                details: {
+                    // champs libres pour debug / analyse
+                }
+            };
+
+            const p = document.getElementById("resultat-local");
+            if (p && typeof noteFinale === "number") {
+                p.textContent = `Note : ${noteFinale.toFixed(1)} / 20`;
+            }
+
+            window.parent.postMessage(resultat, "*"); // communication parent-iframe[web:347][web:369]
+        }
+
+        document
+            .getElementById("btn-envoyer-note")
+            .addEventListener("click", corrigerEtEnvoyerNote);
+    </script>
+</body>
+
+</html>
