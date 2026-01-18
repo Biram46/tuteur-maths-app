@@ -1,5 +1,5 @@
 
-const apiKey = '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';
+const apiKey = process.env.PERPLEXITY_API_KEY;
 
 // Le prompt système que nous avons configuré dans l'application
 const systemPrompt = `Tu es un Tuteur IA expert en Mathématiques pour le système éducatif français. Tu agis comme un Professeur expérimenté de l'Éducation Nationale.
