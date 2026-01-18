@@ -1,7 +1,18 @@
 import { getEducationalData } from "@/lib/data";
 import AdminDashboard from "./AdminDashboard";
+import { createClient } from "@/lib/supabaseAction";
+import { redirect } from "next/navigation";
+import { logout } from "@/app/auth/actions";
 
 export default async function AdminPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Check if user is logged in and is the admin
+    if (!user || user.email !== 'biram26@yahoo.fr') {
+        redirect('/');
+    }
+
     const data = await getEducationalData();
 
     return (
@@ -27,9 +38,11 @@ export default async function AdminPage() {
                         Espace Élève
                     </a>
                     <div className="h-4 w-[1px] bg-slate-800"></div>
-                    <button className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-2 rounded-full text-[10px] font-['Orbitron'] tracking-[0.2em] text-cyan-400 hover:bg-cyan-500/20 transition-all uppercase shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                        Déconnexion
-                    </button>
+                    <form action={logout}>
+                        <button type="submit" className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-2 rounded-full text-[10px] font-['Orbitron'] tracking-[0.2em] text-cyan-400 hover:bg-cyan-500/20 transition-all uppercase shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                            Déconnexion
+                        </button>
+                    </form>
                 </nav>
             </header>
 

@@ -16,7 +16,7 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword(data)
 
     if (error) {
-        redirect('/login?error=L\'email ou le mot de passe est incorrect')
+        redirect('/login?error=' + encodeURIComponent('L\'email ou le mot de passe est incorrect'))
     }
 
     revalidatePath('/', 'layout')
@@ -31,16 +31,14 @@ export async function signup(formData: FormData) {
         password: formData.get('password') as string,
     }
 
-    // URL de redirection après confirmation email (si activé)
-    // Pour l'instant on suppose auto-confirm ou pas de confirm requise en dev
     const { error } = await supabase.auth.signUp(data)
 
     if (error) {
-        redirect('/login?error=' + error.message)
+        redirect('/login?error=' + encodeURIComponent(error.message))
     }
 
     revalidatePath('/', 'layout')
-    redirect('/')
+    redirect('/login?message=Compte créé ! Veuillez vérifier votre email pour confirmer votre inscription.')
 }
 
 export async function logout() {

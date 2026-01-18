@@ -37,5 +37,14 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Protection de la route /admin
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        if (!user || user.email !== 'biram26@yahoo.fr') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/'
+            return NextResponse.redirect(url)
+        }
+    }
+
     return response
 }
