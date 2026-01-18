@@ -1,9 +1,17 @@
 import MathAssistant from '@/app/components/MathAssistant';
+import { createClient } from '@/lib/supabaseAction';
+import { redirect } from 'next/navigation';
 
 /**
  * Page de démonstration de l'assistant mathématique Perplexity AI
  */
-export default function AssistantPage() {
+export default async function AssistantPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
             {/* Header */}

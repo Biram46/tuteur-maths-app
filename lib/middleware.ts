@@ -37,7 +37,24 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protection de la route /admin
+    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+    const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
+
+    // 1. Rediriger vers /login si non connecté (sauf sur la page login elle-même)
+    if (!user && !isLoginPage && !isAuthRoute) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
+    // 2. Rediriger vers / si déjà connecté et essaie d'aller sur /login
+    if (user && isLoginPage) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/'
+        return NextResponse.redirect(url)
+    }
+
+    // 3. Protection stricte de la route /admin (uniquement biram26@yahoo.fr)
     if (request.nextUrl.pathname.startsWith('/admin')) {
         if (!user || user.email !== 'biram26@yahoo.fr') {
             const url = request.nextUrl.clone()

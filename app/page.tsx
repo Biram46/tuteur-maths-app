@@ -1,8 +1,7 @@
-import Link from "next/link";
-import StudentClientView from "./components/StudentClientView";
 import { getEducationalData } from "@/lib/data";
 import { createClient } from "@/lib/supabaseAction";
 import UserAuthButton from "./components/UserAuthButton";
+import { redirect } from "next/navigation";
 
 /**
  * Page d'accueil (Espace Élève)
@@ -12,6 +11,10 @@ export default async function Home() {
     // Auth check
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
 
     // Récupération des données depuis Supabase (via lib/data.ts)
     const { levels, chapters, resources } = await getEducationalData();
