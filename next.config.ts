@@ -2,13 +2,17 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: {
-    // ⚠️ Temporarily ignore TypeScript errors during build
-    // This helps identify if TypeScript is the issue
-    ignoreBuildErrors: true,
+    // En production, afficher les erreurs TypeScript
+    ignoreBuildErrors: false,
   },
   eslint: {
-    // Ignore ESLint errors during build
-    ignoreDuringBuilds: true,
+    // En production, afficher les erreurs ESLint
+    ignoreDuringBuilds: false,
+  },
+  // Configuration pour Vercel et les Workers
+  experimental: {
+    // Optimisation pour les serverless functions
+    serverComponentsExternalPackages: ['tesseract.js'],
   },
 };
 
