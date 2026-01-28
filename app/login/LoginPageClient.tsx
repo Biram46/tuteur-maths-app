@@ -45,8 +45,8 @@ export default function LoginPageClient({
                         <button
                             onClick={() => setMode("login")}
                             className={`flex-1 py-2 text-xs font-['Orbitron'] tracking-widest uppercase transition-all rounded-lg ${mode === "login"
-                                    ? "bg-cyan-500/20 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                                    : "text-slate-500 hover:text-slate-300"
+                                ? "bg-cyan-500/20 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                                : "text-slate-500 hover:text-slate-300"
                                 }`}
                         >
                             Connexion
@@ -54,8 +54,8 @@ export default function LoginPageClient({
                         <button
                             onClick={() => setMode("signup")}
                             className={`flex-1 py-2 text-xs font-['Orbitron'] tracking-widest uppercase transition-all rounded-lg ${mode === "signup"
-                                    ? "bg-fuchsia-500/20 text-fuchsia-400 shadow-[0_0_15px_rgba(232,121,249,0.3)]"
-                                    : "text-slate-500 hover:text-slate-300"
+                                ? "bg-fuchsia-500/20 text-fuchsia-400 shadow-[0_0_15px_rgba(232,121,249,0.3)]"
+                                : "text-slate-500 hover:text-slate-300"
                                 }`}
                         >
                             Inscription
@@ -132,10 +132,16 @@ export default function LoginPageClient({
                         )}
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                    <div className="mt-8 pt-8 border-t border-white/5 text-center space-y-3">
                         <p className="text-[9px] font-mono text-slate-500 tracking-[0.3em] uppercase">
-                            Terminal de Sécurité Sécurisé // Chiffrement de bout en bout
+                            Espace Élève // Chiffrement de bout en bout
                         </p>
+                        <a
+                            href="/admin/login"
+                            className="inline-block text-[9px] font-['Orbitron'] tracking-widest text-slate-600 hover:text-orange-400 transition-colors uppercase"
+                        >
+                            👨‍🏫 Accès Professeur
+                        </a>
                     </div>
                 </div>
 

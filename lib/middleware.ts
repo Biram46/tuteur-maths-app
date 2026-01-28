@@ -37,31 +37,43 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+    const isStudentLoginPage = request.nextUrl.pathname === '/login'
+    const isAdminLoginPage = request.nextUrl.pathname === '/admin/login'
     const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
+    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && !isAdminLoginPage
 
-    // 1. Rediriger vers /login si non connecté (sauf sur la page login elle-même)
-    if (!user && !isLoginPage && !isAuthRoute) {
+    // 1. Rediriger vers /login si non connecté (sauf sur les pages de login et auth)
+    if (!user && !isStudentLoginPage && !isAdminLoginPage && !isAuthRoute) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // 2. Rediriger vers / si déjà connecté et essaie d'aller sur /login
-    if (user && isLoginPage) {
+    // 2. Si connecté et sur une page de login, rediriger selon le rôle
+    if (user && (isStudentLoginPage || isAdminLoginPage)) {
         const url = request.nextUrl.clone()
-        url.pathname = '/'
+
+        // Si c'est le professeur, rediriger vers /admin
+        if (user.email === 'biram26@yahoo.fr') {
+            url.pathname = '/admin'
+        } else {
+            // Sinon, c'est un élève, rediriger vers /
+            url.pathname = '/'
+        }
+
         return NextResponse.redirect(url)
     }
 
     // 3. Protection stricte de la route /admin (uniquement biram26@yahoo.fr)
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (isAdminRoute) {
         if (!user || user.email !== 'biram26@yahoo.fr') {
             const url = request.nextUrl.clone()
-            url.pathname = '/'
+            // Rediriger vers la page de login admin si pas le bon utilisateur
+            url.pathname = '/admin/login'
             return NextResponse.redirect(url)
         }
     }
 
     return response
+
 }

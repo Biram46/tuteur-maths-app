@@ -1,7 +1,9 @@
 import { getEducationalData } from "@/lib/data";
 import { createClient } from "@/lib/supabaseAction";
 import UserAuthButton from "./components/UserAuthButton";
+import StudentClientView from "./components/StudentClientView";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 /**
  * Page d'accueil (Espace Élève)

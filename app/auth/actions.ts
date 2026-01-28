@@ -41,6 +41,32 @@ export async function signup(formData: FormData) {
     redirect('/login?message=Compte créé ! Veuillez vérifier votre email pour confirmer votre inscription.')
 }
 
+export async function adminLogin(formData: FormData) {
+    const supabase = await createClient()
+
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    // Vérifier que l'email est celui du professeur
+    if (email !== 'biram26@yahoo.fr') {
+        redirect('/admin/login?error=' + encodeURIComponent('Accès refusé. Seul le professeur peut se connecter ici.'))
+    }
+
+    const data = {
+        email,
+        password,
+    }
+
+    const { error } = await supabase.auth.signInWithPassword(data)
+
+    if (error) {
+        redirect('/admin/login?error=' + encodeURIComponent('Email ou mot de passe incorrect'))
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/admin')
+}
+
 export async function logout() {
     const supabase = await createClient()
     await supabase.auth.signOut()
