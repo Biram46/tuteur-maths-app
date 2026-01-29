@@ -17,22 +17,29 @@
 ## 🧪 Résultats des Tests
 
 ### Test 1 : Redirection Automatique vers Login
-**Statut** : ⬜ En cours  
-**Temps** : _____ secondes  
+**Statut** : ✅ RÉUSSI  
+**Temps** : < 2 secondes  
 **Notes** : 
 ```
-[À remplir après le test]
+- Redirection automatique vers /login fonctionne
+- Page de connexion s'affiche correctement
+- Design cyan/fuchsia visible
 ```
 
 ---
 
 ### Test 2 : Inscription Élève
-**Statut** : ⬜ Pas encore testé  
-**Email de test** : `test.eleve.vercel@exemple.com`  
+**Statut** : ✅ RÉUSSI  
+**Email de test** : `test.eleve3.vercel@exemple.com`  
 **Mot de passe** : `TestVercel123!`  
 **Notes** : 
 ```
-[À remplir après le test]
+- Inscription réussie
+- Email de confirmation reçu
+- Lien de confirmation fonctionne (callback handler OK)
+- Connexion automatique après confirmation
+- Interface élève s'affiche
+- PAS d'erreur access_denied
 ```
 
 ---

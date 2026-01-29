@@ -99,6 +99,15 @@ export default function AdminLoginClient({
                             </div>
                         </div>
 
+                        <div className="text-right">
+                            <a
+                                href="/forgot-password"
+                                className="text-[9px] font-['Orbitron'] tracking-widest text-slate-500 hover:text-orange-400 transition-colors uppercase"
+                            >
+                                Mot de passe oublié ?
+                            </a>
+                        </div>
+
                         {error && (
                             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
