@@ -1,8 +1,8 @@
 "use client";
 
-import { updatePassword } from "@/app/auth/password-actions";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabaseBrowser";
 
 export default function ResetPasswordClient({
     error,
@@ -12,7 +12,9 @@ export default function ResetPasswordClient({
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [updateError, setUpdateError] = useState<string | null>(error || null);
     const router = useRouter();
 
     useEffect(() => {
@@ -34,6 +36,51 @@ export default function ResetPasswordClient({
             setIsLoading(false);
         }
     }, [router]);
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setIsUpdating(true);
+        setUpdateError(null);
+
+        const formData = new FormData(e.currentTarget);
+        const password = formData.get('password') as string;
+        const confirmPassword = formData.get('confirmPassword') as string;
+
+        // Validation
+        if (!password || !confirmPassword) {
+            setUpdateError('Tous les champs sont requis');
+            setIsUpdating(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setUpdateError('Les mots de passe ne correspondent pas');
+            setIsUpdating(false);
+            return;
+        }
+
+        if (password.length < 6) {
+            setUpdateError('Le mot de passe doit contenir au moins 6 caractères');
+            setIsUpdating(false);
+            return;
+        }
+
+        // Mise à jour du mot de passe côté client
+        const supabase = createClient();
+        const { error } = await supabase.auth.updateUser({
+            password: password,
+        });
+
+        if (error) {
+            console.error('Error updating password:', error);
+            setUpdateError('Erreur lors de la mise à jour du mot de passe');
+            setIsUpdating(false);
+            return;
+        }
+
+        // Succès ! Rediriger vers login
+        router.push('/login?message=Mot de passe mis à jour avec succès ! Vous pouvez maintenant vous connecter.');
+    };
 
     if (isLoading) {
         return (
@@ -85,7 +132,7 @@ export default function ResetPasswordClient({
                     {/* Glowing border effect */}
                     <div className="absolute inset-0 border border-cyan-500/20 rounded-3xl group-hover:border-cyan-500/40 transition-colors pointer-events-none"></div>
 
-                    <form className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="text-center mb-6">
                             <p className="text-sm text-slate-300 font-mono leading-relaxed">
                                 Choisissez un nouveau mot de passe sécurisé pour votre compte.
@@ -102,8 +149,9 @@ export default function ResetPasswordClient({
                                     type={showPassword ? "text" : "password"}
                                     required
                                     minLength={6}
+                                    disabled={isUpdating}
                                     placeholder="••••••••"
-                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-200 placeholder:text-slate-700 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all font-mono text-sm"
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-200 placeholder:text-slate-700 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all font-mono text-sm disabled:opacity-50"
                                 />
                                 <button
                                     type="button"
@@ -139,8 +187,9 @@ export default function ResetPasswordClient({
                                     type={showConfirmPassword ? "text" : "password"}
                                     required
                                     minLength={6}
+                                    disabled={isUpdating}
                                     placeholder="••••••••"
-                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-200 placeholder:text-slate-700 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all font-mono text-sm"
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-200 placeholder:text-slate-700 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all font-mono text-sm disabled:opacity-50"
                                 />
                                 <button
                                     type="button"
@@ -163,18 +212,19 @@ export default function ResetPasswordClient({
                             </div>
                         </div>
 
-                        {error && (
+                        {updateError && (
                             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                <p className="text-xs text-red-400 font-mono">{error}</p>
+                                <p className="text-xs text-red-400 font-mono">{updateError}</p>
                             </div>
                         )}
 
                         <button
-                            formAction={updatePassword}
-                            className="w-full group relative overflow-hidden bg-gradient-to-r from-cyan-600 to-cyan-400 text-white rounded-xl py-4 font-['Orbitron'] tracking-[0.2em] text-xs uppercase shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all active:scale-[0.98]"
+                            type="submit"
+                            disabled={isUpdating}
+                            className="w-full group relative overflow-hidden bg-gradient-to-r from-cyan-600 to-cyan-400 text-white rounded-xl py-4 font-['Orbitron'] tracking-[0.2em] text-xs uppercase shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span className="relative z-10">Mettre à Jour le Mot de Passe</span>
+                            <span className="relative z-10">{isUpdating ? 'Mise à jour...' : 'Mettre à Jour le Mot de Passe'}</span>
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                         </button>
                     </form>
