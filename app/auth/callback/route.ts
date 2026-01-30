@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
+    const next = requestUrl.searchParams.get('next')
     const origin = requestUrl.origin
 
     if (code) {
@@ -17,6 +18,12 @@ export async function GET(request: Request) {
             // Redirect to login with error
             return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
         }
+    }
+
+    // Si un paramètre 'next' est présent, rediriger vers cette URL
+    // Cela permet de gérer la réinitialisation de mot de passe
+    if (next) {
+        return NextResponse.redirect(`${origin}${next}`)
     }
 
     // URL to redirect to after sign in process completes
