@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
 export async function resetPassword(formData: FormData) {
@@ -10,7 +10,7 @@ export async function resetPassword(formData: FormData) {
         redirect('/forgot-password?error=Email requis')
     }
 
-    const supabase = await createClient()
+    const supabase = createServerClient()
 
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -41,7 +41,7 @@ export async function updatePassword(formData: FormData) {
         redirect('/auth/reset-password?error=Le mot de passe doit contenir au moins 6 caractères')
     }
 
-    const supabase = await createClient()
+    const supabase = createServerClient()
 
     const { error } = await supabase.auth.updateUser({
         password: password,
