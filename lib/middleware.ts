@@ -39,11 +39,12 @@ export async function updateSession(request: NextRequest) {
 
     const isStudentLoginPage = request.nextUrl.pathname === '/login'
     const isAdminLoginPage = request.nextUrl.pathname === '/admin/login'
+    const isForgotPasswordPage = request.nextUrl.pathname === '/forgot-password'
     const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && !isAdminLoginPage
 
-    // 1. Rediriger vers /login si non connecté (sauf sur les pages de login et auth)
-    if (!user && !isStudentLoginPage && !isAdminLoginPage && !isAuthRoute) {
+    // 1. Rediriger vers /login si non connecté (sauf sur les pages de login, forgot-password et auth)
+    if (!user && !isStudentLoginPage && !isAdminLoginPage && !isForgotPasswordPage && !isAuthRoute) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
