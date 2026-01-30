@@ -12,9 +12,15 @@ export async function resetPassword(formData: FormData) {
 
     const supabase = supabaseServer
 
+    // Déterminer l'URL de redirection
+    // En production Vercel, VERCEL_URL est automatiquement défini
+    const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`,
+        redirectTo: `${baseUrl}/auth/reset-password`,
     })
 
     if (error) {
