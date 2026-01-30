@@ -13,10 +13,11 @@ export async function resetPassword(formData: FormData) {
     const supabase = supabaseServer
 
     // Déterminer l'URL de redirection
-    // En production Vercel, VERCEL_URL est automatiquement défini
-    const baseUrl = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Utiliser l'URL de production fixe pour éviter les URLs de preview Vercel
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_ENV === 'production'
+            ? 'https://tuteur-maths-app.vercel.app'
+            : 'http://localhost:3000')
 
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
