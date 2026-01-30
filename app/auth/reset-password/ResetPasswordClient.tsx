@@ -15,26 +15,56 @@ export default function ResetPasswordClient({
     const [isUpdating, setIsUpdating] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
     const [updateError, setUpdateError] = useState<string | null>(error || null);
+    const [sessionEstablished, setSessionEstablished] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        // Vérifier si nous avons un hash token de Supabase
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
+        const establishSession = async () => {
+            // Vérifier si nous avons un hash token de Supabase
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            const type = hashParams.get('type');
 
-        if (type === 'recovery' && accessToken) {
-            // Token de récupération détecté, la session est établie
-            setIsLoading(false);
-        } else if (!accessToken) {
-            // Pas de token, rediriger vers forgot-password
-            setAuthError("Lien invalide ou expiré. Veuillez demander un nouveau lien.");
-            setTimeout(() => {
-                router.push('/forgot-password?error=Lien invalide ou expiré');
-            }, 3000);
-        } else {
-            setIsLoading(false);
-        }
+            if (type === 'recovery' && accessToken && refreshToken) {
+                // Établir la session explicitement
+                const supabase = createClient();
+                const { data, error } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                });
+
+                if (error) {
+                    console.error('Error establishing session:', error);
+                    setAuthError("Erreur lors de l'établissement de la session. Veuillez demander un nouveau lien.");
+                    setTimeout(() => {
+                        router.push('/forgot-password?error=Session invalide');
+                    }, 3000);
+                    return;
+                }
+
+                if (data.session) {
+                    // Session établie avec succès
+                    setSessionEstablished(true);
+                    setIsLoading(false);
+                } else {
+                    setAuthError("Session invalide. Veuillez demander un nouveau lien.");
+                    setTimeout(() => {
+                        router.push('/forgot-password?error=Session invalide');
+                    }, 3000);
+                }
+            } else if (!accessToken) {
+                // Pas de token, rediriger vers forgot-password
+                setAuthError("Lien invalide ou expiré. Veuillez demander un nouveau lien.");
+                setTimeout(() => {
+                    router.push('/forgot-password?error=Lien invalide ou expiré');
+                }, 3000);
+            } else {
+                setIsLoading(false);
+            }
+        };
+
+        establishSession();
     }, [router]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -65,15 +95,32 @@ export default function ResetPasswordClient({
             return;
         }
 
+        // Vérifier que la session est établie
+        if (!sessionEstablished) {
+            setUpdateError('Session non établie. Veuillez réessayer.');
+            setIsUpdating(false);
+            return;
+        }
+
         // Mise à jour du mot de passe côté client
         const supabase = createClient();
+
+        // Vérifier la session avant de mettre à jour
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+            setUpdateError('Session expirée. Veuillez demander un nouveau lien.');
+            setIsUpdating(false);
+            return;
+        }
+
         const { error } = await supabase.auth.updateUser({
             password: password,
         });
 
         if (error) {
             console.error('Error updating password:', error);
-            setUpdateError('Erreur lors de la mise à jour du mot de passe');
+            setUpdateError(`Erreur: ${error.message}`);
             setIsUpdating(false);
             return;
         }

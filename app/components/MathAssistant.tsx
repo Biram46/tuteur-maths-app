@@ -103,10 +103,10 @@ export default function MathAssistant() {
         }
     };
 
-    if (!mounted) return <div className="w-full h-[1100px] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
+    if (!mounted) return <div className="w-full h-[800px] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col h-[1100px] font-['Exo_2',_sans-serif] relative group">
+        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col h-[800px] font-['Exo_2',_sans-serif] relative group">
             {/* Animated Grid Background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden ring-1 ring-cyan-500/20 rounded-3xl">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
@@ -114,40 +114,33 @@ export default function MathAssistant() {
             </div>
 
             {/* Header / Cyber Professor Zone */}
-            <div className="relative shrink-0 bg-slate-900/40 backdrop-blur-xl border-b border-cyan-500/20 p-8 flex flex-col items-center justify-center z-10 overflow-hidden">
+            <div className="relative shrink-0 bg-slate-900/40 backdrop-blur-xl border-b border-cyan-500/20 p-6 flex flex-col items-center justify-center z-10 overflow-hidden">
                 {/* Decorative Elements */}
-                <div className="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-3xl"></div>
-                <div className="absolute top-0 right-0 w-24 h-24 border-t-2 border-r-2 border-fuchsia-500/30 rounded-tr-3xl"></div>
+                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-3xl"></div>
+                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-fuchsia-500/30 rounded-tr-3xl"></div>
 
                 <div className="relative">
                     <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500 to-fuchsia-600 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                    <div className="relative bg-slate-950 p-2 rounded-full ring-2 ring-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                    <div className="relative bg-slate-950 p-1.5 rounded-full ring-2 ring-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
                         <RobotAvatar
                             isTalking={isTalking}
-                            width={120}
-                            height={120}
+                            width={80}
+                            height={80}
                         />
                     </div>
                     {/* Status Ring */}
                     <div className={`absolute -inset-1 border-2 border-dashed rounded-full ${isTalking ? 'border-fuchsia-500 animate-[spin_10s_linear_infinite]' : 'border-cyan-500/50 animate-[spin_20s_linear_infinite]'}`}></div>
                 </div>
 
-                <div className="text-center mt-6">
-                    <h2 className="text-3xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400 uppercase font-['Orbitron',_sans-serif]">
-                        Cyber-Tutor <span className="text-sm align-top opacity-50">PRO</span>
+                <div className="text-center mt-4">
+                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400 uppercase font-['Orbitron',_sans-serif]">
+                        Cyber-Tutor <span className="text-xs align-top opacity-50">PRO</span>
                     </h2>
-                    <div className="flex items-center justify-center gap-3 mt-2">
-                        <div className="flex gap-1">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className={`w-1 h-3 rounded-full ${isTalking ? 'bg-fuchsia-500 animate-bounce' : 'bg-cyan-500 opacity-30'}`} style={{ animationDelay: `${i * 0.1}s` }}></div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
 
-                <div className="absolute top-6 right-8">
+                <div className="absolute top-4 right-6">
                     {loading && (
-                        <div className="relative w-10 h-10">
+                        <div className="relative w-8 h-8">
                             <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full"></div>
                             <div className="absolute inset-0 border-t-2 border-cyan-400 rounded-full animate-spin"></div>
                         </div>
@@ -240,13 +233,10 @@ export default function MathAssistant() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Zone - GIGANTIC & PRO Workspace */}
-            <div className="p-8 bg-slate-900/90 backdrop-blur-3xl border-t-2 border-cyan-500/40 shrink-0 z-20 relative">
+            {/* Input Zone - Compact & Efficient */}
+            <div className="p-4 bg-slate-900/90 backdrop-blur-3xl border-t border-cyan-500/40 shrink-0 z-20 relative">
                 <form onSubmit={handleSendMessage} className="relative w-full mx-auto">
-                    <div className="relative group overflow-hidden bg-black/40 border border-white/10 rounded-3xl p-3 transition-all duration-700 focus-within:border-cyan-400 focus-within:bg-black/60 focus-within:shadow-[0_0_60px_rgba(6,182,212,0.3)]">
-                        {/* Dynamic background glow */}
-                        <div className="absolute -inset-24 bg-gradient-to-br from-cyan-500/10 via-fuchsia-500/5 to-blue-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-1000 blur-3xl pointer-events-none"></div>
-
+                    <div className="relative group overflow-hidden bg-black/40 border border-white/10 rounded-2xl p-2 transition-all duration-700 focus-within:border-cyan-400 focus-within:bg-black/60 focus-within:shadow-[0_0_40px_rgba(6,182,212,0.2)]">
                         <div className="relative flex flex-col gap-2">
                             <textarea
                                 value={input}
@@ -257,36 +247,33 @@ export default function MathAssistant() {
                                         handleSendMessage();
                                     }
                                 }}
-                                placeholder="Détaillez votre problème mathématique ici... Le système accepte les notations complexes et LaTeX."
-                                className="w-full bg-transparent border-none text-slate-100 placeholder-slate-700 focus:ring-0 px-8 py-8 resize-none text-xl leading-loose min-h-[400px] max-h-[550px] font-['Exo_2'] tracking-wide"
+                                placeholder="Pose ta question ici..."
+                                className="w-full bg-transparent border-none text-slate-100 placeholder-slate-600 focus:ring-0 px-4 py-3 resize-none text-base leading-relaxed min-h-[60px] max-h-[150px] font-['Exo_2'] tracking-wide"
                                 disabled={loading}
                             />
 
-                            <div className="flex justify-between items-center px-4 pb-2 border-t border-white/5 pt-2">
-                                <div className="flex items-center gap-4 text-[10px] text-slate-500 font-mono tracking-widest uppercase">
+                            <div className="flex justify-between items-center px-2 pb-1">
+                                <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono tracking-widest uppercase">
                                     <span className="flex items-center gap-1">
                                         <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse"></div>
-                                        LaTeX Support Active
+                                        System Active
                                     </span>
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={loading || !input.trim()}
-                                    className="relative flex items-center gap-4 px-10 py-4 group/btn overflow-hidden rounded-2xl transition-all active:scale-95 disabled:opacity-30"
+                                    className="relative flex items-center gap-2 px-6 py-2 group/btn overflow-hidden rounded-xl transition-all active:scale-95 disabled:opacity-30"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-700 group-hover/btn:from-cyan-500 group-hover/btn:to-blue-600 transition-all"></div>
-                                    <span className="relative text-white font-bold tracking-[0.2em] uppercase text-sm">Transmettre au système</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="relative w-6 h-6 text-white transition-transform duration-300 group-hover/btn:translate-x-1">
+                                    <span className="relative text-white font-bold tracking-wider uppercase text-xs">Envoyer</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="relative w-4 h-4 text-white transition-transform duration-300 group-hover/btn:translate-x-1">
                                         <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <p className="text-[10px] text-center mt-3 text-slate-500 font-mono tracking-widest uppercase">
-                        AI-Powered Mathematical Reasoning Engine • Ready
-                    </p>
                 </form>
             </div>
         </div>
