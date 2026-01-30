@@ -1,7 +1,8 @@
 "use client";
 
 import { updatePassword } from "@/app/auth/password-actions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ResetPasswordClient({
     error,
@@ -10,6 +11,51 @@ export default function ResetPasswordClient({
 }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [authError, setAuthError] = useState<string | null>(null);
+    const router = useRouter();
+
+    useEffect(() => {
+        // Vérifier si nous avons un hash token de Supabase
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+
+        if (type === 'recovery' && accessToken) {
+            // Token de récupération détecté, la session est établie
+            setIsLoading(false);
+        } else if (!accessToken) {
+            // Pas de token, rediriger vers forgot-password
+            setAuthError("Lien invalide ou expiré. Veuillez demander un nouveau lien.");
+            setTimeout(() => {
+                router.push('/forgot-password?error=Lien invalide ou expiré');
+            }, 3000);
+        } else {
+            setIsLoading(false);
+        }
+    }, [router]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="inline-block w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
+                    <p className="text-cyan-500 font-mono text-sm">Vérification...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (authError) {
+        return (
+            <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 max-w-md">
+                    <p className="text-red-400 font-mono text-sm">{authError}</p>
+                    <p className="text-slate-500 font-mono text-xs mt-2">Redirection...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 relative overflow-hidden">
