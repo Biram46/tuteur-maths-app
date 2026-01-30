@@ -34,6 +34,9 @@ export default async function Home() {
                     <button className="nav-tab nav-tab-active">
                         Espace élèves
                     </button>
+                    <Link href="/assistant" className="nav-tab">
+                        Module Assistant
+                    </Link>
                     <Link href="/admin" className="nav-tab">
                         Espace prof
                     </Link>
