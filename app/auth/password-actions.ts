@@ -48,7 +48,28 @@ export async function updatePassword(formData: FormData) {
         redirect('/auth/reset-password?error=Le mot de passe doit contenir au moins 6 caractères')
     }
 
-    const supabase = supabaseServer
+    // Utiliser createServerClient pour avoir accès à la session de l'utilisateur
+    const { createServerClient } = await import('@supabase/ssr')
+    const { cookies } = await import('next/headers')
+
+    const cookieStore = await cookies()
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll()
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        cookieStore.set(name, value, options)
+                    })
+                },
+            },
+        }
+    )
 
     const { error } = await supabase.auth.updateUser({
         password: password,
