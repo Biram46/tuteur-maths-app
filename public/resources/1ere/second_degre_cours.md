@@ -50,7 +50,7 @@ $$
 \begin{array}{c|ccccccc}
 x & -\infty & \quad & x_1 & \quad & x_2 & \quad & +\infty \\
 \hline
-\text{Signe de } f(x) & & \text{sg de } a & 0 & \text{sg de } -a & 0 & \text{sg de } a & 
+\text{Signe de } f(x) & & \text{signe de } a & 0 & \text{signe de } -a & 0 & \text{signe de } a & 
 \end{array}
 $$
 

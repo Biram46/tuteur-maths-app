@@ -58,6 +58,9 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         (r) => r.chapter_id === selectedChapterId
     );
 
+    const [loadingPDF, setLoadingPDF] = useState(false);
+    const [loadingDocx, setLoadingDocx] = useState(false);
+
     // Ref pour l'export PDF
     const courseRef = useRef<HTMLDivElement>(null);
 
@@ -68,45 +71,95 @@ export default function StudentClientView({ levels, chapters, resources }: Props
             return;
         }
 
+        setLoadingPDF(true);
         try {
+            // Un petit délai pour s'assurer que les polices KaTeX sont bien rendues
+            await new Promise(r => setTimeout(r, 1000));
+
             const canvas = await html2canvas(courseRef.current, {
-                scale: 1.2,
+                scale: 1.5,
                 useCORS: true,
                 backgroundColor: "#ffffff",
+                windowWidth: 1024,
+                logging: false
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.6);
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+            }
 
             const pdfBlob = pdf.output('blob');
             const url = URL.createObjectURL(pdfBlob);
             const link = document.createElement('a');
             link.href = url;
             link.download = `${activeChapter?.title || 'cours'}.pdf`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Erreur PDF:", err);
             alert("Erreur de génération. Solution : Ctrl+P > Enregistrer en PDF.");
+        } finally {
+            setLoadingPDF(false);
         }
     };
 
-    // Fonction d'export DOCX (version simplifiée via HTML)
+    // Fonction d'export DOCX améliorée (via HTML compatible Word)
     const handleDownloadDocx = () => {
         if (!markdownContent) return;
-        const html = `<html><body style="font-family:Arial,sans-serif;">${markdownContent.replace(/\n/g, '<br>')}</body></html>`;
-        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${activeChapter?.title || 'cours'}.doc`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        setLoadingDocx(true);
+        try {
+            const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>${activeChapter?.title || 'Cours'}</title>
+                <style>
+                    body { font-family: 'Times New Roman', serif; line-height: 1.5; padding: 1in; }
+                    h1 { color: #2c3e50; border-bottom: 1px solid #eee; }
+                    h2 { color: #34495e; margin-top: 20px; }
+                    table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .formula { font-family: 'Courier New', monospace; color: #000; background: #f9f9f9; padding: 5px; }
+                </style>
+            </head>
+            <body>
+                <h1>${activeChapter?.title || 'Cours'} - ${activeLevel?.label || ''}</h1>
+                ${markdownContent.replace(/\n\n/g, '<p>').replace(/\n/g, '<br>')}
+            </body>
+            </html>`;
+
+            const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${activeChapter?.title || 'cours'}.doc`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Erreur Word:", err);
+        } finally {
+            setLoadingDocx(false);
+        }
     };
 
     // Logique Quiz (gardée de l'ancien page.tsx)
@@ -163,26 +216,11 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         return () => window.removeEventListener("message", handleMessage);
     }, []);
 
-    // Charger le markdown quand le chapitre change
-    useEffect(() => {
-        if (coursUrls.md) {
-            setLoadingMD(true);
-            fetch(coursUrls.md)
-                .then(res => res.text())
-                .then(text => setMarkdownContent(text))
-                .catch(() => setMarkdownContent("Erreur lors du chargement du cours."))
-                .finally(() => setLoadingMD(false));
-        } else {
-            setMarkdownContent(null);
-        }
-    }, [selectedChapterId, resources]);
-
     // Helper pour trouver une ressource d'un type donné
     const getResource = (kind: string) => activeResources.find((r) => r.kind === kind);
     const getResources = (kind: string) => activeResources.filter((r) => r.kind === kind);
 
     // Récupération agrégée des URLs (Cours)
-    // On cherche les URLs dans n'importe quelle ressource dont le type contient 'cours'
     const coursResources = activeResources.filter(r => r.kind.toLowerCase().includes('cours'));
     const coursUrls = {
         pdf: coursResources.find(r => r.pdf_url)?.pdf_url || null,
@@ -198,6 +236,20 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         docx: exosResources.find(r => r.docx_url)?.docx_url || null,
         latex: exosResources.find(r => r.latex_url)?.latex_url || null,
     };
+
+    // Charger le markdown quand le chapitre change
+    useEffect(() => {
+        if (coursUrls.md) {
+            setLoadingMD(true);
+            fetch(coursUrls.md)
+                .then(res => res.text())
+                .then(text => setMarkdownContent(text))
+                .catch(() => setMarkdownContent("Erreur lors du chargement du cours."))
+                .finally(() => setLoadingMD(false));
+        } else {
+            setMarkdownContent(null);
+        }
+    }, [selectedChapterId, resources]);
 
     // Ressources interactives
     const interactif = activeResources.find(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'));
@@ -289,16 +341,24 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                     {/* Barre de téléchargement des formats obligatoires */}
                                     {(coursUrls.pdf || coursUrls.docx || coursUrls.latex) && (
                                         <div className="flex flex-col gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">Formats disponibles (Obligatoires) :</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Formats disponibles :</span>
                                             <div className="flex flex-wrap gap-3">
                                                 {coursUrls.pdf && (
-                                                    <button onClick={handleDownloadPDF} className="btn btn-primary btn-sm gap-2">
-                                                        <span>📄</span> PDF (Générer)
+                                                    <button
+                                                        onClick={handleDownloadPDF}
+                                                        disabled={loadingPDF}
+                                                        className={`btn btn-primary btn-sm gap-2 ${loadingPDF ? 'loading' : ''}`}
+                                                    >
+                                                        <span>📄</span> {loadingPDF ? 'Génération...' : 'PDF'}
                                                     </button>
                                                 )}
                                                 {coursUrls.docx && (
-                                                    <button onClick={handleDownloadDocx} className="btn btn-outline btn-sm gap-2">
-                                                        <span>📥</span> Word (Source)
+                                                    <button
+                                                        onClick={handleDownloadDocx}
+                                                        disabled={loadingDocx}
+                                                        className={`btn btn-outline btn-sm gap-2 ${loadingDocx ? 'loading' : ''}`}
+                                                    >
+                                                        <span>📥</span> {loadingDocx ? 'Export...' : 'Word (.doc)'}
                                                     </button>
                                                 )}
                                                 {coursUrls.latex && (
@@ -315,13 +375,21 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                     <p>Téléchargez ou consultez les documents officiels pour ce chapitre.</p>
                                     <div className="flex flex-wrap gap-3">
                                         {coursUrls.pdf && (
-                                            <button onClick={handleDownloadPDF} className="btn btn-primary gap-2">
-                                                <span>📄</span> Générer le PDF
+                                            <button
+                                                onClick={handleDownloadPDF}
+                                                disabled={loadingPDF}
+                                                className={`btn btn-primary gap-2 ${loadingPDF ? 'loading' : ''}`}
+                                            >
+                                                <span>📄</span> {loadingPDF ? 'Génération...' : 'Générer le PDF'}
                                             </button>
                                         )}
                                         {coursUrls.docx && (
-                                            <button onClick={handleDownloadDocx} className="btn btn-outline gap-2">
-                                                <span>📥</span> Télécharger .doc
+                                            <button
+                                                onClick={handleDownloadDocx}
+                                                disabled={loadingDocx}
+                                                className={`btn btn-outline gap-2 ${loadingDocx ? 'loading' : ''}`}
+                                            >
+                                                <span>📥</span> {loadingDocx ? 'Export...' : 'Exporter Word'}
                                             </button>
                                         )}
                                         {coursUrls.latex && (
@@ -390,18 +458,18 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             <span className="text-xs font-bold text-slate-500 uppercase">Fiches d'exercices à télécharger :</span>
                                             <div className="flex flex-wrap gap-3">
                                                 {exosUrls.pdf && (
-                                                    <a href={exosUrls.pdf} target="_blank" className="btn btn-primary btn-sm gap-2" rel="noopener noreferrer">
+                                                    <button onClick={handleDownloadPDF} className="btn btn-primary btn-sm gap-2">
                                                         <span>📄</span> PDF
-                                                    </a>
+                                                    </button>
                                                 )}
                                                 {exosUrls.docx && (
-                                                    <a href={exosUrls.docx} download className="btn btn-outline btn-sm gap-2">
-                                                        <span>📥</span> Word (.docx)
-                                                    </a>
+                                                    <button onClick={handleDownloadDocx} className="btn btn-outline btn-sm gap-2">
+                                                        <span>📥</span> Word
+                                                    </button>
                                                 )}
                                                 {exosUrls.latex && (
                                                     <a href={exosUrls.latex} download className="btn btn-outline btn-sm gap-2">
-                                                        <span>⚛️</span> LaTeX (.tex)
+                                                        <span>⚛️</span> LaTeX
                                                     </a>
                                                 )}
                                             </div>
@@ -415,13 +483,12 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             ? "Le lien vers cet exercice semble incorrect. Contactez votre professeur."
                                             : "Il n'y a pas encore d'exercices disponibles pour ce chapitre."}
                                     </p>
-                                    {/* Check for non-interactive even if no interactive exists */}
                                     {(exosUrls.pdf || exosUrls.docx || exosUrls.latex) && (
                                         <div className="flex flex-col gap-3 mt-4">
                                             <span className="text-xs font-bold text-slate-500 uppercase">Fiches d'exercices disponibles :</span>
                                             <div className="flex flex-wrap gap-3">
-                                                {exosUrls.pdf && <a href={exosUrls.pdf} target="_blank" className="btn btn-primary btn-sm" rel="noopener noreferrer">PDF</a>}
-                                                {exosUrls.docx && <a href={exosUrls.docx} download className="btn btn-outline btn-sm">Word</a>}
+                                                {exosUrls.pdf && <button onClick={handleDownloadPDF} className="btn btn-primary btn-sm">Générer PDF</button>}
+                                                {exosUrls.docx && <button onClick={handleDownloadDocx} className="btn btn-outline btn-sm">Exporter Word</button>}
                                                 {exosUrls.latex && <a href={exosUrls.latex} download className="btn btn-outline btn-sm">LaTeX</a>}
                                             </div>
                                         </div>
