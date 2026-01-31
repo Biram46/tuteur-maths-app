@@ -6,6 +6,7 @@ import RobotAvatar from './RobotAvatar';
 
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
@@ -252,12 +253,20 @@ export default function MathAssistant() {
                                         <MathFigure content={msg.content} />
 
                                         <ReactMarkdown
-                                            remarkPlugins={[remarkMath]}
+                                            remarkPlugins={[remarkMath, remarkGfm]}
                                             rehypePlugins={[rehypeKatex]}
                                             components={{
                                                 p: ({ node, ...props }) => <p className="mb-4 last:mb-0 text-[15px] leading-relaxed" {...props} />,
                                                 ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
                                                 ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
+                                                table: ({ node, ...props }) => (
+                                                    <div className="overflow-x-auto my-6 border border-slate-700/50 rounded-xl bg-slate-950/50 backdrop-blur-sm">
+                                                        <table className="min-w-full divide-y divide-slate-700/50" {...props} />
+                                                    </div>
+                                                ),
+                                                thead: ({ node, ...props }) => <thead className="bg-slate-800/50" {...props} />,
+                                                th: ({ node, ...props }) => <th className="px-4 py-3 text-left text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-slate-700/50" {...props} />,
+                                                td: ({ node, ...props }) => <td className="px-4 py-3 text-sm text-slate-300 border-b border-slate-700/50" {...props} />,
                                                 li: ({ node, ...props }) => <li className="pl-1" {...props} />,
                                                 h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mb-6 mt-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400 font-['Orbitron'] tracking-wide" {...props} />,
                                                 h2: ({ node, ...props }) => <h2 className="text-xl font-bold mb-4 mt-6 text-cyan-200 font-['Orbitron']" {...props} />,
