@@ -26,6 +26,7 @@ export default function ResetPasswordClient({
             const { data: { session } } = await supabase.auth.getSession();
 
             if (session) {
+                console.log('Session already established (PKCE flow)');
                 setSessionEstablished(true);
                 setIsLoading(false);
                 return;
@@ -38,6 +39,7 @@ export default function ResetPasswordClient({
             const type = hashParams.get('type');
 
             if (type === 'recovery' && accessToken && refreshToken) {
+                console.log('Establishing session from hash tokens (Implicit flow)');
                 // Établir la session explicitement
                 const { data, error } = await supabase.auth.setSession({
                     access_token: accessToken,
@@ -55,22 +57,25 @@ export default function ResetPasswordClient({
 
                 if (data.session) {
                     // Session établie avec succès
+                    console.log('Session established successfully from hash');
                     setSessionEstablished(true);
                     setIsLoading(false);
+
+                    // Nettoyer l'URL en enlevant le hash
+                    window.history.replaceState(null, '', window.location.pathname);
                 } else {
                     setAuthError("Session invalide. Veuillez demander un nouveau lien.");
                     setTimeout(() => {
                         router.push('/forgot-password?error=Session invalide');
                     }, 3000);
                 }
-            } else if (!accessToken) {
-                // Pas de token et pas de session, rediriger vers forgot-password
-                setAuthError("Lien invalide ou expiré (pas de session active). Veuillez demander un nouveau lien.");
+            } else {
+                // Pas de session et pas de tokens valides
+                console.error('No session and no valid hash tokens found');
+                setAuthError("Lien invalide ou expiré. Veuillez demander un nouveau lien.");
                 setTimeout(() => {
                     router.push('/forgot-password?error=Lien invalide ou expiré');
                 }, 3000);
-            } else {
-                setIsLoading(false);
             }
         };
 

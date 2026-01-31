@@ -56,6 +56,21 @@ export async function GET(request: Request) {
         }
     }
 
+    // If no code is provided, check if this is a password reset flow
+    // In that case, redirect to reset-password page which will handle the hash-based flow
+    if (next.includes('reset-password')) {
+        const forwardedHost = request.headers.get('x-forwarded-host')
+        const isLocalEnv = process.env.NODE_ENV === 'development'
+
+        if (isLocalEnv) {
+            return NextResponse.redirect(`${requestUrl.origin}${next}`)
+        } else if (forwardedHost) {
+            return NextResponse.redirect(`https://${forwardedHost}${next}`)
+        } else {
+            return NextResponse.redirect(`${requestUrl.origin}${next}`)
+        }
+    }
+
     // Return the user to an error page with instructions
     return NextResponse.redirect(`${requestUrl.origin}/login?error=no_code_provided`)
 }
