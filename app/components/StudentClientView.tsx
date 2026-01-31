@@ -7,6 +7,9 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import MathAssistant from "./MathAssistant";
 import { Level, Chapter, Resource } from "@/lib/data";
+import { useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 type Props = {
     levels: Level[];
@@ -53,6 +56,45 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     const activeResources = resources.filter(
         (r) => r.chapter_id === selectedChapterId
     );
+
+    // Ref pour l'export PDF
+    const courseRef = useRef<HTMLDivElement>(null);
+
+    // Fonction d'export PDF à la volée (pour pallier les liens vides)
+    const handleDownloadPDF = async () => {
+        if (!courseRef.current) return;
+
+        const canvas = await html2canvas(courseRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${activeChapter?.title || 'cours'}.pdf`);
+    };
+
+    // Fonction d'export DOCX (version simplifiée via HTML)
+    const handleDownloadDocx = () => {
+        if (!markdownContent) return;
+        const blob = new Blob(['\ufeff', markdownContent], {
+            type: 'application/msword'
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${activeChapter?.title || 'cours'}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     // Logique Quiz (gardée de l'ancien page.tsx)
     const [lastScore, setLastScore] = useState<string>("non disponible");
@@ -212,12 +254,14 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                             ) : markdownContent ? (
                                 <div className="space-y-6">
                                     <div className="prose prose-invert max-w-none bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-inner">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkMath]}
-                                            rehypePlugins={[rehypeKatex]}
-                                        >
-                                            {markdownContent}
-                                        </ReactMarkdown>
+                                        <div ref={courseRef} className="bg-white text-slate-900 p-8 rounded-2xl shadow-sm border border-slate-200 printable-area">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkMath]}
+                                                rehypePlugins={[rehypeKatex]}
+                                            >
+                                                {markdownContent}
+                                            </ReactMarkdown>
+                                        </div>
                                     </div>
 
                                     {/* Barre de téléchargement des formats obligatoires */}
@@ -226,14 +270,14 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             <span className="text-xs font-bold text-slate-500 uppercase">Formats disponibles (Obligatoires) :</span>
                                             <div className="flex flex-wrap gap-3">
                                                 {coursUrls.pdf && (
-                                                    <a href={coursUrls.pdf} target="_blank" className="btn btn-primary btn-sm gap-2" rel="noopener noreferrer">
-                                                        <span>📄</span> PDF
-                                                    </a>
+                                                    <button onClick={handleDownloadPDF} className="btn btn-primary btn-sm gap-2">
+                                                        <span>📄</span> PDF (Générer)
+                                                    </button>
                                                 )}
                                                 {coursUrls.docx && (
-                                                    <a href={coursUrls.docx} download className="btn btn-outline btn-sm gap-2">
-                                                        <span>📥</span> Word (.docx)
-                                                    </a>
+                                                    <button onClick={handleDownloadDocx} className="btn btn-outline btn-sm gap-2">
+                                                        <span>📥</span> Word (Source)
+                                                    </button>
                                                 )}
                                                 {coursUrls.latex && (
                                                     <a href={coursUrls.latex} download className="btn btn-outline btn-sm gap-2">
@@ -249,14 +293,14 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                     <p>Téléchargez ou consultez les documents officiels pour ce chapitre.</p>
                                     <div className="flex flex-wrap gap-3">
                                         {coursUrls.pdf && (
-                                            <a href={coursUrls.pdf} target="_blank" className="btn btn-primary gap-2" rel="noopener noreferrer">
-                                                <span>📄</span> Voir le PDF
-                                            </a>
+                                            <button onClick={handleDownloadPDF} className="btn btn-primary gap-2">
+                                                <span>📄</span> Générer le PDF
+                                            </button>
                                         )}
                                         {coursUrls.docx && (
-                                            <a href={coursUrls.docx} download className="btn btn-outline gap-2">
-                                                <span>📥</span> Télécharger .docx
-                                            </a>
+                                            <button onClick={handleDownloadDocx} className="btn btn-outline gap-2">
+                                                <span>📥</span> Télécharger .doc
+                                            </button>
                                         )}
                                         {coursUrls.latex && (
                                             <a href={coursUrls.latex} download className="btn btn-outline gap-2">
