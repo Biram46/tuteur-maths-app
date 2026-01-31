@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import MathAssistant from "./MathAssistant";
@@ -62,31 +63,51 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
     // Fonction d'export PDF à la volée (pour pallier les liens vides)
     const handleDownloadPDF = async () => {
-        if (!courseRef.current) return;
+        if (!courseRef.current) {
+            alert("Contenu du cours non trouvé.");
+            return;
+        }
 
-        const canvas = await html2canvas(courseRef.current, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: "#ffffff"
-        });
+        try {
+            const canvas = await html2canvas(courseRef.current, {
+                scale: 1.5,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
+                windowWidth: 1024
+            });
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const imgData = canvas.toDataURL('image/jpeg', 0.8);
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${activeChapter?.title || 'cours'}.pdf`);
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+            }
+
+            pdf.save(`${activeChapter?.title || 'cours'}.pdf`);
+        } catch (err) {
+            console.error("Erreur PDF:", err);
+            alert("La génération du PDF a échoué. Utilisez 'Imprimer' (Ctrl+P) → 'Enregistrer en PDF'.");
+        }
     };
 
     // Fonction d'export DOCX (version simplifiée via HTML)
     const handleDownloadDocx = () => {
         if (!markdownContent) return;
-        const blob = new Blob(['\ufeff', markdownContent], {
-            type: 'application/msword'
-        });
+        const html = `<html><body style="font-family:Arial,sans-serif;">${markdownContent.replace(/\n/g, '<br>')}</body></html>`;
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -254,10 +275,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                             ) : markdownContent ? (
                                 <div className="space-y-6">
                                     <div className="prose prose-invert max-w-none bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-inner">
-                                        <div ref={courseRef} className="bg-white text-slate-900 p-8 rounded-2xl shadow-sm border border-slate-200 printable-area">
+                                        <div ref={courseRef} className="bg-white text-slate-900 p-8 rounded-2xl shadow-sm border border-slate-200 printable-area overflow-x-auto">
                                             <ReactMarkdown
-                                                remarkPlugins={[remarkMath]}
+                                                remarkPlugins={[remarkMath, remarkGfm]}
                                                 rehypePlugins={[rehypeKatex]}
+                                                components={{
+                                                    table: ({ node, ...props }) => (
+                                                        <div className="my-6 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                                            <table className="min-w-full divide-y divide-slate-200" {...props} />
+                                                        </div>
+                                                    ),
+                                                    th: ({ node, ...props }) => <th className="px-4 py-2 bg-slate-50 font-bold text-left border-b" {...props} />,
+                                                    td: ({ node, ...props }) => <td className="px-4 py-2 border-b" {...props} />,
+                                                }}
                                             >
                                                 {markdownContent}
                                             </ReactMarkdown>
