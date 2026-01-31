@@ -70,36 +70,28 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
         try {
             const canvas = await html2canvas(courseRef.current, {
-                scale: 1.5,
+                scale: 1.2,
                 useCORS: true,
-                logging: false,
                 backgroundColor: "#ffffff",
-                windowWidth: 1024
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.8);
+            const imgData = canvas.toDataURL('image/jpeg', 0.6);
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            let heightLeft = imgHeight;
-            let position = 0;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
 
-            pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
-            }
-
-            pdf.save(`${activeChapter?.title || 'cours'}.pdf`);
+            const pdfBlob = pdf.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${activeChapter?.title || 'cours'}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Erreur PDF:", err);
-            alert("La génération du PDF a échoué. Utilisez 'Imprimer' (Ctrl+P) → 'Enregistrer en PDF'.");
+            alert("Erreur de génération. Solution : Ctrl+P > Enregistrer en PDF.");
         }
     };
 

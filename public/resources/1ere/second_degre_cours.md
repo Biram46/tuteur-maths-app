@@ -46,9 +46,13 @@ $$\Delta = b^2 - 4ac$$
 
 Le trinôme $ax^2 + bx + c$ est toujours du **signe de $a$**, sauf entre ses racines (lorsqu'elles existent).
 
-| $x$ | $-\infty$ | | $x_1$ | | $x_2$ | | $+\infty$ |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Signe de $f(x)$** | | signe de $a$ | $0$ | signe de $-a$ | $0$ | signe de $a$ | |
+$$
+\begin{array}{c|ccccccc}
+x & -\infty & \quad & x_1 & \quad & x_2 & \quad & +\infty \\
+\hline
+\text{Signe de } f(x) & & \text{sg de } a & 0 & \text{sg de } -a & 0 & \text{sg de } a & 
+\end{array}
+$$
 
 ---
 
