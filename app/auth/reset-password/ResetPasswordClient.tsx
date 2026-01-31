@@ -20,7 +20,18 @@ export default function ResetPasswordClient({
 
     useEffect(() => {
         const establishSession = async () => {
-            // Vérifier si nous avons un hash token de Supabase
+            const supabase = createClient();
+
+            // 1. Check for existing session (PKCE flow via callback)
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                setSessionEstablished(true);
+                setIsLoading(false);
+                return;
+            }
+
+            // 2. Check for hash parameters (Implicit flow fallback)
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
@@ -28,7 +39,6 @@ export default function ResetPasswordClient({
 
             if (type === 'recovery' && accessToken && refreshToken) {
                 // Établir la session explicitement
-                const supabase = createClient();
                 const { data, error } = await supabase.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
@@ -54,8 +64,8 @@ export default function ResetPasswordClient({
                     }, 3000);
                 }
             } else if (!accessToken) {
-                // Pas de token, rediriger vers forgot-password
-                setAuthError("Lien invalide ou expiré. Veuillez demander un nouveau lien.");
+                // Pas de token et pas de session, rediriger vers forgot-password
+                setAuthError("Lien invalide ou expiré (pas de session active). Veuillez demander un nouveau lien.");
                 setTimeout(() => {
                     router.push('/forgot-password?error=Lien invalide ou expiré');
                 }, 3000);
