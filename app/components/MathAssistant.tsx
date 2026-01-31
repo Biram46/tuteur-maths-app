@@ -56,7 +56,10 @@ export default function MathAssistant() {
 
     // Fonction pour nettoyer et formater le contenu LaTeX pour ReactMarkdown
     const formatContent = (content: string) => {
-        return content
+        // Enlever les tags de figures du texte affiché
+        const cleaned = content.replace(/\[FIGURE: .*?\]/g, '');
+
+        return cleaned
             // Remplace \[ ... \] par $$ ... $$ pour les blocs mathématiques (compatible multilignes)
             .replace(/\\\[([\s\S]*?)\\\]/g, '$$$1$$')
             // Remplace \( ... \) par $ ... $ pour les maths en ligne
@@ -69,6 +72,53 @@ export default function MathAssistant() {
                 if (/[=\+\-\\\^_{}]/.test(p1)) return `$$${p1}$$`;
                 return match;
             });
+    };
+
+    // Composant interne pour afficher des figures mathématiques si détectées
+    const MathFigure = ({ content }: { content: string }) => {
+        if (content.includes('[FIGURE: TrigonometricCircle]')) {
+            return (
+                <div className="my-6 p-6 bg-slate-900/80 rounded-2xl border border-cyan-500/30 flex flex-col items-center shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+                    <span className="text-[10px] text-cyan-400 font-mono mb-6 uppercase tracking-widest bg-cyan-500/10 px-3 py-1 rounded-full">Visualisation Géométrique</span>
+                    <svg width="240" height="240" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                        {/* Grille légère */}
+                        <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
+
+                        {/* Axes */}
+                        <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
+                        <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
+
+                        {/* Cercle principal */}
+                        <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="3" />
+                        <defs>
+                            <linearGradient id="cyl-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style={{ stopColor: '#22d3ee' }} />
+                                <stop offset="100%" style={{ stopColor: '#d946ef' }} />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Points Cardinaux */}
+                        <text x="110" y="5" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">I (1,0)</text>
+                        <text x="-5" y="-110" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">J (0,1)</text>
+                        <text x="-125" y="5" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">(-1,0)</text>
+                        <text x="-5" y="125" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">(0,-1)</text>
+
+                        {/* Exemple d'angle pi/4 */}
+                        <line x1="0" y1="0" x2="70.7" y2="-70.7" stroke="#22d3ee" strokeWidth="2" strokeDasharray="2" />
+                        <circle cx="70.7" cy="-70.7" r="5" fill="#d946ef" className="animate-pulse" />
+                        <text x="75" y="-75" fill="#22d3ee" fontSize="12" className="font-bold">M (cos θ, sin θ)</text>
+
+                        {/* Arc d'angle */}
+                        <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="2" />
+                        <text x="35" y="-10" fill="cyan" fontSize="12" className="italic">θ</text>
+                    </svg>
+                    <p className="text-[11px] text-slate-400 mt-6 italic text-center px-4">
+                        Ce cercle trigonométrique de rayon 1 permet de visualiser les coordonnées des points via les fonctions cosinus (abscisse) et sinus (ordonnée).
+                    </p>
+                </div>
+            )
+        }
+        return null;
     };
 
     const handleSendMessage = async (e?: React.FormEvent) => {
@@ -103,10 +153,10 @@ export default function MathAssistant() {
         }
     };
 
-    if (!mounted) return <div className="w-full max-h-[600px] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
+    if (!mounted) return <div className="w-full h-[70vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col max-h-[600px] min-h-[400px] font-['Exo_2',_sans-serif] relative group">
+        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] min-h-[550px] font-['Exo_2',_sans-serif] relative group">
             {/* Animated Grid Background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden ring-1 ring-cyan-500/20 rounded-3xl">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
@@ -197,6 +247,10 @@ export default function MathAssistant() {
                                             <div className="w-2 h-2 rounded-full bg-fuchsia-500 animate-pulse"></div>
                                             <span className="text-[10px] uppercase tracking-widest font-mono">Transmitting...</span>
                                         </div>
+
+                                        {/* Rendu des Figures Dynamiques */}
+                                        <MathFigure content={msg.content} />
+
                                         <ReactMarkdown
                                             remarkPlugins={[remarkMath]}
                                             rehypePlugins={[rehypeKatex]}
