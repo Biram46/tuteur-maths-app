@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/middleware'
+import { updateSession } from '@/lib/session'
 
 export async function middleware(request: NextRequest) {
     // On met à jour la session (refresh cookies)
