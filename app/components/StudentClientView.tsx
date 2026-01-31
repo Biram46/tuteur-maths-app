@@ -207,7 +207,6 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     }, [selectedChapterId, resources]);
 
     // Helpers
-    const activeResources = resources.filter(r => r.chapter_id === selectedChapterId);
     const coursResources = activeResources.filter(r => r.kind.toLowerCase().includes('cours'));
     const coursUrls = {
         pdf: coursResources.find(r => r.pdf_url)?.pdf_url || "placeholder", // On force le flag car on génère à la volée
