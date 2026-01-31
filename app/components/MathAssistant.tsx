@@ -103,10 +103,10 @@ export default function MathAssistant() {
         }
     };
 
-    if (!mounted) return <div className="w-full h-[600px] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
+    if (!mounted) return <div className="w-full max-h-[600px] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col h-[600px] font-['Exo_2',_sans-serif] relative group">
+        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col max-h-[600px] min-h-[400px] font-['Exo_2',_sans-serif] relative group">
             {/* Animated Grid Background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden ring-1 ring-cyan-500/20 rounded-3xl">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
