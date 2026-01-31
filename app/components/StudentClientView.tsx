@@ -45,6 +45,10 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     const [markdownContent, setMarkdownContent] = useState<string | null>(null);
     const [loadingMD, setLoadingMD] = useState(false);
 
+    // État pour le contenu des exercices Markdown
+    const [exoMarkdownContent, setExoMarkdownContent] = useState<string | null>(null);
+    const [loadingExoMD, setLoadingExoMD] = useState(false);
+
     const activeLevel = levels.find((l) => l.id === selectedLevelId);
     const activeChapter = chapters.find((c) => c.id === selectedChapterId);
 
@@ -61,8 +65,9 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     const [loadingPDF, setLoadingPDF] = useState(false);
     const [loadingDocx, setLoadingDocx] = useState(false);
 
-    // Ref pour l'export PDF
+    // Refs pour les exports
     const courseRef = useRef<HTMLDivElement>(null);
+    const exoRef = useRef<HTMLDivElement>(null);
 
     // Fonction d'impression (Moteur natif - 100% fiable pour PDF)
     const handlePrint = () => {
@@ -102,18 +107,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     };
 
     // Fonction d'export DOCX (Améliorée avec rendu HTML)
-    const handleDownloadDocx = () => {
-        if (!courseRef.current) return;
+    const handleDownloadDocx = (isExo = false) => {
+        const targetRef = isExo ? exoRef : courseRef;
+        if (!targetRef.current) return;
         setLoadingDocx(true);
         try {
             // On capture le HTML déjà rendu par le navigateur (inclut les structures mathématiques)
-            const renderedHtml = courseRef.current.innerHTML;
+            const renderedHtml = targetRef.current.innerHTML;
 
             const html = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head>
                 <meta charset='utf-8'>
-                <title>${activeChapter?.title || 'Cours'}</title>
+                <title>${activeChapter?.title || (isExo ? 'Exercices' : 'Cours')}</title>
                 <style>
                     body { font-family: Calibri, 'Segoe UI', serif; line-height: 1.5; padding: 20px; }
                     h1 { color: #1e40af; border-bottom: 2px solid #1e40af; }
@@ -127,7 +133,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
             </head>
             <body>
                 <h4 style="color: #64748b; text-transform: uppercase;">${activeLevel?.label || ''}</h4>
-                <h1>${activeChapter?.title || 'Cours'}</h1>
+                <h1>${activeChapter?.title || (isExo ? 'Exercices' : 'Cours')}</h1>
                 <hr>
                 ${renderedHtml}
                 <div style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 10px; font-size: 0.8em; color: #94a3b8;">
@@ -141,7 +147,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${activeChapter?.title || 'cours'}.doc`;
+            link.download = `${activeChapter?.title || (isExo ? 'exercices' : 'cours')}.doc`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -199,10 +205,21 @@ export default function StudentClientView({ levels, chapters, resources }: Props
             fetch(coursUrls.md)
                 .then(res => res.text())
                 .then(text => setMarkdownContent(text))
-                .catch(() => setMarkdownContent("Erreur de chargement."))
+                .catch(() => setMarkdownContent("Erreur de chargement du cours."))
                 .finally(() => setLoadingMD(false));
         } else {
             setMarkdownContent(null);
+        }
+
+        if (exosUrls.md) {
+            setLoadingExoMD(true);
+            fetch(exosUrls.md)
+                .then(res => res.text())
+                .then(text => setExoMarkdownContent(text))
+                .catch(() => setExoMarkdownContent("Erreur de chargement des exercices."))
+                .finally(() => setLoadingExoMD(false));
+        } else {
+            setExoMarkdownContent(null);
         }
     }, [selectedChapterId, resources]);
 
@@ -219,6 +236,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         pdf: exosResources.find(r => r.pdf_url)?.pdf_url || "placeholder",
         docx: exosResources.find(r => r.docx_url)?.docx_url || "placeholder",
         latex: exosResources.find(r => r.latex_url)?.latex_url || null,
+        md: exosResources.find(r => r.html_url?.endsWith('.md'))?.html_url || null,
     };
     const interactif = activeResources.find(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'));
 
@@ -326,12 +344,39 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <p className="font-semibold text-slate-700 m-0">Dernier score : <span className="text-blue-600">{lastScore}</span></p>
                                         {sending && <span className="text-xs font-bold text-blue-600 animate-pulse">SYNCHRO...</span>}
                                     </div>
-                                    <div className="flex flex-col gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200 mt-4">
-                                        <span className="text-xs font-bold text-slate-500 uppercase">Fiches d'exercices statiques :</span>
-                                        <div className="flex flex-wrap gap-3">
-                                            <button onClick={handlePrint} className="btn btn-primary btn-sm gap-2"><span>🖨️</span> PDF Pro</button>
-                                            <button onClick={handleDownloadDocx} className="btn btn-outline btn-sm gap-2"><span>📥</span> Word</button>
+                                    <div className="flex flex-col gap-4 p-4 bg-slate-100 rounded-xl border border-slate-200 mt-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Fiche d'exercices :</span>
                                         </div>
+
+                                        {loadingExoMD ? (
+                                            <div className="p-4 text-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div></div>
+                                        ) : exoMarkdownContent ? (
+                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                                                <div ref={exoRef} className="prose prose-slate max-w-none">
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                                        rehypePlugins={[rehypeKatex]}
+                                                    >
+                                                        {exoMarkdownContent}
+                                                    </ReactMarkdown>
+                                                </div>
+                                                <div className="mt-6 flex flex-wrap gap-3 no-print pt-4 border-t border-slate-100">
+                                                    <button onClick={() => window.print()} className="btn btn-primary btn-sm gap-2"><span>🖨️</span> PDF Pro</button>
+                                                    <button onClick={() => handleDownloadDocx(true)} className="btn btn-outline btn-sm gap-2"><span>📥</span> Word</button>
+                                                    {exosUrls.latex && (
+                                                        <a href={exosUrls.latex} download className="btn btn-outline btn-sm gap-2"><span>⚛️</span> LaTeX</a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-3">
+                                                {exosUrls.latex && (
+                                                    <a href={exosUrls.latex} download className="btn btn-outline btn-sm gap-2"><span>⚛️</span> LaTeX</a>
+                                                )}
+                                                <p className="text-[10px] text-slate-400 italic m-0">Consultez le cours pour les exercices d'application directe.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

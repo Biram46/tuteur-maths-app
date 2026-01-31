@@ -73,10 +73,11 @@ async function seed() {
             latex_url: `/resources/1ere/${base}_cours.tex`
         });
 
-        // 2. Non-Interactive Exercise Resources (PDF + DOCX + TEX)
+        // 2. Non-Interactive Exercise Resources (MD + PDF + DOCX + TEX)
         resources.push({
             chapter_id: id,
             kind: 'exercice',
+            html_url: `/resources/1ere/${base}_exos.md`,
             pdf_url: `/resources/1ere/${base}_exos.pdf`,
             docx_url: `/resources/1ere/${base}_exos.docx`,
             latex_url: `/resources/1ere/${base}_exos.tex`
