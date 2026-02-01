@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 /**
+ * Force dynamic rendering to ensure updated data is always fetched.
+ */
+export const dynamic = 'force-dynamic';
+
+/**
  * Page d'accueil (Espace Élève)
  * Server Component : Charge les données initiales
  */
