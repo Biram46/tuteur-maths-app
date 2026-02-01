@@ -103,8 +103,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                     key={level.id}
                                     onClick={() => setSelectedLevelId(level.id)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 border ${selectedLevelId === level.id
-                                            ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30 scale-105"
-                                            : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
+                                        ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/30 scale-105"
+                                        : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
                                         }`}
                                 >
                                     {level.label}
@@ -122,8 +122,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                     key={chapter.id}
                                     onClick={() => setSelectedChapterId(chapter.id)}
                                     className={`group flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-300 border ${selectedChapterId === chapter.id
-                                            ? "bg-gradient-to-r from-blue-600/20 to-purple-600/10 border-blue-500/50 text-white"
-                                            : "bg-transparent border-transparent hover:bg-white/5 text-slate-400 hover:text-slate-200"
+                                        ? "bg-gradient-to-r from-blue-600/20 to-purple-600/10 border-blue-500/50 text-white"
+                                        : "bg-transparent border-transparent hover:bg-white/5 text-slate-400 hover:text-slate-200"
                                         }`}
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedChapterId === chapter.id ? "bg-blue-500 text-white" : "bg-white/10 text-slate-500 group-hover:bg-white/20 group-hover:text-white"
@@ -183,8 +183,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             onClick={() => openResource(coursUrl, 'cours', activeChapter.title)}
                                             disabled={!coursUrl}
                                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${coursUrl
-                                                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
-                                                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
+                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 }`}
                                         >
                                             {coursUrl ? (
@@ -211,8 +211,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             onClick={() => openResource(exosUrl, 'exercice', `Exercices - ${activeChapter.title}`)}
                                             disabled={!exosUrl}
                                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${exosUrl
-                                                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30"
-                                                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                                ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30"
+                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 }`}
                                         >
                                             {exosUrl ? (
@@ -234,20 +234,20 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <div className="absolute top-6 right-6 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-[10px] font-bold text-amber-300 uppercase tracking-widest animate-pulse">
                                             Populaire
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Quiz Interactif</h3>
+                                        <h3 className="text-xl font-bold text-white mb-2">EXERCICES INTERACTIFS</h3>
                                         <p className="text-sm text-slate-400 mb-6 flex-1">
                                             Testez vos connaissances en temps réel avec des quiz et jeux mathématiques.
                                         </p>
                                         <button
-                                            onClick={() => openResource(interactifUrl, 'interactif', `Quiz - ${activeChapter.title}`)}
+                                            onClick={() => openResource(interactifUrl, 'interactif', `Exercices Interactifs - ${activeChapter.title}`)}
                                             disabled={!interactifUrl}
                                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${interactifUrl
-                                                    ? "bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30"
-                                                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                                ? "bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30"
+                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 }`}
                                         >
                                             {interactifUrl ? (
-                                                <><span>Lancer le Quiz</span> <span className="text-xs opacity-70">↗</span></>
+                                                <><span>Lancer les Exercices</span> <span className="text-xs opacity-70">↗</span></>
                                             ) : (
                                                 <span>Indisponible</span>
                                             )}
