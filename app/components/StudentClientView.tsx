@@ -50,8 +50,11 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     const interactifResource = activeResources.find(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'));
 
     // URLs principales (priorité au PDF si dispo, sinon MD/HTML)
-    const coursUrl = coursResources.find(r => r.html_url)?.html_url || null;
-    const exosUrl = exosResources.find(r => r.html_url)?.html_url || null; // Souvent le MD des exos
+    const coursResource = coursResources.find(r => r.pdf_url || r.html_url || r.docx_url);
+    const coursUrl = coursResource?.pdf_url || coursResource?.html_url || coursResource?.docx_url || null;
+
+    const exosResource = exosResources.find(r => r.pdf_url || r.html_url || r.docx_url);
+    const exosUrl = exosResource?.pdf_url || exosResource?.html_url || exosResource?.docx_url || null;
     const interactifUrl = interactifResource?.html_url || null;
 
     // Fonction pour ouvrir une ressource
