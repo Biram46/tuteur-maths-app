@@ -116,7 +116,7 @@ export async function uploadResourceWithFile(formData: FormData) {
     const timestamp = Date.now();
     // Sanitize filename to avoid issues with special characters
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `resources/${timestamp}-${sanitizedFileName}`;
+    let filePath = `resources/${timestamp}-${sanitizedFileName}`;
 
     console.log("[uploadResourceWithFile] Processing upload:", {
         chapterId,
