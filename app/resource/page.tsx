@@ -131,7 +131,7 @@ function ResourceContent() {
                             Si le document ne s'affiche pas, <a href={url} download className="text-blue-600 font-bold hover:underline">cliquez ici pour le télécharger</a>.
                         </div>
                         <iframe
-                            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+                            src={`https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`}
                             className="w-full flex-1 border-0"
                             title={title || "Document Word"}
                         />
