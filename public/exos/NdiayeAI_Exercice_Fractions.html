@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercice Interactif - Fractions (Seconde) - NdiayeAI</title>
+
+    <!-- Intégration KaTeX pour l'affichage mathématique -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body);"></script>
+
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: var(--primary);
+            padding: 20px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .ndiayeai-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .ndiayeai-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .ndiayeai-title {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ndiayeai-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .ndiayeai-consigne {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: bold;
+            text-align: center;
+            border-left: 4px solid #f39c12;
+        }
+
+        .ndiayeai-question {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-left: 5px solid var(--accent);
+            background: #f9f9f9;
+            border-radius: 6px;
+            transition: transform 0.2s;
+        }
+
+        .ndiayeai-question:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .ndiayeai-math {
+            display: block;
+            margin: 15px 0;
+            font-size: 1.3em;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .ndiayeai-input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 150px;
+            font-size: 1.1em;
+            text-align: center;
+            display: block;
+            margin: 15px auto;
+            transition: border 0.3s;
+        }
+
+        .ndiayeai-input:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .ndiayeai-button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, var(--success), #219150);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 30px;
+        }
+
+        .ndiayeai-button:hover {
+            background: linear-gradient(135deg, #219150, var(--success));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        .ndiayeai-button:active {
+            transform: translateY(0);
+        }
+
+        .ndiayeai-result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 1.5em;
+            text-align: center;
+            font-weight: bold;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            display: none;
+        }
+
+        .ndiayeai-feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .ndiayeai-feedback.correct {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid var(--success);
+        }
+
+        .ndiayeai-feedback.incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid var(--danger);
+        }
+
+        .ndiayeai-question-number {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .ndiayeai-timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .ndiayeai-container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .ndiayeai-timer {
+                position: static;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ndiayeai-container" id="ndiayeai-exercise">
+        <div class="ndiayeai-header">
+            <h1 class="ndiayeai-title">📚 Automatismes : Fractions (Seconde)</h1>
+            <p class="ndiayeai-subtitle">Exercice interactif conforme au modèle NdiayeAI</p>
+        </div>
+
+        <div class="ndiayeai-consigne">
+            ⚠️ <strong>SANS CALCULATRICE</strong> : Donnez le résultat sous forme d'une fraction irréductible.
+        </div>
+
+        <div id="exercice-content">
+            <section class="ndiayeai-question" data-question="1">
+                <p><span class="ndiayeai-question-number">1</span> Calculez l'expression suivante :</p>
+                <div class="ndiayeai-math">$$B = \frac{4}{3} - \frac{3}{5}$$</div>
+                <input type="text" class="ndiayeai-input" id="q1" placeholder="ex: 11/15">
+                <div class="ndiayeai-feedback" id="feedback-q1"></div>
+            </section>
+
+            <section class="ndiayeai-question" data-question="2">
+                <p><span class="ndiayeai-question-number">2</span> Calculez l'expression suivante :</p>
+                <div class="ndiayeai-math">$$C = \frac{3}{2} \times \frac{-4}{5}$$</div>
+                <input type="text" class="ndiayeai-input" id="q2" placeholder="ex: -6/5">
+                <div class="ndiayeai-feedback" id="feedback-q2"></div>
+            </section>
+
+            <section class="ndiayeai-question" data-question="3">
+                <p><span class="ndiayeai-question-number">3</span> Simplifiez l'écriture suivante :</p>
+                <div class="ndiayeai-math">$$M = \frac{\frac{2}{3}}{4}$$</div>
+                <input type="text" class="ndiayeai-input" id="q3" placeholder="ex: 1/6">
+                <div class="ndiayeai-feedback" id="feedback-q3"></div>
+            </section>
+
+            <section class="ndiayeai-question" data-question="4">
+                <p><span class="ndiayeai-question-number">4</span> Calculez l'expression suivante :</p>
+                <div class="ndiayeai-math">$$P = \frac{\frac{1}{2} - \frac{1}{4}}{\frac{1}{4}}$$</div>
+                <input type="text" class="ndiayeai-input" id="q4" placeholder="ex: 1 ou 1/1">
+                <div class="ndiayeai-feedback" id="feedback-q4"></div>
+            </section>
+        </div>
+
+        <button class="ndiayeai-button" id="btn-valider">
+            ✅ Valider mes réponses et calculer ma note
+        </button>
+
+        <div class="ndiayeai-result" id="resultat-affichage">
+            <!-- Le résultat s'affichera ici -->
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // MODÈLE NDIAYEAI - EXERCICE INTERACTIF
+        // ============================================
+
+        // Variables obligatoires pour le système NdiayeAI
+        var noteFinale = 0;
+        var surNote = 20;
+        var exerciceId = "fractions-seconde-001";
+        var exerciceTitre = "Automatismes : Fractions (Seconde)";
+
+        // Configuration des réponses attendues
+        var reponsesCorrectes = {
+            q1: "11/15",
+            q2: "-6/5",
+            q3: "1/6",
+            q4: "1"
+        };
+
+        // Fonction de normalisation des réponses
+        function normaliserReponse(reponse) {
+            return reponse.trim().replace(/\s+/g, '');
+        }
+
+        // Fonction de validation d'une réponse
+        function validerReponse(idQuestion, reponseUtilisateur) {
+            const reponseAttendue = reponsesCorrectes[idQuestion];
+            const reponseNorm = normaliserReponse(reponseUtilisateur);
+
+            // Pour la question 4, accepter aussi "1/1"
+            if (idQuestion === "q4" && (reponseNorm === "1" || reponseNorm === "1/1")) {
+                return true;
+            }
+
+            return reponseNorm === reponseAttendue;
+        }
+
+        // Fonction d'affichage du feedback
+        function afficherFeedback(idQuestion, estCorrect) {
+            const feedbackEl = document.getElementById(`feedback-${idQuestion}`);
+            const questionEl = document.querySelector(`[data-question="${idQuestion.replace('q', '')}"]`);
+
+            if (estCorrect) {
+                feedbackEl.textContent = "✅ Correct !";
+                feedbackEl.className = "ndiayeai-feedback correct";
+                questionEl.style.borderLeftColor = "#27ae60";
+            } else {
+                feedbackEl.textContent = "❌ Réponse incorrecte. Essayez encore !";
+                feedbackEl.className = "ndiayeai-feedback incorrect";
+                questionEl.style.borderLeftColor = "#e74c3c";
+            }
+
+            feedbackEl.style.display = "block";
+        }
+
+        // Fonction principale de calcul de la note
+        function calculerNote() {
+            let points = 0;
+            const pointsParQuestion = 5;
+
+            // Validation de chaque question
+            for (let i = 1; i <= 4; i++) {
+                const idQuestion = `q${i}`;
+                const reponse = document.getElementById(idQuestion).value;
+                const estCorrect = validerReponse(idQuestion, reponse);
+
+                if (estCorrect) {
+                    points += pointsParQuestion;
+                }
+
+                afficherFeedback(idQuestion, estCorrect);
+            }
+
+            noteFinale = points; // Note sur 20
+            return noteFinale;
+        }
+
+        // Fonction d'affichage des résultats
+        function afficherResultat(note) {
+            const resultatEl = document.getElementById("resultat-affichage");
+            const pourcentage = (note / surNote) * 100;
+
+            let message = "";
+            let couleurFond = "";
+
+            if (pourcentage >= 80) {
+                message = `🎉 Excellent ! Vous avez obtenu ${note}/${surNote} (${pourcentage}%)`;
+                couleurFond = "#d4edda";
+            } else if (pourcentage >= 60) {
+                message = `👍 Bien ! Vous avez obtenu ${note}/${surNote} (${pourcentage}%)`;
+                couleurFond = "#d1ecf1";
+            } else if (pourcentage >= 40) {
+                message = `👌 Pas mal ! Vous avez obtenu ${note}/${surNote} (${pourcentage}%)`;
+                couleurFond = "#fff3cd";
+            } else {
+                message = `📚 À revoir ! Vous avez obtenu ${note}/${surNote} (${pourcentage}%)`;
+                couleurFond = "#f8d7da";
+            }
+
+            resultatEl.innerHTML = `
+                <h3>Résultat de l'exercice</h3>
+                <p style="font-size: 1.8em; margin: 10px 0;">${note}/${surNote}</p>
+                <p>${message}</p>
+                <p><small>ID exercice: ${exerciceId}</small></p>
+            `;
+            resultatEl.style.backgroundColor = couleurFond;
+            resultatEl.style.display = "block";
+
+            // Défilement vers le résultat
+            resultatEl.scrollIntoView({ behavior: "smooth" });
+        }
+
+        // Gestionnaire d'événement pour le bouton de validation
+        document.getElementById("btn-valider").addEventListener("click", function () {
+            const note = calculerNote();
+            afficherResultat(note);
+
+            // Communication avec l'application parente (si intégré dans NdiayeAI)
+            const message = {
+                type: "quiz-result",
+                exerciseId: exerciceId,
+                exerciseTitle: exerciceTitre,
+                note: note,
+                sur: surNote,
+                timestamp: new Date().toISOString(),
+                details: {
+                    q1: document.getElementById("q1").value,
+                    q2: document.getElementById("q2").value,
+                    q3: document.getElementById("q3").value,
+                    q4: document.getElementById("q4").value
+                }
+            };
+
+            // Envoi du message à la fenêtre parente
+            if (window.parent !== window.self) {
+                window.parent.postMessage(message, "*");
+            }
+
+            // Animation du bouton
+            this.innerHTML = "📊 Note calculée !";
+            this.style.background = "linear-gradient(135deg, #3498db, #2c3e50)";
+
+            setTimeout(() => {
+                this.innerHTML = "✅ Valider mes réponses et calculer ma note";
+                this.style.background = "linear-gradient(135deg, #27ae60, #219150)";
+            }, 2000);
+        });
+
+        // Gestion de la soumission par la touche Entrée
+        document.querySelectorAll(".ndiayeai-input").forEach(input => {
+            input.addEventListener("keypress", function (event) {
+                if (event.key === "Enter") {
+                    document.getElementById("btn-valider").click();
+                }
+            });
+        });
+
+        // Initialisation de l'exercice
+        console.log(`Exercice NdiayeAI chargé: ${exerciceTitre} (${exerciceId})`);
+
+        // Rendering mathématique avec KaTeX
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof renderMathInElement === "function") {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ]
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
