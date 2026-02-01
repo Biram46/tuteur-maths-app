@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exercice - Équation du second degré</title>
+    <!-- Chargement de MathJax pour les formules mathématiques -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fce7f3;
+            /* Rose pâle très léger */
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(219, 39, 119, 0.15);
+            /* Ombre rosée */
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #be185d;
+            /* Rose foncé */
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #fce7f3;
+            padding-bottom: 15px;
+        }
+
+        .question-block {
+            background-color: #fff1f2;
+            /* Fond question très léger */
+            border-left: 5px solid #db2777;
+            /* Bordure rose */
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .question-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #9d174d;
+            margin-bottom: 15px;
+        }
+
+        .inputs-group {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 150px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            border-color: #db2777;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.1);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-option {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .radio-option:hover {
+            background: #fff0f5;
+        }
+
+        #btn-validate {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(219, 39, 119, 0.3);
+        }
+
+        #btn-validate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(219, 39, 119, 0.4);
+        }
+
+        #result-area {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .warning {
+            background-color: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <h1>🔍 Équations du Second Degré</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Résolvez les équations suivantes. La calculatrice est autorisée.
+        </p>
+
+        <!-- QUESTION 1 -->
+        <div class="question-block" data-points="5">
+            <div class="question-title">Question 1 : Discriminant</div>
+            <p>On considère l'équation \( 2x^2 + 5x - 3 = 0 \).</p>
+            <p>Calculez la valeur du discriminant \( \Delta \).</p>
+            <div class="inputs-group">
+                <label>
+                    \( \Delta = \)
+                    <input type="number" id="q1-input" placeholder="Votre réponse">
+                </label>
+            </div>
+        </div>
+
+        <!-- QUESTION 2 -->
+        <div class="question-block" data-points="5">
+            <div class="question-title">Question 2 : Nombre de solutions</div>
+            <p>Si le discriminant \( \Delta \) est strictement positif, combien l'équation admet-elle de solutions
+                réelles ?</p>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="0"> Aucune solution réelle
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="1"> Une solution unique
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="2"> Deux solutions distinctes
+                </label>
+            </div>
+        </div>
+
+        <!-- QUESTION 3 -->
+        <div class="question-block" data-points="5">
+            <div class="question-title">Question 3 : Calcul des racines</div>
+            <p>Quelles sont les solutions de l'équation \( x^2 - 4x + 3 = 0 \) ?</p>
+            <p style="font-size: 0.9em; color: #888;">(Entrez les valeurs dans l'ordre croissant, séparées par une
+                virgule. Ex: -2, 5)</p>
+            <div class="inputs-group">
+                <label>
+                    Solutions \( S = \{...\} \) :
+                    <input type="text" id="q3-input" placeholder="Ex: 1, 3">
+                </label>
+            </div>
+        </div>
+
+        <!-- QUESTION 4 -->
+        <div class="question-block" data-points="5">
+            <div class="question-title">Question 4 : Factorisation</div>
+            <p>Quelle est la forme factorisée du trinôme \( P(x) = 2x^2 - 8 \) ?</p>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="q4" value="A"> \( 2(x - 2)^2 \)
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q4" value="B"> \( 2(x - 2)(x + 2) \)
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q4" value="C"> \( (2x - 4)(2x + 4) \)
+                </label>
+            </div>
+        </div>
+
+        <button id="btn-validate">✅ Valider mes réponses</button>
+        <div id="result-area"></div>
+    </div>
+
+    <script>
+        document.getElementById('btn-validate').addEventListener('click', function () {
+            let score = 0;
+            let totalPoints = 20;
+
+            // --- CORRECTION ---
+
+            // Question 1 : Delta de 2x^2 + 5x - 3
+            // Delta = 5^2 - 4*2*(-3) = 25 + 24 = 49
+            const ans1 = document.getElementById('q1-input').value.trim();
+            if (ans1 === "49") {
+                score += 5;
+            }
+
+            // Question 2 : Nombre de solutions si Delta > 0
+            // Réponse : 2 solutions
+            const ans2 = document.querySelector('input[name="q2"]:checked');
+            if (ans2 && ans2.value === "2") {
+                score += 5;
+            }
+
+            // Question 3 : Solutions de x^2 - 4x + 3 = 0
+            // Delta = 16 - 12 = 4. Racines : (4-2)/2 = 1 et (4+2)/2 = 3.
+            // Attendu : "1, 3" ou "1,3" ou "1 ; 3"
+            const ans3 = document.getElementById('q3-input').value.replace(/\s/g, '').replace(';', ',');
+            if (ans3 === "1,3" || ans3 === "1,3") {
+                score += 5;
+            }
+
+            // Question 4 : Factorisation de 2x^2 - 8 = 2(x^2 - 4) = 2(x-2)(x+2)
+            // Réponse B
+            const ans4 = document.querySelector('input[name="q4"]:checked');
+            if (ans4 && ans4.value === "B") {
+                score += 5;
+            }
+
+            // --- RESULTAT ---
+            // Note sur 20
+            const finalNote = score; // Ici c'est direct car 4 questions de 5 points
+
+            const resultArea = document.getElementById('result-area');
+            resultArea.style.display = 'block';
+
+            if (finalNote >= 10) {
+                resultArea.className = 'success';
+                resultArea.innerHTML = `Bravo ! Note : ${finalNote}/20 🎉`;
+            } else {
+                resultArea.className = 'warning';
+                resultArea.innerHTML = `Note : ${finalNote}/20<br><span style="font-size: 0.8em; font-weight: normal;">Tu peux réessayer pour améliorer ton score.</span>`;
+            }
+
+            // --- ENVOI A L'APP ---
+            // C'est ici que la magie opère pour enregistrer la note
+            const message = {
+                type: 'quiz-result',
+                note: finalNote,
+                sur: 20,
+                chapterId: 'equations-second-degre', // Id théorique du chapitre
+                details: {
+                    q1: ans1,
+                    q2: ans2 ? ans2.value : null,
+                    q3: ans3,
+                    q4: ans4 ? ans4.value : null
+                }
+            };
+
+            // Envoi sécurisé vers le parent (l'application Tuteur Maths)
+            window.parent.postMessage(message, '*');
+            console.log("Note envoyée à l'application :", message);
+        });
+    </script>
+</body>
+
+</html>

@@ -128,11 +128,19 @@ export async function uploadResourceWithFile(formData: FormData) {
         bucket: bucketName
     });
 
+    // Déterminer le Content-Type correct pour éviter que le navigateur n'affiche le code source
+    let contentType = file.type;
+    if (kind === 'interactif' || file.name.endsWith('.html')) {
+        contentType = 'text/html';
+    } else if (!contentType) {
+        contentType = 'application/octet-stream';
+    }
+
     // Upload dans Supabase Storage
     const { data: uploadData, error: uploadError } =
         await supabaseServer.storage.from(bucketName).upload(filePath, file, {
             upsert: false,
-            contentType: file.type || 'application/octet-stream'
+            contentType: contentType
         });
 
     if (uploadError) {
