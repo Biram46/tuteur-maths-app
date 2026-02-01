@@ -137,7 +137,7 @@ export async function signup(formData: FormData) {
 2. ✅ Essayez de créer un compte étudiant
 3. ✅ Vérifiez que ça fonctionne
 
----
+---                                                              
 
 ## 🐛 Si ça ne fonctionne toujours pas
 
