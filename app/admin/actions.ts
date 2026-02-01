@@ -136,9 +136,13 @@ export async function uploadResourceWithFile(formData: FormData) {
         contentType = 'application/octet-stream';
     }
 
-    // Upload dans Supabase Storage
+    // Forcer le contenu en Buffer pour que Supabase respecte le Content-Type défini
+    const fileBuffer = await file.arrayBuffer();
+    const fileData = Buffer.from(fileBuffer);
+
+    // Upload dans Supabase Storage avec le Buffer
     const { data: uploadData, error: uploadError } =
-        await supabaseServer.storage.from(bucketName).upload(filePath, file, {
+        await supabaseServer.storage.from(bucketName).upload(filePath, fileData, {
             upsert: false,
             contentType: contentType
         });
