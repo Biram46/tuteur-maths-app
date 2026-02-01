@@ -45,17 +45,18 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     );
 
     // Helpers pour classer les ressources
-    const coursResources = activeResources.filter(r => r.kind.toLowerCase().includes('cours'));
-    const exosResources = activeResources.filter(r => r.kind.toLowerCase().includes('exer') || r.kind.toLowerCase().includes('exo'));
-    const interactifResource = activeResources.find(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'));
+    // On garde TOUTES les ressources valides (ayant une URL)
+    const validCoursResources = resources
+        .filter(r => r.kind.toLowerCase().includes('cours'))
+        .filter(r => r.pdf_url || r.html_url || r.docx_url || r.latex_url);
 
-    // URLs principales (priorité au PDF si dispo, sinon MD/HTML)
-    const coursResource = coursResources.find(r => r.pdf_url || r.html_url || r.docx_url);
-    const coursUrl = coursResource?.pdf_url || coursResource?.html_url || coursResource?.docx_url || null;
+    const validExosResources = resources
+        .filter(r => r.kind.toLowerCase().includes('exer') || r.kind.toLowerCase().includes('exo'))
+        .filter(r => r.pdf_url || r.html_url || r.docx_url || r.latex_url);
 
-    const exosResource = exosResources.find(r => r.pdf_url || r.html_url || r.docx_url);
-    const exosUrl = exosResource?.pdf_url || exosResource?.html_url || exosResource?.docx_url || null;
-    const interactifUrl = interactifResource?.html_url || null;
+    const validInteractifResources = resources
+        .filter(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'))
+        .filter(r => r.html_url || r.pdf_url); // Interactif a souvent html_url
 
     // Fonction pour ouvrir une ressource
     const openResource = (url: string | null, type: 'cours' | 'exercice' | 'interactif', title: string) => {
@@ -182,20 +183,37 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <p className="text-sm text-slate-400 mb-6 flex-1">
                                             Accédez au cours détaillé, définitions, théorèmes et démonstrations.
                                         </p>
-                                        <button
-                                            onClick={() => openResource(coursUrl, 'cours', activeChapter.title)}
-                                            disabled={!coursUrl}
-                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${coursUrl
-                                                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
-                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                                }`}
-                                        >
-                                            {coursUrl ? (
-                                                <><span>Ouvrir le Cours</span> <span className="text-xs opacity-70">↗</span></>
-                                            ) : (
-                                                <span>Indisponible</span>
+
+                                        <div className="space-y-2 mt-auto">
+                                            {validCoursResources.length > 0 ? validCoursResources.map((res, idx) => {
+                                                const url = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
+                                                // Déterminer l'icône/label selon le format
+                                                let label = "Document";
+                                                let icon = "📄";
+                                                if (res.pdf_url) { label = "PDF"; icon = "📕"; }
+                                                else if (res.docx_url) { label = "Word"; icon = "📝"; }
+                                                else if (res.latex_url) { label = "LaTeX"; icon = "∑"; }
+                                                else if (res.html_url) { label = "HTML"; icon = "🌐"; }
+
+                                                return (
+                                                    <button
+                                                        key={res.id}
+                                                        onClick={() => openResource(url, 'cours', activeChapter.title)}
+                                                        className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
+                                                    >
+                                                        <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
+                                                            <span>{icon}</span>
+                                                            <span>{label}</span>
+                                                        </span>
+                                                        <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
+                                                    </button>
+                                                );
+                                            }) : (
+                                                <div className="text-center text-slate-500 py-3 text-xs italic bg-slate-800/30 rounded-lg">
+                                                    Aucun cours disponible
+                                                </div>
                                             )}
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -206,24 +224,39 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">
                                             📝
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Fiche d'Exercices</h3>
+                                        <h3 className="text-xl font-bold text-white mb-2">Fiches d'Exercices</h3>
                                         <p className="text-sm text-slate-400 mb-6 flex-1">
                                             Entraînez-vous avec une série d'exercices progressifs et corrigés.
                                         </p>
-                                        <button
-                                            onClick={() => openResource(exosUrl, 'exercice', `Exercices - ${activeChapter.title}`)}
-                                            disabled={!exosUrl}
-                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${exosUrl
-                                                ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30"
-                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                                }`}
-                                        >
-                                            {exosUrl ? (
-                                                <><span>Voir les Exercices</span> <span className="text-xs opacity-70">↗</span></>
-                                            ) : (
-                                                <span>Indisponible</span>
+
+                                        <div className="space-y-2 mt-auto">
+                                            {validExosResources.length > 0 ? validExosResources.map((res, idx) => {
+                                                const url = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
+                                                let label = "Exercices";
+                                                let icon = "📝";
+                                                if (res.pdf_url) { label = "Exos PDF"; icon = "📕"; }
+                                                else if (res.docx_url) { label = "Exos Word"; icon = "📝"; }
+                                                else if (res.latex_url) { label = "Exos LaTeX"; icon = "∑"; }
+
+                                                return (
+                                                    <button
+                                                        key={res.id}
+                                                        onClick={() => openResource(url, 'exercice', `Exercices - ${activeChapter.title}`)}
+                                                        className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
+                                                    >
+                                                        <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
+                                                            <span>{icon}</span>
+                                                            <span>{label}</span>
+                                                        </span>
+                                                        <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
+                                                    </button>
+                                                );
+                                            }) : (
+                                                <div className="text-center text-slate-500 py-3 text-xs italic bg-slate-800/30 rounded-lg">
+                                                    Aucun exercice disponible
+                                                </div>
                                             )}
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -241,20 +274,29 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <p className="text-sm text-slate-400 mb-6 flex-1">
                                             Testez vos connaissances en temps réel avec des quiz et jeux mathématiques.
                                         </p>
-                                        <button
-                                            onClick={() => openResource(interactifUrl, 'interactif', `Exercices Interactifs - ${activeChapter.title}`)}
-                                            disabled={!interactifUrl}
-                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${interactifUrl
-                                                ? "bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30"
-                                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                                }`}
-                                        >
-                                            {interactifUrl ? (
-                                                <><span>Lancer les Exercices</span> <span className="text-xs opacity-70">↗</span></>
-                                            ) : (
-                                                <span>Indisponible</span>
+
+                                        <div className="space-y-2 mt-auto">
+                                            {validInteractifResources.length > 0 ? validInteractifResources.map((res, idx) => {
+                                                const url = res.html_url || res.pdf_url;
+                                                return (
+                                                    <button
+                                                        key={res.id}
+                                                        onClick={() => openResource(url, 'interactif', `Interactif - ${activeChapter.title}`)}
+                                                        className="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-between transition-all group/btn"
+                                                    >
+                                                        <span className="text-sm font-medium text-amber-200 group-hover/btn:text-white flex items-center gap-2">
+                                                            <span>🎮</span>
+                                                            <span>Lancer l'activité {validInteractifResources.length > 1 ? `#${idx + 1}` : ''}</span>
+                                                        </span>
+                                                        <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
+                                                    </button>
+                                                );
+                                            }) : (
+                                                <div className="text-center text-slate-500 py-3 text-xs italic bg-slate-800/30 rounded-lg">
+                                                    Indisponible pour ce chapitre
+                                                </div>
                                             )}
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
 
