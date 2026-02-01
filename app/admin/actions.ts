@@ -131,7 +131,7 @@ export async function uploadResourceWithFile(formData: FormData) {
     // Déterminer le Content-Type correct pour éviter que le navigateur n'affiche le code source
     let contentType = file.type;
     if (kind === 'interactif' || file.name.endsWith('.html')) {
-        contentType = 'text/html';
+        contentType = 'text/html; charset=utf-8';
     } else if (!contentType) {
         contentType = 'application/octet-stream';
     }
