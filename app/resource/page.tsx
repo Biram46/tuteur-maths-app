@@ -20,15 +20,18 @@ function ResourceContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const lowerUrl = url ? url.toLowerCase() : "";
+
     useEffect(() => {
         if (!url) return;
 
-        if (type === 'interactif' || url.endsWith('.html') || url.endsWith('.pdf')) {
+        // Skip fetch for binary/iframe formats
+        if (type === 'interactif' || lowerUrl.endsWith('.html') || lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx')) {
             setLoading(false);
             return;
         }
 
-        // For Markdown content
+        // For text-based content (Markdown, LaTeX)
         fetch(url)
             .then(res => {
                 if (!res.ok) throw new Error("Impossible de charger la ressource");
@@ -38,12 +41,14 @@ function ResourceContent() {
             .catch(err => setError(err.message))
             .finally(() => setLoading(false));
 
-    }, [url, type]);
+    }, [url, type, lowerUrl]);
 
     if (!url) return <div className="p-8 text-center text-white">URL manquante</div>;
 
-    const isInteractive = type === 'interactif' || url.endsWith('.html');
-    const isPdf = url.endsWith('.pdf');
+    const isInteractive = type === 'interactif' || lowerUrl.endsWith('.html');
+    const isPdf = lowerUrl.endsWith('.pdf');
+    const isDocx = lowerUrl.endsWith('.docx');
+    const isTex = lowerUrl.endsWith('.tex');
 
     // Utiliser le proxy pour le contenu interactif HTML pour forcer le bon Content-Type
     // sauf si l'URL est locale (commence par /)
@@ -73,6 +78,17 @@ function ResourceContent() {
                     </div>
 
                     <div className="flex gap-2">
+                        {/* Download Button */}
+                        <a
+                            href={url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-600 flex items-center gap-2"
+                        >
+                            <span>Télécharger</span>
+                            <span className="text-xs opacity-50">⬇</span>
+                        </a>
                         <button
                             onClick={() => window.print()}
                             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors hidden sm:block"
@@ -108,6 +124,24 @@ function ResourceContent() {
                             className="w-full h-full border-0"
                             title={title || "Document PDF"}
                         />
+                    </div>
+                ) : isDocx ? (
+                    <div className="w-full h-[85vh] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-700">
+                        <iframe
+                            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+                            className="w-full h-full border-0"
+                            title={title || "Document Word"}
+                        />
+                    </div>
+                ) : isTex ? (
+                    <div className="w-full bg-[#1e1e1e] text-[#d4d4d4] rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
+                        <div className="px-4 py-2 bg-[#252526] border-b border-[#3e3e42] flex items-center justify-between">
+                            <span className="text-xs font-mono text-[#9cdcfe]">Source LaTeX</span>
+                            <span className="text-xs text-[#858585]">{loading ? '...' : (content?.length || 0) + ' chars'}</span>
+                        </div>
+                        <pre className="p-4 overflow-x-auto text-sm font-mono leading-relaxed whitespace-pre-wrap">
+                            {content}
+                        </pre>
                     </div>
                 ) : (
                     <div className="bg-white text-slate-900 rounded-xl shadow-2xl p-8 sm:p-12 prose prose-slate max-w-none print:shadow-none print:p-0">
