@@ -113,21 +113,46 @@ export async function uploadResourceWithFile(formData: FormData) {
     }
 
     // Nom de fichier dans le bucket : resources/<timestamp>-<nom>
-    const filePath = `resources/${Date.now()}-${file.name}`;
+    const timestamp = Date.now();
+    // Sanitize filename to avoid issues with special characters
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `resources/${timestamp}-${sanitizedFileName}`;
+
+    console.log("[uploadResourceWithFile] Processing upload:", {
+        chapterId,
+        kind,
+        originalName: file.name,
+        size: file.size,
+        type: file.type,
+        targetPath: filePath,
+        bucket: bucketName
+    });
 
     // Upload dans Supabase Storage
     const { data: uploadData, error: uploadError } =
-        await supabaseServer.storage.from(bucketName).upload(filePath, file);
+        await supabaseServer.storage.from(bucketName).upload(filePath, file, {
+            upsert: false,
+            contentType: file.type || 'application/octet-stream'
+        });
 
     if (uploadError) {
-        console.error("[uploadResourceWithFile] upload error:", uploadError);
-        throw new Error(uploadError.message);
+        console.error("[uploadResourceWithFile] CRITICAL upload error:", uploadError);
+        console.error("[uploadResourceWithFile] Details:", {
+            statusCode: (uploadError as any).statusCode,
+            errorName: uploadError.name,
+            errorMessage: uploadError.message
+        });
+        throw new Error(`Erreur upload Storage: ${uploadError.message}`);
     }
+
+    console.log("[uploadResourceWithFile] Upload successful:", uploadData);
 
     // URL publique
     const {
         data: { publicUrl },
     } = supabaseServer.storage.from(bucketName).getPublicUrl(filePath);
+
+    console.log("[uploadResourceWithFile] Generated public URL:", publicUrl);
 
     // On regarde quoi remplir selon le type
     let pdf_url: string | null = null;
@@ -145,6 +170,8 @@ export async function uploadResourceWithFile(formData: FormData) {
         html_url = publicUrl;
     }
 
+    console.log("[uploadResourceWithFile] Inserting into DB...", { chapterId, kind, pdf_url, docx_url, latex_url, html_url });
+
     const { error: insertError } = await supabaseServer
         .from("resources")
         .insert([
@@ -160,8 +187,10 @@ export async function uploadResourceWithFile(formData: FormData) {
 
     if (insertError) {
         console.error("[uploadResourceWithFile] insert error:", insertError);
-        throw new Error(insertError.message);
+        throw new Error(`Erreur DB insert: ${insertError.message}`);
     }
+
+    console.log("[uploadResourceWithFile] Process completed successfully.");
 
     redirect("/admin");
 }
