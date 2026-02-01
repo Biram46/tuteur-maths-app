@@ -497,6 +497,9 @@ export default function AdminDashboard({ initialData }: Props) {
                                                 <option value="cours-pdf">Cours Pédagogique (PDF)</option>
                                                 <option value="cours-docx">Format Modifiable (DOCX)</option>
                                                 <option value="cours-latex">Source LaTeX (TEX)</option>
+                                                <option value="exercices-pdf">Fiche d'Exercices (PDF)</option>
+                                                <option value="exercices-docx">Exercices Modifiables (DOCX)</option>
+                                                <option value="exercices-latex">Exercices LaTeX (TEX)</option>
                                                 <option value="interactif">Module Interactif (HTML)</option>
                                             </select>
                                         </div>

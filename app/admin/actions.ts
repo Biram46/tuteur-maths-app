@@ -160,11 +160,11 @@ export async function uploadResourceWithFile(formData: FormData) {
     let latex_url: string | null = null;
     let html_url: string | null = null;
 
-    if (kind === "cours-pdf") {
+    if (kind === "cours-pdf" || kind === "exercices-pdf") {
         pdf_url = publicUrl;
-    } else if (kind === "cours-docx") {
+    } else if (kind === "cours-docx" || kind === "exercices-docx") {
         docx_url = publicUrl;
-    } else if (kind === "cours-latex") {
+    } else if (kind === "cours-latex" || kind === "exercices-latex") {
         latex_url = publicUrl;
     } else if (kind === "interactif") {
         html_url = publicUrl;
