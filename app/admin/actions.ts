@@ -128,23 +128,32 @@ export async function uploadResourceWithFile(formData: FormData) {
         bucket: bucketName
     });
 
-    // Déterminer le Content-Type correct pour éviter que le navigateur n'affiche le code source
+    // Déterminer le Content-Type correct
     let contentType = file.type;
-    if (kind === 'interactif' || file.name.endsWith('.html')) {
+    const isInteractive = kind === 'interactif' || file.name.toLowerCase().endsWith('.html');
+
+    if (isInteractive) {
         contentType = 'text/html; charset=utf-8';
+        // Assurer l'extension .html
+        if (!filePath.toLowerCase().endsWith('.html')) {
+            filePath += '.html';
+        }
     } else if (!contentType) {
         contentType = 'application/octet-stream';
     }
 
-    // Forcer le contenu en Buffer pour que Supabase respecte le Content-Type défini
+    console.log("[uploadResourceWithFile] Uploading with contentType:", contentType);
+
+    // Forcer le contenu en Buffer
     const fileBuffer = await file.arrayBuffer();
     const fileData = Buffer.from(fileBuffer);
 
-    // Upload dans Supabase Storage avec le Buffer
+    // Upload dans Supabase Storage
     const { data: uploadData, error: uploadError } =
         await supabaseServer.storage.from(bucketName).upload(filePath, fileData, {
-            upsert: false,
-            contentType: contentType
+            upsert: true,
+            contentType: contentType,
+            cacheControl: '3600'
         });
 
     if (uploadError) {
