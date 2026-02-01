@@ -45,6 +45,12 @@ function ResourceContent() {
     const isInteractive = type === 'interactif' || url.endsWith('.html');
     const isPdf = url.endsWith('.pdf');
 
+    // Utiliser le proxy pour le contenu interactif HTML pour forcer le bon Content-Type
+    // sauf si l'URL est locale (commence par /)
+    const displayUrl = isInteractive && url.startsWith('http')
+        ? `/api/view-resource?url=${encodeURIComponent(url)}`
+        : url;
+
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
             {/* Header / Navbar */}
@@ -89,7 +95,7 @@ function ResourceContent() {
                 ) : isInteractive ? (
                     <div className="w-full h-[85vh] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-700">
                         <iframe
-                            src={url}
+                            src={displayUrl}
                             className="w-full h-full border-0"
                             title={title || "Exercice Interactif"}
                             allowFullScreen
