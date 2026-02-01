@@ -46,15 +46,15 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
     // Helpers pour classer les ressources
     // On garde TOUTES les ressources valides (ayant une URL)
-    const validCoursResources = resources
+    const validCoursResources = activeResources
         .filter(r => r.kind.toLowerCase().includes('cours'))
         .filter(r => r.pdf_url || r.html_url || r.docx_url || r.latex_url);
 
-    const validExosResources = resources
+    const validExosResources = activeResources
         .filter(r => r.kind.toLowerCase().includes('exer') || r.kind.toLowerCase().includes('exo'))
         .filter(r => r.pdf_url || r.html_url || r.docx_url || r.latex_url);
 
-    const validInteractifResources = resources
+    const validInteractifResources = activeResources
         .filter(r => r.kind === 'interactif' || r.html_url?.endsWith('.html'))
         .filter(r => r.html_url || r.pdf_url); // Interactif a souvent html_url
 
