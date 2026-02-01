@@ -25,13 +25,13 @@ function ResourceContent() {
     useEffect(() => {
         if (!url) return;
 
-        // Skip fetch for binary/iframe formats
-        if (type === 'interactif' || lowerUrl.endsWith('.html') || lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx')) {
+        // Skip fetch for binary/iframe formats OR download-only formats (.tex)
+        if (type === 'interactif' || lowerUrl.endsWith('.html') || lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.tex')) {
             setLoading(false);
             return;
         }
 
-        // For text-based content (Markdown, LaTeX)
+        // For text-based content (Markdown)
         fetch(url)
             .then(res => {
                 if (!res.ok) throw new Error("Impossible de charger la ressource");
@@ -134,14 +134,22 @@ function ResourceContent() {
                         />
                     </div>
                 ) : isTex ? (
-                    <div className="w-full bg-[#1e1e1e] text-[#d4d4d4] rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
-                        <div className="px-4 py-2 bg-[#252526] border-b border-[#3e3e42] flex items-center justify-between">
-                            <span className="text-xs font-mono text-[#9cdcfe]">Source LaTeX</span>
-                            <span className="text-xs text-[#858585]">{loading ? '...' : (content?.length || 0) + ' chars'}</span>
+                    <div className="flex flex-col items-center justify-center h-[60vh] bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center backdrop-blur-sm">
+                        <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center text-3xl mb-6 shadow-xl text-slate-300">
+                            ∑
                         </div>
-                        <pre className="p-4 overflow-x-auto text-sm font-mono leading-relaxed whitespace-pre-wrap">
-                            {content}
-                        </pre>
+                        <h2 className="text-xl font-bold text-white mb-2">Fichier Source LaTeX</h2>
+                        <p className="text-slate-400 mb-8 max-w-sm text-sm">
+                            Ce fichier contient le code source mathématique (.tex). Téléchargez-le pour l'ouvrir dans votre éditeur LaTeX habituel.
+                        </p>
+                        <a
+                            href={url}
+                            download
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all hover:scale-105 flex items-center gap-2 group"
+                        >
+                            <span>Télécharger le .tex</span>
+                            <span className="group-hover:translate-y-0.5 transition-transform">⬇</span>
+                        </a>
                     </div>
                 ) : (
                     <div className="bg-white text-slate-900 rounded-xl shadow-2xl p-8 sm:p-12 prose prose-slate max-w-none print:shadow-none print:p-0">
