@@ -312,7 +312,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                             <button onClick={handleDownloadPDF} disabled={loadingPDF} className="btn btn-outline gap-2">
                                                 <span>📄</span> {loadingPDF ? 'Génération...' : 'PDF Direct'}
                                             </button>
-                                            <button onClick={handleDownloadDocx} disabled={loadingDocx} className="btn btn-outline gap-2">
+                                            <button onClick={() => handleDownloadDocx()} disabled={loadingDocx} className="btn btn-outline gap-2">
                                                 <span>📥</span> {loadingDocx ? 'Export...' : 'Exporter Word'}
                                             </button>
                                             {coursUrls.latex && (
