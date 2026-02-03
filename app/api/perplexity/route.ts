@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * API Route pour communiquer avec Perplexity AI
- * Cette route permet d'envoyer des questions à Perplexity et de recevoir des réponses
+ * API Route pour communiquer avec l'IA
+ * Cette route permet d'envoyer des questions à l'IA et de recevoir des réponses
  */
 export async function POST(request: NextRequest) {
     try {
@@ -19,16 +19,15 @@ export async function POST(request: NextRequest) {
 
         if (!apiKey) {
             return NextResponse.json(
-                { error: 'Clé API Perplexity non configurée' },
+                { error: 'Clé API IA non configurée' },
                 { status: 500 }
             );
         }
 
-        // Préparer le prompt système
         // Préparer le prompt système avancé
         // Préparer le prompt système avancé
         // Préparer le prompt système avancé
-        const systemPrompt = `Tu es un Tuteur IA expert en Mathématiques pour le système éducatif français. Tu agis comme un Professeur expérimenté de l'Éducation Nationale.
+        const systemPrompt = `Tu es mimimaths@i, un Tuteur IA expert en Mathématiques pour le système éducatif français. Tu agis comme un Professeur expérimenté de l'Éducation Nationale.
 
 RÈGLES D'OR DU PROGRAMME OFFICIEL :
 1. **Périmètre Strict** : Tes réponses doivent correspondre EXACTEMENT au programme officiel en vigueur (Cycle 3, Cycle 4, Lycée). Si une notion est hors-programme pour le niveau de l'élève, signale-le.
@@ -78,7 +77,7 @@ ${context ? context : 'Aucun niveau précisé. Si la question est ambigüe sur l
             }
         }
 
-        // Appel à l'API Perplexity
+        // Appel à l'API IA
         const response = await fetch('https://api.perplexity.ai/chat/completions', {
             method: 'POST',
             headers: {
@@ -95,9 +94,9 @@ ${context ? context : 'Aucun niveau précisé. Si la question est ambigüe sur l
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('Erreur Perplexity API:', errorData);
+            console.error('Erreur API IA:', errorData);
             return NextResponse.json(
-                { error: 'Erreur lors de la communication avec Perplexity' },
+                { error: 'Erreur lors de la communication avec l\'IA' },
                 { status: response.status }
             );
         }

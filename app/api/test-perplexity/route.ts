@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Route API de test pour Perplexity AI
+ * Route API de test pour l'IA
  * Accessible via GET /api/test-perplexity
  * 
- * Cette route permet de vérifier rapidement si l'intégration Perplexity fonctionne
+ * Cette route permet de vérifier rapidement si l'intégration IA fonctionne
  */
 export async function GET(request: NextRequest) {
     const results = {
@@ -28,13 +28,13 @@ export async function GET(request: NextRequest) {
 
     if (!apiKey) {
         test1.status = 'failed';
-        test1.message = 'PERPLEXITY_API_KEY non définie dans les variables d\'environnement';
+        test1.message = 'Clé API non définie dans les variables d\'environnement';
     } else if (apiKey === 'your_perplexity_api_key_here') {
         test1.status = 'failed';
         test1.message = 'Clé API non configurée (valeur par défaut détectée)';
     } else if (!apiKey.startsWith('pplx-')) {
         test1.status = 'failed';
-        test1.message = 'Format de clé API invalide (devrait commencer par "pplx-")';
+        test1.message = 'Format de clé API invalide';
     } else {
         test1.status = 'passed';
         test1.message = `Clé API configurée (${apiKey.substring(0, 10)}...)`;
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
     if (test1.status === 'passed') results.summary.passed++;
     else results.summary.failed++;
 
-    // Test 2: Connexion à l'API Perplexity
+    // Test 2: Connexion à l'API IA
     const test2 = {
-        name: 'Connexion à l\'API Perplexity',
+        name: 'Connexion à l\'API IA',
         status: 'pending' as 'passed' | 'failed' | 'pending',
         message: '',
         responseTime: 0,
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
         success: allPassed,
         message: allPassed
-            ? '✅ Tous les tests sont passés ! Perplexity AI est correctement configuré.'
+            ? '✅ Tous les tests sont passés ! L\'IA est correctement configurée.'
             : '❌ Certains tests ont échoué. Consultez les détails ci-dessous.',
         ...results,
     }, {

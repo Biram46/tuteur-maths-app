@@ -1,9 +1,9 @@
 /**
- * Client Perplexity pour l'application de tutorat mathématique
- * Fournit des fonctions utilitaires pour interagir avec l'API Perplexity
+ * Client IA pour l'application de tutorat mathématique
+ * Fournit des fonctions utilitaires pour interagir avec l'API IA
  */
 
-export interface PerplexityResponse {
+export interface AiResponse {
     success: boolean;
     response: string;
     citations?: string[];
@@ -25,14 +25,14 @@ export interface ChatMessage {
 }
 
 /**
- * Envoie l'historique de conversation à Perplexity AI
+ * Envoie l'historique de conversation à l'IA
  * @param messages - Historique des messages
  * @param context - Contexte optionnel
  */
 export async function chatWithRobot(
     messages: ChatMessage[],
     context?: string
-): Promise<PerplexityResponse> {
+): Promise<AiResponse> {
     try {
         const response = await fetch('/api/perplexity', {
             method: 'POST',
@@ -48,7 +48,7 @@ export async function chatWithRobot(
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || 'Erreur lors de la communication avec Perplexity');
+            throw new Error(data.error || 'Erreur lors de la communication avec l\'IA');
         }
 
         return data;
@@ -63,15 +63,15 @@ export async function chatWithRobot(
 }
 
 /**
- * Envoie une question à Perplexity AI (Version simple)
+ * Envoie une question à l'IA (Version simple)
  * @param message - La question ou le message à envoyer
  * @param context - Contexte optionnel (niveau, chapitre, etc.)
- * @returns La réponse de Perplexity
+ * @returns La réponse de l'IA
  */
-export async function askPerplexity(
+export async function askAi(
     message: string,
     context?: string
-): Promise<PerplexityResponse> {
+): Promise<AiResponse> {
     // Wrapper pour utiliser la nouvelle API avec un seul message
     return chatWithRobot([{ role: 'user', content: message }], context);
 }
@@ -80,35 +80,35 @@ export async function askPerplexity(
  * Demande une explication d'un concept mathématique
  * @param concept - Le concept à expliquer
  * @param level - Le niveau scolaire (optionnel)
- * @returns L'explication de Perplexity
+ * @returns L'explication de l'IA
  */
 export async function explainConcept(
     concept: string,
     level?: string
-): Promise<PerplexityResponse> {
+): Promise<AiResponse> {
     const message = `Explique-moi le concept suivant en mathématiques : ${concept}`;
     const context = level ? `Niveau scolaire: ${level}` : undefined;
 
-    return askPerplexity(message, context);
+    return askAi(message, context);
 }
 
 /**
  * Demande de l'aide pour résoudre un exercice
  * @param exercise - Description de l'exercice
  * @param studentAnswer - Réponse de l'élève (optionnel)
- * @returns L'aide de Perplexity
+ * @returns L'aide de l'IA
  */
 export async function getExerciseHelp(
     exercise: string,
     studentAnswer?: string
-): Promise<PerplexityResponse> {
+): Promise<AiResponse> {
     let message = `Aide-moi à résoudre cet exercice de mathématiques : ${exercise}`;
 
     if (studentAnswer) {
         message += `\n\nVoici ma tentative de réponse : ${studentAnswer}`;
     }
 
-    return askPerplexity(message, 'Exercice de mathématiques');
+    return askAi(message, 'Exercice de mathématiques');
 }
 
 /**
@@ -116,15 +116,15 @@ export async function getExerciseHelp(
  * @param topic - Le sujet mathématique
  * @param difficulty - Niveau de difficulté (facile, moyen, difficile)
  * @param count - Nombre d'exercices à générer
- * @returns Des exercices générés par Perplexity
+ * @returns Des exercices générés par l'IA
  */
 export async function generateExercises(
     topic: string,
     difficulty: 'facile' | 'moyen' | 'difficile' = 'moyen',
     count: number = 3
-): Promise<PerplexityResponse> {
+): Promise<AiResponse> {
     const message = `Génère ${count} exercices de mathématiques de niveau ${difficulty} sur le sujet : ${topic}. 
   Pour chaque exercice, fournis l'énoncé et la solution détaillée.`;
 
-    return askPerplexity(message, `Génération d'exercices - ${topic}`);
+    return askAi(message, `Génération d'exercices - ${topic}`);
 }

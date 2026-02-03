@@ -23,7 +23,7 @@ export default async function AssistantPage() {
                                 Tuteur Maths
                             </h1>
                             <p className="text-sm text-gray-600 mt-1">
-                                Propulsé par Perplexity AI Pro
+                                Votre Assistant Personnel Intelligent
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -189,23 +189,9 @@ export default async function AssistantPage() {
                     <div className="text-center text-sm text-gray-600">
                         <p>
                             Propulsé par{' '}
-                            <a
-                                href="https://www.perplexity.ai"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                                Perplexity AI
-                            </a>
-                            {' '}et{' '}
-                            <a
-                                href="https://supabase.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-green-600 hover:text-green-700 font-medium"
-                            >
-                                Supabase
-                            </a>
+                            <span className="text-blue-600 font-medium">
+                                mimimaths@i
+                            </span>
                         </p>
                         <p className="mt-2 text-xs text-gray-500">
                             © 2026 Tuteur Maths App - Tous droits réservés

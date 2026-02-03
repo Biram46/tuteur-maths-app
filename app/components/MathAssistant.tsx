@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { chatWithRobot, ChatMessage, PerplexityResponse } from '@/lib/perplexity';
+import { chatWithRobot, ChatMessage, AiResponse } from '@/lib/perplexity';
 import RobotAvatar from './RobotAvatar';
 
 import ReactMarkdown from 'react-markdown';
@@ -11,7 +11,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
 /**
- * Composant Assistant Mathématique utilisant Perplexity AI + Avatar Robot
+ * Composant Assistant Mathématique utilisant l'IA + Avatar Robot
  * Interface type "Chat" avec historique
  */
 export default function MathAssistant() {
@@ -65,7 +65,7 @@ export default function MathAssistant() {
             .replace(/\\\[([\s\S]*?)\\\]/g, '$$$1$$')
             // Remplace \( ... \) par $ ... $ pour les maths en ligne
             .replace(/\\\((.*?)\\\)/g, '$$$1$$')
-            // Parfois Perplexity renvoie des \[ sans le backslash échappé correctement dans le string JS
+            // Parfois l'IA renvoie des \[ sans le backslash échappé correctement dans le string JS
             .replace(/\[(.*?)(?<!\\)\]/g, (match, p1) => {
                 // Évite de remplacer les liens markdown [texte](url)
                 if (match.includes('](')) return match;
@@ -139,7 +139,7 @@ export default function MathAssistant() {
             // Petit délai artificiel pour "réfléchir"
             await new Promise(r => setTimeout(r, 600));
 
-            const result: PerplexityResponse = await chatWithRobot(newHistory);
+            const result: AiResponse = await chatWithRobot(newHistory);
 
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
@@ -164,7 +164,7 @@ export default function MathAssistant() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950"></div>
             </div>
 
-            {/* Header / Cyber Professor Zone */}
+            {/* Header / mimimaths@ai Zone */}
             <div className="relative shrink-0 bg-slate-900/40 backdrop-blur-xl border-b border-cyan-500/20 p-6 flex flex-col items-center justify-center z-10 overflow-hidden">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-3xl"></div>
@@ -184,8 +184,8 @@ export default function MathAssistant() {
                 </div>
 
                 <div className="text-center mt-4">
-                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400 uppercase font-['Orbitron',_sans-serif]">
-                        Cyber-Tutor <span className="text-xs align-top opacity-50">PRO</span>
+                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400 font-['Orbitron',_sans-serif]">
+                        mimimaths@i <span className="text-xs align-top opacity-50">PRO</span>
                     </h2>
                 </div>
 
