@@ -108,128 +108,64 @@ export async function createOrUpdateResource(formData: FormData) {
  * Upload un fichier vers Supabase Storage et crée la ressource associée
  */
 export async function uploadResourceWithFile(formData: FormData) {
-    // 1. Validation de la configuration
-    if (!bucketName) {
-        console.error("ERREUR CRITIQUE: La variable d'environnement NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET n'est pas définie.");
-        throw new Error("Configuration serveur incomplète : Bucket de stockage non défini. Vérifiez les variables d'environnement sur Vercel.");
+    console.log("--> Démarrage Upload Standard");
+
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) throw new Error("Bucket non configuré (Environment Variable missing)");
+
+    const chapterId = formData.get("chapter_id") as string;
+    const kind = (formData.get("kind") as string)?.trim();
+    const file = formData.get("file") as File | null;
+
+    if (!chapterId || !kind || !file) {
+        throw new Error("Données manquantes");
+    }
+
+    // Vercel Server Actions Limit Check (4.5MB is the safe limit)
+    const MAX_SIZE = 4.5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        throw new Error(`Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(2)}MB). La limite Vercel Server Actions est de 4.5MB.`);
     }
 
     try {
-        const chapterId = formData.get("chapter_id") as string;
-        const kind = (formData.get("kind") as string)?.trim();
-        const file = formData.get("file") as File | null;
-
-        if (!chapterId || !kind || !file) {
-            throw new Error("Chapitre, type et fichier sont obligatoires.");
-        }
-
-        // Nom de fichier dans le bucket : resources/<timestamp>-<nom_sanitized>
         const timestamp = Date.now();
-        // Sanitize filename to avoid issues with special characters: only alphanum, dot, dash, underscore
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        let filePath = `resources/${timestamp}-${sanitizedFileName}`;
+        // Nom simple et sûr
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `resources/${timestamp}-${safeName}`;
 
-        console.log("[uploadResourceWithFile] Processing upload:", {
-            chapterId,
-            kind,
-            originalName: file.name,
-            sanitizedFileName,
-            size: file.size,
-            type: file.type,
-            targetPath: filePath,
-            bucket: bucketName
-        });
+        const buffer = await file.arrayBuffer();
 
-        // Déterminer le Content-Type correct
-        let contentType = file.type;
-        const isInteractive = kind === 'interactif' || file.name.toLowerCase().endsWith('.html');
-
-        if (isInteractive) {
-            contentType = 'text/html; charset=utf-8';
-            // Assurer l'extension .html
-            if (!filePath.toLowerCase().endsWith('.html')) {
-                filePath += '.html';
-            }
-        } else if (!contentType) {
-            contentType = 'application/octet-stream';
-        }
-
-        console.log("[uploadResourceWithFile] Uploading with contentType:", contentType);
-
-        // Forcer le contenu en Buffer
-        const fileBuffer = await file.arrayBuffer();
-        const fileData = Buffer.from(fileBuffer);
-
-        // Upload dans Supabase Storage
-        const { data: uploadData, error: uploadError } =
-            await supabaseServer.storage.from(bucketName).upload(filePath, fileData, {
-                upsert: true,
-                contentType: contentType,
-                cacheControl: '3600'
+        const { error: uploadError } = await supabaseServer.storage
+            .from(bucketName)
+            .upload(filePath, buffer, {
+                contentType: file.type || 'application/octet-stream',
+                upsert: false
             });
 
-        if (uploadError) {
-            console.error("[uploadResourceWithFile] CRITICAL upload error from Supabase:", uploadError);
-            // Loggez les propriétés de l'erreur pour le debug
-            console.error(JSON.stringify(uploadError, null, 2));
-            throw new Error(`Erreur Supabase Storage: ${uploadError.message} (Code: ${(uploadError as any).statusCode || 'N/A'})`);
-        }
+        if (uploadError) throw uploadError;
 
-        console.log("[uploadResourceWithFile] Upload successful:", uploadData);
+        // Récupération URL
+        const { data: { publicUrl } } = supabaseServer.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
 
-        // URL publique
-        const {
-            data: { publicUrl },
-        } = supabaseServer.storage.from(bucketName).getPublicUrl(filePath);
+        // Insertion DB
+        const payload: any = { chapter_id: chapterId, kind };
+        if (kind === 'interactif' || safeName.endsWith('.html')) payload.html_url = publicUrl;
+        else if (kind.includes('pdf')) payload.pdf_url = publicUrl;
+        else if (kind.includes('docx')) payload.docx_url = publicUrl;
+        else if (kind.includes('latex')) payload.latex_url = publicUrl;
+        else payload.pdf_url = publicUrl; // fallback
 
-        console.log("[uploadResourceWithFile] Generated public URL:", publicUrl);
+        const { error: dbError } = await supabaseServer.from('resources').insert([payload]);
 
-        // On regarde quoi remplir selon le type
-        let pdf_url: string | null = null;
-        let docx_url: string | null = null;
-        let latex_url: string | null = null;
-        let html_url: string | null = null;
-
-        if (kind === "cours-pdf" || kind === "exercices-pdf") {
-            pdf_url = publicUrl;
-        } else if (kind === "cours-docx" || kind === "exercices-docx") {
-            docx_url = publicUrl;
-        } else if (kind === "cours-latex" || kind === "exercices-latex") {
-            latex_url = publicUrl;
-        } else if (kind === "interactif") {
-            html_url = publicUrl;
-        }
-
-        console.log("[uploadResourceWithFile] Inserting into DB...", { chapterId, kind, pdf_url, docx_url, latex_url, html_url });
-
-        const { error: insertError } = await supabaseServer
-            .from("resources")
-            .insert([
-                {
-                    chapter_id: chapterId,
-                    kind,
-                    pdf_url,
-                    docx_url,
-                    latex_url,
-                    html_url,
-                },
-            ]);
-
-        if (insertError) {
-            console.error("[uploadResourceWithFile] DB insert error:", insertError);
-            throw new Error(`Erreur DB insert: ${insertError.message}`);
-        }
-
-        console.log("[uploadResourceWithFile] Process completed successfully.");
+        if (dbError) throw dbError;
 
     } catch (error: any) {
-        console.error("[uploadResourceWithFile] UNHANDLED EXCEPTION:", error);
-        // Important : on relance l'erreur pour que l'UI sache qu'il y a eu un problème.
-        // Si c'est une erreur de code 500, Vercel l'affichera.
-        throw new Error(`Échec de l'upload: ${error.message || error}`);
+        console.error("Upload Error:", error);
+        throw new Error(`Erreur technique: ${error.message}`);
     }
 
-    // Redirect doit être hors du try/catch
     revalidatePath("/admin");
     redirect("/admin");
 }
