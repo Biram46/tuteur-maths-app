@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modèle d'Exercice Interactif</title>
+
+    <!-- 1. CHARGEMENT DES POLICES ET MATHJAX -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- 2. STYLES CSS (Design Moderne et Premium) -->
+    <style>
+        :root {
+            --primary: #4f46e5;
+            /* Couleur principale (Indigo) */
+            --primary-dark: #4338ca;
+            --secondary: #ec4899;
+            /* Couleur d'accent (Rose) */
+            --bg-color: #f8fafc;
+            /* Fond de la page */
+            --card-bg: #ffffff;
+            /* Fond du conteneur */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --error: #ef4444;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        #container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 800px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* En-tête */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 2rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        /* Blocs de Questions */
+        .question-block {
+            background-color: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .question-block:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .question-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .question-content {
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        /* Champs de saisie */
+        .input-wrapper {
+            margin-top: 10px;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Options Radio (QCM) */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .radio-option:hover {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 12px;
+            accent-color: var(--primary);
+            transform: scale(1.2);
+        }
+
+        /* Styling de l'option sélectionnée via JS si besoin, ou CSS simple */
+        .radio-option:has(input:checked) {
+            border-color: var(--primary);
+            background-color: rgba(79, 70, 229, 0.05);
+            color: var(--primary-dark);
+        }
+
+        /* Bouton Valider */
+        #btn-validate {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 40px;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+
+        #btn-validate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        #btn-validate:active {
+            transform: translateY(0);
+        }
+
+        /* Zone de Résultat */
+        #result-area {
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .warning {
+            background-color: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        /* Feedback par question */
+        .feedback-msg {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            font-weight: 600;
+            display: none;
+            /* Caché par défaut */
+        }
+
+        .correct {
+            color: var(--success);
+        }
+
+        .incorrect {
+            color: var(--error);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="container">
+        <header>
+            <h1>TITRE DE L'EXERCICE</h1>
+            <p class="subtitle">Une courte description de l'objectif pédagogique.</p>
+        </header>
+
+        <!-- 3. ZONE DES QUESTIONS -->
+        <!-- Copiez le bloc .question-block pour ajouter des questions -->
+
+        <!-- QUESTION 1 : TYPE NOMBRE -->
+        <div class="question-block" id="q1-block">
+            <div class="question-title">Question 1</div>
+            <div class="question-content">
+                <p>Calculez le discriminant \(\Delta\) de l'équation ci-dessous :</p>
+                <div style="font-size: 1.2rem; text-align: center; margin: 15px 0;">
+                    \( 2x^2 + 5x - 3 = 0 \)
+                </div>
+            </div>
+            <div class="input-wrapper">
+                <input type="number" id="q1-input" placeholder="Entrez la valeur">
+            </div>
+            <div class="feedback-msg" id="q1-feedback"></div>
+        </div>
+
+        <!-- QUESTION 2 : TYPE QCM (RADIO) -->
+        <div class="question-block" id="q2-block">
+            <div class="question-title">Question 2</div>
+            <div class="question-content">
+                <p>Quelle est la dérivée de la fonction \( f(x) = x^2 \) ?</p>
+            </div>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="A"> \( 2x \)
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="B"> \( x \)
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="q2" value="C"> \( 2 \)
+                </label>
+            </div>
+            <div class="feedback-msg" id="q2-feedback"></div>
+        </div>
+
+        <!-- QUESTION 3 : TYPE TEXTE LIBRE -->
+        <div class="question-block" id="q3-block">
+            <div class="question-title">Question 3</div>
+            <div class="question-content">
+                <p>Quel est le nom du théorème permettant de calculer la longueur de l'hypoténuse ?</p>
+            </div>
+            <div class="input-wrapper">
+                <input type="text" id="q3-input" placeholder="Ex: Théorème de ...">
+            </div>
+            <div class="feedback-msg" id="q3-feedback"></div>
+        </div>
+
+        <!-- Bouton de validation -->
+        <button id="btn-validate">Vérifier mes réponses</button>
+
+        <!-- Résultat global -->
+        <div id="result-area"></div>
+    </div>
+
+    <!-- 4. LOGIQUE JAVASCRIPT -->
+    <script>
+        document.getElementById('btn-validate').addEventListener('click', function () {
+            let score = 0;
+            const totalPoints = 20;
+
+            // --- CONFIGURATION DES RÉPONSES ---
+
+            // Q1: Réponse numérique 49
+            const q1Input = document.getElementById('q1-input');
+            const q1Val = q1Input.value.trim();
+            const q1Feedback = document.getElementById('q1-feedback');
+
+            // Logique de validation Q1
+            if (q1Val === "49") {
+                score += 5; // Points pour cette question (ajuster si besoin)
+                setFeedback(q1Feedback, "Correct ! Bravo.", true);
+            } else {
+                setFeedback(q1Feedback, "Incorrect. \u0394 = b² - 4ac", false);
+            }
+
+            // Q2: QCM Réponse A
+            const q2Val = document.querySelector('input[name="q2"]:checked');
+            const q2Feedback = document.getElementById('q2-feedback');
+
+            if (q2Val && q2Val.value === "A") {
+                score += 10; // Cette question vaut plus de points
+                setFeedback(q2Feedback, "Exact ! La dérivée de x^n est nx^{n-1}.", true);
+            } else {
+                setFeedback(q2Feedback, "Faux. Regarde ton cours sur les dérivées usuelles.", false);
+            }
+
+            // Q3: Texte (Pythagore) - On normalise pour être tolérant (minuscules)
+            const q3Input = document.getElementById('q3-input');
+            const q3Val = q3Input.value.trim().toLowerCase();
+            const q3Feedback = document.getElementById('q3-feedback');
+
+            if (q3Val.includes("pythagore")) {
+                score += 5;
+                setFeedback(q3Feedback, "Correct !", true);
+            } else {
+                setFeedback(q3Feedback, "Ce n'est pas ça. C'est un mathématicien grec.", false);
+            }
+
+            // --- AFFICHAGE DU RÉSULTAT GLOBAL ---
+            const resultArea = document.getElementById('result-area');
+            resultArea.style.display = 'block';
+
+            // Message de fin
+            if (score >= totalPoints / 2) {
+                resultArea.className = 'success';
+                resultArea.innerHTML = `<h2>Excellent Travail ! 🎉</h2><p>Ta note : <strong>${score} / ${totalPoints}</strong></p>`;
+            } else {
+                resultArea.className = 'warning';
+                resultArea.innerHTML = `<h2>Courage ! 💪</h2><p>Ta note : <strong>${score} / ${totalPoints}</strong>. Réessaie pour t'améliorer !</p>`;
+            }
+
+            // --- IMPORTANT : COMMUNICATION AVEC L'APP PRINCIPALE ---
+            // Ne pas supprimer ou modifier cette partie sans précaution
+            const message = {
+                type: 'quiz-result',      // Identifiant du message
+                note: score,              // La note obtenue
+                sur: totalPoints,         // La note maximale
+                chapterId: 'demo-chapter',// ID unique du chapitre ou exercice (à changer)
+                details: {                // Détails optionnels pour debug ou stats
+                    q1: q1Val,
+                    q2: q2Val ? q2Val.value : null,
+                    q3: q3Val
+                }
+            };
+
+            // Envoi du message au parent (l'application Tuteur Maths)
+            window.parent.postMessage(message, '*');
+            console.log("Note envoyée :", message);
+        });
+
+        // Fonction utilitaire pour afficher le feedback par question
+        function setFeedback(element, text, isCorrect) {
+            element.textContent = text;
+            element.style.display = 'block';
+            element.className = 'feedback-msg ' + (isCorrect ? 'correct' : 'incorrect');
+        }
+    </script>
+</body>
+
+</html>
