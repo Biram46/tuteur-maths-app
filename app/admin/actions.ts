@@ -202,3 +202,39 @@ export async function deleteResource(formData: FormData) {
     revalidatePath("/admin");
     redirect("/admin");
 }
+
+/**
+ * Action appelée après un upload côté client réussi
+ */
+export async function createResourceEntry(chapterId: string, kind: string, publicUrl: string, fileName: string) {
+    if (!chapterId || !kind || !publicUrl) {
+        throw new Error("Données d'enregistrement incomplètes");
+    }
+
+    const payload: any = { chapter_id: chapterId, kind };
+
+    // Logique d'assignation des URLs
+    // Note: fileName est utilisé pour deviner le type si besoin
+    if (kind === 'interactif' || fileName.toLowerCase().endsWith('.html')) {
+        payload.html_url = publicUrl;
+    } else if (kind.includes('pdf')) {
+        payload.pdf_url = publicUrl;
+    } else if (kind.includes('docx')) {
+        payload.docx_url = publicUrl;
+    } else if (kind.includes('latex')) {
+        payload.latex_url = publicUrl;
+    } else {
+        payload.pdf_url = publicUrl;
+    }
+
+    const { error } = await supabaseServer.from("resources").insert([payload]);
+
+    if (error) {
+        console.error("DB Error:", error);
+        throw new Error(`Erreur base de données: ${error.message}`);
+    }
+
+    revalidatePath("/admin");
+    // Pas de redirect ici car appelé via server action dans un event handler
+    return { success: true };
+}

@@ -470,16 +470,81 @@ export default function AdminDashboard({ initialData }: Props) {
                                     </form>
                                 </div>
 
-                                {/* Upload Form */}
+                                {/* Upload Form (Client-Side) */}
                                 <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-3xl border-2 border-dashed border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden group/upload">
                                     <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/upload:opacity-100 transition-opacity pointer-events-none"></div>
                                     <h3 className="text-lg font-bold font-['Orbitron'] text-fuchsia-100 mb-6 uppercase tracking-wider flex items-center gap-3">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                                         </svg>
-                                        Upload Système
+                                        Upload Direct (Client)
                                     </h3>
-                                    <form action={uploadResourceWithFile} className="space-y-6">
+
+                                    {/* Client-Side Upload Form bypassing Vercel Body Limits */}
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        const formData = new FormData(e.currentTarget);
+                                        const file = formData.get("file") as File;
+                                        const chapterId = formData.get("chapter_id") as string;
+                                        const kind = formData.get("kind") as string;
+
+                                        if (!file || !chapterId || !kind) return;
+
+                                        const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
+                                        const originalText = btn.innerText;
+                                        btn.disabled = true;
+                                        btn.innerText = "Upload vers Supabase...";
+                                        btn.style.opacity = "0.7";
+
+                                        try {
+                                            // 1. Initialiser le client Supabase Browser avec @supabase/ssr
+                                            const { createBrowserClient } = require('@supabase/ssr');
+                                            const supabase = createBrowserClient(
+                                                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                                                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                                            );
+
+                                            const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET!;
+
+                                            // 2. Upload Storage direct (Browser -> Supabase)
+                                            const timestamp = Date.now();
+                                            // Sanitize filename
+                                            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                                            const filePath = `resources/${timestamp}-${safeName}`;
+
+                                            console.log("Uploading...", filePath);
+
+                                            const { error: uploadError } = await supabase.storage
+                                                .from(bucketName)
+                                                .upload(filePath, file, {
+                                                    upsert: false
+                                                });
+
+                                            if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
+
+                                            // 3. Récupérer URL publique
+                                            const { data: { publicUrl } } = supabase.storage
+                                                .from(bucketName)
+                                                .getPublicUrl(filePath);
+
+                                            console.log("Upload OK, URL:", publicUrl);
+
+                                            // 4. Server Action pour enregistrer en BDD
+                                            btn.innerText = "Enregistrement BDD...";
+                                            const { createResourceEntry } = require("./actions");
+                                            await createResourceEntry(chapterId, kind, publicUrl, safeName);
+
+                                            alert("✅ Ressource ajoutée avec succès !");
+                                            window.location.reload();
+
+                                        } catch (err: any) {
+                                            console.error(err);
+                                            alert("❌ Erreur: " + err.message);
+                                            btn.disabled = false;
+                                            btn.innerText = originalText;
+                                            btn.style.opacity = "1";
+                                        }
+                                    }} className="space-y-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-mono text-fuchsia-400 uppercase tracking-widest">Séquence Destination</label>
                                             <select name="chapter_id" required className="w-full bg-slate-950/80 border border-fuchsia-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-fuchsia-500/50 outline-none transition-all">
@@ -494,13 +559,13 @@ export default function AdminDashboard({ initialData }: Props) {
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-mono text-fuchsia-400 uppercase tracking-widest">Format de sortie</label>
                                             <select name="kind" required className="w-full bg-slate-950/80 border border-fuchsia-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs outline-none transition-all">
+                                                <option value="interactif">Module Interactif (HTML)</option>
                                                 <option value="cours-pdf">Cours Pédagogique (PDF)</option>
                                                 <option value="cours-docx">Format Modifiable (DOCX)</option>
                                                 <option value="cours-latex">Source LaTeX (TEX)</option>
                                                 <option value="exercices-pdf">Fiche d'Exercices (PDF)</option>
                                                 <option value="exercices-docx">Exercices Modifiables (DOCX)</option>
                                                 <option value="exercices-latex">Exercices LaTeX (TEX)</option>
-                                                <option value="interactif">Module Interactif (HTML)</option>
                                             </select>
                                         </div>
 
