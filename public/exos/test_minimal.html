@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Minimal</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .box {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <h1>Test Minimal</h1>
+        <p>Si vous voyez ce texte, le fichier HTML est correctement chargé.</p>
+        <button onclick="document.getElementById('res').innerText = 'Interaction OK !'"
+            style="padding:10px 20px; cursor:pointer;">
+            Tester l'interaction
+        </button>
+        <p id="res" class="success"></p>
+    </div>
+</body>
+
+</html>
