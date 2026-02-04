@@ -22,12 +22,18 @@ interface Props {
 
 export default function AdminDashboard({ initialData }: Props) {
     const { levels, chapters, resources } = initialData;
-    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results">("levels");
+    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "converter">("levels");
 
     // States for editing
     const [editingLevel, setEditingLevel] = useState<Level | null>(null);
     const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
+
+    // States for converter
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [targetFormat, setTargetFormat] = useState<"pdf" | "docx" | "tex">("pdf");
+    const [isConverting, setIsConverting] = useState(false);
+    const [conversionError, setConversionError] = useState<string | null>(null);
 
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
@@ -67,6 +73,12 @@ export default function AdminDashboard({ initialData }: Props) {
                     className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'results' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
                 >
                     Résultats
+                </button>
+                <button
+                    onClick={() => setActiveTab("converter")}
+                    className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'converter' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    🔄 Convertisseur
                 </button>
             </div>
 
@@ -631,6 +643,228 @@ export default function AdminDashboard({ initialData }: Props) {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- TAB CONVERTISSEUR --- */}
+                {activeTab === "converter" && (
+                    <div className="animate-message">
+                        <header className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">Convertisseur de Fichiers</h2>
+                            <span className="text-[10px] font-mono text-cyan-500/50 uppercase tracking-[0.3em]">LaTeX • PDF • DOCX</span>
+                        </header>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Zone d'upload */}
+                            <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl pointer-events-none"></div>
+
+                                <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                                    </svg>
+                                    Fichier Source
+                                </h3>
+
+                                <div className="space-y-6">
+                                    <div className="relative group/file">
+                                        <input
+                                            type="file"
+                                            accept=".tex,.pdf,.docx"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setSelectedFile(file);
+                                                    setConversionError(null);
+                                                }
+                                            }}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        />
+                                        <div className="border-2 border-dashed border-cyan-500/30 bg-slate-950/40 rounded-2xl p-12 text-center group-hover/file:border-cyan-500/60 transition-all hover:bg-slate-950/60">
+                                            {selectedFile ? (
+                                                <div className="space-y-3">
+                                                    <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/20 flex items-center justify-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-cyan-400">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                                        </svg>
+                                                    </div>
+                                                    <p className="text-cyan-300 font-medium">{selectedFile.name}</p>
+                                                    <p className="text-[10px] text-slate-500">{(selectedFile.size / 1024).toFixed(2)} KB</p>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-slate-500">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                                                        </svg>
+                                                    </div>
+                                                    <p className="text-slate-400 text-sm font-['Exo_2'] mb-2">Cliquer ou glisser le fichier ici</p>
+                                                    <p className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.2em]">TEX • PDF • DOCX</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {selectedFile && (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedFile(null);
+                                                setConversionError(null);
+                                            }}
+                                            className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-all text-xs"
+                                        >
+                                            ✕ Annuler la sélection
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Zone de configuration et conversion */}
+                            <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-3xl border-2 border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-fuchsia-500/5 opacity-50 pointer-events-none"></div>
+
+                                <h3 className="text-lg font-bold font-['Orbitron'] text-fuchsia-100 mb-6 uppercase tracking-wider flex items-center gap-3 relative">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    </svg>
+                                    Conversion
+                                </h3>
+
+                                <div className="space-y-6 relative">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest ml-1">Format de sortie</label>
+                                        <select
+                                            value={targetFormat}
+                                            onChange={(e) => setTargetFormat(e.target.value as "pdf" | "docx" | "tex")}
+                                            disabled={!selectedFile}
+                                            className="w-full bg-slate-950/80 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        >
+                                            <option value="pdf">📕 PDF</option>
+                                            <option value="docx">📝 DOCX (Word)</option>
+                                            <option value="tex">∑ LaTeX (.tex)</option>
+                                        </select>
+                                    </div>
+
+                                    {conversionError && (
+                                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">
+                                            <div className="font-bold mb-1">❌ Erreur de conversion</div>
+                                            <div className="text-xs opacity-80 whitespace-pre-line">{conversionError}</div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={async () => {
+                                            if (!selectedFile) return;
+
+                                            setIsConverting(true);
+                                            setConversionError(null);
+
+                                            try {
+                                                const formData = new FormData();
+                                                formData.append('file', selectedFile);
+                                                formData.append('targetFormat', targetFormat);
+
+                                                // Essayer d'abord l'API locale (Pandoc)
+                                                const response = await fetch('/api/convert-local', {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                });
+
+                                                if (!response.ok) {
+                                                    const errorData = await response.json();
+                                                    throw new Error(errorData.error || 'Erreur de conversion');
+                                                }
+
+                                                // Si c'est un fichier binaire (PDF, DOCX), on le télécharge
+                                                const contentType = response.headers.get('content-type');
+                                                if (contentType?.includes('application/')) {
+                                                    const blob = await response.blob();
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = selectedFile.name.replace(/\.[^.]+$/, `.${targetFormat}`);
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                    URL.revokeObjectURL(url);
+
+                                                    alert('✅ Conversion réussie ! Le fichier a été téléchargé.');
+                                                    setSelectedFile(null);
+                                                } else {
+                                                    const result = await response.json();
+                                                    throw new Error(result.error || 'Format de réponse inattendu');
+                                                }
+
+                                            } catch (error: any) {
+                                                console.error('Conversion error:', error);
+                                                setConversionError(error.message);
+                                            } finally {
+                                                setIsConverting(false);
+                                            }
+                                        }}
+                                        disabled={!selectedFile || isConverting}
+                                        className="w-full bg-gradient-to-r from-cyan-600 to-fuchsia-600 hover:from-cyan-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-800 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)] disabled:shadow-none active:scale-95 transition-all text-sm uppercase tracking-[0.2em] disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {isConverting ? (
+                                            <span className="flex items-center justify-center gap-3">
+                                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Conversion en cours...
+                                            </span>
+                                        ) : (
+                                            '🔄 Convertir le fichier'
+                                        )}
+                                    </button>
+
+                                    {/* Info sur les conversions supportées */}
+                                    <div className="mt-6 p-4 bg-slate-950/50 rounded-xl border border-cyan-500/10">
+                                        <h4 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-3">Conversions disponibles</h4>
+                                        <div className="space-y-2 text-xs text-slate-400">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-orange-400">⚙️</span>
+                                                <span>LaTeX (.tex) → PDF (requiert Pandoc)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-orange-400">⚙️</span>
+                                                <span>LaTeX → DOCX (requiert Pandoc)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-orange-400">⚙️</span>
+                                                <span>DOCX → LaTeX (requiert Pandoc)</span>
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-cyan-500/10 text-[10px]">
+                                                <p className="text-cyan-300 font-bold mb-1">📦 Installation Pandoc :</p>
+                                                <code className="bg-slate-900 px-2 py-1 rounded text-amber-300">
+                                                    winget install --id JohnMacFarlane.Pandoc
+                                                </code>
+                                                <p className="mt-2 text-slate-500">Redémarrez votre PC après installation</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Guide d'utilisation */}
+                        <div className="mt-8 bg-slate-900/40 rounded-2xl border border-cyan-500/10 p-6">
+                            <h4 className="text-sm font-bold font-['Orbitron'] text-cyan-300 mb-4 uppercase tracking-wider">📚 Guide d'utilisation</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-400">
+                                <div className="space-y-2">
+                                    <div className="font-bold text-cyan-400">1. Sélectionnez un fichier</div>
+                                    <p>Glissez-déposez ou cliquez pour choisir un fichier .tex, .pdf ou .docx</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="font-bold text-fuchsia-400">2. Choisissez le format</div>
+                                    <p>Sélectionnez le format de sortie souhaité (PDF, DOCX, ou LaTeX)</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="font-bold text-purple-400">3. Convertissez</div>
+                                    <p>Cliquez sur le bouton de conversion et téléchargez le résultat</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
