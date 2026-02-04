@@ -525,7 +525,9 @@ export default function AdminDashboard({ initialData }: Props) {
 
                                             const { error: uploadError } = await supabase.storage
                                                 .from(bucketName)
-                                                .uploadToSignedUrl(path, token, file);
+                                                .uploadToSignedUrl(path, token, file, {
+                                                    contentType: file.type // Force le type MIME du fichier (ex: text/html)
+                                                });
 
                                             if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
 

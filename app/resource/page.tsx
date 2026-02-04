@@ -25,7 +25,7 @@ function ResourceContent() {
     useEffect(() => {
         if (!url) return;
 
-        // Skip fetch for binary/iframe formats OR download-only formats (.tex)
+        // Skip fetch for binary/iframe formats OR download-only formats (.tex) AND interactive HTML (now handled by proxy)
         if (type === 'interactif' || lowerUrl.endsWith('.html') || lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.tex')) {
             setLoading(false);
             return;
@@ -43,6 +43,8 @@ function ResourceContent() {
 
     }, [url, type, lowerUrl]);
 
+
+
     if (!url) return <div className="p-8 text-center text-white">URL manquante</div>;
 
     const isInteractive = type === 'interactif' || lowerUrl.endsWith('.html');
@@ -51,7 +53,11 @@ function ResourceContent() {
     const isTex = lowerUrl.endsWith('.tex');
 
     // Utilisation directe de l'URL standard (le stockage gère les headers corrects)
-    const displayUrl = url;
+    // MAIS pour l'HTML qui peut être servi en text/plain par Supabase, on utilise notre proxy
+    let displayUrl = url;
+    if (isInteractive) {
+        displayUrl = `/api/view-resource?url=${encodeURIComponent(url)}`;
+    }
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
