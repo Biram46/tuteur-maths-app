@@ -5,15 +5,59 @@ import { redirect } from "next/navigation";
 import { logout } from "@/app/auth/actions";
 
 export default async function AdminPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check Authentication
+    try {
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    // Check if user is logged in and is the admin
-    if (!user || user.email !== 'biram26@yahoo.fr') {
+        if (authError || !user) {
+            redirect('/');
+        }
+
+        // Strict Admin Check
+        if (user.email !== 'biram26@yahoo.fr') {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
+                    Access Denied: You do not have administrator privileges.
+                </div>
+            );
+        }
+    } catch (e) {
+        // Redirect if anything goes wrong with auth
+        // Only redirect if it's not a Next.js redirect error (which is thrown as an error)
+        if ((e as any)?.message?.includes('NEXT_REDIRECT')) throw e;
         redirect('/');
     }
 
-    const data = await getEducationalData();
+    // Diagnostics / Data Fetching
+    let data;
+    try {
+        data = await getEducationalData();
+    } catch (error: any) {
+        console.error("ADMIN PAGE LOAD ERROR:", error);
+        return (
+            <div className="min-h-screen p-12 bg-[#020617] text-white font-mono">
+                <h1 className="text-2xl text-red-500 mb-4">Erreur Critique de Chargement</h1>
+                <p className="mb-4">Impossible de charger les données pédagogiques.</p>
+                <div className="bg-red-900/20 border border-red-500/50 p-6 rounded-lg mb-8">
+                    <p className="text-sm opacity-80 mb-2">Message technique :</p>
+                    <code className="block bg-black p-4 rounded text-red-300">
+                        {error.message || "Erreur inconnue"}
+                    </code>
+                </div>
+
+                <h2 className="text-xl text-cyan-400 mb-2">Solutions possibles (Vercel) :</h2>
+                <ul className="list-disc pl-6 space-y-2 text-slate-300">
+                    <li>Vérifiez que <strong>SUPABASE_SERVICE_ROLE_KEY</strong> est bien définie dans les variables d'environnement.</li>
+                    <li>Vérifiez que <strong>NEXT_PUBLIC_SUPABASE_URL</strong> est correcte.</li>
+                    <li>Vérifiez que la base de données est accessible.</li>
+                </ul>
+                <div className="mt-8">
+                    <a href="/" className="px-4 py-2 bg-slate-800 rounded hover:bg-slate-700">Retour à l'accueil</a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#020617] text-slate-200">
