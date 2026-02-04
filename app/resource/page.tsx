@@ -50,11 +50,8 @@ function ResourceContent() {
     const isDocx = lowerUrl.endsWith('.docx');
     const isTex = lowerUrl.endsWith('.tex');
 
-    // Utiliser le proxy pour le contenu interactif HTML pour forcer le bon Content-Type
-    // sauf si l'URL est locale (commence par /)
-    const displayUrl = isInteractive && url.startsWith('http')
-        ? `/api/view-resource?url=${encodeURIComponent(url)}`
-        : url;
+    // Utilisation directe de l'URL standard (le stockage gère les headers corrects)
+    const displayUrl = url;
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
