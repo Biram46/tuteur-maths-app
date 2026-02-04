@@ -108,6 +108,7 @@ export async function createOrUpdateResource(formData: FormData) {
  * Upload un fichier vers Supabase Storage et crée la ressource associée
  */
 export async function uploadResourceWithFile(formData: FormData) {
+    // Cette fonction reste en backup pour les fichiers < 4.5MB si besoin
     console.log("--> Démarrage Upload Standard");
 
     const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
@@ -203,6 +204,28 @@ export async function deleteResource(formData: FormData) {
     redirect("/admin");
 }
 
+// --- NOUVELLES ACTIONS POUR UPLOAD CLIENT AVEC SIGNED URL (BYPASS RLS) ---
+
+/**
+ * Génère une URL signée pour upload (Bypass RLS)
+ */
+export async function getSignedUploadUrlAction(path: string) {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) throw new Error("Bucket non configuré");
+
+    const { data, error } = await supabaseServer
+        .storage
+        .from(bucketName)
+        .createSignedUploadUrl(path);
+
+    if (error) {
+        console.error("Signed URL Error:", error);
+        throw new Error(error.message);
+    }
+
+    return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+}
+
 /**
  * Action appelée après un upload côté client réussi
  */
@@ -214,7 +237,6 @@ export async function createResourceEntry(chapterId: string, kind: string, publi
     const payload: any = { chapter_id: chapterId, kind };
 
     // Logique d'assignation des URLs
-    // Note: fileName est utilisé pour deviner le type si besoin
     if (kind === 'interactif' || fileName.toLowerCase().endsWith('.html')) {
         payload.html_url = publicUrl;
     } else if (kind.includes('pdf')) {
@@ -235,6 +257,5 @@ export async function createResourceEntry(chapterId: string, kind: string, publi
     }
 
     revalidatePath("/admin");
-    // Pas de redirect ici car appelé via server action dans un event handler
     return { success: true };
 }

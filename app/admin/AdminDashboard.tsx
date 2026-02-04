@@ -480,7 +480,7 @@ export default function AdminDashboard({ initialData }: Props) {
                                         Upload Direct (Client)
                                     </h3>
 
-                                    {/* Client-Side Upload Form bypassing Vercel Body Limits */}
+                                    {/* Client-Side Upload Form with Signed URL (Bypass RLS & Vercel Limits) */}
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
                                         const formData = new FormData(e.currentTarget);
@@ -493,45 +493,51 @@ export default function AdminDashboard({ initialData }: Props) {
                                         const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
                                         const originalText = btn.innerText;
                                         btn.disabled = true;
-                                        btn.innerText = "Upload vers Supabase...";
+                                        btn.innerText = "Autorisation...";
                                         btn.style.opacity = "0.7";
 
                                         try {
                                             // 1. Initialiser le client Supabase Browser avec @supabase/ssr
+                                            // Utilisation dynamique pour compatibilit
                                             const { createBrowserClient } = require('@supabase/ssr');
                                             const supabase = createBrowserClient(
                                                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                                                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
                                             );
-
                                             const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET!;
 
-                                            // 2. Upload Storage direct (Browser -> Supabase)
+                                            // 2. Générer le chemin
                                             const timestamp = Date.now();
-                                            // Sanitize filename
                                             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                                             const filePath = `resources/${timestamp}-${safeName}`;
 
-                                            console.log("Uploading...", filePath);
+                                            // 3. RECUPERER UNE URL SIGNEE (Privilège Serveur) via Server Action
+                                            const { getSignedUploadUrlAction, createResourceEntry } = require("./actions");
+
+                                            console.log("Asking for signed url for:", filePath);
+                                            // Appel Server Action
+                                            const { token, path } = await getSignedUploadUrlAction(filePath);
+
+                                            if (!token) throw new Error("Impossible d'obtenir le token d'upload.");
+
+                                            // 4. UPLOAD AVEC TOKEN (Direct Browser -> Supabase)
+                                            btn.innerText = "Upload en cours...";
 
                                             const { error: uploadError } = await supabase.storage
                                                 .from(bucketName)
-                                                .upload(filePath, file, {
-                                                    upsert: false
-                                                });
+                                                .uploadToSignedUrl(path, token, file);
 
                                             if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
 
-                                            // 3. Récupérer URL publique
+                                            // 5. Récupérer URL publique
                                             const { data: { publicUrl } } = supabase.storage
                                                 .from(bucketName)
                                                 .getPublicUrl(filePath);
 
                                             console.log("Upload OK, URL:", publicUrl);
 
-                                            // 4. Server Action pour enregistrer en BDD
-                                            btn.innerText = "Enregistrement BDD...";
-                                            const { createResourceEntry } = require("./actions");
+                                            // 6. Enregistrement BDD via Server Action
+                                            btn.innerText = "Finalisation...";
                                             await createResourceEntry(chapterId, kind, publicUrl, safeName);
 
                                             alert("✅ Ressource ajoutée avec succès !");
