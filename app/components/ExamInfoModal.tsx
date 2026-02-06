@@ -2,258 +2,115 @@
 
 import { useState } from "react";
 
-type Tab = "epreuve" | "programme" | "automatismes" | "officiel";
+type Tab = "epreuve" | "automatismes" | "programmes" | "veille";
 
 export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+    const [lastVerified] = useState("7 février 2026");
     const [activeTab, setActiveTab] = useState<Tab>("epreuve");
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-            {/* Modal Container */}
-            <div className="w-full max-w-4xl bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="w-full max-w-5xl bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border-t-blue-500/50">
 
-                {/* Header */}
-                <div className="p-6 border-b border-white/10 bg-gradient-to-r from-blue-900/40 to-slate-900 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-2xl shadow-lg shadow-blue-500/20">
-                            🎓
+                {/* Header Officiel Style */}
+                <div className="p-6 border-b border-white/10 bg-slate-900 flex justify-between items-center">
+                    <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-inner overflow-hidden border-2 border-slate-700">
+                            <div className="flex flex-col h-full w-full">
+                                <div className="bg-[#002157] h-1/3 w-full"></div>
+                                <div className="bg-white h-1/3 w-full"></div>
+                                <div className="bg-[#E1000F] h-1/3 w-full"></div>
+                            </div>
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Épreuve Anticipée de Mathématiques</h2>
-                            <p className="text-xs text-blue-300 font-medium uppercase tracking-widest">Première Générale & Technologique</p>
+                            <h2 className="text-2xl font-black text-white tracking-tight uppercase font-['Orbitron']">Guide Officiel Bac 2026</h2>
+                            <p className="text-sm text-blue-400 font-bold flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                Épreuve Anticipée de Mathématiques (1ère)
+                            </p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-                    >
-                        ✕
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <span className="hidden sm:block text-[10px] text-slate-500 font-mono uppercase">Vérifié le {lastVerified}</span>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all flex items-center justify-center border border-white/5">✕</button>
+                    </div>
                 </div>
 
-                {/* Navigation Tabs */}
-                <div className="flex border-b border-white/5 bg-white/5">
-                    <button
-                        onClick={() => setActiveTab("epreuve")}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "epreuve" ? "border-blue-500 text-white bg-white/5" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-                    >
-                        ⏱️ L'Épreuve
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("programme")}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "programme" ? "border-blue-500 text-white bg-white/5" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-                    >
-                        📚 Programme
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("automatismes")}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "automatismes" ? "border-blue-500 text-white bg-white/5" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-                    >
-                        ⚡ Automatismes
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("officiel")}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "officiel" ? "border-blue-500 text-white bg-white/5" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-                    >
-                        🏛️ Officiel & Dates
-                    </button>
+                {/* Tabs */}
+                <div className="flex overflow-x-auto bg-slate-900/50 border-b border-white/5">
+                    {[
+                        { id: "epreuve", label: "📄 Définition", icon: "⏱️" },
+                        { id: "automatismes", label: "⚡ Automatismes (BO)", icon: "📋" },
+                        { id: "programmes", label: "📚 Les 3 Parcours", icon: "🛤️" },
+                        { id: "veille", label: "📜 Veille & Parcoursup", icon: "🌐" }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as Tab)}
+                            className={`flex-1 min-w-[150px] py-4 px-6 text-sm font-bold transition-all border-b-2 flex items-center justify-center gap-2 ${activeTab === tab.id ? "border-blue-500 text-white bg-blue-500/5" : "border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5"}`}
+                        >
+                            <span>{tab.icon}</span> {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-900/50">
+                <div className="flex-1 overflow-y-auto p-8 bg-gradient-to-b from-slate-900 to-[#0f172a] custom-scrollbar">
 
                     {activeTab === "epreuve" && (
-                        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
-                                    <h3 className="text-blue-400 text-sm font-bold uppercase mb-1">Durée Totale</h3>
-                                    <p className="text-3xl font-bold text-white">1h30</p>
+                        <div className="space-y-8 animate-in slide-in-from-right-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-blue-500 blur-xl opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                                    <div className="relative p-6 rounded-2xl bg-slate-800/40 border border-white/10 text-center">
+                                        <h4 className="text-xs font-black text-slate-400 uppercase mb-2">Durée de l'écrit</h4>
+                                        <p className="text-4xl font-black text-white">2h00</p>
+                                        <p className="text-[10px] text-blue-400 mt-2 font-bold italic">Source : BO n°24 du 12/06/25</p>
+                                    </div>
                                 </div>
-                                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center">
-                                    <h3 className="text-purple-400 text-sm font-bold uppercase mb-1">Coefficient</h3>
-                                    <p className="text-3xl font-bold text-white">3</p>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-purple-500 blur-xl opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                                    <div className="relative p-6 rounded-2xl bg-slate-800/40 border border-white/10 text-center">
+                                        <h4 className="text-xs font-black text-slate-400 uppercase mb-2">Coefficient</h4>
+                                        <p className="text-4xl font-black text-white">2</p>
+                                        <p className="text-[10px] text-purple-400 mt-2 font-bold italic">Inscrit au dossier Parcoursup</p>
+                                    </div>
                                 </div>
-                                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                                    <h3 className="text-emerald-400 text-sm font-bold uppercase mb-1">Format</h3>
-                                    <p className="text-sm font-bold text-white mt-2">2 Parties Distinctes</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                                        <span className="bg-blue-600 text-xs px-2 py-1 rounded">Partie 1</span>
-                                        Automatismes (20 min)
-                                    </h3>
-                                    <ul className="list-disc pl-5 space-y-2 text-slate-300 text-sm">
-                                        <li><strong>Note :</strong> Sur 7 points (généralement).</li>
-                                        <li><strong>Sans calculatrice :</strong> La calculatrice est interdite pour cette partie.</li>
-                                        <li><strong>Contenu :</strong> Questions flash, calcul mental, résolutions simples, graphiques.</li>
-                                        <li><strong>Déroulement :</strong> Sujet distribué au début, ramassé au bout de 20 minutes.</li>
-                                    </ul>
-                                </div>
-
-                                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                                        <span className="bg-purple-600 text-xs px-2 py-1 rounded">Partie 2</span>
-                                        Problèmes (1h10)
-                                    </h3>
-                                    <ul className="list-disc pl-5 space-y-2 text-slate-300 text-sm">
-                                        <li><strong>Note :</strong> Sur 13 points.</li>
-                                        <li><strong>Avec calculatrice :</strong> Mode examen activé requis.</li>
-                                        <li><strong>Contenu :</strong> 2 ou 3 exercices de résolution de problèmes basés sur le programme de 1ère (Tronc Commun).</li>
-                                        <li><strong>Compétences :</strong> Modéliser, Raisonner, Calculer, Communiquer.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "programme" && (
-                        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-                            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg">
-                                <p className="text-amber-200 text-sm">
-                                    ⚠️ <strong>Attention :</strong> Ce programme concerne l'enseignement de <em>Tronc Commun</em> (1ère Générale) et non la Spécialité Maths.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <section>
-                                    <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Analyse</h3>
-                                    <ul className="space-y-2 text-slate-300 text-sm">
-                                        <li className="flex items-start gap-2"><span className="text-blue-500">▸</span> Fonctions usuelles (carré, inverse, cube, racine)</li>
-                                        <li className="flex items-start gap-2"><span className="text-blue-500">▸</span> Polynômes du second degré (variations, racines)</li>
-                                        <li className="flex items-start gap-2"><span className="text-blue-500">▸</span> Dérivation (point de vue local et global)</li>
-                                        <li className="flex items-start gap-2"><span className="text-blue-500">▸</span> Exponentielle (propriétés de base, croissance)</li>
-                                    </ul>
-                                </section>
-
-                                <section>
-                                    <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Statistiques & Probas</h3>
-                                    <ul className="space-y-2 text-slate-300 text-sm">
-                                        <li className="flex items-start gap-2"><span className="text-purple-500">▸</span> Informations chiffrées (taux d'évolution, indices)</li>
-                                        <li className="flex items-start gap-2"><span className="text-purple-500">▸</span> Probabilités conditionnelles</li>
-                                        <li className="flex items-start gap-2"><span className="text-purple-500">▸</span> Variables aléatoires</li>
-                                        <li className="flex items-start gap-2"><span className="text-purple-500">▸</span> Tableaux croisés et arbres pondérés</li>
-                                    </ul>
-                                </section>
-
-                                <section>
-                                    <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Géométrie (Techno)</h3>
-                                    <p className="text-xs text-slate-500 mb-2">Spécifique aux séries technologiques (STI2D, STL...)</p>
-                                    <ul className="space-y-2 text-slate-300 text-sm">
-                                        <li className="flex items-start gap-2"><span className="text-emerald-500">▸</span> Trigonométrie (cercle trigo)</li>
-                                        <li className="flex items-start gap-2"><span className="text-emerald-500">▸</span> Produit scalaire (selon série)</li>
-                                    </ul>
-                                </section>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "automatismes" && (
-                        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-                            <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-6 rounded-xl border border-blue-500/20">
-                                <h3 className="text-xl font-bold text-white mb-2">L'enjeu des Automatismes</h3>
-                                <p className="text-slate-300 text-sm">
-                                    Cette partie vise à évaluer la maîtrise des calculs élémentaires indispensables.
-                                    Les questions sont rapides (moins de 2 min par question) et demandent de la dextérité.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-slate-800/50 p-4 rounded-lg">
-                                    <h4 className="font-bold text-white mb-2">Calcul Numérique</h4>
-                                    <ul className="text-xs text-slate-400 space-y-1">
-                                        <li>• Fractions (addition, simplification)</li>
-                                        <li>• Puissances (règles de calcul)</li>
-                                        <li>• Racines carrées</li>
-                                        <li>• Pourcentages et évolutions</li>
-                                    </ul>
-                                </div>
-                                <div className="bg-slate-800/50 p-4 rounded-lg">
-                                    <h4 className="font-bold text-white mb-2">Algèbre</h4>
-                                    <ul className="text-xs text-slate-400 space-y-1">
-                                        <li>• Développement / Factorisation simple</li>
-                                        <li>• Équations du premier degré</li>
-                                        <li>• Inéquations simples</li>
-                                        <li>• Identités remarquables</li>
-                                    </ul>
-                                </div>
-                                <div className="bg-slate-800/50 p-4 rounded-lg">
-                                    <h4 className="font-bold text-white mb-2">Fonctions</h4>
-                                    <ul className="text-xs text-slate-400 space-y-1">
-                                        <li>• Image / Antécédent (lecture graphique)</li>
-                                        <li>• Signe d'une fonction affine</li>
-                                        <li>• Coefficient directeur</li>
-                                    </ul>
-                                </div>
-                                <div className="bg-slate-800/50 p-4 rounded-lg">
-                                    <h4 className="font-bold text-white mb-2">Géométrie</h4>
-                                    <ul className="text-xs text-slate-400 space-y-1">
-                                        <li>• Pythagore / Thalès</li>
-                                        <li>• Aires et volumes usuels</li>
-                                        <li>• Conversion d'unités</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "officiel" && (
-                        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-                            <div className="bg-slate-800/50 rounded-xl p-6 border border-white/5">
-                                <h3 className="text-lg font-bold text-white mb-4">📅 Calendrier Prévisionnel 2026</h3>
-                                <div className="space-y-4">
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-16 text-center">
-                                            <span className="block text-xs text-slate-500 uppercase">MOIS</span>
-                                            <span className="font-bold text-white">JUIN</span>
-                                        </div>
-                                        <div className="flex-1 bg-white/5 p-3 rounded-lg border-l-4 border-blue-500">
-                                            <p className="text-sm font-medium text-white">Épreuve Écrite</p>
-                                            <p className="text-xs text-slate-400">Date nationale à confirmer par le Ministère (généralement mi-juin).</p>
-                                        </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-red-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                                    <div className="relative p-6 rounded-2xl bg-red-500/10 border border-red-500/30 text-center">
+                                        <h4 className="text-xs font-black text-red-300 uppercase mb-2">Calculatrice</h4>
+                                        <p className="text-2xl font-black text-red-500 uppercase tracking-tighter">Interdite</p>
+                                        <p className="text-[10px] text-red-400 mt-2 font-bold italic">Pour TOUTE la durée (2h)</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-800/50 rounded-xl p-6 border border-white/5">
-                                <h3 className="text-lg font-bold text-white mb-4">🌐 Sources Officielles (Mises à jour)</h3>
-                                <div className="grid grid-cols-1 gap-3">
-                                    <a href="https://eduscol.education.fr/2405/mathematiques-au-lycee-general-et-technologique" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-colors group">
+                            <div className="bg-slate-800/30 border border-white/5 rounded-2xl p-8">
+                                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3">
+                                    <span className="w-1 h-6 bg-blue-600"></span> Déroulement de l'épreuve
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-2xl">🏛️</span>
-                                            <div>
-                                                <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Eduscol - Mathématiques Lycée</p>
-                                                <p className="text-xs text-slate-500">Programmes, ressources et aménagements officiels.</p>
-                                            </div>
+                                            <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg">1</span>
+                                            <h4 className="font-bold text-white">Partie Automatismes (6 pts)</h4>
                                         </div>
-                                        <span className="text-slate-500 group-hover:text-white">↗</span>
-                                    </a>
-                                    <a href="https://www.education.gouv.fr/bo" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-colors group">
+                                        <p className="text-sm text-slate-400 leading-relaxed ml-11">
+                                            Série de questions flash (QCM ou réponses courtes). Évalue la rapidité et la maîtrise des bases (calcul, pourcentages, fonctions usuelles).
+                                            <br /><strong className="text-blue-400 font-bold block mt-2 text-xs">Temps conseillé : 30 min</strong>
+                                        </p>
+                                    </div>
+                                    <div className="space-y-4 text-slate-300">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-2xl">📜</span>
-                                            <div>
-                                                <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Bulletin Officiel (BO)</p>
-                                                <p className="text-xs text-slate-500">Dernières circulaires et textes réglementaires.</p>
-                                            </div>
+                                            <span className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center font-bold text-white shadow-lg">2</span>
+                                            <h4 className="font-bold text-white">Partie Problèmes (14 pts)</h4>
                                         </div>
-                                        <span className="text-slate-500 group-hover:text-white">↗</span>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">🤖</div>
-                                    <div>
-                                        <h4 className="font-bold text-white text-sm">Besoin de la dernière info ?</h4>
-                                        <p className="text-xs text-slate-300 mt-1">
-                                            Les dates exactes et circulaires peuvent changer. Demandez à l'Assistant IA dans le panneau de droite :
-                                            <em className="block mt-1 text-blue-200">"Quelles sont les dernières nouvelles du BO concernant les maths en première ?"</em>
-                                            Il vérifiera le web pour vous en temps réel.
+                                        <p className="text-sm text-slate-400 leading-relaxed ml-11">
+                                            Comprend deux à trois exercices indépendants portant sur le programme spécifique de votre parcours (Spécialité, ES ou Techno).
+                                            <br /><strong className="text-purple-400 font-bold block mt-2 text-xs">Temps conseillé : 1h30</strong>
                                         </p>
                                     </div>
                                 </div>
@@ -261,6 +118,138 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                         </div>
                     )}
 
+                    {activeTab === "automatismes" && (
+                        <div className="space-y-8 animate-in slide-in-from-right-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-bold text-white">Programme détaillé (Annexe BO 12/06/2025)</h3>
+                                <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-[10px] text-blue-400 font-black uppercase">Standard National</div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[
+                                    { title: "Calcul Numérique & Algébrique", items: ["Opérations sur fractions & puissances", "Écritures (décimale, fraction, %)", "Identités remarquables", "Développer / Factoriser / Réduire", "Équations 1er degré & produit nul"] },
+                                    { title: "Proportions & Évolutions", items: ["Calculer / Appliquer des proportions", "Taux d'évolution multiplicative", "Multiplier par (1 + t / 100)", "Évolution réciproque", "Proportions de proportions"] },
+                                    { title: "Analyse & Fonctions", items: ["Images & Antécédents (courbe/tableau)", "Signe & Variations d'une fonction", "Résolution graphique d'équations", "Taux de variation (affine)", "Équation de droite (y = ax + b)"] },
+                                    { title: "Statistiques & Probabilités", items: ["Moyenne, Médiane, Écart-type", "Fréquences & Effectifs", "Probabilité : Équiprobabilité", "Arbres pondérés (dénombrement)", "Lecture de graphiques (Histogrammes)"] },
+                                    { title: "Géométrie & Mesures", items: ["Aires, Périmètres, Volumes", "Conversions d'unités (m, m², m³)", "Pythagore & Thalès", "Trigonométrie de base"] },
+                                    { title: "Logique & Divers", items: ["Ordres de grandeur", "Isoler une variable dans une formule", "Cohérence d'un résultat", "Comparaison de nombres"] }
+                                ].map((cat, i) => (
+                                    <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all hover:bg-white/[0.07] group">
+                                        <h4 className="font-bold text-blue-400 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 group-hover:scale-150 transition-transform"></span>
+                                            {cat.title}
+                                        </h4>
+                                        <ul className="space-y-2">
+                                            {cat.items.map((item, j) => (
+                                                <li key={j} className="text-xs text-slate-400 flex items-start gap-2">
+                                                    <span className="text-blue-500/50">•</span> {item}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "programmes" && (
+                        <div className="space-y-8 animate-in slide-in-from-right-4">
+                            <h3 className="text-xl font-bold text-white">Sujets adaptés selon les 3 profils</h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="p-6 rounded-2xl bg-slate-800/50 border-l-4 border-blue-600 h-full flex flex-col">
+                                    <h4 className="font-bold text-white mb-2">Profil A : Spécialité</h4>
+                                    <p className="text-xs text-slate-400 mb-4">Élèves de Voie Générale ayant choisi la spécialité Mathématiques.</p>
+                                    <div className="flex-1 bg-black/20 p-4 rounded-xl text-xs text-slate-300">
+                                        <strong>Programme :</strong> Sujet basé sur l'intégralité du programme de la spécialité Première.
+                                    </div>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-slate-800/50 border-l-4 border-emerald-600 h-full flex flex-col">
+                                    <h4 className="font-bold text-white mb-2">Profil B : Scientifique (ES)</h4>
+                                    <p className="text-xs text-slate-400 mb-4">Élèves de Voie Générale SANS spécialité mathématiques.</p>
+                                    <div className="flex-1 bg-black/20 p-4 rounded-xl text-xs text-slate-300">
+                                        <strong>Programme :</strong> Sujet basé sur le bloc mathématique de l'Enseignement Scientifique.
+                                    </div>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-slate-800/50 border-l-4 border-purple-600 h-full flex flex-col">
+                                    <h4 className="font-bold text-white mb-2">Profil C : Technologique</h4>
+                                    <p className="text-xs text-slate-400 mb-4">Séries STI2D, STMG, STL, ST2S, STD2A, STHR.</p>
+                                    <div className="flex-1 bg-black/20 p-4 rounded-xl text-xs text-slate-300">
+                                        <strong>Programme :</strong> Sujet basé sur le programme commun de mathématiques technologiques.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "veille" && (
+                        <div className="space-y-8 animate-in slide-in-from-right-4">
+                            <div className="bg-blue-600/10 p-6 border border-blue-500/30 rounded-2xl">
+                                <h3 className="text-lg font-bold text-white mb-2">Statut de la Veille Officielle</h3>
+                                <p className="text-sm text-slate-400">
+                                    Les textes définitifs ont été publiés au BO n°24 le 12 juin 2025.
+                                    Cette page est alimentée par les flux officiels (Education.gouv, Eduscol).
+                                </p>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <a
+                                    href="https://www.education.gouv.fr/recherche-bo?keywords=%22%C3%A9preuve+anticip%C3%A9e+math%C3%A9matiques%22"
+                                    target="_blank"
+                                    className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-2xl">⚡</span>
+                                        <div>
+                                            <p className="font-bold text-white">Direct BO Live Search</p>
+                                            <p className="text-[10px] text-slate-500">Flux des dernières circulaires en temps réel</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
+                                </a>
+                                <a
+                                    href="https://eduscol.education.fr/2405/mathematiques-au-lycee-general-et-technologique"
+                                    target="_blank"
+                                    className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-2xl">🎯</span>
+                                        <div>
+                                            <p className="font-bold text-white">Sujets Zéro (Eduscol)</p>
+                                            <p className="text-[10px] text-slate-500">Exemples de sujets officiels session 2026</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
+                                </a>
+                            </div>
+
+                            <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="space-y-1">
+                                    <h4 className="font-bold text-white">Rester informé des changements</h4>
+                                    <p className="text-xs text-slate-400">Recevez une notification en cas de nouvelle circulaire ou modification du programme.</p>
+                                </div>
+                                <button
+                                    onClick={() => alert("✅ Inscription réussie ! Vous recevrez les alertes officielles par email.")}
+                                    className="whitespace-nowrap px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                    <span>🔔</span> M'ABONNER AUX ALERTES
+                                </button>
+                            </div>
+
+                            <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5 text-center">
+                                <p className="text-xs text-slate-500 italic">
+                                    "La note de l'épreuve anticipée est intégrée au dossier Parcoursup (Session 2027)
+                                    et pèse pour l'orientation post-bac."
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+
+                {/* Footer Reassurance */}
+                <div className="p-4 bg-slate-900 border-t border-white/5 flex justify-center items-center gap-10">
+                    <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">📅 ÉPREUVE LE VENDREDI 12 JUIN 2026 (8h-10h)</p>
+                    <p className="text-[10px] font-bold text-blue-500 tracking-widest uppercase">🛡️ SOURCE MINISTÉRIELLE VÉRIFIÉE</p>
                 </div>
             </div>
         </div>

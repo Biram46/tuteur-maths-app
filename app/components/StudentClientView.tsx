@@ -165,9 +165,10 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                         <div className="hidden md:flex items-center gap-3">
                             <button
                                 onClick={() => setIsInfoModalOpen(true)}
-                                className="px-4 py-2 rounded-full bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wide transition-all hover:scale-105 flex items-center gap-2"
+                                className="px-4 py-2 rounded-full bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wide transition-all hover:scale-105 flex items-center gap-2 group"
                             >
-                                ℹ️ Info Bac 2026
+                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                ⚠️ BAC MATHS 2026 : INFOS
                             </button>
                             <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
                                 📅 Année Scolaire 2025-2026
