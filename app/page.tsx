@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabaseAction";
 import UserAuthButton from "./components/UserAuthButton";
 import StudentClientView from "./components/StudentClientView";
 import { redirect } from "next/navigation";
+import NavExamButton from "./components/NavExamButton";
 import Link from "next/link";
 import { Level, Chapter, Resource } from "@/lib/data";
 
@@ -93,6 +94,8 @@ export default async function Home() {
                     <Link href="/admin" className="nav-tab">
                         Espace prof
                     </Link>
+                    <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block"></div>
+                    <NavExamButton />
                 </nav>
 
                 <div className="header-actions">
