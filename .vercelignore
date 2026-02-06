@@ -3,3 +3,26 @@
 node_modules
 .env.local
 .env*.local
+
+# LaTeX converter (local development only - not deployed)
+*.tex
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+test-converter.ps1
+test_*.mjs
+test_*.js
+test_conversion*
+verifier-installation.ps1
+*CONVERTISSEUR*.md
+*CONVERSION*.md
+*DIAGNOSTIC*.md
+*MAIN*.md
+*MIKTEX*.md
+public/test-converter.html
+app/api/convert/
+app/api/convert-local/
+app/api/convert-test/

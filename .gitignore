@@ -39,3 +39,36 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# LaTeX converter (local only)
+*.tex
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+test-converter.ps1
+test_*.mjs
+test_*.js
+test_conversion*
+verifier-installation.ps1
+*CONVERTISSEUR*.md
+*CONVERSION*.md
+*DIAGNOSTIC*.md
+*FIX*.md
+*GUIDE_CONFIG*.md
+*GUIDE_TEST*.md
+*INSTALLATION*.md
+*MAIN*.md
+*MIKTEX*.md
+*RECAPITULATIF*.md
+*REPRISE*.md
+*RESUME*.md
+*SESSION*.md
+*SOLUTION*.md
+*TEST*.md
+public/test-converter.html
+app/api/convert/
+app/api/convert-local/
+app/api/convert-test/
