@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Level, Chapter, Resource } from "@/lib/data";
 import MathAssistant from "./MathAssistant";
+import ExamInfoModal from "./ExamInfoModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +21,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         levels.length > 0 ? levels[0].id : null
     );
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     // Mettre à jour le chapitre sélectionné quand on change de niveau
     useEffect(() => {
@@ -160,7 +162,13 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
                             )}
                         </div>
-                        <div className="hidden md:block">
+                        <div className="hidden md:flex items-center gap-3">
+                            <button
+                                onClick={() => setIsInfoModalOpen(true)}
+                                className="px-4 py-2 rounded-full bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wide transition-all hover:scale-105 flex items-center gap-2"
+                            >
+                                ℹ️ Info Bac 2026
+                            </button>
                             <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
                                 📅 Année Scolaire 2025-2026
                             </div>
@@ -338,6 +346,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                     </div>
                 </aside>
             </div>
+
+            <ExamInfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} />
         </main>
     );
 }
