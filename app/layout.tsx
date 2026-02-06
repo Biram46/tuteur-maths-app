@@ -31,8 +31,23 @@ const exo2 = Exo_2({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://aimaths.fr'),
   title: "Tuteur Maths | Intelligence Artificielle & Pédagogie",
-  description: "Plateforme de tutorat mathématique avancée propulsée par l'IA",
+  description: "Plateforme de tutorat mathématique avancée pour lycée, propulsée par l'Intelligence Artificielle. Cours, exercices corrigés et quiz interactifs.",
+  keywords: ["maths", "lycée", "tutorat", "IA", "intelligence artificielle", "cours", "exercices", "première", "terminale"],
+  authors: [{ name: "Tuteur Maths Team" }],
+  openGraph: {
+    title: "Tuteur Maths | Intelligence Artificielle & Pédagogie",
+    description: "Améliorez vos notes en maths grâce à notre assistant IA.",
+    url: 'https://aimaths.fr',
+    siteName: 'Tuteur Maths',
+    locale: 'fr_FR',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  }
 };
 
 export default function RootLayout({
