@@ -26,6 +26,19 @@ export type Resource = {
     html_url: string | null;
 };
 
+export type QuizResult = {
+    id: number;
+    created_at: string;
+    quiz_id: string;
+    niveau: string | null;
+    chapitre: string | null;
+    note: number;
+    note_finale: number;
+    details: any;
+    chapter_id: string | null;
+    exercise_id: string | null;
+};
+
 export async function getEducationalData() {
     const { data: levels } = await supabaseServer
         .from("levels")
@@ -43,9 +56,15 @@ export async function getEducationalData() {
             "id, chapter_id, kind, pdf_url, docx_url, latex_url, html_url"
         );
 
+    const { data: quizResults } = await supabaseServer
+        .from("quiz_results")
+        .select("*")
+        .order("created_at", { ascending: false });
+
     return {
         levels: (levels || []) as Level[],
         chapters: (chapters || []) as Chapter[],
         resources: (resources || []) as Resource[],
+        quizResults: (quizResults || []) as QuizResult[],
     };
 }

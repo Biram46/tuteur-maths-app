@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Level, Chapter, Resource } from "@/lib/data";
+import type { Level, Chapter, Resource, QuizResult } from "@/lib/data";
 import {
     createOrUpdateLevel,
     createOrUpdateChapter,
@@ -17,11 +17,12 @@ interface Props {
         levels: Level[];
         chapters: Chapter[];
         resources: Resource[];
+        quizResults: QuizResult[];
     };
 }
 
 export default function AdminDashboard({ initialData }: Props) {
-    const { levels, chapters, resources } = initialData;
+    const { levels, chapters, resources, quizResults } = initialData;
     const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "converter">("levels");
 
     // States for editing
@@ -627,18 +628,44 @@ export default function AdminDashboard({ initialData }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-cyan-500/5 font-['Exo_2']">
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <tr key={i} className="hover:bg-cyan-500/5 transition-colors">
+                                    {(quizResults || []).map((result) => (
+                                        <tr key={result.id} className="hover:bg-cyan-500/5 transition-colors">
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-cyan-500/20">U{i}</div>
-                                                    <span className="text-slate-200 font-medium">Élève ID_{1000 + i}</span>
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-cyan-500/20" title={String(result.id)}>
+                                                        #{String(result.id).substring(0, 4)}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-200 font-medium text-xs font-mono">{result.quiz_id.substring(0, 8)}...</span>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5 text-slate-400 text-sm">Polynômes de degré 2</td>
-                                            <td className="px-8 py-5"><span className="text-[10px] font-mono text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/30">VALIDATED</span></td>
-                                            <td className="px-8 py-5 text-slate-500 text-xs">Aujourd'hui, 14:32</td>
-                                            <td className="px-8 py-5 text-right font-mono font-bold text-cyan-400">{15 + i}/20</td>
+                                            <td className="px-8 py-5 text-slate-400 text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-cyan-500 uppercase tracking-wider">{result.niveau || "???"}</span>
+                                                    <span>{result.chapitre || "Chapitre inconnu"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${result.note_finale >= 10
+                                                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+                                                    : "text-red-400 bg-red-500/10 border-red-500/30"
+                                                    }`}>
+                                                    {result.note_finale >= 10 ? "ACQUIS" : "NON ACQUIS"}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-slate-500 text-xs font-mono">
+                                                {new Date(result.created_at).toLocaleString('fr-FR', {
+                                                    day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className={`font-mono font-bold text-lg ${result.note_finale >= 15 ? "text-fuchsia-400" :
+                                                    result.note_finale >= 10 ? "text-cyan-400" : "text-slate-500"
+                                                    }`}>
+                                                    {result.note_finale}/20
+                                                </span>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

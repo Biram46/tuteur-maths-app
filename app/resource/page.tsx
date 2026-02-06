@@ -43,6 +43,67 @@ function ResourceContent() {
 
     }, [url, type, lowerUrl]);
 
+    // Ecouteur pour les résultats des exercices interactifs (iframe postMessage)
+    useEffect(() => {
+        const handleMessage = async (event: MessageEvent) => {
+            const data = event.data;
+            if (data && data.type === 'quiz-result') {
+                console.log("📝 Résultat reçu du module interactif :", data);
+
+                const payload = {
+                    quiz_id: data.chapterId || "quiz-externe",
+                    niveau: level || "Niveau Inconnu",
+                    chapitre: title || "Module Interactif",
+                    note_finale: data.note,
+                    details: data.details
+                };
+
+                try {
+                    const response = await fetch('/api/quiz-results', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        // Feedback visuel simple via notification native du navigateur
+                        // Dans une vraie app, on utiliserait un Toast
+                        const notif = document.createElement('div');
+                        notif.style.position = 'fixed';
+                        notif.style.top = '20px';
+                        notif.style.right = '20px';
+                        notif.style.backgroundColor = '#10b981';
+                        notif.style.color = 'white';
+                        notif.style.padding = '16px 24px';
+                        notif.style.borderRadius = '12px';
+                        notif.style.zIndex = '9999';
+                        notif.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                        notif.style.animation = 'slideIn 0.3s ease-out';
+                        notif.style.fontFamily = 'system-ui, sans-serif';
+                        notif.innerHTML = `
+                            <strong>✅ Résultat Enregistré !</strong><br>
+                            <span style="font-size:0.9em">Note : ${data.note}/20</span>
+                        `;
+                        document.body.appendChild(notif);
+
+                        setTimeout(() => {
+                            notif.style.opacity = '0';
+                            notif.style.transition = 'opacity 0.5s';
+                            setTimeout(() => notif.remove(), 500);
+                        }, 3000);
+                    } else {
+                        console.error("Erreur serveur sauvegarde quiz");
+                    }
+                } catch (err) {
+                    console.error("Erreur réseau sauvegarde quiz", err);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [level, title]);
+
 
 
     if (!url) return <div className="p-8 text-center text-white">URL manquante</div>;
