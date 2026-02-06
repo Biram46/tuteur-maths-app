@@ -168,7 +168,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 className="px-4 py-2 rounded-full bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wide transition-all hover:scale-105 flex items-center gap-2 group"
                             >
                                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                                ⚠️ BAC MATHS 2026 : INFOS
+                                ⚠️ EPREUVE ANTICIPEE 1ère MATHS 2026 info
                             </button>
                             <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
                                 📅 Année Scolaire 2025-2026

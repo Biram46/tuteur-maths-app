@@ -25,7 +25,7 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                             </div>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-white tracking-tight uppercase font-['Orbitron']">Guide Officiel Bac 2026</h2>
+                            <h2 className="text-2xl font-black text-white tracking-tight uppercase font-['Orbitron']">Guide : Épreuve Anticipée 1ère Maths 2026</h2>
                             <p className="text-sm text-blue-400 font-bold flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                                 Épreuve Anticipée de Mathématiques (1ère)
@@ -207,15 +207,15 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                                     <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
                                 </a>
                                 <a
-                                    href="https://eduscol.education.fr/2405/mathematiques-au-lycee-general-et-technologique"
+                                    href="https://eduscol.education.fr/4230/epreuve-anticipee-de-mathematiques-aux-baccalaureats-general-et-technologique"
                                     target="_blank"
                                     className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
                                 >
                                     <div className="flex items-center gap-4">
                                         <span className="text-2xl">🎯</span>
                                         <div>
-                                            <p className="font-bold text-white">Sujets Zéro (Eduscol)</p>
-                                            <p className="text-[10px] text-slate-500">Exemples de sujets officiels session 2026</p>
+                                            <p className="font-bold text-white">Sujets Zéro Officiels</p>
+                                            <p className="text-[10px] text-slate-500">Accéder aux modèles d'épreuves (Eduscol)</p>
                                         </div>
                                     </div>
                                     <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
