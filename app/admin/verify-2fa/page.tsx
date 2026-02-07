@@ -168,7 +168,7 @@ export default function Verify2FAPage() {
                         </h1>
                         <p className="text-slate-400 text-sm">
                             Un code à 6 chiffres a été généré<br />
-                            <span className="text-cyan-400 font-mono">biram26@yahoo.fr</span>
+                            <span className="text-cyan-400 font-mono italic">Vérifiez vos emails enregistrés</span>
                         </p>
                     </div>
 

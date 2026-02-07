@@ -57,7 +57,7 @@ export default function AdminLoginClient({
                                     name="email"
                                     type="email"
                                     required
-                                    placeholder="biram26@yahoo.fr"
+                                    placeholder="votre.email@exemple.com"
                                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-slate-200 placeholder:text-slate-700 outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all font-mono text-sm"
                                 />
                                 <div className="absolute inset-y-0 right-4 flex items-center text-slate-700 group-focus-within/input:text-orange-500/50 transition-colors">
