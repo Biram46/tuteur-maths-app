@@ -193,7 +193,7 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <a
-                                    href="https://www.education.gouv.fr/recherche-bo?keywords=%22%C3%A9preuve+anticip%C3%A9e+math%C3%A9matiques%22&sort_by=created"
+                                    href="https://www.education.gouv.fr/recherche?keywords=%22%C3%A9preuve+anticip%C3%A9e+math%C3%A9matiques%22&sort_by=created"
                                     target="_blank"
                                     className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
                                 >
