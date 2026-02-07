@@ -120,28 +120,31 @@ export default function MathAssistant() {
     if (!mounted) return <div className="w-full h-[70vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] max-h-[800px] font-['Exo_2',_sans-serif] relative shadow-2xl">
+        <div className="w-full mx-auto bg-slate-950 rounded-3xl border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] max-h-[800px] font-['Exo_2',_sans-serif] relative shadow-2xl isolate">
             {/* Background Grid - Static */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none">
+            <div className="absolute inset-0 opacity-5 pointer-events-none -z-10">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:30px_30px]"></div>
             </div>
 
-            {/* Header - Plus compact */}
-            <div className="relative shrink-0 bg-slate-900/60 backdrop-blur-md border-b border-cyan-500/20 px-6 py-4 flex items-center gap-4 z-10">
-                <div className="relative bg-slate-950 p-1 rounded-full ring-1 ring-cyan-500/30">
-                    <RobotAvatar isTalking={isTalking} width={40} height={40} />
+            {/* Header - Plus spacieux pour le robot */}
+            <div className="relative shrink-0 bg-slate-900/60 backdrop-blur-md border-b border-cyan-500/20 px-6 py-6 flex items-center gap-6 z-10">
+                <div className="relative flex-shrink-0">
+                    <div className="absolute -inset-2 bg-cyan-500/20 rounded-full blur-lg animate-pulse"></div>
+                    <div className="relative bg-slate-950 p-2 rounded-full ring-2 ring-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                        <RobotAvatar isTalking={isTalking} width={80} height={80} />
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-sm font-bold tracking-widest text-cyan-400 font-['Orbitron']">mimimaths@i</h2>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
-                        <span className="text-[8px] uppercase font-mono text-slate-500">{loading ? 'Analyse...' : 'Opérationnel'}</span>
+                <div className="flex-1">
+                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white font-['Orbitron']">mimimaths@i</h2>
+                    <div className="flex items-center gap-2 mt-1 px-3 py-1 bg-cyan-500/10 rounded-full w-fit border border-cyan-500/20">
+                        <div className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`}></div>
+                        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-300/80 font-bold">{loading ? 'Analyse en cours...' : 'Prêt à t\'aider'}</span>
                     </div>
                 </div>
             </div>
 
             {/* Chat Zone - Static scrolling */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth custom-scrollbar overflow-x-hidden">
                 {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full opacity-30">
                         <span className="text-3xl mb-2">🎓</span>
