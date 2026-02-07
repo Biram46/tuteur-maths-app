@@ -29,7 +29,7 @@ export default function MathAssistant() {
 
     // Scroll automatique vers le bas lors de nouveaux messages
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     };
 
     useEffect(() => {
@@ -41,8 +41,6 @@ export default function MathAssistant() {
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === 'assistant' && !loading) {
             setIsTalking(true);
-            // Le robot parle pendant environ 100ms par 10 caractères de réponse, max 10s
-            // Minimum 2 secondes pour que ce soit vivant
             const duration = Math.min(Math.max(2000, lastMessage.content.length * 50), 10000);
 
             const timer = setTimeout(() => {
@@ -55,41 +53,28 @@ export default function MathAssistant() {
         }
     }, [messages, loading]);
 
-    // Fonction pour nettoyer et formater le contenu LaTeX pour ReactMarkdown
+    // Fonctions de formatage et figure inchangées...
     const formatContent = (content: string) => {
-        // Enlever les tags de figures du texte affiché
         const cleaned = content.replace(/\[FIGURE: .*?\]/g, '');
-
         return cleaned
-            // Remplace \[ ... \] par $$ ... $$ pour les blocs mathématiques (compatible multilignes)
             .replace(/\\\[([\s\S]*?)\\\]/g, '$$$1$$')
-            // Remplace \( ... \) par $ ... $ pour les maths en ligne
             .replace(/\\\((.*?)\\\)/g, '$$$1$$')
-            // Parfois l'IA renvoie des \[ sans le backslash échappé correctement dans le string JS
             .replace(/\[(.*?)(?<!\\)\]/g, (match, p1) => {
-                // Évite de remplacer les liens markdown [texte](url)
                 if (match.includes('](')) return match;
-                // Vérifie si ça ressemble à une formule maths (contient =, +, -, \, etc)
                 if (/[=\+\-\\\^_{}]/.test(p1)) return `$$${p1}$$`;
                 return match;
             });
     };
 
-    // Composant interne pour afficher des figures mathématiques si détectées
     const MathFigure = ({ content }: { content: string }) => {
         if (content.includes('[FIGURE: TrigonometricCircle]')) {
             return (
-                <div className="my-6 p-6 bg-slate-900/80 rounded-2xl border border-cyan-500/30 flex flex-col items-center shadow-[0_0_30px_rgba(6,182,212,0.2)]">
-                    <span className="text-[10px] text-cyan-400 font-mono mb-6 uppercase tracking-widest bg-cyan-500/10 px-3 py-1 rounded-full">Visualisation Géométrique</span>
-                    <svg width="240" height="240" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
-                        {/* Grille légère */}
+                <div className="my-4 p-4 bg-slate-900/80 rounded-xl border border-cyan-500/30 flex flex-col items-center">
+                    <span className="text-[9px] text-cyan-400 font-mono mb-4 uppercase tracking-[0.2em]">Visualisation Géométrique</span>
+                    <svg width="180" height="180" viewBox="-130 -130 260 260">
                         <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
-
-                        {/* Axes */}
                         <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
                         <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
-
-                        {/* Cercle principal */}
                         <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="3" />
                         <defs>
                             <linearGradient id="cyl-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -97,25 +82,9 @@ export default function MathAssistant() {
                                 <stop offset="100%" style={{ stopColor: '#d946ef' }} />
                             </linearGradient>
                         </defs>
-
-                        {/* Points Cardinaux */}
-                        <text x="110" y="5" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">I (1,0)</text>
-                        <text x="-5" y="-110" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">J (0,1)</text>
-                        <text x="-125" y="5" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">(-1,0)</text>
-                        <text x="-5" y="125" fill="white" fontSize="14" className="font-mono font-bold" opacity="0.8">(0,-1)</text>
-
-                        {/* Exemple d'angle pi/4 */}
-                        <line x1="0" y1="0" x2="70.7" y2="-70.7" stroke="#22d3ee" strokeWidth="2" strokeDasharray="2" />
-                        <circle cx="70.7" cy="-70.7" r="5" fill="#d946ef" className="animate-pulse" />
-                        <text x="75" y="-75" fill="#22d3ee" fontSize="12" className="font-bold">M (cos θ, sin θ)</text>
-
-                        {/* Arc d'angle */}
+                        <circle cx="70.7" cy="-70.7" r="5" fill="#d946ef" />
                         <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="2" />
-                        <text x="35" y="-10" fill="cyan" fontSize="12" className="italic">θ</text>
                     </svg>
-                    <p className="text-[11px] text-slate-400 mt-6 italic text-center px-4">
-                        Ce cercle trigonométrique de rayon 1 permet de visualiser les coordonnées des points via les fonctions cosinus (abscisse) et sinus (ordonnée).
-                    </p>
                 </div>
             )
         }
@@ -129,24 +98,20 @@ export default function MathAssistant() {
         const currentInput = input;
         const userMessage: ChatMessage = { role: 'user', content: currentInput };
 
-        // Ajout du message à l'interface (on garde l'historique visuel seulement)
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setLoading(true);
         setIsTalking(false);
 
         try {
-            // Dans cette version "sans mémoire", on n'envoie que le message actuel
             const result: AiResponse = await chatWithRobot([userMessage]);
-
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
             } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, j'ai eu un petit problème technique. Peux-tu reformuler ?" }]);
+                setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, j'ai eu un problème. Reformule ta question ?" }]);
             }
         } catch (error) {
-            console.error('Erreur:', error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Oups, une erreur est survenue." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Erreur de connexion." }]);
         } finally {
             setLoading(false);
         }
@@ -155,181 +120,96 @@ export default function MathAssistant() {
     if (!mounted) return <div className="w-full h-[70vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.6)] border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] min-h-[550px] font-['Exo_2',_sans-serif] relative group">
-            {/* Animated Grid Background */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden ring-1 ring-cyan-500/20 rounded-3xl">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950"></div>
+        <div className="w-full mx-auto bg-slate-950 rounded-3xl border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] max-h-[800px] font-['Exo_2',_sans-serif] relative shadow-2xl">
+            {/* Background Grid - Static */}
+            <div className="absolute inset-0 opacity-5 pointer-events-none">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:30px_30px]"></div>
             </div>
 
-            {/* Header / mimimaths@ai Zone */}
-            <div className="relative shrink-0 bg-slate-900/40 backdrop-blur-xl border-b border-cyan-500/20 p-6 flex flex-col items-center justify-center z-10 overflow-hidden">
-                {/* Decorative Elements */}
-                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-cyan-500/30 rounded-tl-3xl"></div>
-                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-fuchsia-500/30 rounded-tr-3xl"></div>
-
-                <div className="relative">
-                    <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500 to-fuchsia-600 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                    <div className="relative bg-slate-950 p-1.5 rounded-full ring-2 ring-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
-                        <RobotAvatar
-                            isTalking={isTalking}
-                            width={80}
-                            height={80}
-                        />
+            {/* Header - Plus compact */}
+            <div className="relative shrink-0 bg-slate-900/60 backdrop-blur-md border-b border-cyan-500/20 px-6 py-4 flex items-center gap-4 z-10">
+                <div className="relative bg-slate-950 p-1 rounded-full ring-1 ring-cyan-500/30">
+                    <RobotAvatar isTalking={isTalking} width={40} height={40} />
+                </div>
+                <div>
+                    <h2 className="text-sm font-bold tracking-widest text-cyan-400 font-['Orbitron']">mimimaths@i</h2>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
+                        <span className="text-[8px] uppercase font-mono text-slate-500">{loading ? 'Analyse...' : 'Opérationnel'}</span>
                     </div>
-                    {/* Status Ring */}
-                    <div className={`absolute -inset-1 border-2 border-dashed rounded-full ${isTalking ? 'border-fuchsia-500 animate-[spin_10s_linear_infinite]' : 'border-cyan-500/50 animate-[spin_20s_linear_infinite]'}`}></div>
-                </div>
-
-                <div className="text-center mt-4">
-                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400 font-['Orbitron',_sans-serif]">
-                        mimimaths@i <span className="text-xs align-top opacity-50">PRO</span>
-                    </h2>
-                </div>
-
-                <div className="absolute top-4 right-6">
-                    {loading && (
-                        <div className="relative w-8 h-8">
-                            <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full"></div>
-                            <div className="absolute inset-0 border-t-2 border-cyan-400 rounded-full animate-spin"></div>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Zone de Chat */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-transparent text-slate-200 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
+            {/* Chat Zone - Static scrolling */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth custom-scrollbar">
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center opacity-60">
-                        <p className="text-xl font-['Orbitron'] tracking-[0.2em] text-cyan-400 mb-2">PRET // EN ATTENTE</p>
-                        <p className="text-xs text-slate-500 font-mono">Système prêt pour analyse mathématique</p>
+                    <div className="flex flex-col items-center justify-center h-full opacity-30">
+                        <span className="text-3xl mb-2">🎓</span>
+                        <p className="text-xs font-mono uppercase tracking-[0.3em]">En attente de question</p>
                     </div>
                 )}
 
                 {messages.map((msg, index) => (
-                    <div
-                        key={index}
-                        className={`flex w-full animate-message ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div
-                            className={`relative max-w-[85%] px-7 py-6 text-sm backdrop-blur-md border transition-all duration-300 ${msg.role === 'user'
-                                ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-50 rounded-2xl rounded-tr-none shadow-[0_0_30px_rgba(6,182,212,0.1)]'
-                                : 'bg-slate-900/60 border-slate-700/50 text-slate-200 rounded-3xl rounded-tl-none shadow-2xl'
-                                }`}
-                            style={{
-                                clipPath: msg.role === 'user'
-                                    ? 'polygon(0% 0%, 95% 0%, 100% 15%, 100% 100%, 0% 100%)'
-                                    : 'polygon(5% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 15%)'
-                            }}
-                        >
-                            {/* Decorative Corner Tag */}
-                            <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0 bg-cyan-500' : 'left-0 bg-fuchsia-500'} w-1 h-6 opacity-50`}></div>
-
-                            <div className={`leading-relaxed ${msg.role === 'user' ? 'whitespace-pre-wrap font-medium tracking-wide' : ''}`}>
-                                {msg.role === 'user' ? (
-                                    <div className="flex items-start gap-3">
-                                        <span className="flex-1 font-['Exo_2',_sans-serif] text-lg text-cyan-50">
-                                            {msg.content}
-                                        </span>
-                                        <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center shrink-0">
-                                            <span className="text-[10px] font-mono text-cyan-400">ID</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="relative">
-                                        <div className="flex items-center gap-2 mb-4 opacity-50">
-                                            <div className="w-2 h-2 rounded-full bg-fuchsia-500 animate-pulse"></div>
-                                            <span className="text-[10px] uppercase tracking-widest font-mono">Transmitting...</span>
-                                        </div>
-
-                                        {/* Rendu des Figures Dynamiques */}
-                                        <MathFigure content={msg.content} />
-
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkMath, remarkGfm]}
-                                            rehypePlugins={[rehypeKatex]}
-                                            components={{
-                                                p: ({ node, ...props }) => <p className="mb-4 last:mb-0 text-[15px] leading-relaxed" {...props} />,
-                                                ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
-                                                ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
-                                                table: ({ node, ...props }) => (
-                                                    <div className="overflow-x-auto my-6 border border-slate-700/50 rounded-xl bg-slate-950/50 backdrop-blur-sm">
-                                                        <table className="min-w-full divide-y divide-slate-700/50" {...props} />
-                                                    </div>
-                                                ),
-                                                thead: ({ node, ...props }) => <thead className="bg-slate-800/50" {...props} />,
-                                                th: ({ node, ...props }) => <th className="px-4 py-3 text-left text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-slate-700/50" {...props} />,
-                                                td: ({ node, ...props }) => <td className="px-4 py-3 text-sm text-slate-300 border-b border-slate-700/50" {...props} />,
-                                                li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                                                h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mb-6 mt-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400 font-['Orbitron'] tracking-wide" {...props} />,
-                                                h2: ({ node, ...props }) => <h2 className="text-xl font-bold mb-4 mt-6 text-cyan-200 font-['Orbitron']" {...props} />,
-                                                h3: ({ node, ...props }) => <h3 className="text-lg font-bold mb-3 mt-5 text-fuchsia-300 font-['Orbitron']" {...props} />,
-                                                blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-fuchsia-500/50 pl-6 py-4 my-6 bg-fuchsia-500/10 rounded-r-xl italic text-fuchsia-50 font-medium" {...props} />,
-                                                code: ({ node, className, ...props }) => {
-                                                    const match = /language-(\w+)/.exec(className || '');
-                                                    const isInline = !match && !String(props.children).includes('\n');
-                                                    return isInline
-                                                        ? <code className="bg-cyan-950/50 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 text-xs font-mono" {...props} />
-                                                        : <div className="relative my-6 group">
-                                                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-fuchsia-500/20 blur opacity-75"></div>
-                                                            <code className="relative block bg-slate-950 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-white/10 text-cyan-50" {...props} />
-                                                        </div>;
-                                                },
-                                                a: ({ node, ...props }) => <a className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-500/30 transition-all" target="_blank" rel="noopener noreferrer" {...props} />
-                                            }}
-                                        >
-                                            {formatContent(msg.content)}
-                                        </ReactMarkdown>
-                                    </div>
-                                )}
-                            </div>
+                    <div key={index} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] px-5 py-4 text-[14px] rounded-2xl ${msg.role === 'user'
+                            ? 'bg-cyan-600/20 border border-cyan-500/30 text-cyan-50 rounded-tr-none'
+                            : 'bg-slate-800/50 border border-slate-700/50 text-slate-200 rounded-tl-none'
+                            }`}>
+                            <MathFigure content={msg.content} />
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath, remarkGfm]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                    p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+                                    ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1 text-slate-300" {...props} />,
+                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-3 space-y-1 text-slate-300" {...props} />,
+                                    h1: ({ ...props }) => <h1 className="text-lg font-bold mb-3 text-cyan-400 font-['Orbitron']" {...props} />,
+                                    h2: ({ ...props }) => <h2 className="text-base font-bold mb-2 text-cyan-300" {...props} />,
+                                    blockquote: ({ ...props }) => <blockquote className="border-l-2 border-cyan-500/50 pl-4 py-2 my-4 bg-cyan-500/5 italic" {...props} />,
+                                    code: ({ node, className, ...props }) => (
+                                        <code className="bg-slate-950/80 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-300 border border-white/5" {...props} />
+                                    ),
+                                }}
+                            >
+                                {formatContent(msg.content)}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 ))}
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Zone - Compact & Efficient */}
-            <div className="p-4 bg-slate-900/90 backdrop-blur-3xl border-t border-cyan-500/40 shrink-0 z-20 relative">
-                <form onSubmit={handleSendMessage} className="relative w-full mx-auto">
-                    <div className="relative group overflow-hidden bg-black/40 border border-white/10 rounded-2xl p-2 transition-all duration-700 focus-within:border-cyan-400 focus-within:bg-black/60 focus-within:shadow-[0_0_40px_rgba(6,182,212,0.2)]">
-                        <div className="relative flex flex-col gap-2">
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSendMessage();
-                                    }
-                                }}
-                                placeholder="Pose ta question ici..."
-                                className="w-full bg-transparent border-none text-slate-100 placeholder-slate-600 focus:ring-0 px-4 py-3 resize-none text-base leading-relaxed min-h-[60px] max-h-[150px] font-['Exo_2'] tracking-wide"
-                                disabled={loading}
-                            />
-
-                            <div className="flex justify-between items-center px-2 pb-1">
-                                <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono tracking-widest uppercase">
-                                    <span className="flex items-center gap-1">
-                                        <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse"></div>
-                                        System Active
-                                    </span>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={loading || !input.trim()}
-                                    className="relative flex items-center gap-2 px-6 py-2 group/btn overflow-hidden rounded-xl transition-all active:scale-95 disabled:opacity-30"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-700 group-hover/btn:from-cyan-500 group-hover/btn:to-blue-600 transition-all"></div>
-                                    <span className="relative text-white font-bold tracking-wider uppercase text-xs">Envoyer</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="relative w-4 h-4 text-white transition-transform duration-300 group-hover/btn:translate-x-1">
-                                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+            {/* Input Zone - Plus petite et stable */}
+            <div className="p-3 bg-slate-900 border-t border-cyan-500/20 shrink-0">
+                <form onSubmit={handleSendMessage} className="flex gap-2 items-end max-w-4xl mx-auto">
+                    <div className="flex-1 bg-black/40 border border-white/10 rounded-xl focus-within:border-cyan-500/50 transition-all">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            placeholder="Pose ta question..."
+                            className="w-full bg-transparent border-none text-slate-200 placeholder-slate-600 focus:ring-0 px-4 py-2.5 resize-none text-sm min-h-[40px] max-h-[120px] font-sans"
+                            disabled={loading}
+                        />
                     </div>
+                    <button
+                        type="submit"
+                        disabled={loading || !input.trim()}
+                        className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 text-white p-2.5 rounded-xl transition-all h-[40px] w-[40px] flex items-center justify-center shrink-0 shadow-lg shadow-cyan-900/20"
+                    >
+                        {loading ? (
+                            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                            </svg>
+                        )}
+                    </button>
                 </form>
             </div>
         </div>
