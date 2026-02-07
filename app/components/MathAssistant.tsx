@@ -16,7 +16,7 @@ interface MathAssistantProps {
 
 /**
  * Composant Assistant Mathématique utilisant l'IA + Avatar Robot
- * Expérience immersive, ultra-stable et maximisée.
+ * Expérience immersive, ultra-stable et plein écran.
  */
 export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -122,10 +122,10 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         }
     };
 
-    if (!mounted) return <div className="w-full h-[80vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
+    if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-[#020617] rounded-3xl border border-cyan-500/10 overflow-hidden flex flex-col h-[95vh] max-h-[1100px] font-['Exo_2',_sans-serif] relative shadow-[0_0_100px_rgba(0,0,0,0.9)] isolate group/assistant transition-all duration-500">
+        <div className="w-full mx-auto bg-[#020617] rounded-3xl border border-cyan-500/10 overflow-hidden flex flex-col h-full font-['Exo_2',_sans-serif] relative shadow-[0_0_100px_rgba(0,0,0,0.9)] isolate group/assistant transition-all duration-500">
             {/* Background Decor - Quantum Grid */}
             <div className="absolute inset-0 opacity-[0.07] pointer-events-none -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.15),transparent)]">
                 <div className="w-full h-full bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:60px_60px]"></div>
