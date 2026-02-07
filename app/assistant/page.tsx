@@ -94,7 +94,7 @@ export default async function AssistantPage() {
 
                     {/* Colonne MILIEU - Assistant (3/5) */}
                     <div className="lg:col-span-3">
-                        <MathAssistant />
+                        <MathAssistant baseContext={`L'utilisateur se nomme ${user.email?.split('@')[0] || 'élève'}.`} />
                     </div>
 
                     {/* Colonne DROITE - Fonctionnalités & Avantages (1/5) */}

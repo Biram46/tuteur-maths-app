@@ -10,11 +10,11 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-/**
- * Composant Assistant Mathématique utilisant l'IA + Avatar Robot
- * Interface type "Chat" avec historique
- */
-export default function MathAssistant() {
+interface MathAssistantProps {
+    baseContext?: string;
+}
+
+export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -53,7 +53,7 @@ export default function MathAssistant() {
         }
     }, [messages, loading]);
 
-    // Fonctions de formatage et figure inchangées...
+    // Fonctions de formatage et figure
     const formatContent = (content: string) => {
         const cleaned = content.replace(/\[FIGURE: .*?\]/g, '');
         return cleaned
@@ -97,14 +97,16 @@ export default function MathAssistant() {
 
         const currentInput = input;
         const userMessage: ChatMessage = { role: 'user', content: currentInput };
+        const newMessages = [...messages, userMessage];
 
-        setMessages(prev => [...prev, userMessage]);
+        setMessages(newMessages);
         setInput('');
         setLoading(true);
         setIsTalking(false);
 
         try {
-            const result: AiResponse = await chatWithRobot([userMessage]);
+            // Restore conversation history and send context
+            const result: AiResponse = await chatWithRobot(newMessages, baseContext);
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
             } else {

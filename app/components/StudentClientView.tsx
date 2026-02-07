@@ -332,7 +332,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 </h3>
                             </div>
                             <div className="p-1">
-                                <MathAssistant />
+                                <MathAssistant baseContext={`L'élève étudie le niveau ${activeLevel?.label || 'non précisé'}. Chapitre actuel : ${activeChapter?.title || 'général'}.`} />
                             </div>
                         </div>
                     </div>
