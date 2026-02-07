@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getEducationalData } from "@/lib/data";
 import AdminDashboard from "./AdminDashboard";
 import { createClient } from "@/lib/supabaseAction";

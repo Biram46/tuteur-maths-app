@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import MathAssistant from '@/app/components/MathAssistant';
 import { createClient } from '@/lib/supabaseAction';
 import { redirect } from 'next/navigation';

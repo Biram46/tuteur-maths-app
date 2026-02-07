@@ -61,6 +61,11 @@ Le code a été poussé avec succès sur GitHub !
    - Value: `biram26@yahoo.fr`
    - Environment: Cochez **Production**, **Preview**, et **Development**
 
+   **Variable 7 (CRITIQUE pour le 2FA) :**
+   - Name: `RESEND_API_KEY`
+   - Value: `votre_clé_api_resend` (Trouvée dans `.env.local`)
+   - Environment: Cochez **Production**, **Preview**, et **Development**
+
 5. **Déployer**
    - Une fois toutes les variables ajoutées, cliquez sur le bouton **"Deploy"**
    - Attendez que le déploiement se termine (environ 2-5 minutes)

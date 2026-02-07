@@ -45,7 +45,18 @@ export async function POST(req: NextRequest) {
     const { code, sessionId, emailSent } = await create2FASession(user.id, user.email || undefined);
 
     // En développement, retourner le code dans la réponse
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+
+    // Si l'email n'est pas envoyé et qu'on n'est pas en dev, c'est une erreur
+    if (!emailSent && !isDevelopment) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Impossible d\'envoyer l\'email de vérification. Veuillez contacter le support ou vérifier la configuration Resend.'
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -56,7 +67,7 @@ export async function POST(req: NextRequest) {
       // En développement uniquement, afficher le code
       ...(isDevelopment && {
         devCode: code,
-        devMessage: 'Code affiché car vous êtes en localhost'
+        devMessage: 'Code affiché car vous êtes en mode développement'
       }),
     });
 

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabaseAction';
 import { redirect } from 'next/navigation';
 import { getTrustedDevices, getAuditLogs } from '@/lib/admin2fa';
