@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabaseAction';
 import { redirect } from 'next/navigation';
 
 /**
- * Page de démonstration de l'assistant mathématique Perplexity AI
+ * Page de l'assistant mathématique mimimaths@i
+ * Structure en 3 colonnes avec l'assistant au centre (4/5)
  */
 export default async function AssistantPage() {
     const supabase = await createClient();
@@ -14,144 +15,101 @@ export default async function AssistantPage() {
         redirect('/login');
     }
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="min-h-screen bg-slate-50">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
+                <div className="max-w-[1800px] mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">
-                                Tuteur Maths
-                            </h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Votre Assistant Personnel Intelligent
-                            </p>
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                                <span className="text-xl">📐</span>
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                                    mimimaths@i
+                                </h1>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                    Tuteur de Mathématiques IA
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                                IA Active
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <div className="px-4 py-1.5 rounded-full bg-green-50 border border-green-100 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Moteur IA Opérationnel</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* Main Content - Structure en 3 colonnes */}
-            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+            {/* Main Content - Structure en 3 colonnes optimisée */}
+            <main className="max-w-[1850px] mx-auto px-6 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
 
-                    {/* Colonne GAUCHE - Exemples (1/5) */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                💡 <span className="text-sm uppercase tracking-wider text-blue-600">Exemples</span>
-                            </h2>
-
-                            <div className="space-y-8">
-                                <div>
-                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-blue-500">Questions</h3>
-                                    <ul className="space-y-3 text-sm text-gray-600">
-                                        <li className="flex gap-2"><span>•</span> <span>Comment résoudre une équation du second degré ?</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Quelle est la différence entre une fonction affine et linéaire ?</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Comment calculer une limite en l'infini ?</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Qu'est-ce qu'une suite géométrique ?</span></li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-green-500">Concepts</h3>
-                                    <ul className="space-y-3 text-sm text-gray-600">
-                                        <li className="flex gap-2"><span>•</span> <span>Les dérivées</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Les nombres complexes</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Le théorème de Pythagore</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Les probabilités conditionnelles</span></li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-purple-500">Exercices</h3>
-                                    <ul className="space-y-3 text-sm text-gray-600">
-                                        <li className="flex gap-2"><span>•</span> <span>Résoudre : 2x² + 5x - 3 = 0</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Calculer la dérivée de f(x) = x³ + 2x</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Trouver la limite de (x²-1)/(x-1) quand x→1</span></li>
-                                        <li className="flex gap-2"><span>•</span> <span>Développer (x+2)³</span></li>
-                                    </ul>
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-100">
-                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-orange-500">Astuces</h3>
-                                    <ul className="space-y-2 text-xs text-gray-500 italic">
-                                        <li>✓ Soyez précis dans vos questions</li>
-                                        <li>✓ Indiquez votre niveau si nécessaire</li>
-                                        <li>✓ Demandez des exemples concrets</li>
-                                        <li>✓ N'hésitez pas à poser des questions</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Colonne MILIEU - Assistant (3/5) */}
-                    <div className="lg:col-span-3">
-                        <MathAssistant baseContext={`L'utilisateur se nomme ${user.email?.split('@')[0] || 'élève'}.`} />
-                    </div>
-
-                    {/* Colonne DROITE - Fonctionnalités & Avantages (1/5) */}
-                    <div className="lg:col-span-1 space-y-6">
-                        {/* Fonctionnalités */}
-                        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg p-6 text-white">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                🚀 <span className="text-sm uppercase tracking-widest">IA Maths</span>
+                    {/* Colonne GAUCHE - IA Maths (1/10) */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2rem] shadow-2xl p-8 text-white min-h-[500px] flex flex-col items-center">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl mb-8">🚀</div>
+                            <h3 className="text-sm font-bold mb-10 text-center uppercase tracking-[0.2em] border-b border-white/20 pb-4 w-full">
+                                IA Maths
                             </h3>
-                            <ul className="space-y-4 text-sm opacity-90">
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                            <ul className="space-y-8 text-[14px] opacity-90 leading-relaxed font-medium">
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-cyan-300">✓</span>
                                     <span>Réponses en temps réel avec sources citées</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-cyan-300">✓</span>
                                     <span>Explications adaptées à votre niveau</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-cyan-300">✓</span>
                                     <span>Résolution étape par étape</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-cyan-300">✓</span>
                                     <span>Génération d'exercices similaires</span>
                                 </li>
                             </ul>
                         </div>
+                    </div>
 
-                        {/* Avantages */}
-                        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                📊 <span className="text-sm uppercase tracking-widest">Avantages</span>
+                    {/* Colonne MILIEU - Assistant (8/10) - Représente 4/5 de la page */}
+                    <div className="lg:col-span-8">
+                        <MathAssistant baseContext={`L'utilisateur se nomme ${user.email?.split('@')[0] || 'élève'}.`} />
+                    </div>
+
+                    {/* Colonne DROITE - Avantages (1/10) */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-[2rem] shadow-2xl p-8 text-white min-h-[500px] flex flex-col items-center">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl mb-8">📊</div>
+                            <h3 className="text-sm font-bold mb-10 text-center uppercase tracking-[0.2em] border-b border-white/20 pb-4 w-full">
+                                Avantages
                             </h3>
-                            <ul className="space-y-4 text-sm opacity-90">
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                            <ul className="space-y-8 text-[14px] opacity-90 leading-relaxed font-medium">
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-fuchsia-300">✓</span>
                                     <span>Disponible 24/7 pour vous aider</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-fuchsia-300">✓</span>
                                     <span>Pas de jugement, posez toutes vos questions</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-fuchsia-300">✓</span>
                                     <span>Apprentissage à votre rythme</span>
                                 </li>
-                                <li className="flex items-start gap-2">
-                                    <span>✓</span>
+                                <li className="flex flex-col items-center text-center gap-3">
+                                    <span className="text-2xl text-fuchsia-300">✓</span>
                                     <span>Complément parfait à vos cours</span>
                                 </li>
                             </ul>
                         </div>
 
-                        <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
-                            <p className="text-xs text-blue-600 font-medium tracking-wide">
-                                Propulsé par mimimaths@i
+                        <div className="mt-8 p-6 bg-white rounded-3xl border border-slate-200 text-center shadow-lg transform transition-transform hover:scale-105">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.4em]">
+                                mimimaths@i
                             </p>
                         </div>
                     </div>
@@ -160,19 +118,11 @@ export default async function AssistantPage() {
             </main>
 
             {/* Footer */}
-            <footer className="bg-white border-t border-gray-200 mt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="text-center text-sm text-gray-600">
-                        <p>
-                            Propulsé par{' '}
-                            <span className="text-blue-600 font-medium">
-                                mimimaths@i
-                            </span>
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                            © 2026 Tuteur Maths App - Tous droits réservés
-                        </p>
-                    </div>
+            <footer className="bg-white border-t border-slate-200 mt-12 py-10">
+                <div className="max-w-7xl mx-auto px-6 text-center">
+                    <p className="text-sm text-slate-500">
+                        Propulsé par <span className="font-bold text-blue-600 tracking-tight">mimimaths@i</span> • 2026 Espace Éducation
+                    </p>
                 </div>
             </footer>
         </div>
