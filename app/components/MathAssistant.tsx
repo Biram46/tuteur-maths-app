@@ -71,14 +71,15 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
+        // Cercle Trigonométrique
         if (content.includes('[FIGURE: TrigonometricCircle]')) {
             return (
-                <div className="my-6 p-6 bg-slate-900/80 rounded-2xl border border-cyan-500/30 flex flex-col items-center shadow-inner">
-                    <span className="text-[10px] text-cyan-400 font-mono mb-6 uppercase tracking-[0.3em] font-bold">Modélisation Géométrique Active</span>
-                    <svg width="220" height="220" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <div className="my-8 p-8 bg-slate-900/60 rounded-[2.5rem] border border-cyan-500/20 flex flex-col items-center shadow-2xl backdrop-blur-md">
+                    <span className="text-[11px] text-cyan-400 font-mono mb-8 uppercase tracking-[0.4em] font-bold">Unité Trigonométrique Alpha</span>
+                    <svg width="240" height="240" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">
                         <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
-                        <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
-                        <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
+                        <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.2" strokeDasharray="4" />
+                        <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.2" strokeDasharray="4" />
                         <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="4" />
                         <defs>
                             <linearGradient id="cyl-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -88,6 +89,59 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         </defs>
                         <circle cx="70.7" cy="-70.7" r="6" fill="#06b6d4" className="animate-pulse" />
                         <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="3" />
+                        <text x="105" y="5" fill="white" fontSize="10" opacity="0.5">1</text>
+                        <text x="-5" y="-105" fill="white" fontSize="10" opacity="0.5">i</text>
+                    </svg>
+                    <p className="mt-6 text-[10px] text-slate-500 italic">Visualisation interactive du cercle unité</p>
+                </div>
+            )
+        }
+
+        // Graphe de fonction (Simplifié)
+        if (content.includes('[FIGURE: FunctionGraph:')) {
+            const match = content.match(/\[FIGURE: FunctionGraph: (.*?)\]/);
+            const func = match ? match[1] : 'f(x)';
+            return (
+                <div className="my-8 p-8 bg-slate-900/60 rounded-[2.5rem] border border-blue-500/20 flex flex-col items-center shadow-2xl backdrop-blur-md">
+                    <span className="text-[11px] text-blue-400 font-mono mb-8 uppercase tracking-[0.4em] font-bold">Analyse Graphique : {func}</span>
+                    <svg width="300" height="200" viewBox="-10 -100 220 120" className="overflow-visible">
+                        {/* Axes */}
+                        <line x1="0" y1="0" x2="200" y2="0" stroke="white" strokeWidth="1.5" opacity="0.3" />
+                        <line x1="0" y1="20" x2="0" y2="-100" stroke="white" strokeWidth="1.5" opacity="0.3" />
+
+                        {/* Courbe illustrative (Parabole ou Linéaire selon le texte) */}
+                        <path
+                            d={func.includes('x²') || func.includes('^2')
+                                ? "M 20 -80 Q 100 20 180 -80"
+                                : "M 20 -20 L 180 -80"}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="3"
+                            className="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                        />
+
+                        {/* Points de données simulés */}
+                        <circle cx="100" cy={func.includes('x²') ? "0" : "-50"} r="4" fill="#60a5fa" />
+                    </svg>
+                    <p className="mt-6 text-[10px] text-slate-500 italic">Représentation schématique du comportement de la fonction</p>
+                </div>
+            )
+        }
+
+        // Arbre de probabilités
+        if (content.includes('[FIGURE: TreeDiagram')) {
+            return (
+                <div className="my-8 p-8 bg-slate-900/60 rounded-[2.5rem] border border-purple-500/20 flex flex-col items-center shadow-2xl backdrop-blur-md">
+                    <span className="text-[11px] text-purple-400 font-mono mb-8 uppercase tracking-[0.4em] font-bold">Structure Stochastique</span>
+                    <svg width="250" height="150" viewBox="0 0 250 150">
+                        <line x1="20" y1="75" x2="100" y2="30" stroke="white" strokeWidth="1.5" opacity="0.3" />
+                        <line x1="20" y1="75" x2="100" y2="120" stroke="white" strokeWidth="1.5" opacity="0.3" />
+                        <circle cx="100" cy="30" r="15" fill="#a855f7" opacity="0.2" stroke="#a855f7" strokeWidth="1" />
+                        <circle cx="100" cy="120" r="15" fill="#a855f7" opacity="0.2" stroke="#a855f7" strokeWidth="1" />
+                        <text x="100" y="34" fill="white" fontSize="10" textAnchor="middle" fontWeight="bold">A</text>
+                        <text x="100" y="124" fill="white" fontSize="10" textAnchor="middle" fontWeight="bold">B</text>
+                        <text x="50" y="45" fill="#c084fc" fontSize="9" fontWeight="bold">p</text>
+                        <text x="50" y="105" fill="#c084fc" fontSize="9" fontWeight="bold">1-p</text>
                     </svg>
                 </div>
             )
