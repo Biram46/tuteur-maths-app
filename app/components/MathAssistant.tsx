@@ -71,28 +71,78 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
-        // Cercle Trigonométrique
+        // Cercle Trigonométrique Professionnel
         if (content.includes('[FIGURE: TrigonometricCircle]')) {
             return (
-                <div className="my-8 p-8 bg-slate-900/60 rounded-[2.5rem] border border-cyan-500/20 flex flex-col items-center shadow-2xl backdrop-blur-md">
-                    <span className="text-[11px] text-cyan-400 font-mono mb-8 uppercase tracking-[0.4em] font-bold">Unité Trigonométrique Alpha</span>
-                    <svg width="240" height="240" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">
-                        <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
-                        <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.2" strokeDasharray="4" />
-                        <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.2" strokeDasharray="4" />
-                        <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="4" />
+                <div className="my-10 p-10 bg-slate-900/40 rounded-[3rem] border border-cyan-500/30 flex flex-col items-center shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none"></div>
+                    <span className="text-[11px] text-cyan-400 font-mono mb-10 uppercase tracking-[0.6em] font-bold z-10">Cercle Trigonométrique • Unité</span>
+
+                    <svg width="280" height="280" viewBox="-140 -140 280 280" className="drop-shadow-[0_0_25px_rgba(6,182,212,0.3)] z-10">
+                        {/* Axes avec flèches */}
                         <defs>
-                            <linearGradient id="cyl-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
-                                <stop offset="100%" style={{ stopColor: '#8b5cf6' }} />
-                            </linearGradient>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.3)" />
+                            </marker>
                         </defs>
-                        <circle cx="70.7" cy="-70.7" r="6" fill="#06b6d4" className="animate-pulse" />
+
+                        <line x1="-130" y1="0" x2="130" y2="0" stroke="white" strokeWidth="1" opacity="0.3" markerEnd="url(#arrow)" />
+                        <line x1="0" y1="130" x2="0" y2="-130" stroke="white" strokeWidth="1" opacity="0.3" markerEnd="url(#arrow)" />
+
+                        {/* Grille secondaire */}
+                        <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
+
+                        {/* Le Cercle principal */}
+                        <circle cx="0" cy="0" r="100" fill="none" stroke="#0891b2" strokeWidth="4" className="filter drop-shadow-[0_0_5px_#06b6d4]" />
+
+                        {/* Projections de l'angle courant (pi/4) */}
+                        <line x1="70.7" y1="0" x2="70.7" y2="-70.7" stroke="cyan" strokeWidth="1" strokeDasharray="4" opacity="0.6" />
+                        <line x1="0" y1="-70.7" x2="70.7" y2="-70.7" stroke="cyan" strokeWidth="1" strokeDasharray="4" opacity="0.6" />
+
+                        {/* Valeurs sur les axes */}
+                        <text x="110" y="15" fill="white" fontSize="11" opacity="0.6" fontWeight="bold">1</text>
+                        <text x="5" y="-110" fill="white" fontSize="11" opacity="0.6" fontWeight="bold">1</text>
+                        <text x="120" y="-5" fill="#06b6d4" fontSize="10" opacity="0.8">cos</text>
+                        <text x="5" y="-120" fill="#06b6d4" fontSize="10" opacity="0.8">sin</text>
+
+                        {/* Points remarquables */}
+                        {[0, 30, 45, 60, 90, 180, 270].map((angle) => {
+                            const rad = (angle * Math.PI) / 180;
+                            const x = 100 * Math.cos(rad);
+                            const y = -100 * Math.sin(rad);
+                            return (
+                                <g key={angle}>
+                                    <circle cx={x} cy={y} r="3" fill="white" />
+                                    <text
+                                        x={x * 1.25}
+                                        y={y * 1.25}
+                                        fill="white"
+                                        fontSize="9"
+                                        textAnchor="middle"
+                                        opacity="0.4"
+                                    >
+                                        {angle === 0 ? "0" : angle === 90 ? "π/2" : angle === 180 ? "π" : angle === 270 ? "3π/2" : `${angle}°`}
+                                    </text>
+                                </g>
+                            );
+                        })}
+
+                        {/* Rayon et Angle (ex: pi/4) */}
+                        <line x1="0" y1="0" x2="70.7" y2="-70.7" stroke="white" strokeWidth="2" opacity="0.8" />
+                        <circle cx="70.7" cy="-70.7" r="6" fill="#06b6d4" className="animate-pulse shadow-lg" />
                         <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="3" />
-                        <text x="105" y="5" fill="white" fontSize="10" opacity="0.5">1</text>
-                        <text x="-5" y="-105" fill="white" fontSize="10" opacity="0.5">i</text>
                     </svg>
-                    <p className="mt-6 text-[10px] text-slate-500 italic">Visualisation interactive du cercle unité</p>
+
+                    <div className="mt-8 flex gap-8">
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Abscisse</span>
+                            <span className="text-sm text-cyan-400 font-mono">cos(θ)</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Ordonnée</span>
+                            <span className="text-sm text-cyan-400 font-mono">sin(θ)</span>
+                        </div>
+                    </div>
                 </div>
             )
         }
