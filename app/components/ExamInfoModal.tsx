@@ -193,15 +193,15 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <a
-                                    href="https://www.education.gouv.fr/recherche-bo?keywords=%22%C3%A9preuve+anticip%C3%A9e+math%C3%A9matiques%22"
+                                    href="https://www.education.gouv.fr/bo/2025/Hebdo24"
                                     target="_blank"
                                     className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
                                 >
                                     <div className="flex items-center gap-4">
                                         <span className="text-2xl">⚡</span>
                                         <div>
-                                            <p className="font-bold text-white">Direct BO Live Search</p>
-                                            <p className="text-[10px] text-slate-500">Flux des dernières circulaires en temps réel</p>
+                                            <p className="font-bold text-white">Consulter le BO n°24</p>
+                                            <p className="text-[10px] text-slate-500">Publication officielle du 12 juin 2025</p>
                                         </div>
                                     </div>
                                     <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
