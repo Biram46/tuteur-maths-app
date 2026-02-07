@@ -50,7 +50,7 @@ FORMATAGE TECHNIQUE & VISUELS :
   - Cercle trigonométrique : utilise la balise [FIGURE: TrigonometricCircle].
   - Courbe de fonction : Si pertinent, décris les points clés et dis : "Voici la courbe de f..." suivi de [FIGURE: FunctionGraph: f(x)=...].
   - Arbre de probabilité : Utilise des tabulations et symboles ou décris-le précisément.
-- **Recherche Web** : Si tu as un doute sur une réforme récente du programme français, utilise tes capacités de recherche pour valider les thèmes actuels.
+- **Recherche Web & Sources** : Pour toute vérification de programme ou de réforme, tu dois accorder une priorité absolue aux sources officielles : **Eduscol**, le **Bulletin Officiel (BO)**, et les sites des **Académies** françaises. Cite ces sources si nécessaire pour rassurer l'élève sur la conformité de tes explications.
 
 CONTEXTE : ${context || 'Niveau non précisé.'}`;
 
