@@ -120,58 +120,66 @@ export default function MathAssistant() {
     if (!mounted) return <div className="w-full h-[70vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-slate-950 rounded-3xl border border-cyan-500/20 overflow-hidden flex flex-col h-[70vh] max-h-[800px] font-['Exo_2',_sans-serif] relative shadow-2xl isolate">
-            {/* Background Grid - Static */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none -z-10">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:30px_30px]"></div>
+        <div className="w-full mx-auto bg-[#020617] rounded-3xl border border-cyan-500/20 overflow-hidden flex flex-col h-[85vh] max-h-[900px] font-['Exo_2',_sans-serif] relative shadow-[0_0_50px_rgba(0,0,0,0.5)] isolate">
+            {/* Background Decor - Static */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.1),transparent)] flex items-center justify-center">
+                <div className="w-full h-full bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
             </div>
 
-            {/* Header - Plus spacieux pour le robot */}
-            <div className="relative shrink-0 bg-slate-900/60 backdrop-blur-md border-b border-cyan-500/20 px-6 py-6 flex items-center gap-6 z-10">
+            {/* Header - Plus spacieux mais équilibré */}
+            <div className="relative shrink-0 bg-slate-900/80 backdrop-blur-xl border-b border-cyan-500/20 px-6 py-5 flex items-center gap-6 z-10">
                 <div className="relative flex-shrink-0">
-                    <div className="absolute -inset-2 bg-cyan-500/20 rounded-full blur-lg animate-pulse"></div>
-                    <div className="relative bg-slate-950 p-2 rounded-full ring-2 ring-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                        <RobotAvatar isTalking={isTalking} width={80} height={80} />
+                    <div className="absolute -inset-2 bg-cyan-400/20 rounded-full blur-md animate-pulse"></div>
+                    <div className="relative bg-black p-1.5 rounded-full ring-2 ring-cyan-500/40">
+                        <RobotAvatar isTalking={isTalking} width={70} height={70} />
                     </div>
                 </div>
                 <div className="flex-1">
-                    <h2 className="text-xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white font-['Orbitron']">mimimaths@i</h2>
-                    <div className="flex items-center gap-2 mt-1 px-3 py-1 bg-cyan-500/10 rounded-full w-fit border border-cyan-500/20">
-                        <div className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`}></div>
-                        <span className="text-[10px] uppercase font-mono tracking-widest text-cyan-300/80 font-bold">{loading ? 'Analyse en cours...' : 'Prêt à t\'aider'}</span>
+                    <h2 className="text-xl font-bold tracking-[0.2em] text-cyan-50 font-['Orbitron']">mimimaths@i</h2>
+                    <div className="flex items-center gap-2 mt-1.5">
+                        <div className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]'}`}></div>
+                        <span className="text-[10px] uppercase font-mono tracking-[0.2em] text-cyan-400/70">{loading ? 'Analyse intelligente...' : 'Module Opérationnel'}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Chat Zone - Static scrolling */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth custom-scrollbar overflow-x-hidden">
+            {/* Chat Zone - Zone de réponse maximisée */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth overflow-x-hidden">
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full opacity-30">
-                        <span className="text-3xl mb-2">🎓</span>
-                        <p className="text-xs font-mono uppercase tracking-[0.3em]">En attente de question</p>
+                    <div className="flex flex-col items-center justify-center h-full opacity-20 text-center px-10">
+                        <div className="text-6xl mb-4">🎓</div>
+                        <p className="text-sm font-mono uppercase tracking-[0.4em]">Prêt à t'accompagner</p>
                     </div>
                 )}
 
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] px-5 py-4 text-[14px] rounded-2xl ${msg.role === 'user'
-                            ? 'bg-cyan-600/20 border border-cyan-500/30 text-cyan-50 rounded-tr-none'
-                            : 'bg-slate-800/50 border border-slate-700/50 text-slate-200 rounded-tl-none'
+                        <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed ${msg.role === 'user'
+                            ? 'bg-cyan-600/10 border border-cyan-500/20 text-cyan-50 rounded-tr-none'
+                            : 'bg-slate-900/60 border border-slate-800 text-slate-100 rounded-tl-none shadow-lg'
                             }`}>
                             <MathFigure content={msg.content} />
                             <ReactMarkdown
                                 remarkPlugins={[remarkMath, remarkGfm]}
                                 rehypePlugins={[rehypeKatex]}
                                 components={{
-                                    p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                                    ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1 text-slate-300" {...props} />,
-                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-3 space-y-1 text-slate-300" {...props} />,
-                                    h1: ({ ...props }) => <h1 className="text-lg font-bold mb-3 text-cyan-400 font-['Orbitron']" {...props} />,
-                                    h2: ({ ...props }) => <h2 className="text-base font-bold mb-2 text-cyan-300" {...props} />,
-                                    blockquote: ({ ...props }) => <blockquote className="border-l-2 border-cyan-500/50 pl-4 py-2 my-4 bg-cyan-500/5 italic" {...props} />,
+                                    p: ({ node, ...props }) => <p className="mb-4 last:mb-0" {...props} />,
+                                    ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
+                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-300" {...props} />,
+                                    h1: ({ ...props }) => <h1 className="text-xl font-bold mb-4 text-cyan-400 font-['Orbitron'] border-b border-cyan-500/10 pb-2" {...props} />,
+                                    h2: ({ ...props }) => <h2 className="text-lg font-bold mb-3 text-cyan-300" {...props} />,
+                                    h3: ({ ...props }) => <h3 className="text-base font-bold mb-2 text-fuchsia-300" {...props} />,
+                                    blockquote: ({ ...props }) => <blockquote className="border-l-3 border-fuchsia-500/40 pl-4 py-2 my-5 bg-fuchsia-500/5 italic text-fuchsia-50 rounded-r-lg" {...props} />,
                                     code: ({ node, className, ...props }) => (
-                                        <code className="bg-slate-950/80 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-300 border border-white/5" {...props} />
+                                        <code className="bg-black/40 px-1.5 py-0.5 rounded text-[13px] font-mono text-cyan-300 border border-white/5" {...props} />
                                     ),
+                                    table: ({ ...props }) => (
+                                        <div className="overflow-x-auto my-4 rounded-xl border border-white/5">
+                                            <table className="min-w-full divide-y divide-white/5 bg-black/20" {...props} />
+                                        </div>
+                                    ),
+                                    th: ({ ...props }) => <th className="px-4 py-2 text-left text-xs font-bold text-cyan-400 uppercase" {...props} />,
+                                    td: ({ ...props }) => <td className="px-4 py-2 text-sm border-t border-white/5" {...props} />
                                 }}
                             >
                                 {formatContent(msg.content)}
@@ -179,13 +187,19 @@ export default function MathAssistant() {
                         </div>
                     </div>
                 ))}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef} className="h-4" />
             </div>
 
-            {/* Input Zone - Plus petite et stable */}
-            <div className="p-3 bg-slate-900 border-t border-cyan-500/20 shrink-0">
-                <form onSubmit={handleSendMessage} className="flex gap-2 items-end max-w-4xl mx-auto">
-                    <div className="flex-1 bg-black/40 border border-white/10 rounded-xl focus-within:border-cyan-500/50 transition-all">
+            {/* Input Zone - Fixe en bas et stable */}
+            <div className="p-4 bg-slate-950 border-t border-white/10 shrink-0">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendMessage();
+                    }}
+                    className="flex gap-3 items-end max-w-5xl mx-auto"
+                >
+                    <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl focus-within:border-cyan-500/50 focus-within:bg-black transition-all group shadow-inner">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -195,20 +209,20 @@ export default function MathAssistant() {
                                     handleSendMessage();
                                 }
                             }}
-                            placeholder="Pose ta question..."
-                            className="w-full bg-transparent border-none text-slate-200 placeholder-slate-600 focus:ring-0 px-4 py-2.5 resize-none text-sm min-h-[40px] max-h-[120px] font-sans"
+                            placeholder="Écris ton problème ici..."
+                            className="w-full bg-transparent border-none text-slate-200 placeholder-slate-600 focus:ring-0 px-5 py-3.5 resize-none text-[15px] min-h-[50px] max-h-[150px] font-sans"
                             disabled={loading}
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading || !input.trim()}
-                        className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 text-white p-2.5 rounded-xl transition-all h-[40px] w-[40px] flex items-center justify-center shrink-0 shadow-lg shadow-cyan-900/20"
+                        className="bg-gradient-to-br from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 disabled:opacity-30 text-white rounded-2xl transition-all h-[50px] w-[50px] flex items-center justify-center shrink-0 shadow-[0_4px_15px_rgba(6,182,212,0.3)] active:scale-95"
                     >
                         {loading ? (
-                            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
                                 <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                             </svg>
                         )}
