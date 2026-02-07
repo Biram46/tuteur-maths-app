@@ -3,16 +3,22 @@ import AdminDashboard from "./AdminDashboard";
 import { createClient } from "@/lib/supabaseAction";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/auth/actions";
+import { cookies } from "next/headers";
+import { checkTrustedDevice, generateDeviceFingerprint, create2FASession } from "@/lib/admin2fa";
+import { headers } from "next/headers";
 
 export default async function AdminPage() {
     // Check Authentication
+    let user;
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-        if (authError || !user) {
+        if (authError || !authUser) {
             redirect('/');
         }
+
+        user = authUser;
 
         // Strict Admin Check
         if (user.email !== 'biram26@yahoo.fr') {
@@ -22,10 +28,39 @@ export default async function AdminPage() {
                 </div>
             );
         }
+
+        // ============================================
+        // 2FA CHECK - Vérification appareil de confiance
+        // ============================================
+        const cookieStore = await cookies();
+        const deviceToken = cookieStore.get('admin_trusted_device')?.value;
+        const headersList = await headers();
+        const userAgent = headersList.get('user-agent') || '';
+        const acceptLanguage = headersList.get('accept-language') || '';
+        const currentFingerprint = generateDeviceFingerprint(userAgent, acceptLanguage);
+
+        // Vérifier si l'appareil est de confiance
+        const { trusted } = await checkTrustedDevice(user.id, deviceToken || '', currentFingerprint);
+
+        if (!trusted) {
+            // Appareil non reconnu - Rediriger vers la vérification
+            // La page de vérification se chargera de générer et d'envoyer le premier code
+            redirect('/admin/verify-2fa');
+        }
+
+        // Si on arrive ici, l'appareil est de confiance - Continuer normalement
+
     } catch (e) {
-        // Redirect if anything goes wrong with auth
-        // Only redirect if it's not a Next.js redirect error (which is thrown as an error)
-        if ((e as any)?.message?.includes('NEXT_REDIRECT')) throw e;
+        // Important: Next.js redirect() throws an error, we must not catch it
+        if (e instanceof Error && e.message === 'NEXT_REDIRECT') {
+            throw e;
+        }
+        // Pour les versions plus récentes de Next.js qui utilisent des symboles ou des strings spécifiques
+        if ((e as any)?.digest?.includes('NEXT_REDIRECT') || (e as any)?.message?.includes('NEXT_REDIRECT')) {
+            throw e;
+        }
+
+        console.error('Admin page error:', e);
         redirect('/');
     }
 
@@ -73,6 +108,10 @@ export default async function AdminPage() {
                 </div>
 
                 <nav className="flex items-center gap-8">
+                    <a href="/admin/security" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-green-400 transition-all uppercase">
+                        <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-green-500 transition-all"></span>
+                        Sécurité 2FA
+                    </a>
                     <a href="/assistant" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-cyan-400 transition-all uppercase">
                         <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-cyan-500 transition-all"></span>
                         Module Assistant
