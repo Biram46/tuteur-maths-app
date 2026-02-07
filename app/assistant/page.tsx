@@ -37,150 +37,125 @@ export default async function AssistantPage() {
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Info Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                        <div className="flex items-center mb-3">
-                            <span className="text-2xl mr-3">💡</span>
-                            <h3 className="font-semibold text-gray-900">Questions</h3>
+            {/* Main Content - Structure en 3 colonnes */}
+            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+
+                    {/* Colonne GAUCHE - Exemples (1/5) */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                💡 <span className="text-sm uppercase tracking-wider text-blue-600">Exemples</span>
+                            </h2>
+
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-blue-500">Questions</h3>
+                                    <ul className="space-y-3 text-sm text-gray-600">
+                                        <li className="flex gap-2"><span>•</span> <span>Comment résoudre une équation du second degré ?</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Quelle est la différence entre une fonction affine et linéaire ?</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Comment calculer une limite en l'infini ?</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Qu'est-ce qu'une suite géométrique ?</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-green-500">Concepts</h3>
+                                    <ul className="space-y-3 text-sm text-gray-600">
+                                        <li className="flex gap-2"><span>•</span> <span>Les dérivées</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Les nombres complexes</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Le théorème de Pythagore</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Les probabilités conditionnelles</span></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-purple-500">Exercices</h3>
+                                    <ul className="space-y-3 text-sm text-gray-600">
+                                        <li className="flex gap-2"><span>•</span> <span>Résoudre : 2x² + 5x - 3 = 0</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Calculer la dérivée de f(x) = x³ + 2x</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Trouver la limite de (x²-1)/(x-1) quand x→1</span></li>
+                                        <li className="flex gap-2"><span>•</span> <span>Développer (x+2)³</span></li>
+                                    </ul>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100">
+                                    <h3 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-widest text-orange-500">Astuces</h3>
+                                    <ul className="space-y-2 text-xs text-gray-500 italic">
+                                        <li>✓ Soyez précis dans vos questions</li>
+                                        <li>✓ Indiquez votre niveau si nécessaire</li>
+                                        <li>✓ Demandez des exemples concrets</li>
+                                        <li>✓ N'hésitez pas à poser des questions</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-600">
-                            Posez n'importe quelle question mathématique et obtenez une réponse détaillée
-                        </p>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                        <div className="flex items-center mb-3">
-                            <span className="text-2xl mr-3">📚</span>
-                            <h3 className="font-semibold text-gray-900">Concepts</h3>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                            Demandez l'explication de concepts mathématiques complexes
-                        </p>
+                    {/* Colonne MILIEU - Assistant (3/5) */}
+                    <div className="lg:col-span-3">
+                        <MathAssistant />
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-                        <div className="flex items-center mb-3">
-                            <span className="text-2xl mr-3">✏️</span>
-                            <h3 className="font-semibold text-gray-900">Exercices</h3>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                            Obtenez de l'aide pour résoudre vos exercices étape par étape
-                        </p>
-                    </div>
-                </div>
-
-                {/* Assistant Component */}
-                <MathAssistant />
-
-                {/* Examples Section */}
-                <div className="mt-12 bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                        💡 Exemples de questions
-                    </h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                                Questions générales
+                    {/* Colonne DROITE - Fonctionnalités & Avantages (1/5) */}
+                    <div className="lg:col-span-1 space-y-6">
+                        {/* Fonctionnalités */}
+                        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg p-6 text-white">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                🚀 <span className="text-sm uppercase tracking-widest">IA Maths</span>
                             </h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li className="pl-4">• Comment résoudre une équation du second degré ?</li>
-                                <li className="pl-4">• Quelle est la différence entre une fonction affine et linéaire ?</li>
-                                <li className="pl-4">• Comment calculer une limite en l'infini ?</li>
-                                <li className="pl-4">• Qu'est-ce qu'une suite géométrique ?</li>
+                            <ul className="space-y-4 text-sm opacity-90">
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Réponses en temps réel avec sources citées</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Explications adaptées à votre niveau</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Résolution étape par étape</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Génération d'exercices similaires</span>
+                                </li>
                             </ul>
                         </div>
 
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                Concepts à expliquer
+                        {/* Avantages */}
+                        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                📊 <span className="text-sm uppercase tracking-widest">Avantages</span>
                             </h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li className="pl-4">• Les dérivées</li>
-                                <li className="pl-4">• Les nombres complexes</li>
-                                <li className="pl-4">• Le théorème de Pythagore</li>
-                                <li className="pl-4">• Les probabilités conditionnelles</li>
+                            <ul className="space-y-4 text-sm opacity-90">
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Disponible 24/7 pour vous aider</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Pas de jugement, posez toutes vos questions</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Apprentissage à votre rythme</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span>✓</span>
+                                    <span>Complément parfait à vos cours</span>
+                                </li>
                             </ul>
                         </div>
 
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                                Exercices
-                            </h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li className="pl-4">• Résoudre : 2x² + 5x - 3 = 0</li>
-                                <li className="pl-4">• Calculer la dérivée de f(x) = x³ + 2x</li>
-                                <li className="pl-4">• Trouver la limite de (x²-1)/(x-1) quand x→1</li>
-                                <li className="pl-4">• Développer (x+2)³</li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                                Astuces
-                            </h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li className="pl-4">✓ Soyez précis dans vos questions</li>
-                                <li className="pl-4">✓ Indiquez votre niveau si nécessaire</li>
-                                <li className="pl-4">✓ Demandez des exemples concrets</li>
-                                <li className="pl-4">✓ N'hésitez pas à poser des questions de suivi</li>
-                            </ul>
+                        <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                            <p className="text-xs text-blue-600 font-medium tracking-wide">
+                                Propulsé par mimimaths@i
+                            </p>
                         </div>
                     </div>
-                </div>
 
-                {/* Features Section */}
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 text-white">
-                        <h3 className="text-xl font-bold mb-4">🚀 Fonctionnalités IA</h3>
-                        <ul className="space-y-3">
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Réponses en temps réel avec sources citées</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Explications adaptées à votre niveau</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Résolution étape par étape</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Génération d'exercices similaires</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-8 text-white">
-                        <h3 className="text-xl font-bold mb-4">📊 Avantages</h3>
-                        <ul className="space-y-3">
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Disponible 24/7 pour vous aider</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Pas de jugement, posez toutes vos questions</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Apprentissage à votre rythme</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-2">✓</span>
-                                <span>Complément parfait à vos cours</span>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
             </main>
 
