@@ -201,9 +201,61 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         return null;
     };
 
+    const [isScanning, setIsScanning] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsScanning(true);
+        setLoading(true);
+        setMessages(prev => [...prev, { role: 'assistant', content: "✨ *Analyse photonique en cours... Je scanne votre image pour extraire l'énoncé.*" }]);
+
+        try {
+            // Conversion en base64 pour Gemini
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Data = (reader.result as string).split(',')[1];
+                const mimeType = file.type;
+
+                try {
+                    const { analyzeMathImage } = await import('@/lib/gemini');
+                    const transcribedText = await analyzeMathImage(base64Data, mimeType);
+
+                    // Envoyer le texte transcrit comme si l'utilisateur l'avait tapé
+                    const userMessage: ChatMessage = {
+                        role: 'user',
+                        content: `[IMAGE SCANNEE]\n\n${transcribedText}`
+                    };
+
+                    const newMessages = [...messages, userMessage];
+                    setMessages(newMessages);
+
+                    const result: AiResponse = await chatWithRobot(newMessages, baseContext);
+                    if (result.success) {
+                        setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
+                    } else {
+                        setMessages(prev => [...prev, { role: 'assistant', content: "J'ai bien lu l'image, mais j'ai eu un souci pour l'analyser mathématiquement. Pouvez-vous préciser votre question ?" }]);
+                    }
+                } catch (err) {
+                    setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, la lecture de l'image a échoué. Assurez-vous qu'elle est bien éclairée et lisible." }]);
+                } finally {
+                    setIsScanning(false);
+                    setLoading(false);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                }
+            };
+        } catch (error) {
+            setIsScanning(false);
+            setLoading(false);
+        }
+    };
+
     const handleSendMessage = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        if (!input.trim() || loading) return;
+        if (!input.trim() || loading || isScanning) return;
 
         const currentInput = input;
         const userMessage: ChatMessage = { role: 'user', content: currentInput };
@@ -244,7 +296,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         <div className="absolute w-4 h-4 bg-cyan-500/40 rounded-full blur-md animate-ping"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-cyan-400/80 font-['Orbitron']">mimimaths@i // Core.Quantum.Sync</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-cyan-400/80 font-['Orbitron']">mimimaths@i // Core.Vision.Active</span>
                 </div>
             </div>
 
@@ -309,7 +361,15 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     }}
                     className="flex gap-4 items-end max-w-7xl mx-auto pl-32 relative"
                 >
-                    <div className="flex-1 bg-white/[0.04] border border-white/10 rounded-[2rem] focus-within:border-cyan-500/50 focus-within:bg-black/60 transition-all duration-500 group shadow-2xl">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                    />
+
+                    <div className="flex-1 bg-white/[0.04] border border-white/10 rounded-[2rem] focus-within:border-cyan-500/50 focus-within:bg-black/60 transition-all duration-500 group shadow-2xl flex items-center pr-4">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -319,17 +379,36 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                     handleSendMessage();
                                 }
                             }}
-                            placeholder="Interrogez votre tuteur quantique..."
-                            className="w-full bg-transparent border-none text-slate-50 placeholder-slate-700 focus:ring-0 px-8 py-5 resize-none text-[18px] min-h-[60px] max-h-[160px] font-sans scrollbar-hide"
-                            disabled={loading}
+                            placeholder={isScanning ? "Analyse de la photo en cours..." : "Expliquez votre problème ou scannez un exercice..."}
+                            className="flex-1 bg-transparent border-none text-slate-50 placeholder-slate-700 focus:ring-0 px-8 py-5 resize-none text-[18px] min-h-[60px] max-h-[160px] font-sans scrollbar-hide"
+                            disabled={loading || isScanning}
                         />
+
+                        {/* Camera/Scan Button */}
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={loading || isScanning}
+                            className="p-3 text-slate-500 hover:text-cyan-400 hover:bg-white/5 rounded-full transition-all duration-300"
+                            title="Scanner un exercice"
+                        >
+                            {isScanning ? (
+                                <div className="w-6 h-6 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                                </svg>
+                            )}
+                        </button>
                     </div>
+
                     <button
                         type="submit"
-                        disabled={loading || !input.trim()}
+                        disabled={loading || !input.trim() || isScanning}
                         className="bg-gradient-to-br from-cyan-600 via-blue-700 to-indigo-800 hover:from-cyan-500 disabled:opacity-20 text-white rounded-[1.8rem] transition-all h-[64px] w-[64px] flex items-center justify-center shrink-0 shadow-[0_10px_30px_rgba(6,182,212,0.4)] active:scale-90 border border-white/10"
                     >
-                        {loading ? (
+                        {loading && !isScanning ? (
                             <div className="w-7 h-7 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
