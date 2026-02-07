@@ -14,6 +14,10 @@ interface MathAssistantProps {
     baseContext?: string;
 }
 
+/**
+ * Composant Assistant Mathématique utilisant l'IA + Avatar Robot
+ * Expérience immersive, ultra-stable et maximisée.
+ */
 export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -53,7 +57,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         }
     }, [messages, loading]);
 
-    // Fonctions de formatage et figure
+    // Fonctions de formatage
     const formatContent = (content: string) => {
         const cleaned = content.replace(/\[FIGURE: .*?\]/g, '');
         return cleaned
@@ -69,21 +73,21 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const MathFigure = ({ content }: { content: string }) => {
         if (content.includes('[FIGURE: TrigonometricCircle]')) {
             return (
-                <div className="my-4 p-4 bg-slate-900/80 rounded-xl border border-cyan-500/30 flex flex-col items-center">
-                    <span className="text-[9px] text-cyan-400 font-mono mb-4 uppercase tracking-[0.2em]">Visualisation Géométrique</span>
-                    <svg width="180" height="180" viewBox="-130 -130 260 260">
+                <div className="my-6 p-6 bg-slate-900/80 rounded-2xl border border-cyan-500/30 flex flex-col items-center shadow-inner">
+                    <span className="text-[10px] text-cyan-400 font-mono mb-6 uppercase tracking-[0.3em] font-bold">Modélisation Géométrique Active</span>
+                    <svg width="220" height="220" viewBox="-130 -130 260 260" className="drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                         <circle cx="0" cy="0" r="100" fill="none" stroke="white" strokeWidth="0.5" opacity="0.1" />
                         <line x1="-120" y1="0" x2="120" y2="0" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
                         <line x1="0" y1="-120" x2="0" y2="120" stroke="white" strokeWidth="1" opacity="0.3" strokeDasharray="4" />
-                        <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="3" />
+                        <circle cx="0" cy="0" r="100" fill="none" stroke="url(#cyl-grad)" strokeWidth="4" />
                         <defs>
                             <linearGradient id="cyl-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style={{ stopColor: '#22d3ee' }} />
-                                <stop offset="100%" style={{ stopColor: '#d946ef' }} />
+                                <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
+                                <stop offset="100%" style={{ stopColor: '#8b5cf6' }} />
                             </linearGradient>
                         </defs>
-                        <circle cx="70.7" cy="-70.7" r="5" fill="#d946ef" />
-                        <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="2" />
+                        <circle cx="70.7" cy="-70.7" r="6" fill="#06b6d4" className="animate-pulse" />
+                        <path d="M 30 0 A 30 30 0 0 0 21.2 -21.2" fill="none" stroke="cyan" strokeWidth="3" />
                     </svg>
                 </div>
             )
@@ -105,105 +109,110 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         setIsTalking(false);
 
         try {
-            // Restore conversation history and send context
             const result: AiResponse = await chatWithRobot(newMessages, baseContext);
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
             } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, j'ai eu un problème. Reformule ta question ?" }]);
+                setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, j'ai eu un problème réseau. Peux-tu reformuler ta question ?" }]);
             }
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Erreur de connexion." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Erreur critique de connexion. Vérifie ton réseau." }]);
         } finally {
             setLoading(false);
         }
     };
 
-    if (!mounted) return <div className="w-full h-[70vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
+    if (!mounted) return <div className="w-full h-[80vh] bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
 
     return (
-        <div className="w-full mx-auto bg-[#020617] rounded-3xl border border-cyan-500/10 overflow-hidden flex flex-col h-[90vh] max-h-[1000px] font-['Exo_2',_sans-serif] relative shadow-[0_0_80px_rgba(0,0,0,0.8)] isolate">
-            {/* Background Decor - Static */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.1),transparent)]">
-                <div className="w-full h-full bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+        <div className="w-full mx-auto bg-[#020617] rounded-3xl border border-cyan-500/10 overflow-hidden flex flex-col h-[95vh] max-h-[1100px] font-['Exo_2',_sans-serif] relative shadow-[0_0_100px_rgba(0,0,0,0.9)] isolate group/assistant transition-all duration-500">
+            {/* Background Decor - Quantum Grid */}
+            <div className="absolute inset-0 opacity-[0.07] pointer-events-none -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.15),transparent)]">
+                <div className="w-full h-full bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:60px_60px]"></div>
             </div>
 
-            {/* Top Bar - Ultra Minimal */}
-            <div className="shrink-0 bg-slate-900/40 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between z-20">
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400/80 font-['Orbitron']">mimimaths@i // Session Active</span>
+            {/* Top Bar - Session Status */}
+            <div className="shrink-0 bg-slate-900/40 backdrop-blur-2xl border-b border-white/5 px-8 py-4 flex items-center justify-between z-20">
+                <div className="flex items-center gap-4">
+                    <div className="relative flex items-center justify-center">
+                        <div className="absolute w-4 h-4 bg-cyan-500/40 rounded-full blur-md animate-ping"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.5em] text-cyan-400/80 font-['Orbitron']">mimimaths@i // Core.Quantum.Sync</span>
                 </div>
                 {loading && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-mono text-slate-500 uppercase animate-pulse">Traitement neuronal...</span>
+                    <div className="px-3 py-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+                        <span className="text-[10px] font-mono text-cyan-400 uppercase animate-pulse tracking-widest">Calculs Stochastiques...</span>
                     </div>
                 )}
             </div>
 
-            {/* Chat Zone - Maximisée (3/4 de la page ou plus) */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 custom-scrollbar scroll-smooth overflow-x-hidden relative">
+            {/* Chat Zone - Ultra-Spacious for Math */}
+            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12 custom-scrollbar scroll-smooth overflow-x-hidden relative">
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full opacity-10 text-center px-10">
-                        <div className="text-8xl mb-6">📐</div>
-                        <p className="text-sm font-mono uppercase tracking-[0.5em]">Tuteur Mathématique IA</p>
+                    <div className="flex flex-col items-center justify-center h-full opacity-[0.08] text-center px-10 select-none">
+                        <div className="text-[140px] mb-10 transform scale-110 drop-shadow-2xl">📐</div>
+                        <p className="text-sm font-mono uppercase tracking-[1em] text-cyan-400">Intelligence Tutorielle Active</p>
                     </div>
                 )}
 
                 {messages.map((msg, index) => (
-                    <div key={index} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[92%] px-6 py-5 text-[16px] rounded-2xl leading-relaxed shadow-xl ${msg.role === 'user'
-                            ? 'bg-blue-600/10 border border-blue-500/30 text-blue-50 rounded-tr-none'
-                            : 'bg-slate-900/80 border border-slate-800 text-slate-100 rounded-tl-none ring-1 ring-white/5'
+                    <div key={index} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                        <div className={`max-w-[96%] px-10 py-8 text-[18px] rounded-[2.5rem] leading-relaxed shadow-2xl transition-all duration-300 ${msg.role === 'user'
+                            ? 'bg-gradient-to-br from-blue-600/10 to-transparent border border-blue-500/20 text-blue-50 rounded-tr-none'
+                            : 'bg-slate-900/70 border border-slate-800 text-slate-100 rounded-tl-none ring-1 ring-white/5 backdrop-blur-xl'
                             }`}>
                             <MathFigure content={msg.content} />
-                            <ReactMarkdown
-                                remarkPlugins={[remarkMath, remarkGfm]}
-                                rehypePlugins={[rehypeKatex]}
-                                components={{
-                                    p: ({ node, ...props }) => <p className="mb-5 last:mb-0" {...props} />,
-                                    ul: ({ node, ...props }) => <ul className="list-disc ml-6 mb-5 space-y-2 text-slate-300" {...props} />,
-                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-6 mb-5 space-y-2 text-slate-300" {...props} />,
-                                    h1: ({ ...props }) => <h1 className="text-2xl font-bold mb-6 text-cyan-300 font-['Orbitron'] border-b border-cyan-500/20 pb-2" {...props} />,
-                                    h2: ({ ...props }) => <h2 className="text-xl font-bold mb-4 text-cyan-400" {...props} />,
-                                    blockquote: ({ ...props }) => <blockquote className="border-l-4 border-cyan-500/40 pl-5 py-3 my-6 bg-cyan-500/5 italic text-slate-200 rounded-r-xl" {...props} />,
-                                    code: ({ node, className, ...props }) => (
-                                        <code className="bg-black/60 px-2 py-1 rounded text-[14px] font-mono text-cyan-300 border border-white/10" {...props} />
-                                    ),
-                                    table: ({ ...props }) => (
-                                        <div className="overflow-x-auto my-6 rounded-2xl border border-white/10 bg-black/40 p-1">
-                                            <table className="min-w-full divide-y divide-white/10" {...props} />
-                                        </div>
-                                    ),
-                                    th: ({ ...props }) => <th className="px-5 py-3 text-left text-xs font-bold text-cyan-400 uppercase tracking-widest bg-slate-800/50" {...props} />,
-                                    td: ({ ...props }) => <td className="px-5 py-3 text-sm border-t border-white/5 text-slate-300" {...props} />
-                                }}
-                            >
-                                {formatContent(msg.content)}
-                            </ReactMarkdown>
+                            <div className="prose prose-invert prose-cyan max-w-none">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkMath, remarkGfm]}
+                                    rehypePlugins={[rehypeKatex]}
+                                    components={{
+                                        p: ({ node, ...props }) => <p className="mb-6 last:mb-0 leading-[1.8]" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc ml-8 mb-6 space-y-4 text-slate-300" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="list-decimal ml-8 mb-6 space-y-4 text-slate-300" {...props} />,
+                                        h1: ({ ...props }) => <h1 className="text-3xl font-bold mb-8 text-cyan-300 font-['Orbitron'] border-b border-white/5 pb-4" {...props} />,
+                                        h2: ({ ...props }) => <h2 className="text-2xl font-bold mb-6 text-cyan-400" {...props} />,
+                                        h3: ({ ...props }) => <h3 className="text-xl font-bold mb-4 text-fuchsia-400" {...props} />,
+                                        blockquote: ({ ...props }) => <blockquote className="border-l-4 border-fuchsia-500/50 pl-8 py-6 my-10 bg-fuchsia-500/5 italic text-slate-200 rounded-r-3xl shadow-lg" {...props} />,
+                                        code: ({ node, className, ...props }) => (
+                                            <code className="bg-black/60 px-2 py-1 rounded-lg text-[16px] font-mono text-cyan-300 border border-white/10" {...props} />
+                                        ),
+                                        table: ({ ...props }) => (
+                                            <div className="overflow-x-auto my-10 rounded-[2rem] border border-white/10 bg-black/40 p-2 shadow-2xl">
+                                                <table className="min-w-full divide-y divide-white/5" {...props} />
+                                            </div>
+                                        ),
+                                        th: ({ ...props }) => <th className="px-6 py-4 text-left text-xs font-bold text-cyan-400 uppercase tracking-widest bg-slate-800/30" {...props} />,
+                                        td: ({ ...props }) => <td className="px-6 py-4 text-[16px] border-t border-white/5 text-slate-300" {...props} />
+                                    }}
+                                >
+                                    {formatContent(msg.content)}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                     </div>
                 ))}
-                <div ref={messagesEndRef} className="h-10" />
+                <div ref={messagesEndRef} className="h-24" />
             </div>
 
-            {/* Bottom Section - Robot et Input */}
-            <div className="shrink-0 p-6 bg-slate-950/90 backdrop-blur-2xl border-t border-white/5 relative">
+            {/* Bottom Stable Zone - Avatar & Input */}
+            <div className="shrink-0 p-10 bg-slate-950/95 backdrop-blur-3xl border-t border-white/5 relative z-30">
 
-                {/* Robot Assistant - Placé au-dessus de l'input */}
-                <div className="absolute -top-16 left-8 flex items-end gap-4 pointer-events-none transition-all duration-500">
-                    <div className="relative">
-                        <div className="absolute -inset-2 bg-cyan-400/30 rounded-full blur-xl animate-pulse"></div>
-                        <div className="relative bg-black p-1 rounded-full ring-2 ring-cyan-500/40 shadow-[0_0_30px_rgba(6,182,212,0.4)]">
-                            <RobotAvatar isTalking={isTalking} width={70} height={70} />
+                {/* Robot Avatar - Massive & Fixed */}
+                <div className="absolute -top-28 left-12 flex items-end gap-8 pointer-events-none transition-all duration-700">
+                    <div className="relative group/robot">
+                        <div className="absolute -inset-6 bg-cyan-400/20 rounded-full blur-3xl animate-pulse group-hover/robot:bg-cyan-400/30 transition-all duration-1000"></div>
+                        <div className="relative bg-black p-2 rounded-full ring-[6px] ring-cyan-500/40 shadow-[0_0_80px_rgba(6,182,212,0.6)] transform group-hover/robot:scale-105 transition-transform duration-500">
+                            <RobotAvatar isTalking={isTalking} width={110} height={110} />
                         </div>
                     </div>
                     {isTalking && (
-                        <div className="mb-4 bg-cyan-500/10 backdrop-blur-md border border-cyan-500/20 px-4 py-2 rounded-2xl rounded-bl-none animate-message">
-                            <div className="flex gap-1">
-                                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span>
-                                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                        <div className="mb-8 bg-cyan-500/10 backdrop-blur-2xl border border-cyan-500/20 px-6 py-3 rounded-[1.5rem] rounded-bl-none shadow-2xl animate-in zoom-in-50 duration-300">
+                            <div className="flex gap-2">
+                                <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce"></span>
+                                <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                             </div>
                         </div>
                     )}
@@ -214,9 +223,9 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         e.preventDefault();
                         handleSendMessage();
                     }}
-                    className="flex gap-4 items-end max-w-6xl mx-auto pl-20"
+                    className="flex gap-6 items-end max-w-7xl mx-auto pl-36 relative"
                 >
-                    <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl focus-within:border-cyan-500/50 focus-within:bg-black transition-all group shadow-2xl">
+                    <div className="flex-1 bg-white/[0.04] border border-white/10 rounded-[2.5rem] focus-within:border-cyan-500/50 focus-within:bg-black/60 focus-within:ring-[8px] focus-within:ring-cyan-500/10 transition-all duration-500 group shadow-2xl">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -226,20 +235,20 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                     handleSendMessage();
                                 }
                             }}
-                            placeholder="Pose ta question au tuteur..."
-                            className="w-full bg-transparent border-none text-slate-100 placeholder-slate-600 focus:ring-0 px-5 py-4 resize-none text-[16px] min-h-[60px] max-h-[160px] font-sans"
+                            placeholder="Interrogez votre tuteur quantique..."
+                            className="w-full bg-transparent border-none text-slate-50 placeholder-slate-700 focus:ring-0 px-10 py-6 resize-none text-[18px] min-h-[64px] max-h-[200px] font-sans scrollbar-hide"
                             disabled={loading}
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading || !input.trim()}
-                        className="bg-gradient-to-br from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 disabled:opacity-30 text-white rounded-2xl transition-all h-[60px] w-[60px] flex items-center justify-center shrink-0 shadow-[0_8px_25px_rgba(6,182,212,0.4)] active:scale-95"
+                        className="bg-gradient-to-br from-cyan-600 via-blue-700 to-indigo-800 hover:from-cyan-500 hover:via-blue-600 hover:to-indigo-700 disabled:opacity-20 text-white rounded-[2rem] transition-all h-[64px] w-[70px] flex items-center justify-center shrink-0 shadow-[0_15px_40px_rgba(6,182,212,0.4)] active:scale-90 border border-white/10"
                     >
                         {loading ? (
-                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <div className="w-8 h-8 border-[4px] border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9">
                                 <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                             </svg>
                         )}
