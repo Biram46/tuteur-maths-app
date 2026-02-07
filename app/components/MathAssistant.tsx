@@ -126,20 +126,18 @@ export default function MathAssistant() {
         if (e) e.preventDefault();
         if (!input.trim() || loading) return;
 
-        const userMessage: ChatMessage = { role: 'user', content: input };
+        const currentInput = input;
+        const userMessage: ChatMessage = { role: 'user', content: currentInput };
 
-        // Ajout immédiat du message utilisateur
-        const newHistory = [...messages, userMessage];
-        setMessages(newHistory);
+        // Ajout du message à l'interface (on garde l'historique visuel seulement)
+        setMessages(prev => [...prev, userMessage]);
         setInput('');
         setLoading(true);
-        setIsTalking(false); // Le robot écoute
+        setIsTalking(false);
 
         try {
-            // Petit délai artificiel pour "réfléchir"
-            await new Promise(r => setTimeout(r, 600));
-
-            const result: AiResponse = await chatWithRobot(newHistory);
+            // Dans cette version "sans mémoire", on n'envoie que le message actuel
+            const result: AiResponse = await chatWithRobot([userMessage]);
 
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
@@ -202,14 +200,9 @@ export default function MathAssistant() {
             {/* Zone de Chat */}
             <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-transparent text-slate-200 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
                 {messages.length === 0 && (
-                    <div className="text-center mt-12 max-w-lg mx-auto">
-                        <p className="mb-4 text-xl font-medium text-cyan-100">Initialisation du module pédagogique...</p>
-                        <p className="text-sm text-slate-400 mb-10 font-mono">
-                            // En attente de données d'entrée.<br />
-                            // Prêt à analyser tes questions mathématiques.
-                        </p>
-
-
+                    <div className="flex flex-col items-center justify-center h-full text-center opacity-60">
+                        <p className="text-xl font-['Orbitron'] tracking-[0.2em] text-cyan-400 mb-2">PRET // EN ATTENTE</p>
+                        <p className="text-xs text-slate-500 font-mono">Système prêt pour analyse mathématique</p>
                     </div>
                 )}
 
