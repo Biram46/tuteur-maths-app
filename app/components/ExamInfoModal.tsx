@@ -193,7 +193,7 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <a
-                                    href="https://www.education.gouv.fr/recherche?keywords=%22%C3%A9preuve+anticip%C3%A9e+math%C3%A9matiques%22&sort_by=created"
+                                    href="https://www.education.gouv.fr/epreuve-anticipee-de-mathematiques-de-la-classe-de-premiere-des-voies-generale-et-342006"
                                     target="_blank"
                                     className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group"
                                 >
@@ -201,7 +201,7 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                                         <span className="text-2xl">⚡</span>
                                         <div>
                                             <p className="font-bold text-white">Veille Officielle Épreuve</p>
-                                            <p className="text-[10px] text-slate-500">Toutes les publications triées par date de parution</p>
+                                            <p className="text-[10px] text-slate-500">Page officielle du Ministère (Textes et Modalités)</p>
                                         </div>
                                     </div>
                                     <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
