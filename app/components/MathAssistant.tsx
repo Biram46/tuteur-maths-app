@@ -201,7 +201,6 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         return null;
     };
 
-    const [mode, setMode] = useState<'standard' | 'expert'>('standard');
     const [isScanning, setIsScanning] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -234,7 +233,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const newMessages = [...messages, userMessage];
                     setMessages(newMessages);
 
-                    const result: AiResponse = await chatWithRobot(newMessages, baseContext, mode);
+                    const result: AiResponse = await chatWithRobot(newMessages, baseContext);
                     if (result.success) {
                         setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
                     } else {
@@ -268,7 +267,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         setIsTalking(false);
 
         try {
-            const result: AiResponse = await chatWithRobot(newMessages, baseContext, mode);
+            const result: AiResponse = await chatWithRobot(newMessages, baseContext);
             if (result.success) {
                 setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
             } else {
@@ -290,7 +289,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 <div className="w-full h-full bg-[linear-gradient(to_right,#0891b2_1px,transparent_1px),linear-gradient(to_bottom,#0891b2_1px,transparent_1px)] bg-[size:60px_60px]"></div>
             </div>
 
-            {/* Top Bar - Session Status & Mode Switch */}
+            {/* Top Bar - Session Status & Mode switch simplified */}
             <div className="shrink-0 bg-slate-900/60 backdrop-blur-2xl border-b border-white/5 px-8 py-3 flex items-center justify-between z-20">
                 <div className="flex items-center gap-4">
                     <div className="relative flex items-center justify-center">
@@ -298,24 +297,13 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-cyan-400/80 font-['Orbitron']">
-                        mimimaths@i // {mode === 'expert' ? 'Expert.R1.Logic' : 'Core.Vision.Active'}
+                        mimimaths@i // Hybrid.Quantum.Intelligence
                     </span>
                 </div>
 
-                {/* Mode Selector */}
-                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
-                    <button
-                        onClick={() => setMode('standard')}
-                        className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${mode === 'standard' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        STANDARD
-                    </button>
-                    <button
-                        onClick={() => setMode('expert')}
-                        className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${mode === 'expert' ? 'bg-fuchsia-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        EXPERT R1
-                    </button>
+                <div className="px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20 flex items-center gap-2">
+                    <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse"></div>
+                    <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest">Double IA Active</span>
                 </div>
             </div>
 
