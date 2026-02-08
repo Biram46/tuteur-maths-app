@@ -1,28 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Route API Hybride pour mimimaths@i
- * Combine Perplexity (Recherche BO/Eduscol) et DeepSeek R1 (Raisonnement Mathématique)
+ * Route API Hybride en Streaming pour mimimaths@i
  */
 export async function POST(request: NextRequest) {
     try {
         const { messages, context } = await request.json();
-
         const perplexityKey = process.env.PERPLEXITY_API_KEY;
         const deepseekKey = process.env.DEEPSEEK_API_KEY;
 
         if (!perplexityKey || !deepseekKey) {
-            return NextResponse.json({ error: 'Configurations API manquantes (Perplexity ou DeepSeek)' }, { status: 500 });
+            return NextResponse.json({ error: 'Configurations API manquantes' }, { status: 500 });
         }
 
         const userQuestion = messages[messages.length - 1].content;
 
-        // ÉTAPE 1 : Recherche du contexte pédagogique via Perplexity
-        // On demande à Perplexity de nous donner les points clés du programme officiel français sur le sujet.
-        const searchPrompt = `En tant qu'assistant de recherche pour un professeur de mathématiques, 
-        recherche et résume les points clés du programme de l'Éducation Nationale française (Eduscol/BO) 
-        concernant la notion suivante : "${userQuestion}". 
-        Donne uniquement les définitions officielles et les attendus de fin d'année pour le niveau : ${context}.`;
+        // 1. RECHERCHE RAPIDE (Perplexity) - Non-streamée car courte
+        const searchPrompt = `Résume les points clés du programme officiel français (Eduscol/BO) sur : "${userQuestion}" pour le niveau ${context}.`;
 
         const searchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
             method: 'POST',
@@ -32,57 +26,83 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
                 model: 'sonar',
-                messages: [{ role: 'system', content: "Tu es un documentaliste expert Eduscol/BO." }, { role: 'user', content: searchPrompt }],
-                temperature: 0.2,
+                messages: [{ role: 'system', content: "Tu es un documentaliste Eduscol." }, { role: 'user', content: searchPrompt }],
+                temperature: 0.1,
             }),
         });
 
         const searchData = await searchResponse.json();
         const curriculumContext = searchData.choices[0].message.content;
-        const citations = searchData.citations || [];
 
-        // ÉTAPE 2 : Génération de la réponse pédagogique via DeepSeek R1
-        // On combine la recherche officielle avec la puissance de raisonnement de DeepSeek.
+        // 2. RÉPONSE STREAMÉE (DeepSeek R1)
         const reasoningPrompt = `Tu es mimimaths@i, le Super-Tuteur de mathématiques. 
-        Tu dois répondre à l'élève en suivant ce plan : 
-        1. 📘 Rappel du Cours (basé sur le contexte officiel fourni ci-dessous).
-        2. 💡 Exemple Traité (rédigé parfaitement).
-        3. ✍️ Exercice d'application (attendre la réponse de l'élève).
-
-        CONTEXTE OFFICIEL RÉCUPÉRÉ (Eduscol/BO) :
+        Réponds à l'élève selon ce plan : 1. 📘 Cours | 2. 💡 Exemple | 3. ✍️ Exercice.
+        
+        CONTEXTE OFFICIEL (Eduscol/BO) :
         ${curriculumContext}
+        
+        LaTeX OBLIGATOIRE ($...$ ou $$...$$).`;
 
-        CONSIGNES :
-        - Utilise LaTeX pour TOUTE formule mathématique ($...$ et $$...$$).
-        - Respecte les notations françaises.
-        - Sois bienveillant et rigoureux.`;
-
-        const finalResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${deepseekKey}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'deepseek-reasoner', // DeepSeek-R1
+                model: 'deepseek-reasoner',
                 messages: [
                     { role: 'system', content: reasoningPrompt },
                     ...messages
-                ]
+                ],
+                stream: true // ACTIVATION DU STREAMING
             }),
         });
 
-        if (!finalResponse.ok) throw new Error('Erreur API DeepSeek R1');
-        const finalData = await finalResponse.json();
+        // Pipeline de streaming pour Next.js 14
+        const stream = new ReadableStream({
+            async start(controller) {
+                const reader = response.body?.getReader();
+                if (!reader) return;
 
-        return NextResponse.json({
-            success: true,
-            response: finalData.choices[0].message.content,
-            citations: citations // On garde les sources Perplexity
+                const decoder = new TextDecoder();
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') break;
+                                try {
+                                    const json = JSON.parse(data);
+                                    const content = json.choices[0].delta?.content || "";
+                                    if (content) {
+                                        controller.enqueue(new TextEncoder().encode(content));
+                                    }
+                                } catch (e) { /* ignore parse errors bit */ }
+                            }
+                        }
+                    }
+                } finally {
+                    controller.close();
+                }
+            },
+        });
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
         });
 
     } catch (error) {
-        console.error('Erreur Super-Tuteur Hybride:', error);
-        return NextResponse.json({ error: 'Une défaillance technique est survenue dans le noyau quantique.' }, { status: 500 });
+        return NextResponse.json({ error: 'Erreur Serveur' }, { status: 500 });
     }
 }

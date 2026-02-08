@@ -210,10 +210,10 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
         setIsScanning(true);
         setLoading(true);
+        const scanningMsgIndex = messages.length;
         setMessages(prev => [...prev, { role: 'assistant', content: "✨ *Analyse photonique en cours... Je scanne votre image pour extraire l'énoncé.*" }]);
 
         try {
-            // Conversion en base64 pour Gemini
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
@@ -224,7 +224,6 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const { analyzeMathImage } = await import('@/lib/gemini');
                     const transcribedText = await analyzeMathImage(base64Data, mimeType);
 
-                    // Envoyer le texte transcrit comme si l'utilisateur l'avait tapé
                     const userMessage: ChatMessage = {
                         role: 'user',
                         content: `[IMAGE SCANNEE]\n\n${transcribedText}`
@@ -232,24 +231,68 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
                     const newMessages = [...messages, userMessage];
                     setMessages(newMessages);
+                    setIsScanning(false);
 
-                    const result: AiResponse = await chatWithRobot(newMessages, baseContext);
-                    if (result.success) {
-                        setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
-                    } else {
-                        setMessages(prev => [...prev, { role: 'assistant', content: "J'ai bien lu l'image, mais j'ai eu un souci pour l'analyser mathématiquement. Pouvez-vous préciser votre question ?" }]);
-                    }
+                    // Lancement du Stream après OCR
+                    await startStreamingResponse(newMessages);
+
                 } catch (err) {
                     setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, la lecture de l'image a échoué. Assurez-vous qu'elle est bien éclairée et lisible." }]);
-                } finally {
-                    setIsScanning(false);
                     setLoading(false);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    setIsScanning(false);
                 }
             };
         } catch (error) {
             setIsScanning(false);
             setLoading(false);
+        }
+    };
+
+    const startStreamingResponse = async (msgs: ChatMessage[]) => {
+        setLoading(true);
+        setIsTalking(true);
+
+        // Ajouter un message assistant vide qu'on va remplir
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        const assistantMsgIndex = msgs.length;
+
+        try {
+            const response = await fetch('/api/perplexity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: msgs, context: baseContext }),
+            });
+
+            if (!response.ok) throw new Error('Erreur Stream');
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    fullContent += chunk;
+
+                    setMessages(prev => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+                        return updated;
+                    });
+                }
+            }
+        } catch (error) {
+            setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur de flux est survenue." };
+                return updated;
+            });
+        } finally {
+            setLoading(false);
+            setIsTalking(false);
         }
     };
 
@@ -263,21 +306,8 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
         setMessages(newMessages);
         setInput('');
-        setLoading(true);
-        setIsTalking(false);
 
-        try {
-            const result: AiResponse = await chatWithRobot(newMessages, baseContext);
-            if (result.success) {
-                setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
-            } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, j'ai eu un problème réseau. Peux-tu reformuler ta question ?" }]);
-            }
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Erreur critique de connexion. Vérifie ton réseau." }]);
-        } finally {
-            setLoading(false);
-        }
+        await startStreamingResponse(newMessages);
     };
 
     if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl border border-cyan-500/20 animate-pulse"></div>;
