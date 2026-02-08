@@ -31,7 +31,8 @@ export interface ChatMessage {
  */
 export async function chatWithRobot(
     messages: ChatMessage[],
-    context?: string
+    context?: string,
+    mode: 'standard' | 'expert' = 'standard'
 ): Promise<AiResponse> {
     try {
         const response = await fetch('/api/perplexity', {
@@ -42,6 +43,7 @@ export async function chatWithRobot(
             body: JSON.stringify({
                 messages,
                 context,
+                mode,
             }),
         });
 
