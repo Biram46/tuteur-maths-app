@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabaseAction'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -30,11 +31,15 @@ export async function signup(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
+    const host = (await headers()).get('host')
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const origin = `${protocol}://${host}`
+
     const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aimaths.fr'}/auth/callback`,
+            emailRedirectTo: `${origin}/auth/callback`,
         }
     })
 
