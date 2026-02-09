@@ -34,7 +34,7 @@ export async function signup(formData: FormData) {
         email,
         password,
         options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://tuteur-maths-app.vercel.app'}/auth/callback`,
+            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aimaths.fr'}/auth/callback`,
         }
     })
 

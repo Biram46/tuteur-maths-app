@@ -16,7 +16,7 @@ export async function resetPassword(formData: FormData) {
     // Utiliser l'URL de production fixe pour éviter les URLs de preview Vercel
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
         || (process.env.VERCEL_ENV === 'production'
-            ? 'https://tuteur-maths-app.vercel.app'
+            ? 'https://www.aimaths.fr'
             : 'http://localhost:3000')
 
     // Send password reset email
