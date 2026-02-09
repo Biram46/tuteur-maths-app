@@ -43,6 +43,11 @@ export async function GET(request: Request) {
             const forwardedHost = request.headers.get('x-forwarded-host')
             const isLocalEnv = process.env.NODE_ENV === 'development'
 
+            // En production, on force le domaine personnalisé pour éviter la protection Vercel
+            if (!isLocalEnv) {
+                return NextResponse.redirect(`https://www.aimaths.fr${next}`)
+            }
+
             if (isLocalEnv) {
                 return NextResponse.redirect(`${requestUrl.origin}${next}`)
             } else if (forwardedHost) {
