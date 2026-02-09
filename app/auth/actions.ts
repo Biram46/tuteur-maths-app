@@ -31,9 +31,10 @@ export async function signup(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    const host = (await headers()).get('host')
-    const protocol = host?.includes('localhost') ? 'http' : 'https'
-    const origin = `${protocol}://${host}`
+    const isLocal = process.env.NODE_ENV === 'development'
+    const origin = isLocal
+        ? 'http://localhost:3000'
+        : 'https://www.aimaths.fr'
 
     const { error } = await supabase.auth.signUp({
         email,
