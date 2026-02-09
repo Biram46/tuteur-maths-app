@@ -14,6 +14,7 @@ export default function LoginPageClient({
     const [mode, setMode] = useState<"login" | "signup">("login");
     const [isLoading, setIsLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);
