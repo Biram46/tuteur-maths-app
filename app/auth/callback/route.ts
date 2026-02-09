@@ -51,8 +51,8 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(`${requestUrl.origin}${next}`)
             }
         } else {
-            console.error('Error exchanging code for session:', error)
-            return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_callback_error`)
+            console.error('CRITICAL: Error exchanging code for session:', error)
+            return NextResponse.redirect(`${requestUrl.origin}/login?error=${encodeURIComponent(error.message)}`)
         }
     }
 

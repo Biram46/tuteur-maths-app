@@ -16,7 +16,8 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword(data)
 
     if (error) {
-        redirect('/login?error=' + encodeURIComponent('L\'email ou le mot de passe est incorrect'))
+        console.error('Login Error:', error)
+        redirect('/login?error=' + encodeURIComponent(error.message))
     }
 
     revalidatePath('/', 'layout')
@@ -38,6 +39,7 @@ export async function signup(formData: FormData) {
     })
 
     if (error) {
+        console.error('Signup Error:', error)
         redirect('/login?error=' + encodeURIComponent(error.message))
     }
 
