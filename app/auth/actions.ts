@@ -50,7 +50,7 @@ export async function signup(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/login?message=Compte créé ! Veuillez vérifier votre email pour confirmer votre inscription.')
+    redirect('/')
 }
 
 export async function adminLogin(formData: FormData) {
