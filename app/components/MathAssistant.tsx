@@ -235,16 +235,25 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             : 'bg-slate-900/70 border border-slate-800 text-slate-100 rounded-tl-none'}`}>
                             <MathFigure content={msg.content} />
                             <div className="prose prose-invert prose-cyan max-w-none">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkMath, remarkGfm]}
-                                    rehypePlugins={[rehypeKatex]}
-                                    components={{
-                                        p: ({ node, ...props }) => <p className="mb-5 last:mb-0 leading-[1.8]" {...props} />,
-                                        code: ({ node, className, ...props }) => <code className="bg-black/60 px-2 py-1 rounded-lg text-[15px] font-mono text-cyan-300" {...props} />
-                                    }}
-                                >
-                                    {formatContent(msg.content)}
-                                </ReactMarkdown>
+                                {msg.role === 'assistant' && msg.content === '' && loading ? (
+                                    <div className="flex items-center gap-3 text-cyan-400 font-mono text-sm animate-pulse">
+                                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-.3s]"></div>
+                                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-.5s]"></div>
+                                        <span className="ml-2 uppercase tracking-widest text-[10px] font-bold">mimimaths@i réfléchit...</span>
+                                    </div>
+                                ) : (
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                            p: ({ node, ...props }) => <p className="mb-5 last:mb-0 leading-[1.8]" {...props} />,
+                                            code: ({ node, className, ...props }) => <code className="bg-black/60 px-2 py-1 rounded-lg text-[15px] font-mono text-cyan-300" {...props} />
+                                        }}
+                                    >
+                                        {formatContent(msg.content)}
+                                    </ReactMarkdown>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -278,7 +287,11 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         </button>
                     </div>
                     <button type="submit" disabled={loading || !input.trim() || isScanning} className="bg-gradient-to-br from-cyan-600 to-indigo-800 text-white rounded-full h-[64px] w-[64px] flex items-center justify-center shadow-lg active:scale-95 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
+                        {loading && !isScanning ? (
+                            <div className="w-7 h-7 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
+                        )}
                     </button>
                 </form>
             </div>
