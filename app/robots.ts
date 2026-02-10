@@ -4,8 +4,8 @@ export default function robots(): MetadataRoute.Robots {
     return {
         rules: {
             userAgent: '*',
-            allow: '/',
-            disallow: ['/admin/', '/api/'], // On évite d'indexer la partie admin et API
+            allow: ['/', '/login', '/admin/login', '/forgot-password'],
+            disallow: ['/admin/', '/api/', '/assistant/', '/auth/'],
         },
         sitemap: 'https://aimaths.fr/sitemap.xml',
     };

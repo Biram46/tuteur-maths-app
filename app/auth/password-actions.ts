@@ -12,11 +12,15 @@ export async function resetPassword(formData: FormData) {
 
     const supabase = supabaseServer
 
-    // Déterminer l'URL de redirection
-    // Utiliser l'URL de production fixe pour éviter les URLs de preview Vercel
+    // Détection dynamique du domaine via les headers pour la redirection
+    const { headers } = await import('next/headers')
+    const headerList = await headers()
+    const host = headerList.get('host')
+    const proto = headerList.get('x-forwarded-proto') || 'https'
+
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
         || (process.env.VERCEL_ENV === 'production'
-            ? 'https://www.aimaths.fr'
+            ? `${proto}://${host}`
             : 'http://localhost:3000')
 
     // Send password reset email

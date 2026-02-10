@@ -38,20 +38,16 @@ export async function GET(request: Request) {
 
         if (!error) {
             // Forward to the 'next' path
-            // We ensure we redirect to the original origin or the request URL origin
-            // to avoid mismatch issues on Vercel
-            const forwardedHost = request.headers.get('x-forwarded-host')
+            // On utilise l'origine de la requête pour rester sur le même domaine (aimaths.fr ou aimaths.app)
             const isLocalEnv = process.env.NODE_ENV === 'development'
-
-            // En production, on force le domaine personnalisé pour éviter la protection Vercel
-            if (!isLocalEnv) {
-                return NextResponse.redirect(`https://www.aimaths.fr${next}`)
-            }
+            const forwardedHost = request.headers.get('x-forwarded-host')
+            const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
 
             if (isLocalEnv) {
                 return NextResponse.redirect(`${requestUrl.origin}${next}`)
             } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}${next}`)
+                // Sur Vercel, x-forwarded-host contient le domaine utilisé (ex: aimaths.app)
+                return NextResponse.redirect(`${forwardedProto}://${forwardedHost}${next}`)
             } else {
                 return NextResponse.redirect(`${requestUrl.origin}${next}`)
             }

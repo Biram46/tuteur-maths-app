@@ -32,9 +32,15 @@ export async function signup(formData: FormData) {
     const password = formData.get('password') as string
 
     const isLocal = process.env.NODE_ENV === 'development'
+
+    // Détection dynamique du domaine via les headers
+    const headerList = await headers()
+    const host = headerList.get('host')
+    const proto = headerList.get('x-forwarded-proto') || 'https'
+
     const origin = isLocal
         ? 'http://localhost:3000'
-        : 'https://www.aimaths.fr'
+        : `${proto}://${host}`
 
     const { error } = await supabase.auth.signUp({
         email,

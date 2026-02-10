@@ -2,26 +2,33 @@ import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = 'https://aimaths.fr';
+    // Format ISO sans millisecondes : YYYY-MM-DDTHH:mm:ssZ
+    const lastModified = new Date().toISOString().split('.')[0] + 'Z';
 
     return [
         {
             url: baseUrl,
-            lastModified: new Date(),
+            lastModified: lastModified,
             changeFrequency: 'yearly',
             priority: 1,
         },
         {
-            url: `${baseUrl}/auth/login`,
-            lastModified: new Date(),
+            url: `${baseUrl}/login`,
+            lastModified: lastModified,
             changeFrequency: 'monthly',
             priority: 0.8,
         },
         {
             url: `${baseUrl}/admin/login`,
-            lastModified: new Date(),
+            lastModified: lastModified,
             changeFrequency: 'monthly',
             priority: 0.5,
         },
-        // On pourra ajouter dynamiquement les niveaux/chapitres ici plus tard si on veut
+        {
+            url: `${baseUrl}/forgot-password`,
+            lastModified: lastModified,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
     ];
 }
