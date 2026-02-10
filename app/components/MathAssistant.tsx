@@ -60,7 +60,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
     // Fonctions de formatage
     const formatContent = (content: string) => {
-        const cleaned = content.replace(/\[FIGURE: .*?\]/g, '');
+        const cleaned = content.replace(/\[FIGURE:[\s\S]*?\]/g, '');
         return cleaned
             .replace(/\\\[([\s\S]*?)\\\]/g, '$$$1$$')
             .replace(/\\\((.*?)\\\)/g, '$$$1$$')
@@ -150,16 +150,14 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             );
         }
 
-        // Nouveau Graphe Interactif (FunctionPlot)
-        if (content.includes('[FIGURE: Plot:')) {
-            const match = content.match(/\[FIGURE: Plot: (.*?)\]/);
-            if (match) {
-                try {
-                    const plotOptions = JSON.parse(match[1]);
-                    return <MathPlotter options={plotOptions} title={plotOptions.title} />;
-                } catch (e) {
-                    console.error("Erreur JSON Plot:", e);
-                }
+        // Nouveau Graphe Interactif (FunctionPlot) - Detection Flexible
+        const plotMatch = content.match(/\[FIGURE:\s*Plot:\s*(\{[\s\S]*?\})\]/i);
+        if (plotMatch) {
+            try {
+                const plotOptions = JSON.parse(plotMatch[1]);
+                return <MathPlotter options={plotOptions} title={plotOptions.title} />;
+            } catch (e) {
+                console.error("Erreur JSON Plot:", e);
             }
         }
 

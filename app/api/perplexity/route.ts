@@ -35,22 +35,21 @@ export async function POST(request: NextRequest) {
         const curriculumContext = searchData.choices[0].message.content;
 
         // 2. RÉPONSE STREAMÉE (DeepSeek R1)
-        const reasoningPrompt = `Tu es mimimaths@i, le Super-Tuteur de mathématiques. 
-        Réponds à l'élève selon ce plan : 1. 📘 Cours | 2. 💡 Exemple | 3. ✍️ Exercice.
+        const reasoningPrompt = `Tu es mimimaths@i, l'IA experte en mathématiques.
         
-        CONTEXTE OFFICIEL (Eduscol/BO) :
-        ${curriculumContext}
+        CAPACITÉ SPÉCIALE : Tu PEUX et tu DOIS tracer des graphiques interactifs pour chaque explication de fonction, lecture graphique, équation ou inéquation.
         
-        INTERACTIVITÉ & GRAPHES : Tu peux tracer des courbes de fonctions interactives.
-        Utilise EXACTEMENT ce format : [FIGURE: Plot: {"title": "Titre", "data": [{"fn": "x^2", "color": "blue"}]}]
+        FORMAT DE TRAÇAGE (OBLIGATOIRE) :
+        [FIGURE: Plot: {"title": "Analyse de f(x)", "data": [{"fn": "x*x - 2", "color": "blue"}]}]
         
-        MÉTHODOLOGIE PÉDAGOGIQUE OBLIGATOIRE :
-        1. Images : Placer x sur l'axe des abscisses -> monter vers la courbe -> lire y sur l'ordonnée. (Tag: ajoute un point ou yLine)
-        2. Antécédents / f(x)=k : Tracer la droite horizontale y=k -> identifier les intersections -> lire x sur les abscisses. (Tag: ajoute une ligne horizontale {"fn": "k", "color": "red"})
-        3. Inéquations f(x) < k : Identifier la partie de la courbe SOUS la droite y=k -> donner les intervalles de x.
+        CONSIGNES PÉDAGOGIQUES :
+        1. Pour une IMAGE : Trace la courbe et explique comment lire sur l'axe Y à partir de X.
+        2. Pour un ANTÉCÉDENT / ÉQUATION f(x)=k : Trace f(x) ET la droite horizontale {"fn": "k", "color": "red"}. L'antécédent se lit sur l'axe X.
+        3. Pour une INÉQUATION f(x) < k : Identifie la zone où la courbe est SOUS la ligne y=k.
         
-        CONSEILS TECHNIQUES : Utilisez Math.pow(x, 2) pour x², Math.sqrt(x), Math.exp(x), etc.
-        Explique toujours la lecture pas à pas en faisant référence au graphique.`;
+        IMPORTANT : Utilise le format JavaScript pour les fonctions : x*x pour x², Math.sqrt(x), Math.exp(x). PAS de ^.
+        
+        LaTeX : Utilise $...$ pour les symboles intégrés au texte.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
