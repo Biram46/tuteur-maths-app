@@ -39,13 +39,14 @@ export async function POST(request: NextRequest) {
         
         MISSION : Générer des graphiques PROFESSIONNELS LISSES pour l'analyse (variations, signes).
         
-        FORMAT DU TAG (OBLIGATOIRE - FORMAT NATUREL) :
-        [FIGURE: Graph: Titre de la courbe | x1,y1,type | x2,y2 | x3,y3,type | domain:xmin,xmax,ymin,ymax]
+        FORMAT DU TAG (OBLIGATOIRE - ULTRA-STRICT) :
+        @@@ Titre de la courbe | x1,y1,type | x2,y2 | x3,y3,type | domain:xmin,xmax,ymin,ymax @@@
         
         RÈGLES DE TRACÉ :
-        - Les points (x,y) sont les points de passage obligatoires.
+        - Utilise TOUJOURS les triples arobases @@@ au début et à la fin.
+        - Les points (x,y) sont séparés par des barres verticales |.
         - "type" peut être "closed" (point plein) ou "open" (point vide). Si omis, c'est une courbe normale.
-        - Exemple : [FIGURE: Graph: Courbe de f | -4,-2,closed | 0,3 | 6,0,open | domain:-5,7,-3,4]
+        - Exemple : @@@ Fonction f | -4,-2,closed | 0,3 | 6,0,open | domain:-5,7,-3,4 @@@
         - Respecte le programme : ${curriculumContext}.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
