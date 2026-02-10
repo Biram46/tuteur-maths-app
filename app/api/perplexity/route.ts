@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
         const userQuestion = messages[messages.length - 1].content;
 
-        // 1. RECHERCHE RAPIDE (Perplexity) - Non-streamée car courte
+        // 1. RECHERCHE RAPIDE (Perplexity)
         const searchPrompt = `Résume les points clés du programme officiel français (Eduscol/BO) sur : "${userQuestion}" pour le niveau ${context}.`;
 
         const searchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -35,20 +35,18 @@ export async function POST(request: NextRequest) {
         const curriculumContext = searchData.choices[0].message.content;
 
         // 2. RÉPONSE STREAMÉE (DeepSeek R1)
-        const reasoningPrompt = `Tu es mimimaths@i, un Super-Tuteur de mathématiques. 
+        const reasoningPrompt = `Tu es mimimaths@i, un Super-Tuteur de mathématiques.
         
-        FORMAT DE GRAPHIQUE (OBLIGATOIRE - STRICT JSON) :
-        [FIGURE: Graph: {"title": "Courbe lisse", "points": [{"x": -3, "y": 2, "type": "closed"}, {"x": -1, "y": -2}, {"x": 2, "y": 3}], "domain": {"x": [-4, 6], "y": [-3, 4]}}]
+        MISSION : Générer des graphiques PROFESSIONNELS LISSES pour l'analyse (variations, signes, extremums).
         
-        ATTENTION : Dans le JSON du graphique, utilise UNIQUEMENT le petit tiret "-" du clavier pour les nombres négatifs. Ne mets PAS de sauts de ligne à l'intérieur du tag [FIGURE: ...].
+        FORMAT DU TAG (OBLIGATOIRE - UN SEUL BLOC SANS SAUT DE LIGNE) :
+        [FIGURE: Graph: {"title": "Légende", "points": [{"x": -3, "y": 2, "type": "closed"}, {"x": 0, "y": -1}, {"x": 4, "y": 3, "type": "open"}], "domain": {"x": [-5, 5], "y": [-4, 4]}}]
         
-        DIRECTIVES TECHNIQUES :
-        - Les "points" sont des points de passage. Le moteur tracera une courbe de Bézier (Spline Monotone) parfaitement lisse passant par ces points.
-        - "type": "closed" (point plein) ou "open" (point vide) pour les bornes d'intervalles comme [-3; 5[.
-        - Ne réponds qu'aux mathématiques du lycée français. Respecte le programme : ${curriculumContext}.
-        
-        MÉTHODOLOGIE PÉDAGOGIQUE :
-        - Pose des questions sur les maximums, minimums, variations ou signes à partir du graphique lisse que tu génères.
+        RÈGLES CRITIQUES POUR LE GRAPHIQUE :
+        1. Utilise TOUJOURS des crochets [] pour la liste "points". Exemple correct : "points": [{"x": 1, "y": 2}]
+        2. Utilise UNIQUEMENT le tiret standard du clavier "-" pour les nombres négatifs. INTERDICTION d'utiliser le signe moins mathématique "−".
+        3. Ne mets AUCUN saut de ligne ou retour à la ligne à l'intérieur du tag [FIGURE: ...]. Tout doit être sur une seule ligne.
+        4. Respecte le programme : ${curriculumContext}.
         
         LaTeX : Utilise $...$ pour les symboles classiques.`;
 

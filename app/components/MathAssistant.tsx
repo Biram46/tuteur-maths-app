@@ -72,15 +72,23 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
-        // 1. Graphique Professionnel (Détection multi-crochets et nettoyage)
+        // 1. Graphique Professionnel (Détection multi-crochets et nettoyage ultra-robuste)
         const graphMatch = content.match(/\[FIGURE:\s*Graph:\s*(\{[\s\S]*?\})\]/i);
         if (graphMatch) {
             try {
-                // Nettoyage des caractères mathématiques que l'IA injecte parfois (signes moins, espaces, etc.)
-                const rawJson = graphMatch[1]
-                    .replace(/[\u2212\u2013\u2014]/g, '-') // Remplace les tirets longs par des tirets standards
-                    .replace(/\u00A0/g, ' ') // Remplace les espaces insécables
-                    .replace(/(\r\n|\n|\r)/gm, ""); // Supprime les retours à la ligne internes
+                // Nettoyage agressif des caractères mathématiques et formatage
+                let rawJson = graphMatch[1]
+                    .replace(/[\u2212\u2013\u2014]/g, '-') // Signes moins variés
+                    .replace(/\u00A0/g, ' ') // Espaces insécables
+                    .replace(/(\r\n|\n|\r)/gm, " "); // Sauts de ligne
+
+                // Correction automatique si l'IA oublie les crochets [] autour de "points"
+                // (Cas fréquent où elle liste les objets directement derrière "points":)
+                if (rawJson.includes('"points": {') && !rawJson.includes('"points": [')) {
+                    rawJson = rawJson.replace(/"points":\s*{/, '"points": [{');
+                    // On essaie de refermer le tableau si besoin (très heuristique)
+                    rawJson = rawJson.replace(/},\s*"domain"/, '}], "domain"');
+                }
 
                 const data = JSON.parse(rawJson);
                 return (
@@ -92,7 +100,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     />
                 );
             } catch (e) {
-                console.error("Erreur JSON Graph (Parsing):", e, graphMatch[1]);
+                console.error("Erreur critique Parsing Graph:", e, "JSON brut:", graphMatch[1]);
             }
         }
         // 2. Cercle Trigonométrique
