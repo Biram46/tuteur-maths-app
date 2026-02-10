@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { chatWithRobot, ChatMessage, AiResponse } from '@/lib/perplexity';
 import RobotAvatar from './RobotAvatar';
-import GeoGebraPlotter from './GeoGebraPlotter';
+import MathGraph, { GraphPoint } from './MathGraph';
 
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -72,17 +72,25 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
-        // 1. Graphe GeoGebra (Robuste aux espaces/sauts de ligne)
-        const ggbMatch = content.match(/\[FIGURE:\s*GGB:\s*(\{[\s\S]*?\})\]/i);
-        if (ggbMatch) {
-            try {
-                const data = JSON.parse(ggbMatch[1]);
-                return <GeoGebraPlotter commands={data.commands} title={data.title} />;
-            } catch (e) {
-                console.error("Erreur JSON GGB:", e);
+        // Nouveau Graphique Professionnel (MathGraph D3)
+        if (content.includes('[FIGURE: Graph:')) {
+            const match = content.match(/\[FIGURE: Graph: (.*?)\]/);
+            if (match) {
+                try {
+                    const data = JSON.parse(match[1]);
+                    return (
+                        <MathGraph
+                            points={data.points}
+                            functions={data.functions}
+                            domain={data.domain}
+                            title={data.title}
+                        />
+                    );
+                } catch (e) {
+                    console.error("Erreur JSON Graph:", e);
+                }
             }
         }
-
         // 2. Cercle Trigonométrique
         if (content.includes('[FIGURE: TrigonometricCircle')) {
             const angleMatch = content.match(/angle=(-?\d+)/);
