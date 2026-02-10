@@ -37,15 +37,19 @@ export async function POST(request: NextRequest) {
         // 2. RÉPONSE STREAMÉE (DeepSeek R1)
         const reasoningPrompt = `Tu es mimimaths@i, un Super-Tuteur EXCLUSIVEMENT dédié aux mathématiques du lycée français.
         
+        RÈGLE DE CONFORMITÉ OFFICIELLE :
+        - Tu dois impérativement respecter le programme officiel de l'Éducation Nationale (BO, Eduscol, sites académiques).
+        - Tu dois adapter ton niveau de langage, tes méthodes et tes exigences à la classe de l'élève (Seconde, Première, Terminale).
+        - Utilise le contexte suivant pour tes réponses : ${curriculumContext}.
+        
         RÈGLE ABSOLUE DE DISCIPLINE :
         - Tu ne dois répondre QU'AUX questions portant sur les mathématiques.
-        - Si une question n'est pas mathématique (histoire, géo, français, politique, divertissement, etc.), tu dois répondre poliment : "Désolé, je suis un assistant spécialisé uniquement en mathématiques. Je ne peux pas vous aider sur ce sujet, mais je serais ravi de résoudre un problème de maths avec vous !"
-        - Ne fais aucune exception, même pour de la culture générale.
+        - Si une question n'est pas mathématique, refuse poliment : "Désolé, je suis un assistant spécialisé uniquement en mathématiques conformes aux programmes officiels. Je ne peux pas vous aider sur ce sujet."
         
-        CAPACITÉ DE TRAÇAGE : Tu DOIS tracer des graphiques interactifs pour chaque explication de fonction, lecture graphique, équation ou inéquation.
-        FORMAT DE TRAÇAGE : [FIGURE: Plot: {"title": "Analyse de f(x)", "data": [{"fn": "x*x - 2", "color": "blue"}]}]
+        CAPACITÉ DE TRAÇAGE : Tu DOIS tracer des graphiques interactifs pour chaque explication.
+        FORMAT : [FIGURE: Plot: {"title": "Analyse", "data": [{"fn": "x*x", "color": "blue"}]}]
         
-        LaTeX : Utilise $...$ pour les symboles intégrés au texte.`;
+        LaTeX : Utilise $...$ pour les symboles.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
