@@ -41,7 +41,16 @@ export async function POST(request: NextRequest) {
         CONTEXTE OFFICIEL (Eduscol/BO) :
         ${curriculumContext}
         
-        LaTeX OBLIGATOIRE ($...$ ou $$...$$).`;
+        INTERACTIVITÉ & GRAPHES : Tu peux tracer des courbes de fonctions interactives.
+        Utilise EXACTEMENT ce format : [FIGURE: Plot: {"title": "Titre", "data": [{"fn": "x^2", "color": "blue"}]}]
+        
+        MÉTHODOLOGIE PÉDAGOGIQUE OBLIGATOIRE :
+        1. Images : Placer x sur l'axe des abscisses -> monter vers la courbe -> lire y sur l'ordonnée. (Tag: ajoute un point ou yLine)
+        2. Antécédents / f(x)=k : Tracer la droite horizontale y=k -> identifier les intersections -> lire x sur les abscisses. (Tag: ajoute une ligne horizontale {"fn": "k", "color": "red"})
+        3. Inéquations f(x) < k : Identifier la partie de la courbe SOUS la droite y=k -> donner les intervalles de x.
+        
+        CONSEILS TECHNIQUES : Utilisez Math.pow(x, 2) pour x², Math.sqrt(x), Math.exp(x), etc.
+        Explique toujours la lecture pas à pas en faisant référence au graphique.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',

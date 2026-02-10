@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { chatWithRobot, ChatMessage, AiResponse } from '@/lib/perplexity';
 import RobotAvatar from './RobotAvatar';
+import MathPlotter from './MathPlotter';
 
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -149,7 +150,20 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             );
         }
 
-        // Graphe de fonction (Simplifié)
+        // Nouveau Graphe Interactif (FunctionPlot)
+        if (content.includes('[FIGURE: Plot:')) {
+            const match = content.match(/\[FIGURE: Plot: (.*?)\]/);
+            if (match) {
+                try {
+                    const plotOptions = JSON.parse(match[1]);
+                    return <MathPlotter options={plotOptions} title={plotOptions.title} />;
+                } catch (e) {
+                    console.error("Erreur JSON Plot:", e);
+                }
+            }
+        }
+
+        // Anciens Graphes simplified (Fallback)
         if (content.includes('[FIGURE: FunctionGraph:')) {
             const match = content.match(/\[FIGURE: FunctionGraph: (.*?)\]/);
             const func = match ? match[1] : 'f(x)';
