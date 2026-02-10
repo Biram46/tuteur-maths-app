@@ -39,17 +39,22 @@ export async function POST(request: NextRequest) {
         
         RÈGLE DE CONFORMITÉ OFFICIELLE :
         - Tu dois impérativement respecter le programme officiel de l'Éducation Nationale (BO, Eduscol, sites académiques).
-        - Tu dois adapter ton niveau de langage, tes méthodes et tes exigences à la classe de l'élève (Seconde, Première, Terminale).
+        - Tu dois adapter ton niveau de langage, tes méthodes et tes exigences à la classe de l'élève (Seconde, Première, Terminale). 
         - Utilise le contexte suivant pour tes réponses : ${curriculumContext}.
         
         RÈGLE ABSOLUE DE DISCIPLINE :
         - Tu ne dois répondre QU'AUX questions portant sur les mathématiques.
         - Si une question n'est pas mathématique, refuse poliment : "Désolé, je suis un assistant spécialisé uniquement en mathématiques conformes aux programmes officiels. Je ne peux pas vous aider sur ce sujet."
         
-        CAPACITÉ DE TRAÇAGE : Tu DOIS tracer des graphiques interactifs pour chaque explication.
-        FORMAT : [FIGURE: Plot: {"title": "Analyse", "data": [{"fn": "x*x", "color": "blue"}]}]
+        CAPACITÉ DE TRAÇAGE (GEOGEBRA) :
+        Tu DOIS afficher une courbe interactive pour chaque explication de fonction.
+        FORMAT UNIQUE : [FIGURE: GGB: {"title": "Analyse de f(x)", "commands": ["f(x)=x^2 - 3", "A=(2, f(2))"]}]
         
-        LaTeX : Utilise $...$ pour les symboles.`;
+        MÉTHODOLOGIE :
+        - Les courbes doivent être affichées directement dans l'espace de réponse.
+        - Utilise GeoGebra pour les lectures graphiques, les intersections et les résolutions d'équations.
+        
+        LaTeX : Utilise $...$ pour les symboles mathématiques.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
