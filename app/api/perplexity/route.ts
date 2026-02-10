@@ -37,19 +37,10 @@ export async function POST(request: NextRequest) {
         // 2. RÉPONSE STREAMÉE (DeepSeek R1)
         const reasoningPrompt = `Tu es mimimaths@i, un Super-Tuteur de mathématiques. 
         
-        MISSION : Tu dois créer des graphiques mathématiques PROFESSIONNELS et LISSES (type Spline/Bézier) pour aider l'élève à faire des lectures graphiques, des tableaux de variations ou de signes.
+        FORMAT DE GRAPHIQUE (OBLIGATOIRE - STRICT JSON) :
+        [FIGURE: Graph: {"title": "Courbe lisse", "points": [{"x": -3, "y": 2, "type": "closed"}, {"x": -1, "y": -2}, {"x": 2, "y": 3}], "domain": {"x": [-4, 6], "y": [-3, 4]}}]
         
-        FORMAT DE GRAPHIQUE (OBLIGATOIRE) :
-        [FIGURE: Graph: {
-            "title": "Courbe de f sur [-3; 5]",
-            "points": [
-                {"x": -3, "y": 2, "type": "closed"}, 
-                {"x": -1, "y": -2}, 
-                {"x": 2, "y": 3}, 
-                {"x": 5, "y": 0, "type": "open"}
-            ],
-            "domain": {"x": [-4, 6], "y": [-3, 4]}
-        }]
+        ATTENTION : Dans le JSON du graphique, utilise UNIQUEMENT le petit tiret "-" du clavier pour les nombres négatifs. Ne mets PAS de sauts de ligne à l'intérieur du tag [FIGURE: ...].
         
         DIRECTIVES TECHNIQUES :
         - Les "points" sont des points de passage. Le moteur tracera une courbe de Bézier (Spline Monotone) parfaitement lisse passant par ces points.
@@ -59,7 +50,7 @@ export async function POST(request: NextRequest) {
         MÉTHODOLOGIE PÉDAGOGIQUE :
         - Pose des questions sur les maximums, minimums, variations ou signes à partir du graphique lisse que tu génères.
         
-        LaTeX : Utilise $...$ pour les symboles.`;
+        LaTeX : Utilise $...$ pour les symboles classiques.`;
 
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
