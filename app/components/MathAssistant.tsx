@@ -72,16 +72,14 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
-        // 1. Graphe GeoGebra (Prioritaire pour les fonctions)
-        if (content.includes('[FIGURE: GGB:')) {
-            const match = content.match(/\[FIGURE: GGB: (.*?)\]/);
-            if (match) {
-                try {
-                    const data = JSON.parse(match[1]);
-                    return <GeoGebraPlotter commands={data.commands} title={data.title} />;
-                } catch (e) {
-                    console.error("Erreur JSON GGB:", e);
-                }
+        // 1. Graphe GeoGebra (Robuste aux espaces/sauts de ligne)
+        const ggbMatch = content.match(/\[FIGURE:\s*GGB:\s*(\{[\s\S]*?\})\]/i);
+        if (ggbMatch) {
+            try {
+                const data = JSON.parse(ggbMatch[1]);
+                return <GeoGebraPlotter commands={data.commands} title={data.title} />;
+            } catch (e) {
+                console.error("Erreur JSON GGB:", e);
             }
         }
 
