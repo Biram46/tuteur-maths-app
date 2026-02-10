@@ -72,35 +72,39 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     };
 
     const MathFigure = ({ content }: { content: string }) => {
-        // 1. Graphique Professionnel (Détection multi-crochets et nettoyage ultra-robuste)
-        const graphMatch = content.match(/\[FIGURE:\s*Graph:\s*(\{[\s\S]*?\})\]/i);
-        if (graphMatch) {
+        // 1. Décodeur Mathématique Naturel (Ultra-Robuste)
+        const match = content.match(/\[FIGURE:\s*Graph:\s*([\s\S]*?)\]/i);
+        if (match) {
             try {
-                // Nettoyage agressif des caractères mathématiques et formatage
-                let rawJson = graphMatch[1]
-                    .replace(/[\u2212\u2013\u2014]/g, '-') // Signes moins variés
-                    .replace(/\u00A0/g, ' ') // Espaces insécables
-                    .replace(/(\r\n|\n|\r)/gm, " "); // Sauts de ligne
+                const raw = match[1].replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
+                const sections = raw.split('|').map(s => s.trim());
 
-                // Correction automatique si l'IA oublie les crochets [] autour de "points"
-                // (Cas fréquent où elle liste les objets directement derrière "points":)
-                if (rawJson.includes('"points": {') && !rawJson.includes('"points": [')) {
-                    rawJson = rawJson.replace(/"points":\s*{/, '"points": [{');
-                    // On essaie de refermer le tableau si besoin (très heuristique)
-                    rawJson = rawJson.replace(/},\s*"domain"/, '}], "domain"');
+                const title = sections[0] || "Graphique";
+                const points: GraphPoint[] = [];
+                let domain = { x: [-5, 5] as [number, number], y: [-4, 4] as [number, number] };
+
+                sections.forEach(sec => {
+                    const lowSec = sec.toLowerCase();
+                    if (lowSec.startsWith('domain:')) {
+                        const d = lowSec.replace('domain:', '').split(',').map(Number);
+                        if (d.length >= 4) domain = { x: [d[0], d[1]], y: [d[2], d[3]] };
+                    } else if (sec.includes(',')) {
+                        const p = sec.split(',');
+                        if (p.length >= 2) {
+                            points.push({
+                                x: parseFloat(p[0]),
+                                y: parseFloat(p[1]),
+                                type: p[2]?.trim() === 'open' ? 'open' : p[2]?.trim() === 'closed' ? 'closed' : undefined
+                            });
+                        }
+                    }
+                });
+
+                if (points.length > 0) {
+                    return <MathGraph points={points} domain={domain} title={title} />;
                 }
-
-                const data = JSON.parse(rawJson);
-                return (
-                    <MathGraph
-                        points={data.points}
-                        functions={data.functions}
-                        domain={data.domain}
-                        title={data.title}
-                    />
-                );
             } catch (e) {
-                console.error("Erreur critique Parsing Graph:", e, "JSON brut:", graphMatch[1]);
+                console.error("Erreur décodeur Graph:", e);
             }
         }
         // 2. Cercle Trigonométrique
