@@ -57,14 +57,16 @@ export async function POST(request: NextRequest) {
             "CONSIGNE MATHÉMATIQUE :\n" +
             "- VECTEURS (IMPÉRATIF) : Absolument TOUS les vecteurs doivent porter une flèche LaTeX : utilise `\\vec{u}`, `\\vec{AB}`, `\\vec{v}`, etc.\n" +
             "- NE LAISSE JAMAIS un nom de vecteur sans sa flèche (ex : n'écris jamais 'AB' ou 'u' seul si tu parles d'un vecteur).\n" +
+            "- RÈGLE DE LANGUE (IMPÉRATIF) : Tu dois t'exprimer EXCLUSIVEMENT en français. Pas de mots anglais, pas d'expressions anglo-saxonnes même pour les variables.\n" +
             "- Intervalle ouvert : $]a, b[$ (et non $(a, b)$).\n" +
             "- Décimales : utilise la virgule (ex: 3,14).\n" +
-            "CONSIGNE FIGURES @@@ (IMPÉRATIF) :\n" +
-            "- Pour TOUTE étude de fonction (variations, signes) ou demande de tracé, tu DOIS générer un bloc @@@.\n" +
-            "- FORMAT GRAPHIQUE : @@@ Titre de la courbe | x1,y1 | x2,y2 | ... | xn,yn | domain:xmin,xmax,ymin,ymax @@@\n" +
+            "CONSIGNE FIGURES ET ARBRES @@@ (IMPÉRATIF) :\n" +
+            "- Tout contenu spécial (graphique, arbre, géométrie) DOIT impérativement être encadré par trois arobases @@@.\n" +
+            "  * CORRECT : @@@ tree:Titre | ... @@@\n" +
+            "  * INCORRECT : tree:Titre | ... (sans les @@@)\n" +
             "- FORMAT ARBRE DE PROBABILITÉS : @@@ tree:Titre | Chemin, Probabilité | ... @@@\n" +
-            "  * RÈGLE ARBRE (IMPÉRATIF) : Pour TOUT exercice de probabilités conditionnelles ou successions d'épreuves, tu DOIS impérativement générer cet arbre avant ton explication.\n" +
-            "  * Utilise -> pour les niveaux. Exemple : @@@ tree:Bac | T, 0.45 | C, 0.35 | T -> H, 0.92 | T -> \\bar{H}, 0.08 @@@\n" +
+            "  * RÈGLE ARBRE (IMPÉRATIF) : Pour TOUT exercice de probabilités, tu DOIS générer cet arbre EN PREMIER dans un bloc @@@.\n" +
+            "  * UTILISE -> pour les niveaux. Exemple : @@@ tree:Bac | T, 0.45 | C, 0.35 | T -> H, 0.92 | T -> \\bar{H}, 0.08 @@@\n" +
             "- RÈGLE DÉCIMALE : Dans les blocs @@@, utilise impérativement le POINT (ex: 0.5). Dans ton texte explicatif, utilise la VIRGULE (ex: 0,5).\n" +
             "- RÈGLE COURBE LISSE : Pour une fonction, fournis au moins 8-10 points.\n" +
             "- VECTEURS (MODE ANALYTIQUE/GÉOMÉTRIQUE) :\n" +

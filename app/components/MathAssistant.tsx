@@ -341,10 +341,16 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         // Correction pour le "y" prononcé en anglais (on le remplace par "i grec" s'il est isolé comme variable)
         clean = clean.replace(/(^|[^a-zA-Z])y([^a-zA-Z]|$)/g, '$1 i-grec $2');
 
+        // Correction pour les numéros de questions (ex: 1) -> "Question 1")
+        clean = clean.replace(/(\d+)\)/g, ' $1 ');
+
         // Correction pour le signe moins "-" qui est parfois lu "dash" ou "minus" en anglais
         clean = clean.replace(/([^\w])(-)(\d|[a-zA-Z])/g, '$1 moins $3');
         clean = clean.replace(/^-(?=\d|[a-zA-Z])/g, 'moins ');
         clean = clean.replace(/(\s)-(\s)/g, ' moins ');
+
+        // Force la prononciation des lettres isolées
+        clean = clean.replace(/\b(x|n|k|i|j|a|b|c)\b/gi, (m) => ` ${m} `);
 
         // Correction pour f(x), g(x), h(x) -> "f de x"
         clean = clean.replace(/([fgh])\((x|t)\)/gi, '$1 de $2');

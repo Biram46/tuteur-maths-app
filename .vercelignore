@@ -5,8 +5,8 @@ node_modules
 .env*.local
 
 # LaTeX converter (local development only - not deployed)
-*.tex
-*.pdf
+# *.tex
+# *.pdf
 *.aux
 *.log
 *.out
