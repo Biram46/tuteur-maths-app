@@ -57,10 +57,10 @@ export default function MathTree({ data, title }: MathTreeProps) {
                 .attr('stroke', 'rgba(148, 163, 184, 0.4)')
                 .attr('stroke-width', 2.5)
                 .attr('stroke-linecap', 'round')
-                .attr('x1', d => d.source.y)
-                .attr('y1', d => d.source.x)
-                .attr('x2', d => d.target.y)
-                .attr('y2', d => d.target.x);
+                .attr('x1', d => d.source.y ?? 0)
+                .attr('y1', d => d.source.x ?? 0)
+                .attr('x2', d => d.target.y ?? 0)
+                .attr('y2', d => d.target.x ?? 0);
 
             // 2. Probabilités (Nouveau système de placement centré avec décalage intelligent)
             const labels = g.selectAll('.branch-label-group')
@@ -74,8 +74,8 @@ export default function MathTree({ data, title }: MathTreeProps) {
                 if (!prob) return;
 
                 // Calcul du point à 40% (pour éviter le texte du nœud final)
-                const px = d.source.y + (d.target.y - d.source.y) * 0.42;
-                const py = d.source.x + (d.target.x - d.source.x) * 0.42;
+                const px = (d.source.y ?? 0) + ((d.target.y ?? 0) - (d.source.y ?? 0)) * 0.42;
+                const py = (d.source.x ?? 0) + ((d.target.x ?? 0) - (d.source.x ?? 0)) * 0.42;
 
                 // Fond pour le texte (lisibilité maximale)
                 group.append('rect')
@@ -102,7 +102,7 @@ export default function MathTree({ data, title }: MathTreeProps) {
                 .data(hierarchyRoot.descendants())
                 .enter().append('g')
                 .attr('class', 'node')
-                .attr('transform', d => `translate(${d.y},${d.x})`);
+                .attr('transform', d => `translate(${d.y ?? 0},${d.x ?? 0})`);
 
             nodes.append('circle')
                 .attr('r', 4.5)
