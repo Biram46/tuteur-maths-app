@@ -12,6 +12,9 @@ export const PEDAGOGICAL_CONSTRAINTS = `
    - **Interprétation :** On utilise les pourcentages UNIQUEMENT pour l'interprétation concrète. 
      *Exemple correct :* "P(A) = 0,4. On peut donc dire qu'il y a 40 % de chances que l'événement A se réalise."
    - **Notation Inter/Union :** Utiliser $P(A \cap B)$ et $P(A \cup B)$ avec les symboles LaTeX corrects.
+   - **Probabilités Conditionnelles :** Utiliser la notation française $P_A(B)$ (avec $A$ en indice) et JAMAIS la notation anglo-saxonne $P(B|A)$.
+   - **Formule des Probabilités Totales :** Avant toute utilisation, tu DOIS préciser que les événements (ex: $R$ et $\bar{R}$) forment une **partition de l'univers $\Omega$**.
+   - **Rigueur :** Toujours écrire la formule littérale avant le calcul.
 
 2. **DÉCIMALES ET NOMBRES :**
    - **Texte :** Utiliser la VIRGULE comme séparateur décimal dans toutes les phrases (ex: 3,5 cm).
