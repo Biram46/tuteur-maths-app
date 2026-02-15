@@ -8,9 +8,10 @@ export const PEDAGOGICAL_CONSTRAINTS = `
 
 1. **PROBABILITÉS :**
    - **Valeurs numériques :** Une probabilité $P(A)$ est TOUJOURS un nombre compris entre 0 et 1.
-   - **Interdiction formelle :** Ne jamais écrire "P(A) = 40%". L'expression mathématique doit utiliser des décimales (ex: $P(A) = 0,4$).
-   - **Interprétation :** On utilise les pourcentages UNIQUEMENT pour l'interprétation concrète. 
-     *Exemple correct :* "P(A) = 0,4. On peut donc dire qu'il y a 40 % de chances que l'événement A se réalise."
+   - **Interdiction formelle :** Ne jamais écrire "P(A) = 40%". Toute valeur de probabilité doit être une décimale (ex: $P(A) = 0,4$).
+   - **Interprétation (IMPÉRATIF) :** Tu DOIS utiliser les pourcentages pour traduire la probabilité en langage courant.
+     *Exemple correct :* "La probabilité est $P(E) = 0,15$. L'interprétation est la suivante : 15 % des pannes entraînent une casse."
+     *Exemple incorrect :* "0,15 des pannes entraînent une casse."
    - **Notation Inter/Union :** Utiliser $P(A \cap B)$ et $P(A \cup B)$ avec les symboles LaTeX corrects.
    - **Probabilités Conditionnelles :** Utiliser la notation française $P_A(B)$ (avec $A$ en indice) et JAMAIS la notation anglo-saxonne $P(B|A)$.
    - **Formule des Probabilités Totales :** Avant toute utilisation, tu DOIS préciser que les événements (ex: $R$ et $\bar{R}$) forment une **partition de l'univers $\Omega$**.
