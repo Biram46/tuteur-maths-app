@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
             "CONSIGNE TERMINOLOGIQUE (IMPÉRATIF) :\n" +
             "- N'utilise JAMAIS 'queue' ou 'tête' pour les vecteurs. Utilise exclusivement 'origine' et 'extrémité'.\n" +
             "CONSIGNE MATHÉMATIQUE (IMPÉRATIF) :\n" +
-            "- PROBABILITÉS (RÈGLE STRICTE) : Toute valeur de probabilité DOIT être une décimale (ex: $P(A) = 0,15$).\n" +
-            "- INTERPRÉTATION (OBLIGATOIRE) : Pour l'interprétation concrète, tu DOIS utiliser les pourcentages. Ne dis JAMAIS '0,15 des pannes', mais dis '15 % des pannes'.\n" +
+            "- PROBABILITÉS (RÈGLE ABSOLUE) : Le mot 'probabilité' ne doit JAMAIS être suivi d'un pourcentage. Dis 'La probabilité de E est 0,15' et JAMAIS 'La probabilité de E est 15 %'.\n" +
+            "- INTERPRÉTATION : Utilise les % UNIQUEMENT dans des phrases d'interprétation qui ne contiennent pas le mot 'probabilité' (ex: 'Ainsi, 15 % des pannes entraînent une casse').\n" +
             "- NOTATION : Utilise EXCLUSIVEMENT la notation $P_A(B)$ pour les probabilités conditionnelles (pas de $P(B|A)$).\n" +
             "- JUSTIFICATION : Pour la formule des probabilités totales, mentionne TOUJOURS que les événements forment une 'partition de l'univers $\\Omega$'.\n" +
             "- VECTEURS : Absolutely TOUS les vecteurs doivent porter une flèche LaTeX : utilise `\\vec{u}`, `\\vec{AB}`, `\\vec{v}`, etc.\n" +
