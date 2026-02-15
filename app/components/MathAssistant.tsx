@@ -74,9 +74,12 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         return;
                     }
 
-                    // Nettoyage LaTeX commun pour les labels
+                    // Nettoyage LaTeX commun pour les labels (Probabilités)
                     const cleanSec = sec
-                        .replace(/\\(bar|overline)\{([^}]*)\}/g, '$2\u0305')
+                        .replace(/\\(bar|overline)\{([^}]*)\}/g, '$2\u0305') // \bar{C} -> C\u0305
+                        .replace(/\\(bar|overline)\s+([a-zA-Z0-9])/g, '$2\u0305') // \bar C -> C\u0305
+                        .replace(/([a-zA-Z0-9])\^\{(c|\\complement|\\complementaire)\}/g, '$1\u0305') // C^{c} -> C\u0305
+                        .replace(/([a-zA-Z0-9])\^(c|\\complement|\\complementaire)/g, '$1\u0305') // C^c -> C\u0305
                         .replace(/\\text\{([^}]*)\}/g, '$1')
                         .replace(/\$/g, '')
                         .trim();

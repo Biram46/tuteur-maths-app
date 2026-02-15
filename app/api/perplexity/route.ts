@@ -69,8 +69,9 @@ export async function POST(request: NextRequest) {
             "  * INCORRECT : tree:Titre | ... (sans les @@@)\n" +
             "- FORMAT ARBRE DE PROBABILITÉS : @@@ tree:Titre | Chemin, Probabilité | ... @@@\n" +
             "  * RÈGLE ARBRE (IMPÉRATIF) : Pour TOUT exercice de probabilités, tu DOIS générer cet arbre EN PREMIER dans un bloc @@@.\n" +
+            "  * ÉVÉNEMENT CONTRAIRE : Utilise EXCLUSIVEMENT `\\bar{A}` ou `\\overline{A}` pour l'événement contraire (JAMAIS de `A^c` ou `A^\\complement`).\n" +
             "  * STRUCTURE : Commence par le premier niveau, puis les niveaux suivants avec `->`.\n" +
-            "  * EXEMPLE COMPLET : @@@ tree:Expérience | Probabilités :root | A, 0.6 | B, 0.4 | A -> G, 0.3 | A -> \\bar{G}, 0.7 | B -> G, 0.8 | B -> \\bar{G}, 0.2 @@@\n" +
+            "  * EXEMPLE COMPLET : @@@ tree:Expérience | Probabilités :root | A, 0.6 | \\bar{A}, 0.4 | A -> G, 0.3 | A -> \\bar{G}, 0.7 | \\bar{A} -> G, 0.8 | \\bar{A} -> \\bar{G}, 0.2 @@@\n" +
             "  * OPTIONS : Utilise `Label :root` pour changer le label du nœud initial (ex: `Ω :root` ou `Départ :root`). 0.5 ou 0,5 sont acceptés.\n" +
             "  * RÈGLE DÉCIMALE : Dans les blocs @@@, utilise de préférence le POINT (ex: 0.5) pour la robustesse. Pas de fractions ni de % dans le bloc @@@.\n" +
             "- RÈGLE COURBE LISSE : Pour une fonction, fournis au moins 8-10 points.\n" +
