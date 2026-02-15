@@ -138,6 +138,39 @@ body {
   margin: 0;
 }
 
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1rem 0;
+  margin: 1rem 0;
+}
+
+.katex-display>.katex {
+  white-space: normal;
+}
+
+.katex table {
+  width: auto !important;
+  border-collapse: collapse !important;
+}
+
+.katex .arraycolsep {
+  width: 1em !important;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.2);
+  border-radius: 10px;
+}
+
 .simple-list li {
   padding: 0.75rem 1rem;
   border-radius: 10px;

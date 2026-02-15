@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '.env.local' });
 
 const apiKey = process.env.PERPLEXITY_API_KEY;
 

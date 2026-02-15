@@ -322,20 +322,9 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                     </div>
                 </section>
 
-                {/* 3. Right Sidebar (Assistant) */}
-                <aside className="w-80 border-l border-white/5 bg-white/5 backdrop-blur-md hidden xl:block p-6">
-                    <div className="sticky top-6">
-                        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-                            <div className="p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-white/5">
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                    🤖 Assistant IA
-                                </h3>
-                            </div>
-                            <div className="p-1">
-                                <MathAssistant baseContext={`L'élève étudie le niveau ${activeLevel?.label || 'non précisé'}. Chapitre actuel : ${activeChapter?.title || 'général'}.`} />
-                            </div>
-                        </div>
-                    </div>
+                {/* 3. Right Sidebar (Robot & Assistant) */}
+                <aside className="w-96 border-l border-white/5 bg-[#020617] hidden xl:flex flex-col h-full relative overflow-hidden">
+                    <MathAssistant baseContext={`L'élève étudie le niveau ${activeLevel?.label || 'non précisé'}. Chapitre actuel : ${activeChapter?.title || 'général'}.`} />
                 </aside>
             </div>
 

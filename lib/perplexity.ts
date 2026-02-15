@@ -22,6 +22,7 @@ export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
     citations?: string[];
+    audio?: string; // Données audio base64
 }
 
 /**
@@ -32,7 +33,8 @@ export interface ChatMessage {
 export async function chatWithRobot(
     messages: ChatMessage[],
     context?: string,
-    mode: 'standard' | 'expert' = 'standard'
+    mode: 'standard' | 'expert' = 'standard',
+    modelPreference?: 'o1-mini' | 'deepseek'
 ): Promise<AiResponse> {
     try {
         const response = await fetch('/api/perplexity', {
@@ -44,6 +46,7 @@ export async function chatWithRobot(
                 messages,
                 context,
                 mode,
+                modelPreference,
             }),
         });
 

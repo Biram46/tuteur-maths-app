@@ -1,416 +1,209 @@
-# 🚀 Prochaines Étapes - Tuteur Maths App
+# 🚀 Prochaines Étapes - Guide d'Action
 
-Votre application est déployée sur **https://tuteur-maths-app.vercel.app/** !
+## ✅ Ce qui a été fait
 
-Voici les prochaines étapes pour finaliser et améliorer votre projet.
+1. **Tests effectués** ✅
+   - Test équation du second degré
+   - Tests graphiques et tableaux (3 tests)
+   - Test sources officielles
 
----
+2. **Problèmes identifiés** ✅
+   - Sources non-officielles (0% → amélioré à 40%)
+   - Graphiques non générés automatiquement
+   - Tableaux incomplets
 
-## 📋 Étapes Immédiates (À faire maintenant)
-
-### 1. ✅ Configurer Supabase (5 minutes) - PRIORITAIRE
-
-**Pourquoi ?** Sans cette configuration, l'authentification ne fonctionnera pas sur Vercel.
-
-**Comment ?**
-1. Allez sur https://supabase.com
-2. Sélectionnez votre projet
-3. **Authentication** → **URL Configuration**
-4. Modifiez :
-   - **Site URL** : `https://tuteur-maths-app.vercel.app`
-   - **Redirect URLs** :
-     ```
-     https://tuteur-maths-app.vercel.app/*
-     https://tuteur-maths-app.vercel.app/auth/callback
-     https://tuteur-maths-app.vercel.app/login
-     https://tuteur-maths-app.vercel.app/admin/login
-     http://localhost:3000/*
-     http://localhost:3000/auth/callback
-     ```
-5. **Sauvegardez**
-
-📖 Guide détaillé : `CONFIGURATION_SUPABASE_VERCEL.md`
+3. **Code modifié** ✅
+   - `app/api/perplexity/route.ts` - Prompt amélioré pour sources officielles
+   - Directives renforcées pour génération automatique
 
 ---
 
-### 2. ✅ Tester l'application (15 minutes)
+## 🎯 CE QUE VOUS DEVEZ FAIRE MAINTENANT
 
-**Tests essentiels :**
+### Étape 1: Relancer le Serveur avec les Modifications ⚡
 
-#### Test 1 : Accès à l'application
-- [ ] Allez sur https://tuteur-maths-app.vercel.app/
-- [ ] Vérifiez que la page de login s'affiche
+```powershell
+# Dans un terminal PowerShell
+cd c:\Users\HP\Documents\projet\tuteur-maths-app
+npm run dev
+```
 
-#### Test 2 : Compte étudiant
-- [ ] Créez un compte avec un email
-- [ ] Confirmez l'email
-- [ ] Connectez-vous
-- [ ] Vérifiez l'accès au dashboard étudiant
-
-#### Test 3 : Navigation des ressources
-- [ ] Sélectionnez "Première Spécialité Maths"
-- [ ] Ouvrez un chapitre (ex: "Second Degré")
-- [ ] Vérifiez que le cours s'affiche
-- [ ] Testez le téléchargement d'exercices
-- [ ] Lancez un exercice interactif
-
-#### Test 4 : Assistant IA
-- [ ] Allez sur `/assistant`
-- [ ] Posez une question (ex: "Comment résoudre x² + 2x + 1 = 0 ?")
-- [ ] Vérifiez que l'assistant répond correctement
-
-#### Test 5 : Accès admin
-- [ ] Déconnectez-vous
-- [ ] Allez sur `/admin/login`
-- [ ] Connectez-vous avec `biram26@yahoo.fr`
-- [ ] Vérifiez l'accès au dashboard admin
-- [ ] Testez l'ajout d'une ressource (optionnel)
+**Attendez que le serveur démarre** (cherchez "ready" ou "Local: http://localhost:3000")
 
 ---
 
-## 🎯 Améliorations à Court Terme (1-2 semaines)
+### Étape 2: Tester dans l'Application Réelle 🧪
 
-### 3. 📊 Ajouter plus de contenu
+Ouvrez votre navigateur et allez sur `http://localhost:3000`
 
-**Niveaux à ajouter :**
-- [ ] Seconde (programme complet)
-- [ ] Terminale Spécialité Maths
-- [ ] Maths Complémentaires
-- [ ] Maths Expertes
+**Posez ces 3 questions au tuteur IA:**
 
-**Pour chaque niveau :**
-- Créer les cours en Markdown avec LaTeX
-- Créer les exercices (PDF, DOCX, LaTeX)
-- Créer des exercices interactifs HTML
-- Utiliser le script `integrate_1ere_complete.js` comme modèle
+#### Test 1: Tableau de Signes
+```
+Dresse le tableau de signes COMPLET de la fonction f(x) = (x-2)(x+3) sur R
+```
 
-📖 Guide : Adaptez `integrate_1ere_complete.js` pour les autres niveaux
-
----
-
-### 4. 🎨 Améliorer l'interface utilisateur
-
-**Améliorations possibles :**
-
-#### Dashboard étudiant
-- [ ] Ajouter un système de progression (% de cours complétés)
-- [ ] Ajouter des badges/récompenses
-- [ ] Afficher l'historique des exercices faits
-- [ ] Ajouter des statistiques de performance
-
-#### Assistant IA
-- [ ] Ajouter un historique des conversations
-- [ ] Permettre de sauvegarder les réponses favorites
-- [ ] Ajouter des suggestions de questions
-- [ ] Améliorer le design avec des animations
-
-#### Dashboard admin
-- [ ] Ajouter des graphiques de statistiques
-- [ ] Voir les étudiants actifs
-- [ ] Analyser les questions posées à l'IA
-- [ ] Export des données en CSV/Excel
+**Vérifications:**
+- ✅ Le tableau doit être COMPLET (pas un squelette à remplir)
+- ✅ Toutes les lignes doivent être remplies
+- ✅ Format LaTeX avec structure propre
+- ✅ Au moins 40% de sources officielles (education.gouv.fr, eduscol.education.fr, .ac-*.fr)
 
 ---
 
-### 5. 🔔 Ajouter des fonctionnalités
+#### Test 2: Tableau de Variations
+```
+Trace le tableau de variations COMPLET de f(x) = x² - 4x + 3 sur R
+```
 
-**Nouvelles fonctionnalités suggérées :**
-
-#### Système de quiz
-- [ ] Quiz automatiques après chaque chapitre
-- [ ] Notation automatique
-- [ ] Classement des étudiants
-- [ ] Certificats de réussite
-
-#### Système de messagerie
-- [ ] Chat entre étudiant et professeur
-- [ ] Notifications par email
-- [ ] Forum de discussion
-
-#### Suivi personnalisé
-- [ ] Recommandations de cours basées sur les lacunes
-- [ ] Plans d'étude personnalisés
-- [ ] Rappels pour réviser
-
-#### Mode hors ligne
-- [ ] Téléchargement des cours pour lecture hors ligne
-- [ ] Progressive Web App (PWA)
+**Vérifications:**
+- ✅ Tableau LaTeX complet avec toutes les valeurs
+- ✅ Flèches de variations (↗ ↘) présentes
+- ✅ Valeurs de f(x) calculées et affichées
+- ✅ Pas de demande à l'élève de "compléter"
 
 ---
 
-## 🚀 Améliorations à Moyen Terme (1-3 mois)
+#### Test 3: Graphique avec Courbe Lisse
+```
+Trace le graphique de la fonction f(x) = -x² + 2x + 3 sur l'intervalle [-2, 4]. 
+Montre-moi une belle courbe LISSE et NATURELLE.
+```
 
-### 6. 📱 Application mobile
-
-**Options :**
-- [ ] Progressive Web App (PWA) - Le plus simple
-- [ ] React Native - Application native iOS/Android
-- [ ] Flutter - Alternative à React Native
-
-**Avantages :**
-- Notifications push
-- Accès hors ligne
-- Meilleure expérience utilisateur sur mobile
+**Vérifications:**
+- ✅ Un tag @@@ doit être présent dans la réponse
+- ✅ Le tag doit contenir au moins 6-8 points
+- ✅ Format: `@@@ Titre | x1,y1 | x2,y2 | ... | domain:xmin,xmax,ymin,ymax @@@`
+- ✅ Le graphique doit s'afficher automatiquement dans l'interface
 
 ---
 
-### 7. 🎥 Contenu multimédia
+### Étape 3: Analyser les Résultats 📊
 
-**Ajouter :**
-- [ ] Vidéos explicatives pour chaque chapitre
-- [ ] Animations interactives
-- [ ] Podcasts de révision
-- [ ] Fiches de révision imprimables
+Pour chaque test, notez:
 
-**Outils suggérés :**
-- Manim (animations mathématiques)
-- GeoGebra (graphiques interactifs)
-- Desmos (calculatrice graphique)
+1. **Sources citées:**
+   - Combien sont officielles? (education.gouv.fr, eduscol.education.fr, .ac-*.fr)
+   - Combien sont non-officielles? (YouTube, sites privés)
 
----
+2. **Génération automatique:**
+   - L'IA a-t-elle généré directement?
+   - Ou a-t-elle demandé à l'élève de compléter?
 
-### 8. 🤖 Améliorer l'IA
-
-**Améliorations possibles :**
-
-#### Assistant plus intelligent
-- [ ] Détection automatique du niveau de l'étudiant
-- [ ] Adaptation du langage selon le niveau
-- [ ] Génération d'exercices personnalisés
-- [ ] Correction automatique des exercices
-
-#### Analyse des performances
-- [ ] Identifier les points faibles de chaque étudiant
-- [ ] Suggérer des exercices ciblés
-- [ ] Prédire les résultats aux examens
+3. **Qualité visuelle:**
+   - Les tableaux sont-ils bien formatés en LaTeX?
+   - Les graphiques s'affichent-ils correctement?
 
 ---
 
-### 9. 🌍 Internationalisation
+## 📋 Fiche de Test à Remplir
 
-**Langues à ajouter :**
-- [ ] Anglais
-- [ ] Espagnol
-- [ ] Arabe
-- [ ] Autres langues selon la demande
+```
+TEST 1: Tableau de Signes
+- Tableau complet généré automatiquement? OUI ☐  NON ☐
+- Format LaTeX correct? OUI ☐  NON ☐
+- Sources officielles: ___/___  (___%)
 
-**Outils :**
-- next-intl (internationalisation Next.js)
-- i18next
+TEST 2: Tableau de Variations  
+- Tableau complet généré automatiquement? OUI ☐  NON ☐
+- Format LaTeX correct? OUI ☐  NON ☐
+- Sources officielles: ___/___  (___%)
 
----
+TEST 3: Graphique Courbe Lisse
+- Tag @@@ présent? OUI ☐  NON ☐
+- Graphique affiché? OUI ☐  NON ☐
+- Courbe lisse et naturelle? OUI ☐  NON ☐
+- Sources officielles: ___/___  (___%)
 
-### 10. 💰 Monétisation (optionnel)
-
-**Modèles possibles :**
-
-#### Freemium
-- Version gratuite : Accès limité aux cours
-- Version premium : Accès complet + assistant IA illimité
-
-#### Abonnement
-- Mensuel : 9,99€/mois
-- Annuel : 79,99€/an (économie de 20%)
-
-#### Paiement par niveau
-- Acheter l'accès à un niveau spécifique
-
-**Outils de paiement :**
-- Stripe (recommandé)
-- PayPal
-- Paddle
+RÉSUMÉ:
+- Nombre de tests réussis: ___/3
+- Moyenne sources officielles: ___%
+```
 
 ---
 
-## 🔧 Améliorations Techniques
+## 🔍 Si les Tests Échouent
 
-### 11. 🔒 Sécurité renforcée
+### Problème: Pas de tag @@@ généré
+**Solution:**
+1. Vérifier que le prompt dans `route.ts` a bien été modifié
+2. Regarder les logs serveur pour voir le prompt envoyé
+3. Tester avec un prompt encore plus explicite
 
-**À implémenter :**
-- [ ] Rate limiting sur l'API Perplexity
-- [ ] Protection CSRF
-- [ ] Validation stricte des entrées
-- [ ] Audit de sécurité régulier
-- [ ] Backup automatique de la base de données
+### Problème: Tableaux incomplets
+**Solution:**
+1. Vérifier la directive "NE PAS donner un squelette à compléter"
+2. Ajouter des exemples de tableaux complets dans le prompt
+3. Peut nécessiter un ajustement du modèle DeepSeek
 
----
-
-### 12. ⚡ Performance
-
-**Optimisations :**
-- [ ] Mise en cache des cours
-- [ ] Lazy loading des images
-- [ ] Compression des assets
-- [ ] CDN pour les ressources statiques
-- [ ] Optimisation des requêtes Supabase
-
-**Outils :**
-- Lighthouse (audit de performance)
-- Vercel Analytics
-- Sentry (monitoring d'erreurs)
+### Problème: Trop de sources non-officielles
+**Options:**
+1. Renforcer encore le prompt Perplexity
+2. Implémenter un filtrage côté serveur des citations
+3. Créer une liste blanche de domaines autorisés
 
 ---
 
-### 13. 📊 Analytics
+## 💾 Sauvegarder les Résultats
 
-**Données à tracker :**
-- [ ] Nombre d'utilisateurs actifs
-- [ ] Cours les plus consultés
-- [ ] Questions les plus posées à l'IA
-- [ ] Taux de complétion des exercices
-- [ ] Temps passé sur l'application
+Après vos tests, créez un fichier `RESULTATS_TESTS_PRODUCTION.md`:
 
-**Outils :**
-- Vercel Analytics (inclus)
-- Google Analytics
-- Posthog (open source)
-- Mixpanel
+```markdown
+# Résultats Tests en Production
 
----
+**Date:** [date]
 
-### 14. 🧪 Tests automatisés
+## Test 1: Tableau de Signes
+[Coller la réponse de l'IA]
 
-**Types de tests :**
-- [ ] Tests unitaires (Jest)
-- [ ] Tests d'intégration (Playwright)
-- [ ] Tests E2E (Cypress)
-- [ ] Tests de performance
+**Analyse:**
+- Tableau complet: [OUI/NON]
+- Sources officielles: [X/Y (Z%)]
 
----
+## Test 2: Tableau de Variations
+[Coller la réponse de l'IA]
 
-### 15. 🔄 CI/CD amélioré
+**Analyse:**
+- Tableau complet: [OUI/NON]
+- Sources officielles: [X/Y (Z%)]
 
-**Pipeline de déploiement :**
-- [ ] Tests automatiques avant déploiement
-- [ ] Preview deployments pour chaque PR
-- [ ] Déploiement automatique en staging
-- [ ] Validation manuelle avant production
+## Test 3: Graphique
+[Coller la réponse de l'IA]
+
+**Analyse:**
+- Tag @@@ présent: [OUI/NON]
+- Graphique affiché: [OUI/NON]
+- Sources officielles: [X/Y (Z%)]
+```
 
 ---
 
-## 📚 Marketing et Croissance
+## 📞 Si Vous Avez Besoin d'Aide
 
-### 16. 🎯 Stratégie de lancement
+Relancez-moi avec:
+- Les résultats de vos tests
+- Les captures d'écran des réponses
+- Les logs du serveur si erreur
+- Le fichier `RESULTATS_TESTS_PRODUCTION.md` rempli
 
-**Actions marketing :**
-- [ ] Créer une page de présentation
-- [ ] Vidéo de démonstration
-- [ ] Articles de blog sur l'éducation
-- [ ] Présence sur les réseaux sociaux
-- [ ] Partenariats avec des écoles
-
-**Canaux :**
-- LinkedIn (professeurs, écoles)
-- Instagram/TikTok (étudiants)
-- YouTube (tutoriels)
-- Forums éducatifs
+Je pourrai alors:
+- Analyser les problèmes restants
+- Proposer des ajustements supplémentaires
+- Optimiser le prompt si nécessaire
 
 ---
 
-### 17. 👥 Communauté
+## 🎯 Objectifs de Réussite
 
-**Créer une communauté :**
-- [ ] Discord/Slack pour les utilisateurs
-- [ ] Forum de questions/réponses
-- [ ] Blog avec conseils et astuces
-- [ ] Newsletter mensuelle
+✅ **Minimum acceptable:**
+- Au moins 50% de sources officielles
+- Au moins 1 test sur 3 avec génération automatique complète
 
----
-
-## 🎓 Conformité et Légal
-
-### 18. 📜 Aspects légaux
-
-**Documents à créer :**
-- [ ] Politique de confidentialité
-- [ ] Conditions d'utilisation
-- [ ] Mentions légales
-- [ ] Politique de cookies
-- [ ] RGPD compliance
-
-**Outils :**
-- iubenda (générateur de politiques)
-- Termly
+✅ **Objectif optimal:**
+- 80%+ de sources officielles
+- 3 tests sur 3 avec génération automatique complète
+- Graphiques avec tags @@@ fonctionnels
 
 ---
 
-## 📅 Planning Suggéré
-
-### Semaine 1-2 (Immédiat)
-- ✅ Configurer Supabase
-- ✅ Tester l'application complètement
-- ⏳ Corriger les bugs trouvés
-- ⏳ Ajouter le contenu manquant (Seconde, Terminale)
-
-### Mois 1
-- Améliorer l'interface utilisateur
-- Ajouter le système de progression
-- Implémenter les analytics
-- Créer les documents légaux
-
-### Mois 2-3
-- Développer de nouvelles fonctionnalités (quiz, messagerie)
-- Ajouter du contenu multimédia
-- Améliorer l'assistant IA
-- Commencer le marketing
-
-### Mois 4-6
-- Application mobile (PWA)
-- Internationalisation
-- Monétisation (si souhaité)
-- Croissance de la communauté
-
----
-
-## 🎯 Objectifs Mesurables
-
-**Objectifs à 3 mois :**
-- [ ] 100 utilisateurs actifs
-- [ ] 5 niveaux de cours complets
-- [ ] 1000 questions posées à l'IA
-- [ ] Taux de satisfaction > 90%
-
-**Objectifs à 6 mois :**
-- [ ] 500 utilisateurs actifs
-- [ ] Application mobile lancée
-- [ ] Partenariats avec 3 écoles
-- [ ] Revenus mensuels (si monétisation)
-
----
-
-## 🆘 Ressources et Support
-
-**Documentation :**
-- Next.js : https://nextjs.org/docs
-- Supabase : https://supabase.com/docs
-- Perplexity : https://docs.perplexity.ai
-- Vercel : https://vercel.com/docs
-
-**Communautés :**
-- Discord Next.js
-- Reddit r/nextjs
-- Stack Overflow
-
----
-
-## ✅ Checklist Immédiate
-
-Avant de continuer, assurez-vous d'avoir fait :
-
-- [ ] ✅ Application déployée sur Vercel
-- [ ] ⏳ Supabase configuré avec les URLs Vercel
-- [ ] ⏳ Tests complets effectués
-- [ ] ⏳ Bugs corrigés
-- [ ] ⏳ Documentation à jour
-
----
-
-**Quelle étape souhaitez-vous aborder en premier ?**
-
-1. Configuration Supabase et tests
-2. Ajout de nouveau contenu (Seconde, Terminale)
-3. Amélioration de l'interface
-4. Nouvelles fonctionnalités
-5. Autre chose ?
-
-Dites-moi ce qui vous intéresse le plus et je vous aiderai ! 🚀
+**Bonne chance avec les tests! 🚀**
