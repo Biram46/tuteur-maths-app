@@ -67,23 +67,61 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 const treeNodesMap = new Map<string, TreeNode>();
                 const title = sections[0].split(':')[1]?.trim() || "Arbre de Probabilités";
                 treeNodesMap.set('root', { id: 'root', label: 'Ω' });
+
                 sections.slice(1).forEach(sec => {
-                    const low = sec.toLowerCase();
-                    if (low.includes(':root')) {
+                    if (sec.toLowerCase().includes(':root')) {
                         treeNodesMap.get('root')!.label = sec.split(':')[0].trim();
                         return;
                     }
-                    const cleanSec = sec.replace(/\\bar\{(\w+)\}/g, '$1\u0305').replace(/\$/g, '');
-                    const [pathPart, val] = cleanSec.split(',').map(s => s?.trim());
-                    if (!pathPart) return;
+
+                    // Nettoyage LaTeX commun pour les labels
+                    const cleanSec = sec
+                        .replace(/\\(bar|overline)\{([^}]*)\}/g, '$2\u0305')
+                        .replace(/\\text\{([^}]*)\}/g, '$1')
+                        .replace(/\$/g, '')
+                        .trim();
+
+                    if (!cleanSec) return;
+
+                    // Séparation Chemin / Valeur (on cherche la virgule ou le deux-points de séparation)
+                    // Mais attention, en français on peut avoir "0,5" comme valeur.
+                    // On privilégie la première occurrence qui ressemble à un séparateur de structure.
+                    let pathPart = cleanSec;
+                    let val: string | undefined = undefined;
+
+                    // On cherche d'abord s'il y a un "Chemin, Valeur" ou "Chemin : Valeur"
+                    // On splitte s'il y a une virgule suivie d'un chiffre ou d'un espace+chiffre
+                    // Ou simplement la première virgule si on n'a pas de -> complexe.
+                    const commaMatch = cleanSec.match(/,(\s*[\d\\])/);
+                    const colonMatch = cleanSec.match(/:(\s*[\d\\])/);
+
+                    let splitIndex = -1;
+                    if (commaMatch) splitIndex = commaMatch.index!;
+                    else if (colonMatch) splitIndex = colonMatch.index!;
+                    else if (cleanSec.includes(',')) splitIndex = cleanSec.indexOf(',');
+
+                    if (splitIndex !== -1) {
+                        pathPart = cleanSec.substring(0, splitIndex).trim();
+                        val = cleanSec.substring(splitIndex + 1).trim();
+                    }
+
                     const parts = pathPart.split('->').map(p => p.trim());
                     let currentParentId = 'root';
                     let cumulativePath = 'root';
+
                     parts.forEach((label, idx) => {
+                        // On crée un ID basé sur le chemin pour éviter les collisions entre nœuds de même nom
                         cumulativePath += `|${label}`;
+                        const isLast = (idx === parts.length - 1);
+
                         if (!treeNodesMap.has(cumulativePath)) {
-                            treeNodesMap.set(cumulativePath, { id: cumulativePath, label, parent: currentParentId, value: (idx === parts.length - 1) ? val : undefined });
-                        } else if (idx === parts.length - 1 && val) {
+                            treeNodesMap.set(cumulativePath, {
+                                id: cumulativePath,
+                                label: label,
+                                parent: currentParentId,
+                                value: isLast ? val : undefined
+                            });
+                        } else if (isLast && val) {
                             treeNodesMap.get(cumulativePath)!.value = val;
                         }
                         currentParentId = cumulativePath;

@@ -66,8 +66,10 @@ export async function POST(request: NextRequest) {
             "  * INCORRECT : tree:Titre | ... (sans les @@@)\n" +
             "- FORMAT ARBRE DE PROBABILITÉS : @@@ tree:Titre | Chemin, Probabilité | ... @@@\n" +
             "  * RÈGLE ARBRE (IMPÉRATIF) : Pour TOUT exercice de probabilités, tu DOIS générer cet arbre EN PREMIER dans un bloc @@@.\n" +
-            "  * UTILISE -> pour les niveaux. Exemple : @@@ tree:Bac | T, 0.45 | C, 0.35 | T -> H, 0.92 | T -> \\bar{H}, 0.08 @@@\n" +
-            "- RÈGLE DÉCIMALE : Dans les blocs @@@, utilise impérativement le POINT (ex: 0.5). Dans ton texte explicatif, utilise la VIRGULE (ex: 0,5).\n" +
+            "  * STRUCTURE : Commence par le premier niveau, puis les niveaux suivants avec `->`.\n" +
+            "  * EXEMPLE COMPLET : @@@ tree:Expérience | Probabilités :root | A, 0.6 | B, 0.4 | A -> G, 0.3 | A -> \\bar{G}, 0.7 | B -> G, 0.8 | B -> \\bar{G}, 0.2 @@@\n" +
+            "  * OPTIONS : Utilise `Label :root` pour changer le label du nœud initial (ex: `Ω :root` ou `Départ :root`). 0.5 ou 0,5 sont acceptés.\n" +
+            "  * RÈGLE DÉCIMALE : Dans les blocs @@@, utilise de préférence le POINT (ex: 0.5) pour la robustesse. Pas de fractions ni de % dans le bloc @@@.\n" +
             "- RÈGLE COURBE LISSE : Pour une fonction, fournis au moins 8-10 points.\n" +
             "- VECTEURS (MODE ANALYTIQUE/GÉOMÉTRIQUE) :\n" +
             "  1. ANALYTIQUE (avec coordonnées) : @@@ Somme | vector:u,0,0,x1,y1 | ... @@@\n" +
