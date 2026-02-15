@@ -17,8 +17,8 @@ export const PEDAGOGICAL_CONSTRAINTS = `
    - **Rigueur :** Toujours écrire la formule littérale avant le calcul.
 
 2. **DÉCIMALES ET NOMBRES :**
-   - **Texte :** Utiliser la VIRGULE comme séparateur décimal dans toutes les phrases (ex: 3,5 cm).
-   - **LaTeX :** Dans les formules, l'usage du point est toléré si nécessaire pour KaTeX, mais la virgule est préférée pour le texte mathématique français ($0,75$).
+   - **Règle absolue :** Utiliser la VIRGULE comme unique séparateur décimal dans absolument TOUS les contextes : texte, calculs et formules LaTeX (ex: $0,5$ ; $x = 1,2$).
+   - **Interdiction :** Le point (.) ne doit JAMAIS être utilisé pour les nombres décimaux (sauf dans les blocs techniques @@@ pour le moteur graphique).
 
 3. **INTERVALLES :**
    - **Notation française :** Utiliser les crochets tournés vers l'extérieur pour les intervalles ouverts : $]a ; b[$ au lieu de $(a, b)$.

@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
             "- NE LAISSE JAMAIS un nom de vecteur sans sa flèche (ex : n'écris jamais 'AB' ou 'u' seul si tu parles d'un vecteur).\n" +
             "- RÈGLE DE LANGUE (IMPÉRATIF) : Tu dois t'exprimer EXCLUSIVEMENT en français. Pas de mots anglais, pas d'expressions anglo-saxonnes même pour les variables.\n" +
             "- Intervalle ouvert : $]a, b[$ (et non $(a, b)$).\n" +
-            "- Décimales : utilise la virgule (ex: 3,14).\n" +
+            "- DÉCIMALES (IMPÉRATIF) : Utilise EXCLUSIVEMENT la virgule comme séparateur décimal, que ce soit dans le texte ou dans les formules LaTeX (ex: $0,75$ et non $0.75$).\n" +
+            "- LE POINT EST INTERDIT pour les décimales, sauf à l'intérieur des blocs techniques @@@.\n" +
             "CONSIGNE FIGURES ET ARBRES @@@ (IMPÉRATIF) :\n" +
             "- Tout contenu spécial (graphique, arbre, géométrie) DOIT impérativement être encadré par trois arobases @@@.\n" +
             "  * CORRECT : @@@ tree:Titre | ... @@@\n" +
