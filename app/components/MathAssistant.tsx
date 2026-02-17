@@ -145,22 +145,27 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const low = sec.trim().toLowerCase();
                     if (low.startsWith('x:')) {
                         xValues = sec.substring(2).split(',').map(v => v.trim());
-                    } else if (low.startsWith('sign:') || low.startsWith('signe:')) {
-                        const colonIndex = sec.indexOf(':', 5); // Trouve le deux-points après le label
-                        if (colonIndex !== -1) {
-                            rows.push({
-                                label: sec.substring(5, colonIndex).trim(),
-                                type: 'sign',
-                                content: sec.substring(colonIndex + 1).split(',').map(v => v.trim())
-                            });
+                    } else if (low.includes(':')) {
+                        const colonIndex = sec.lastIndexOf(':');
+                        const labelPart = sec.substring(0, colonIndex).trim();
+                        const contentPart = sec.substring(colonIndex + 1).trim();
+
+                        let type: 'sign' | 'variation' = 'sign';
+                        let label = labelPart;
+
+                        if (labelPart.toLowerCase().startsWith('sign')) {
+                            type = 'sign';
+                            label = labelPart.split(':').slice(1).join(':').trim() || labelPart.substring(4).replace(/^e/i, '').trim();
+                        } else if (labelPart.toLowerCase().startsWith('var')) {
+                            type = 'variation';
+                            label = labelPart.split(':').slice(1).join(':').trim() || labelPart.substring(3).trim();
                         }
-                    } else if (low.startsWith('var:')) {
-                        const colonIndex = sec.indexOf(':', 4);
-                        if (colonIndex !== -1) {
+
+                        if (contentPart) {
                             rows.push({
-                                label: sec.substring(4, colonIndex).trim(),
-                                type: 'variation',
-                                content: sec.substring(colonIndex + 1).split(',').map(v => v.trim())
+                                label: label || labelPart,
+                                type: type,
+                                content: contentPart.split(',').map(v => v.trim())
                             });
                         }
                     }

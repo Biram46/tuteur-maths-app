@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
             "- DÉCIMALES : Utilise la VIRGULE (ex: 0,5) dans le texte et LaTeX.\n" +
             "CONSIGNE FIGURES @@@ (IMPÉRATIF) :\n" +
             "- Tout contenu spécial (graphique, arbre, tableau) DOIT être encadré par @@@.\n" +
-            "- FORMAT TABLEAU : @@@ table:Titre | x: -inf, 1, +inf | sign: (x-1) : -, 0, + | var: f(x) : +inf / +, searrow, -1 / -, nearrow, +inf / + @@@\n" +
-            "- ALIGNEMENT TABLEAU : Pour N valeurs de x, fournis 2N-1 éléments par ligne (ex: 3 valeurs -> 5 signes).\n" +
-            "- RÈGLE TABLEAU : NE DONNE JAMAIS de code LaTeX (tikzpicture/tkz-tab) par défaut. Utilise UNIQUEMENT le bloc @@@ table.\n" +
+            "- FORMAT TABLEAU : @@@ table:Titre | x: -inf, 1, 3, +inf | sign: (x-1) : -, 0, +, +, + | sign: (x-3) : -, -, -, 0, + | sign: f(x) : +, 0, -, 0, + @@@\n" +
+            "- RÈGLE DES 2N-1 : Si x a 4 valeurs (-inf, 1, 3, +inf), tu DOIS mettre 7 signes/éléments par ligne.\n" +
+            "- RÈGLE TABLEAU : Étudie chaque facteur sur une ligne séparée. JAMAIS de LaTeX tkz-tab par défaut.\n" +
             "- FORMAT ARBRE : @@@ tree:Titre | A, 0.6 | \\bar{A}, 0.4 | A -> G, 0.3 | ... @@@\n" +
             "CONSTRAINTES PÉDAGOGIQUES :\n" +
             "- Justifier le signe de $\\Delta$ pour le second degré.\n" +
