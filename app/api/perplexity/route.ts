@@ -81,27 +81,19 @@ export async function POST(request: NextRequest) {
             "  1. ANALYTIQUE (avec coordonnées) : @@@ Somme | vector:u,0,0,x1,y1 | ... @@@\n" +
             "  2. GÉOMÉTRIQUE (sans axes) : @@@ Somme | geometry | point:A,0,0 | vector:u,A,B | ... @@@\n" +
             "CONSIGNE TABLEAUX (IMPÉRATIF) :\n" +
-            "- Pour TOUT tableau, tu DOIS fournir DEUX versions :\n" +
-            "  1. UNE VERSION VISUELLE (@@@ table) : Pour l'affichage immédiat.\n" +
-            "  2. UNE VERSION LATEX (tkz-tab) : Pour l'export, SANS TEXTE EXPLICATIF ENTRE LES BRACES.\n" +
+            "- Tu DOIS impérativement afficher un TABLEAU VISUEL en utilisant la syntaxe @@@ table.\n" +
+            "- C'est le SEUL moyen pour l'élève de voir le tableau correctement dans l'interface.\n" +
+            "- NE DONNE PAS le code LaTeX (tikzpicture/tkz-tab) par défaut, car cela pollue la lecture de l'élève.\n" +
             "\n" +
-            "MODÈLE VISUEL @@@ table :\n" +
-            "@@@ table:Signe de f | x: -inf, 1, 3, +inf | sign: f(x) : +, 0, -, 0, + @@@\n" +
+            "SYNTAXE DU TABLEAU VISUEL (À UTILISER ABSOLUMENT) :\n" +
+            "@@@ table:Titre du tableau | x: -inf, 1, 3, +inf | sign: f(x) : +, 0, -, 0, + @@@\n" +
+            "- Utilise 'sign:' pour les signes (+, -, 0, ||).\n" +
+            "- Utilise 'var:' pour les variations (valeur / position, ex: -inf / -, nearrow / +, 5 / +).\n" +
             "\n" +
-            "MODÈLE LATEX PRO (tkz-tab) - EXEMPLE RÉEL : \n" +
-            "```latex\n" +
-            "\\begin{tikzpicture}\n" +
-            "\\tkzTabInit[lgt=3,espcl=2]{$x$ / 1, $f(x)$ / 1}{$-\\infty$, $1$, $3$, $+\\infty$}\n" +
-            "\\tkzTabLine{, +, 0, -, 0, +}\n" +
-            "\\end{tikzpicture}\n" +
-            "```\n" +
+            "EXEMPLE POUR f(x) = (x-1)(x-3) :\n" +
+            "@@@ table:Tableau de signes de f | x: -inf, 1, 3, +inf | sign: (x-1) : -, 0, +, +, + | sign: (x-3) : -, -, -, 0, + | sign: f(x) : +, 0, -, 0, + @@@\n" +
             "\n" +
-            "RÈGLES DE RIGUEUR (TKZ-TAB) :\n" +
-            "- Le code LaTeX DOIT impérativement être dans un bloc ```latex ... ```.\n" +
-            "- NE RAJOUTE JAMAIS de texte d'explication à l'intérieur des accolades { } de \\tkzTabInit.\n" +
-            "- Utilise EXCLUSIVEMENT des dollars $ ... $ pour les symboles mathématiques dans le tableau.\n" +
-            "- Pour les variations, utilise le format : \\tkzTabVar{ - / $-\\infty$, + / $2$, - / $-\\infty$ }.\n" +
-            "- Pour les valeurs interdites dans \\tkzTabLine, utilise 'd' (double barre) au lieu de 'z' si nécessaire.\n" +
+            "RAPPEL : Le code LaTeX ne doit être fourni QUE si l'utilisateur demande explicitement 'le code' ou 'l'export'.\n" +
             "\n" +
             "CONSTRAINTES PÉDAGOGIQUES À RESPECTER IMPÉRATIVEMENT :\n" +
             "- Justifier l'étude du signe du discriminant $\\Delta$ pour les polynômes du second degré.\n" +
