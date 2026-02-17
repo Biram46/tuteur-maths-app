@@ -135,31 +135,32 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
 
             // --- CAS 3 : TABLEAU DE SIGNES / VARIATIONS (STYLE TKZ-TAB) ---
-            if (sections[0].toLowerCase().includes('table')) {
-                const title = sections[0].split(':')[1]?.trim() || "Tableau Mathématique";
+            const firstSec = sections[0].toLowerCase().trim();
+            if (firstSec.includes('table')) {
+                const title = sections[0].split(':').slice(1).join(':').trim() || "Tableau de Signes / Variations";
                 let xValues: string[] = [];
                 const rows: any[] = [];
 
                 sections.slice(1).forEach(sec => {
-                    const low = sec.toLowerCase().trim();
+                    const low = sec.trim().toLowerCase();
                     if (low.startsWith('x:')) {
                         xValues = sec.substring(2).split(',').map(v => v.trim());
-                    } else if (low.startsWith('sign:')) {
-                        const parts = sec.substring(5).split(':');
-                        if (parts.length >= 2) {
+                    } else if (low.startsWith('sign:') || low.startsWith('signe:')) {
+                        const colonIndex = sec.indexOf(':', 5); // Trouve le deux-points après le label
+                        if (colonIndex !== -1) {
                             rows.push({
-                                label: parts[0].trim(),
+                                label: sec.substring(5, colonIndex).trim(),
                                 type: 'sign',
-                                content: parts[1].split(',').map(v => v.trim())
+                                content: sec.substring(colonIndex + 1).split(',').map(v => v.trim())
                             });
                         }
                     } else if (low.startsWith('var:')) {
-                        const parts = sec.substring(4).split(':');
-                        if (parts.length >= 2) {
+                        const colonIndex = sec.indexOf(':', 4);
+                        if (colonIndex !== -1) {
                             rows.push({
-                                label: parts[0].trim(),
+                                label: sec.substring(4, colonIndex).trim(),
                                 type: 'variation',
-                                content: parts[1].split(',').map(v => v.trim())
+                                content: sec.substring(colonIndex + 1).split(',').map(v => v.trim())
                             });
                         }
                     }
