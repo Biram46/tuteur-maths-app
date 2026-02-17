@@ -156,11 +156,13 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             currentRows = [];
                         }
                         const valPart = sec.split(':').slice(1).join(':').trim();
-                        currentXValues = valPart.split(',').map(v => v.trim());
+                        // Support virgules OU espaces
+                        currentXValues = valPart.split(/[\s,]+/).map(v => v.trim()).filter(v => v.length > 0);
                     } else if (low.includes(':') && !low.startsWith('table')) {
                         const colonIndex = sec.lastIndexOf(':');
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
-                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim()).filter(c => c.length > 0);
+                        // Support virgules OU espaces pour le contenu
+                        const content = sec.substring(colonIndex + 1).split(/[\s,]+/).map(v => v.trim()).filter(c => c.length > 0);
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
