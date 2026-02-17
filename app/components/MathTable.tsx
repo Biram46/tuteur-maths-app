@@ -109,7 +109,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     y={yMid}
                                     textAnchor="middle"
                                     dominantBaseline="middle"
-                                    className="font-serif text-sm"
+                                    className="font-serif text-sm font-bold"
                                     fill="#000"
                                 >
                                     {cleanLabel(row.label)}
@@ -117,27 +117,28 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                 {/* Contenu de la rangée */}
                                 {row.content.map((item, colIndex) => {
-                                    const xPos = labelWidth + colIndex * (cellWidth / 2) + (cellWidth / 4);
+                                    // Calcul précis de la position X
+                                    // colIndex 0, 2, 4... sont sous les valeurs de X
+                                    // colIndex 1, 3, 5... sont entre les valeurs de X
+                                    const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
 
                                     // Rendu des signes (+, -, 0, ||)
                                     if (row.type === 'sign') {
                                         let display = cleanLabel(item).trim();
                                         if (display === '0') {
-                                            // Barre verticale pointillée avec 0
                                             return (
                                                 <g key={`col-${rowIndex}-${colIndex}`}>
-                                                    <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="2,2" />
-                                                    <circle cx={xPos} cy={yMid} r="8" fill="white" />
-                                                    <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold" fill="#000">0</text>
+                                                    <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="3,3" />
+                                                    <circle cx={xPos} cy={yMid} r="7" fill="white" />
+                                                    <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-xs font-bold" fill="#000">0</text>
                                                 </g>
                                             );
                                         }
                                         if (display === '||' || display === 'double' || display === 'd') {
-                                            // Double barre (Valeur interdite)
                                             return (
                                                 <g key={`col-${rowIndex}-${colIndex}`}>
-                                                    <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1" />
-                                                    <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1" />
+                                                    <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1.5" />
+                                                    <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1.5" />
                                                 </g>
                                             );
                                         }
@@ -148,7 +149,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 y={yMid}
                                                 textAnchor="middle"
                                                 dominantBaseline="middle"
-                                                className="font-serif text-lg"
+                                                className="font-serif text-base font-bold"
                                                 fill="#000"
                                             >
                                                 {display}
@@ -158,24 +159,19 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                     // Rendu des variations (Flèches et valeurs)
                                     if (row.type === 'variation') {
-                                        const raw = item.split('/')[0].trim().toLowerCase();
-                                        const position = item.split('/')[1]?.trim().toLowerCase();
+                                        const raw = item.split('/')[0].trim();
+                                        const posHint = item.split('/')[1]?.trim().toLowerCase();
 
-                                        const cleanItem = raw.replace(/\\/g, ''); // enlever le backslash
-                                        const isBottom = position === '-' || position === 'min';
-                                        const isTop = position === '+' || position === 'max';
+                                        const cleanItem = raw.toLowerCase().replace(/\\/g, '');
 
                                         // Détection de flèche
                                         if (cleanItem === 'up' || cleanItem === 'croissant' || cleanItem === 'nearrow') {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - cellWidth / 4 + 8}
-                                                    y1={yBase + rowHeight - 15}
-                                                    x2={xPos + cellWidth / 4 - 8}
-                                                    y2={yBase + 15}
-                                                    stroke="#2563eb"
-                                                    strokeWidth="2.5"
+                                                    x1={xPos - 15} y1={yBase + rowHeight - 15}
+                                                    x2={xPos + 15} y2={yBase + 15}
+                                                    stroke="#2563eb" strokeWidth="2.5"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
@@ -184,18 +180,28 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - cellWidth / 4 + 8}
-                                                    y1={yBase + 15}
-                                                    x2={xPos + cellWidth / 4 - 8}
-                                                    y2={yBase + rowHeight - 15}
-                                                    stroke="#2563eb"
-                                                    strokeWidth="2.5"
+                                                    x1={xPos - 15} y1={yBase + 15}
+                                                    x2={xPos + 15} y2={yBase + rowHeight - 15}
+                                                    stroke="#2563eb" strokeWidth="2.5"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
                                         }
 
-                                        // C'est une valeur
+                                        // C'est une valeur. Positionnement Auto si non spécifié.
+                                        // Règle : colIndex 0, 4, 8... (début/fin de cycle) souvent en bas si décroissant, haut si croissant
+                                        // Mais on va suivre les indices pairs : 0, 2, 4... sont les noeuds.
+                                        let isBottom = posHint === '-' || posHint === 'min';
+                                        let isTop = posHint === '+' || posHint === 'max';
+
+                                        // Si pas de position spécifiée, on regarde l'élément suivant pour deviner
+                                        if (!posHint) {
+                                            const nextRaw = row.content[colIndex + 1]?.toLowerCase().replace(/\\/g, '');
+                                            const prevRaw = row.content[colIndex - 1]?.toLowerCase().replace(/\\/g, '');
+                                            if (nextRaw?.includes('nearrow') || prevRaw?.includes('searrow')) isBottom = true;
+                                            else if (nextRaw?.includes('searrow') || prevRaw?.includes('nearrow')) isTop = true;
+                                        }
+
                                         const yPos = isBottom ? yBase + rowHeight - 12 : (isTop ? yBase + 15 : yMid);
 
                                         return (
