@@ -85,14 +85,13 @@ export async function POST(request: NextRequest) {
             "- C'est le SEUL moyen pour l'élève de voir le tableau correctement dans l'interface.\n" +
             "- NE DONNE PAS le code LaTeX (tikzpicture/tkz-tab) par défaut, car cela pollue la lecture de l'élève.\n" +
             "\n" +
-            "MODÈLE DE TABLEAU COMPLET (EXIGÉ SI FACTEURS) :\n" +
-            "@@@ table:Exemple Complet | x: -inf, 1, 3, +inf | sign: (x-1) : -, 0, +, +, + | sign: (x-3) : -, -, -, 0, + | sign: f(x) : +, 0, -, 0, + @@@\n" +
-            "CONSIGNE RIGUREUSE :\n" +
-            "- Tu DOIS afficher une ligne 'sign:' pour CHAQUE facteur du polynôme avant la ligne finale.\n" +
-            "- 'sign:' pour les signes (+, -, 0, ||). Utilise '0' pour les racines d'un facteur.\n" +
-            "- 'var:' pour les variations. Tu DOIS alterner : Valeur / position, Flèche, Valeur / position.\n" +
-            "- Flèches : nearrow, searrow. Positions : + (haut), - (bas).\n" +
-            "- Exemple de variations : var: f(x) : -inf / -, nearrow, +inf / + @@@\n" +
+            "MODÈLE DE TABLEAU COMPLET (EXIGÉ SI ÉQUATION PRODUIT) :\n" +
+            "@@@ table:Étude de f | x: -inf, 1, 3, +inf | sign: (x-1) : -, 0, +, +, + | sign: (x-3) : -, -, -, 0, + | sign: f(x) : +, 0, -, 0, + @@@\n" +
+            "RÈGLES D'ALIGNEMENT (CRITIQUE) :\n" +
+            "- Pour N valeurs de x, tu DOIS fournir EXACTEMENT 2N-1 éléments dans chaque ligne 'sign:' ou 'var:'.\n" +
+            "- Exemple pour 3 valeurs de x (-inf, 1, +inf) -> 5 éléments : [sous -inf], [entre -inf et 1], [sous 1], [entre 1 et +inf], [sous +inf].\n" +
+            "- Étudie CHAQUE facteur sur une ligne séparée avant le signe final.\n" +
+            "- 'var:' alterne Valeur / position et Flèche. Exemple : var: f(x) : +inf / +, searrow, -1 / -, nearrow, +inf / + @@@\n" +
             "\n" +
             "RAPPEL : Le code LaTeX ne doit être fourni QUE si l'utilisateur demande explicitement 'le code' ou 'l'export'.\n" +
             "\n" +

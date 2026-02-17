@@ -8,230 +8,144 @@ export interface MathTableProps {
         rows: {
             label: string;
             type: 'sign' | 'variation';
-            content: string[]; // Signes (+, -, 0, ||) ou Valeurs/Flèches
+            content: string[];
         }[];
     };
     title?: string;
 }
 
 /**
- * 📊 COMPOSANT DE TABLEAU DE SIGNES ET VARIATIONS (STYLE TKZ-TAB)
- * Rendu professionnel SVG pour une précision mathématique totale.
+ * 📊 MOTEUR DE RENDU MATHÉMATIQUE "QUANTUM TABLE" v2.5
+ * Précision chirurgicale et design institutionnel français.
  */
 export default function MathTable({ data, title }: MathTableProps) {
     const rawId = useId();
-    const id = rawId.replace(/:/g, ''); // Important pour les IDs SVG
+    const id = rawId.replace(/:/g, '');
     const { xValues, rows } = data;
 
-    // Dimensions de base augmentées pour éviter les chevauchements
-    const labelWidth = 160;
-    const cellWidth = 120; // Plus large pour l'infini et les flèches
+    // --- CONFIGURATION GÉOMÉTRIQUE ---
+    const labelWidth = 140;
+    const cellWidth = 120;
     const rowHeight = 70;
     const headerHeight = 50;
 
+    // Nombre de slots de contenu : 2*N - 1
+    const totalSlots = (xValues.length * 2) - 1;
     const totalWidth = labelWidth + (xValues.length * cellWidth);
     const totalHeight = headerHeight + (rows.length * rowHeight);
 
-    // Fonction pour nettoyer et traduire le LaTeX/abréviations pour le SVG
     const cleanLabel = (text: string) => {
         let t = text.replace(/\$/g, '').replace(/\\/g, '').trim().toLowerCase();
-
-        // Traductions courantes
         const map: Record<string, string> = {
-            'inf': '∞',
-            'infty': '∞',
-            '-inf': '-∞',
-            '+inf': '+∞',
-            '-infty': '-∞',
-            '+infty': '+∞',
-            'alpha': 'α',
-            'beta': 'β',
-            'gamma': 'γ'
+            'inf': '∞', 'infty': '∞',
+            '-inf': '-∞', '+inf': '+∞',
+            '-infty': '-∞', '+infty': '+∞',
         };
-
         if (map[t]) return map[t];
         if (t.includes('inf')) return t.replace(/inf(ty)?/g, '∞');
-
-        return text.replace(/\$/g, '').trim(); // Retourne le texte original (sans $) si pas de match
+        return text.replace(/\$/g, '').trim();
     };
 
     return (
-        <div className="my-10 w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
-            <div className="relative p-1 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-x-auto max-w-full custom-scrollbar-horizontal">
-                <svg
-                    width={totalWidth}
-                    height={totalHeight}
-                    viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-                    className="bg-white rounded-xl"
-                >
-                    <defs>
-                        <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
-                        </marker>
-                    </defs>
+        <div className="my-12 w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="relative p-[1px] bg-indigo-500/20 rounded-2xl shadow-xl overflow-hidden max-w-full">
+                <div className="bg-white rounded-[15px] overflow-x-auto custom-scrollbar-horizontal">
+                    <svg
+                        width={totalWidth}
+                        height={totalHeight}
+                        viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+                        className="min-w-full"
+                    >
+                        <defs>
+                            <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
+                            </marker>
+                        </defs>
 
-                    {/* --- CADRE ET GRILLE --- */}
-                    <rect width={totalWidth} height={totalHeight} fill="white" />
+                        <rect width={totalWidth} height={totalHeight} fill="white" />
 
-                    <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#000" strokeWidth="2" />
-                    <line x1={labelWidth} y1="0" x2={labelWidth} y2={totalHeight} stroke="#000" strokeWidth="2" />
+                        {/* Grille principale */}
+                        <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#334155" strokeWidth="2" />
+                        <line x1={labelWidth} y1="0" x2={labelWidth} y2={totalHeight} stroke="#334155" strokeWidth="2" />
 
-                    {rows.map((_, i) => (
-                        <line
-                            key={`h-line-${i}`}
-                            x1="0"
-                            y1={headerHeight + (i + 1) * rowHeight}
-                            x2={totalWidth}
-                            y2={headerHeight + (i + 1) * rowHeight}
-                            stroke="#000"
-                            strokeWidth="1"
-                        />
-                    ))}
+                        {rows.map((_, i) => (
+                            <line key={`h-${i}`} x1="0" y1={headerHeight + (i + 1) * rowHeight} x2={totalWidth} y2={headerHeight + (i + 1) * rowHeight} stroke="#e2e8f0" strokeWidth="1" />
+                        ))}
 
-                    {/* --- ENTÊTE (LIGNE X) --- */}
-                    <text x={labelWidth / 2} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif italic text-lg" fill="#000">x</text>
-                    {xValues.map((val, i) => (
-                        <text
-                            key={`x-${i}`}
-                            x={labelWidth + i * cellWidth + cellWidth / 2}
-                            y={headerHeight / 2}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            className="font-serif text-sm font-bold"
-                            fill="#000"
-                        >
-                            {cleanLabel(val)}
-                        </text>
-                    ))}
-
-                    {/* --- RANGÉES (SIGNES OU VARIATIONS) --- */}
-                    {rows.map((row, rowIndex) => {
-                        const yBase = headerHeight + rowIndex * rowHeight;
-                        const yMid = yBase + rowHeight / 2;
-
-                        return (
-                            <g key={`row-${rowIndex}`}>
-                                <text
-                                    x={labelWidth / 2}
-                                    y={yMid}
-                                    textAnchor="middle"
-                                    dominantBaseline="middle"
-                                    className="font-serif text-sm font-bold"
-                                    fill="#000"
-                                >
-                                    {cleanLabel(row.label)}
+                        {/* --- LIGNE X --- */}
+                        <text x={labelWidth / 2} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif italic text-lg fill-slate-800">x</text>
+                        {xValues.map((val, i) => {
+                            const x = labelWidth + (i * cellWidth) + (cellWidth / 2);
+                            return (
+                                <text key={`x-${i}`} x={x} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold fill-slate-900">
+                                    {cleanLabel(val)}
                                 </text>
+                            );
+                        })}
 
-                                {row.content.map((item, colIndex) => {
-                                    // Calcul précis du centrage
-                                    const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
+                        {/* --- RANGÉES --- */}
+                        {rows.map((row, rowIndex) => {
+                            const yBase = headerHeight + rowIndex * rowHeight;
+                            const yMid = yBase + rowHeight / 2;
 
-                                    if (row.type === 'sign') {
-                                        let display = cleanLabel(item).trim();
-                                        if (display === '0' || display === 'z') {
-                                            return (
-                                                <g key={`col-${rowIndex}-${colIndex}`}>
-                                                    <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="4,4" />
-                                                    <circle cx={xPos} cy={yMid} r="7" fill="white" />
-                                                    <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-xs font-bold" fill="#000">0</text>
-                                                </g>
-                                            );
-                                        }
-                                        if (display === '||' || display === 'double' || display === 'd') {
-                                            return (
-                                                <g key={`col-${rowIndex}-${colIndex}`}>
-                                                    <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1.5" />
-                                                    <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#000" strokeWidth="1.5" />
-                                                </g>
-                                            );
-                                        }
-                                        return (
-                                            <text key={`col-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-base font-bold" fill="#000">{display}</text>
-                                        );
-                                    }
+                            return (
+                                <g key={`row-${rowIndex}`}>
+                                    <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-semibold fill-indigo-900">{cleanLabel(row.label)}</text>
 
-                                    if (row.type === 'variation') {
-                                        const parts = item.split('/');
-                                        const raw = parts[0].trim();
-                                        const posHint = parts[1]?.trim().toLowerCase();
-                                        const cleanItem = raw.toLowerCase().replace(/\\/g, '');
+                                    {row.content.map((item, colIndex) => {
+                                        // Position X calculée par slot de demi-cellule
+                                        const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
+                                        const display = cleanLabel(item);
 
-                                        // Détection robuste des flèches
-                                        const isUp = /nearrow|up|croiss/i.test(cleanItem);
-                                        const isDown = /searrow|down|decroiss/i.test(cleanItem);
-
-                                        if (isUp) {
-                                            return (
-                                                <line
-                                                    key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - 20} y1={yBase + rowHeight - 15}
-                                                    x2={xPos + 20} y2={yBase + 15}
-                                                    stroke="#2563eb" strokeWidth="3"
-                                                    markerEnd={`url(#arrow-${id})`}
-                                                />
-                                            );
-                                        }
-                                        if (isDown) {
-                                            return (
-                                                <line
-                                                    key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - 20} y1={yBase + 15}
-                                                    x2={xPos + 20} y2={yBase + rowHeight - 15}
-                                                    stroke="#2563eb" strokeWidth="3"
-                                                    markerEnd={`url(#arrow-${id})`}
-                                                />
-                                            );
+                                        if (row.type === 'sign') {
+                                            if (display === '0' || display === 'z') {
+                                                return (
+                                                    <g key={`s-${rowIndex}-${colIndex}`}>
+                                                        <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#cbd5e1" strokeDasharray="3,3" />
+                                                        <circle cx={xPos} cy={yMid} r="6" fill="white" stroke="#94a3b8" />
+                                                        <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[9px] font-bold">0</text>
+                                                    </g>
+                                                );
+                                            }
+                                            if (display === '||' || display === 'd') {
+                                                return (
+                                                    <g key={`s-${rowIndex}-${colIndex}`}>
+                                                        <line x1={xPos - 2} y1={yBase + 5} x2={xPos - 2} y2={yBase + rowHeight - 5} stroke="#000" strokeWidth="1.5" />
+                                                        <line x1={xPos + 2} y1={yBase + 5} x2={xPos + 2} y2={yBase + rowHeight - 5} stroke="#000" strokeWidth="1.5" />
+                                                    </g>
+                                                );
+                                            }
+                                            return <text key={`s-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg fill-slate-800">{display}</text>;
                                         }
 
-                                        // Valeurs : Positionnement intelligent
-                                        let isBottom = posHint === '-' || posHint === 'min';
-                                        let isTop = posHint === '+' || posHint === 'max';
+                                        if (row.type === 'variation') {
+                                            const [val, pos] = display.split('/');
+                                            const isUp = /nearrow|up/i.test(val);
+                                            const isDown = /searrow|down/i.test(val);
 
-                                        if (!posHint) {
-                                            // Heuristique si l'IA oublie les positions / + ou / -
-                                            const next = row.content[colIndex + 1]?.toLowerCase();
-                                            const prev = row.content[colIndex - 1]?.toLowerCase();
-                                            if (next?.includes('near') || prev?.includes('sea') || cleanItem.includes('-inf')) isBottom = true;
-                                            else if (next?.includes('sea') || prev?.includes('near') || cleanItem.includes('+inf')) isTop = true;
-                                            else if (colIndex === 0 && row.content[1]?.includes('near')) isBottom = true;
-                                            else if (colIndex === 0 && row.content[1]?.includes('sea')) isTop = true;
+                                            if (isUp) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 20} y1={yBase + rowHeight - 15} x2={xPos + 20} y2={yBase + 15} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />;
+                                            if (isDown) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 20} y1={yBase + 15} x2={xPos + 20} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />;
+
+                                            let isBot = pos === '-' || (colIndex % 2 === 0 && row.content[colIndex + 1]?.includes('near')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('sea'));
+                                            let isTop = pos === '+' || (colIndex % 2 === 0 && row.content[colIndex + 1]?.includes('sea')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('near'));
+
+                                            if (!pos && !isBot && !isTop) {
+                                                if (val.includes('-')) isBot = true;
+                                                else if (val.includes('+')) isTop = true;
+                                            }
+
+                                            const yPos = isBot ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
+                                            return <text key={`v-${rowIndex}-${colIndex}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-xs font-bold fill-slate-900">{val}</text>;
                                         }
-
-                                        const yPos = isBottom ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
-
-                                        return (
-                                            <text
-                                                key={`col-${rowIndex}-${colIndex}`}
-                                                x={xPos}
-                                                y={yPos}
-                                                textAnchor="middle"
-                                                dominantBaseline="middle"
-                                                className="font-serif text-sm font-bold"
-                                                fill="#000"
-                                            >
-                                                {cleanLabel(raw)}
-                                            </text>
-                                        );
-                                    }
-                                    return null;
-                                })}
-                            </g>
-                        );
-                    })}
-                    {/* Définition de la flèche */}
-                    <defs>
-                        <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
-                        </marker>
-                    </defs>
-                </svg>
-
-                {/* Badge style TikZ */}
-                <div className="absolute top-2 right-4 flex items-center gap-2">
-                    <span className="text-[7px] font-mono text-slate-400 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded">TikZ Tab Engine v1.0</span>
+                                        return null;
+                                    })}
+                                </g>
+                            );
+                        })}
+                    </svg>
                 </div>
             </div>
-            {title && <p className="mt-3 text-[10px] text-slate-500 font-bold uppercase tracking-widest">{title}</p>}
+            {title && <p className="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">{title}</p>}
         </div>
     );
 }
