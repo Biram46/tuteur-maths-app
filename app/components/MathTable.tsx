@@ -38,8 +38,11 @@ export default function MathTable({ data, title }: MathTableProps) {
         // Traductions courantes
         const map: Record<string, string> = {
             'inf': '∞',
+            'infty': '∞',
             '-inf': '-∞',
             '+inf': '+∞',
+            '-infty': '-∞',
+            '+infty': '+∞',
             '\\infty': '∞',
             '-\\infty': '-∞',
             '+\\infty': '+∞',
@@ -184,10 +187,13 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         let isTop = posHint === '+' || posHint === 'max';
 
                                         if (!posHint) {
+                                            // Heuristique si l'IA oublie les positions / + ou / -
                                             const next = row.content[colIndex + 1]?.toLowerCase();
                                             const prev = row.content[colIndex - 1]?.toLowerCase();
-                                            if (next?.includes('near') || prev?.includes('sea')) isBottom = true;
-                                            else if (next?.includes('sea') || prev?.includes('near')) isTop = true;
+                                            if (next?.includes('near') || prev?.includes('sea') || cleanItem.includes('-inf')) isBottom = true;
+                                            else if (next?.includes('sea') || prev?.includes('near') || cleanItem.includes('+inf')) isTop = true;
+                                            else if (colIndex === 0 && row.content[1]?.includes('near')) isBottom = true;
+                                            else if (colIndex === 0 && row.content[1]?.includes('sea')) isTop = true;
                                         }
 
                                         const yPos = isBottom ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
