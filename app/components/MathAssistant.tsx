@@ -138,26 +138,29 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
 
             // --- CAS 3 : TABLEAU DE SIGNES / VARIATIONS ---
-            const firstSecLowerCase = sections[0].toLowerCase().trim();
-            if (firstSecLowerCase.includes('table') || sections.some(s => s.toLowerCase().trim().startsWith('x:'))) {
-                let title = "Tableau Mathématique";
-                if (firstSecLowerCase.includes('table:')) {
-                    title = sections[0].split(':').slice(1).join(':').trim();
-                }
+            const blockLower = rawBlock.toLowerCase();
+            if (blockLower.includes('table') || sections.some(s => s.trim().toLowerCase().startsWith('x:'))) {
+                let mainTitle = sections[0].toLowerCase().includes('table')
+                    ? sections[0].split(':').slice(1).join(':').trim()
+                    : "Tableau Mathématique";
 
-                let xValues: string[] = [];
-                const rows: any[] = [];
+                const tableGroups: { xValues: string[], rows: any[] }[] = [];
+                let currentXValues: string[] = [];
+                let currentRows: any[] = [];
 
-                sections.forEach(sec => {
+                sections.forEach((sec) => {
                     const low = sec.trim().toLowerCase();
                     if (low.startsWith('x:')) {
+                        if (currentXValues.length > 0 && currentRows.length > 0) {
+                            tableGroups.push({ xValues: currentXValues, rows: currentRows });
+                            currentRows = [];
+                        }
                         const valPart = sec.split(':').slice(1).join(':').trim();
-                        xValues = valPart.split(',').map(v => v.trim());
-                    } else if (low.includes(':')) {
-                        // On cherche le dernier ":" pour séparer Label (avec préfixe sign/var ou pas) et contenu
+                        currentXValues = valPart.split(',').map(v => v.trim());
+                    } else if (low.includes(':') && !low.startsWith('table')) {
                         const colonIndex = sec.lastIndexOf(':');
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
-                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim());
+                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim()).filter(c => c.length > 0);
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
@@ -172,33 +175,28 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             type = 'variation';
                         }
 
-                        if (content.length > 0 && !low.startsWith('table')) {
-                            // On filtre les éléments vides
-                            const cleanContent = content.filter(c => c.length > 0);
-                            if (cleanContent.length > 0) {
-                                rows.push({
-                                    label: label || prefixAndLabel,
-                                    type,
-                                    content: cleanContent
-                                });
-                            }
+                        if (content.length > 0) {
+                            currentRows.push({ label: label || prefixAndLabel, type, content });
                         }
                     }
                 });
 
-                if (xValues.length > 0) {
-                    const signRows = rows.filter(r => r.type === 'sign');
-                    const varRows = rows.filter(r => r.type === 'variation');
+                if (currentXValues.length > 0 && currentRows.length > 0) {
+                    tableGroups.push({ xValues: currentXValues, rows: currentRows });
+                }
 
-                    if (signRows.length > 0 && varRows.length > 0) {
-                        return (
-                            <div key={rawBlock} className="flex flex-col gap-6 w-full items-center my-8">
-                                <MathTable data={{ xValues, rows: signRows }} title="Tableau de Signes" />
-                                <MathTable data={{ xValues, rows: varRows }} title="Tableau de Variations" />
-                            </div>
-                        );
-                    }
-                    return <MathTable key={rawBlock} data={{ xValues, rows }} title={title} />;
+                if (tableGroups.length > 0) {
+                    return (
+                        <div key={rawBlock} className="flex flex-col gap-10 w-full items-center my-10 px-4">
+                            {tableGroups.map((group, gIdx) => (
+                                <MathTable
+                                    key={`${rawBlock}-${gIdx}`}
+                                    data={{ xValues: group.xValues, rows: group.rows }}
+                                    title={group.rows[0]?.type === 'sign' ? "Tableau de Signes" : "Tableau de Variations"}
+                                />
+                            ))}
+                        </div>
+                    );
                 }
             }
 

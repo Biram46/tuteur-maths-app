@@ -29,7 +29,7 @@ export default function MathTable({ data, title }: MathTableProps) {
     const rowHeight = 70;
     const headerHeight = 50;
 
-    const totalWidth = labelWidth + (xValues.length * cellWidth);
+    const totalWidth = labelWidth + (xValues.length * cellWidth) + 40; // +40 pour sécurité bord droit
     const totalHeight = headerHeight + (rows.length * rowHeight);
 
     const cleanLabel = (text: string) => {
