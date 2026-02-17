@@ -34,5 +34,13 @@ export const PEDAGOGICAL_CONSTRAINTS = `
 
 5. **FONCTIONS :**
    - **Vocabulaire :** Ne pas confondre "fonction" (l'objet $f$) et "image" (la valeur $f(x)$). 
-   - **Tableaux :** Utiliser les flèches $\\nearrow$ et $\\searrow$ pour les variations et $0$ sur la barre de signe pour les racines.
+   - Tableaux (IMPÉRATIF) : Pour tout tableau de signes ou variations, utilise EXCLUSIVEMENT le package LaTeX \`tkz-tab\` pour la version exportable, et respecte la structure :
+    * Étude des racines et signes des facteurs en amont.
+    * Tableau complet avec lignes pour chaque facteur.
+    * Conclusion claire sur les intervalles de signe ou de variation.
+    * Utilise les flèches $\nearrow$ et $\searrow$ pour les variations et $0$ sur la barre de signe pour les racines.
+
+6. **SOURCES DE RÉFÉRENCE (À CONSULTER SI BESOIN) :**
+   - Culture Math (ENS) - Tableaux en TeX : https://culturemath.ens.fr/thematiques/aide/tableaux-de-signes-ou-de-variations-en-tex
+   - Académie Lyon - Fonctions et courbes : https://maths.enseigne.ac-lyon.fr/spip/IMG/pdf/09_fonction.pdf
 `;

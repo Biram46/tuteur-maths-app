@@ -5,6 +5,7 @@ import { ChatMessage } from '@/lib/perplexity';
 import RobotAvatar from './RobotAvatar';
 import MathGraph, { GraphPoint } from './MathGraph';
 import MathTree, { TreeNode } from './MathTree';
+import MathTable from './MathTable';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -131,6 +132,42 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     });
                 });
                 return <MathTree key={rawBlock} data={Array.from(treeNodesMap.values())} title={title} />;
+            }
+
+            // --- CAS 3 : TABLEAU DE SIGNES / VARIATIONS (STYLE TKZ-TAB) ---
+            if (sections[0].toLowerCase().includes('table')) {
+                const title = sections[0].split(':')[1]?.trim() || "Tableau Mathématique";
+                let xValues: string[] = [];
+                const rows: any[] = [];
+
+                sections.slice(1).forEach(sec => {
+                    const low = sec.toLowerCase().trim();
+                    if (low.startsWith('x:')) {
+                        xValues = sec.substring(2).split(',').map(v => v.trim());
+                    } else if (low.startsWith('sign:')) {
+                        const parts = sec.substring(5).split(':');
+                        if (parts.length >= 2) {
+                            rows.push({
+                                label: parts[0].trim(),
+                                type: 'sign',
+                                content: parts[1].split(',').map(v => v.trim())
+                            });
+                        }
+                    } else if (low.startsWith('var:')) {
+                        const parts = sec.substring(4).split(':');
+                        if (parts.length >= 2) {
+                            rows.push({
+                                label: parts[0].trim(),
+                                type: 'variation',
+                                content: parts[1].split(',').map(v => v.trim())
+                            });
+                        }
+                    }
+                });
+
+                if (xValues.length > 0) {
+                    return <MathTable key={rawBlock} data={{ xValues, rows }} title={title} />;
+                }
             }
 
             // --- CAS 2 : GRAPHIQUE OU GÉOMÉTRIE ---
