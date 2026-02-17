@@ -58,8 +58,11 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     // Fonction pour extraire et rendre les figures @@@
     const renderFigure = (rawBlock: string) => {
         try {
+            // Remplacement des tirets longs et espaces insécables
             const raw = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
-            const sections = raw.split('|').map(s => s.trim()).filter(s => s.length > 0);
+
+            // Séparation par pipe | OU par retour à la ligne \n
+            const sections = raw.split(/[|\n]/).map(s => s.trim()).filter(s => s.length > 0);
 
             if (sections.length === 0) return null;
 
@@ -170,7 +173,15 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         }
 
                         if (content.length > 0 && !low.startsWith('table')) {
-                            rows.push({ label: label || prefixAndLabel, type, content });
+                            // On filtre les éléments vides
+                            const cleanContent = content.filter(c => c.length > 0);
+                            if (cleanContent.length > 0) {
+                                rows.push({
+                                    label: label || prefixAndLabel,
+                                    type,
+                                    content: cleanContent
+                                });
+                            }
                         }
                     }
                 });

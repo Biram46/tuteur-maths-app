@@ -88,9 +88,13 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                             return (
                                 <g key={`row-${rowIndex}`}>
-                                    <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
+                                    <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
                                     {row.content.map((item, colIndex) => {
+                                        // Sécurité : ne pas dépasser le nombre de colonnes possibles (2N-1)
+                                        const maxSlots = (xValues.length * 2) - 1;
+                                        if (colIndex >= maxSlots) return null;
+
                                         // Position X calculée par slot de demi-cellule
                                         const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
                                         const display = cleanLabel(item);

@@ -5,7 +5,7 @@ import { injectMissingGraphs } from '@/lib/graph-enhancer';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 
 /**
- * API STREAMING - mimimaths@i
+ * API STREAMING - mimimaths@i (Optimize for Gemini/Nano Banana)
  */
 export async function POST(request: NextRequest) {
     try {
@@ -34,30 +34,30 @@ export async function POST(request: NextRequest) {
         const searchData = await searchResponse.json();
         const curriculumContext = searchData.choices?.[0]?.message?.content || "";
 
-        const reasoningPrompt = `Tu es mimimaths@i, tuteur expert en mathématiques (France).
+        const reasoningPrompt = `Tu es mimimaths@i, tuteur expert en mathématiques.
 
-CONSIGNE TABLEAUX (PRIORITÉ ABSOLUE) :
-Si tu étudies une fonction, tu DOIS impérativement générer un tableau de signes/variations.
-Pour cela, utilise EXCLUSIVEMENT un bloc de code "math-table" comme ceci :
+CONSIGNE TABLEAUX (IMPÉRATIF) :
+Pour toute étude de fonction, tu DOIS générer un tableau de signes/variations dans un bloc de code "math-table".
+Chaque ligne du tableau doit être sur une NOUVELLE LIGNE.
 
+MODÈLE STRICT :
 \`\`\`math-table
 x: -inf, 1, 3, +inf
-Étude de (x-1): -, 0, +, +, +
-Étude de (x-3): -, -, -, 0, +
-Signe de f(x): +, 0, -, 0, +
-var: f(x): +inf / +, searrow, -1 / -, nearrow, +inf / +
+sign: (x-1) : -, 0, +, +, +
+sign: (x-3) : -, -, -, 0, +
+sign: f(x) : +, 0, -, 0, +
+var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+
 \`\`\`
 
-RÈGLES DU TABLEAU :
-1. Pour N valeurs de x, mets EXACTEMENT 2N-1 éléments par ligne (séparés par des virgules).
-2. 'var:' alterne Valeur/position (+ haut, - bas) et flèche (nearrow, searrow).
-3. N'utilise JAMAIS de code LaTeX tikz-tab.
+RÈGLES D'OR :
+1. N valeurs de x => (2N-1) signes par ligne (séparés par virgules).
+2. 'var:' alterne Valeur/Position et Flèche (searrow, nearrow).
+3. Positions : + (haut), - (bas).
 
-AUTRES CONSIGNES :
+RÈGLES GÉNÉRALES :
 - DÉCIMALES : Utilise la VIRGULE (ex: 0,5).
-- PROBABILITÉS : Pas de %, notation P_A(B).
-- VECTEURS : Toujours une flèche \vec{u}.
-- FIGURES : Encadre les graphiques/arbres par @@@.
+- NOTATION : P_A(B) pour les probas.
+- VECTEURS : \\vec{u} impératif.
 
 Contexte : ${curriculumContext}
 ${PEDAGOGICAL_CONSTRAINTS}`;
@@ -75,11 +75,6 @@ ${PEDAGOGICAL_CONSTRAINTS}`;
                 stream: true
             }),
         });
-
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || 'Erreur API');
-        }
 
         return new Response(response.body, {
             headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
