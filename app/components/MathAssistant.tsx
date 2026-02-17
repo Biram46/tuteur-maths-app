@@ -134,39 +134,43 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 return <MathTree key={rawBlock} data={Array.from(treeNodesMap.values())} title={title} />;
             }
 
-            // --- CAS 3 : TABLEAU DE SIGNES / VARIATIONS (STYLE TKZ-TAB) ---
-            const firstSec = sections[0].toLowerCase().trim();
-            if (firstSec.includes('table')) {
-                const title = sections[0].split(':').slice(1).join(':').trim() || "Tableau de Signes / Variations";
+            // --- CAS 3 : TABLEAU DE SIGNES / VARIATIONS ---
+            const firstSecLowerCase = sections[0].toLowerCase().trim();
+            if (firstSecLowerCase.includes('table') || sections.some(s => s.toLowerCase().trim().startsWith('x:'))) {
+                let title = "Tableau Mathématique";
+                if (firstSecLowerCase.includes('table:')) {
+                    title = sections[0].split(':').slice(1).join(':').trim();
+                }
+
                 let xValues: string[] = [];
                 const rows: any[] = [];
 
-                sections.slice(1).forEach(sec => {
+                sections.forEach(sec => {
                     const low = sec.trim().toLowerCase();
                     if (low.startsWith('x:')) {
-                        xValues = sec.substring(2).split(',').map(v => v.trim());
+                        const valPart = sec.split(':').slice(1).join(':').trim();
+                        xValues = valPart.split(',').map(v => v.trim());
                     } else if (low.includes(':')) {
+                        // On cherche le dernier ":" pour séparer Label (avec préfixe sign/var ou pas) et contenu
                         const colonIndex = sec.lastIndexOf(':');
-                        const labelPart = sec.substring(0, colonIndex).trim();
-                        const contentPart = sec.substring(colonIndex + 1).trim();
+                        const prefixAndLabel = sec.substring(0, colonIndex).trim();
+                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim());
 
                         let type: 'sign' | 'variation' = 'sign';
-                        let label = labelPart;
+                        let label = prefixAndLabel;
 
-                        if (labelPart.toLowerCase().startsWith('sign')) {
+                        if (prefixAndLabel.toLowerCase().startsWith('sign')) {
+                            const labelColon = prefixAndLabel.indexOf(':');
+                            label = labelColon !== -1 ? prefixAndLabel.substring(labelColon + 1).trim() : prefixAndLabel.substring(4).replace(/^e/i, '').trim();
                             type = 'sign';
-                            label = labelPart.split(':').slice(1).join(':').trim() || labelPart.substring(4).replace(/^e/i, '').trim();
-                        } else if (labelPart.toLowerCase().startsWith('var')) {
+                        } else if (prefixAndLabel.toLowerCase().startsWith('var')) {
+                            const labelColon = prefixAndLabel.indexOf(':');
+                            label = labelColon !== -1 ? prefixAndLabel.substring(labelColon + 1).trim() : prefixAndLabel.substring(3).trim();
                             type = 'variation';
-                            label = labelPart.split(':').slice(1).join(':').trim() || labelPart.substring(3).trim();
                         }
 
-                        if (contentPart) {
-                            rows.push({
-                                label: label || labelPart,
-                                type: type,
-                                content: contentPart.split(',').map(v => v.trim())
-                            });
+                        if (content.length > 0 && !low.startsWith('table')) {
+                            rows.push({ label: label || prefixAndLabel, type, content });
                         }
                     }
                 });
