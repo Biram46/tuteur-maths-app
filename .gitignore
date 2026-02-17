@@ -72,3 +72,5 @@ public/test-converter.html
 app/api/convert/
 app/api/convert-local/
 app/api/convert-test/
+
+.vercel

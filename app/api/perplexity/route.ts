@@ -81,30 +81,24 @@ export async function POST(request: NextRequest) {
             "  1. ANALYTIQUE (avec coordonnées) : @@@ Somme | vector:u,0,0,x1,y1 | ... @@@\n" +
             "  2. GÉOMÉTRIQUE (sans axes) : @@@ Somme | geometry | point:A,0,0 | vector:u,A,B | ... @@@\n" +
             "CONSIGNE TABLEAUX (IMPÉRATIF) :\n" +
-            "- Les tableaux de signes et de variations DOIVENT être COMPLETS et respecter le modèle institutionnel français.\n" +
             "- Pour TOUT tableau, tu DOIS fournir DEUX versions :\n" +
-            "  1. UNE VERSION VISUELLE (@@@ table) : Pour l'affichage immédiat dans le chat.\n" +
-            "  2. UNE VERSION LATEX (tkz-tab) : Pour l'export et la copie, utilisant le modèle exact ci-dessous.\n" +
+            "  1. UNE VERSION VISUELLE (@@@ table) : Pour l'affichage immédiat.\n" +
+            "  2. UNE VERSION LATEX (tkz-tab) : Pour l'export, SANS TEXTE EXPLICATIF ENTRE LES BRACES.\n" +
             "\n" +
             "MODÈLE VISUEL @@@ table :\n" +
-            "@@@ table:Titre | x: -inf, root1, root2, +inf | sign: Facteur 1 : -, 0, +, +, + | var: f(x) : f1 / -, nearrow / +, max / +, searrow / -, f2 / - @@@\n" +
-            "- Mots-clés : 'sign' pour signes (+, -, 0, ||), 'var' pour variations (valeur / position).\n" +
-            "- Positions : '+' ou 'max' pour le haut, '-' ou 'min' pour le bas.\n" +
+            "@@@ table:Signe de f | x: -inf, 1, 3, +inf | sign: f(x) : +, 0, -, 0, + @@@\n" +
             "\n" +
-            "MODÈLE LATEX PRO (tkz-tab) :\n" +
+            "MODÈLE LATEX PRO (tkz-tab) - EXEMPLE RÉEL :\n" +
             "\\begin{tikzpicture}\n" +
-            "\\tkzTabInit[lgt=5,espcl=2.5]\n" +
-            "{$x$ / 1.5 , Signe de [f1] / 1, Signe de $f(x)$ / 1}\n" +
-            "{$-\\infty$, [r1], $+\\infty$}\n" +
-            "\\tkzTabLine{ , [signes] }\n" +
-            "\\tkzTabVar{ [val1] / [pos1], [nearrow ou searrow] / [pos2], [val2] / [pos2] }\n" +
+            "\\tkzTabInit[lgt=3,espcl=2]{$x$ / 1, $f(x)$ / 1}{$-\infty$, $1$, $3$, $+\infty$}\n" +
+            "\\tkzTabLine{, +, 0, -, 0, +}\n" +
             "\\end{tikzpicture}\n" +
             "\n" +
             "RÈGLES DE RIGUEUR :\n" +
-            "- Mêmes racines sur l'axe x pour le signe et la variation.\n" +
-            "- Les flèches de variations doivent correspondre strictement aux signes de la dérivée.\n" +
-            "- Utilise `\\parallel` ou `||` pour les valeurs interdites.\n" +
-            "- Utilise `z` ou `0` pour les zéros.\n" +
+            "- Utilise EXCLUSIVEMENT des dollars $ ... $ à l'intérieur des accolades de \\tkzTabInit.\n" +
+            "- Ne rajoute JAMAIS de sauts de ligne ou de répétition de texte à l'intérieur des commandes \\tkzTab...\n" +
+            "- Pour les variations, utilise \\tkzTabVar{ - / $-\infty$, + / $2$, - / $-\infty$ } (exemple).\n" +
+            "- Pour les valeurs interdites dans \\tkzTabLine, utilise 'd' (double barre) au lieu de '0'.\n" +
             "\n" +
             "CONSTRAINTES PÉDAGOGIQUES À RESPECTER IMPÉRATIVEMENT :\n" +
             "- Justifier l'étude du signe du discriminant $\\Delta$ pour les polynômes du second degré.\n" +
