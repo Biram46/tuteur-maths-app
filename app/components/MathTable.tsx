@@ -91,21 +91,28 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
                                     {row.content.map((item, colIndex) => {
-                                        // Sécurité : ne pas dépasser le nombre de colonnes possibles (2N-1)
-                                        const maxSlots = (xValues.length * 2) - 1;
-                                        if (colIndex >= maxSlots) return null;
+                                        // --- LOGIQUE D'ALIGNEMENT INTELLIGENTE ---
+                                        // Si l'IA envoie 5 éléments pour 4 valeurs de x (format standard intervalle), on décale de 1.
+                                        let effIdx = colIndex;
+                                        const expectedSlots = (xValues.length * 2) - 1;
+                                        if (row.content.length === (xValues.length * 2) - 3) {
+                                            effIdx = colIndex + 1;
+                                        }
+
+                                        if (effIdx >= expectedSlots) return null;
 
                                         // Position X calculée par slot de demi-cellule
-                                        const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
+                                        const xPos = labelWidth + (effIdx * (cellWidth / 2)) + (cellWidth / 2);
                                         const display = cleanLabel(item);
 
                                         if (row.type === 'sign') {
                                             if (display === '0' || display === 'z') {
                                                 return (
                                                     <g key={`s-${rowIndex}-${colIndex}`}>
-                                                        <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#cbd5e1" strokeDasharray="3,3" />
+                                                        {/* Pointillés verticaux traversants */}
+                                                        <line x1={xPos} y1={yBase} x2={xPos} y2={yBase + rowHeight} stroke="#cbd5e1" strokeDasharray="4,4" />
                                                         <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#94a3b8" />
-                                                        <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold">0</text>
+                                                        <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold fill-black">0</text>
                                                     </g>
                                                 );
                                             }
@@ -128,8 +135,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             if (isUp) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 25} y1={yBase + rowHeight - 15} x2={xPos + 25} y2={yBase + 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
                                             if (isDown) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
 
-                                            let isBot = pos === '-' || (colIndex % 2 === 0 && row.content[colIndex + 1]?.includes('near')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('sea'));
-                                            let isTop = pos === '+' || (colIndex % 2 === 0 && row.content[colIndex + 1]?.includes('sea')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('near'));
+                                            // Pour les variations, on force souvent le haut/bas si pas précisé
+                                            let isBot = pos === '-' || (effIdx % 2 === 0 && row.content[colIndex + 1]?.includes('near')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('sea'));
+                                            let isTop = pos === '+' || (effIdx % 2 === 0 && row.content[colIndex + 1]?.includes('sea')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('near'));
 
                                             if (!pos && !isBot && !isTop) {
                                                 if (val.includes('-')) isBot = true;
@@ -137,7 +145,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             }
 
                                             const yPos = isBot ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
-                                            return <text key={`v-${rowIndex}-${colIndex}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-black fill-black">{val}</text>;
+                                            return <text key={`v-${rowIndex}-${colIndex}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{val}</text>;
                                         }
                                         return null;
                                     })}

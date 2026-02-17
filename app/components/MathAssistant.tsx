@@ -187,6 +187,17 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 });
 
                 if (xValues.length > 0) {
+                    const signRows = rows.filter(r => r.type === 'sign');
+                    const varRows = rows.filter(r => r.type === 'variation');
+
+                    if (signRows.length > 0 && varRows.length > 0) {
+                        return (
+                            <div key={rawBlock} className="flex flex-col gap-6 w-full items-center my-8">
+                                <MathTable data={{ xValues, rows: signRows }} title="Tableau de Signes" />
+                                <MathTable data={{ xValues, rows: varRows }} title="Tableau de Variations" />
+                            </div>
+                        );
+                    }
                     return <MathTable key={rawBlock} data={{ xValues, rows }} title={title} />;
                 }
             }
