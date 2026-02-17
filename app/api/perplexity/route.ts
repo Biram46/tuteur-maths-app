@@ -88,17 +88,20 @@ export async function POST(request: NextRequest) {
             "MODÈLE VISUEL @@@ table :\n" +
             "@@@ table:Signe de f | x: -inf, 1, 3, +inf | sign: f(x) : +, 0, -, 0, + @@@\n" +
             "\n" +
-            "MODÈLE LATEX PRO (tkz-tab) - EXEMPLE RÉEL :\n" +
+            "MODÈLE LATEX PRO (tkz-tab) - EXEMPLE RÉEL : \n" +
+            "```latex\n" +
             "\\begin{tikzpicture}\n" +
-            "\\tkzTabInit[lgt=3,espcl=2]{$x$ / 1, $f(x)$ / 1}{$-\infty$, $1$, $3$, $+\infty$}\n" +
+            "\\tkzTabInit[lgt=3,espcl=2]{$x$ / 1, $f(x)$ / 1}{$-\\infty$, $1$, $3$, $+\\infty$}\n" +
             "\\tkzTabLine{, +, 0, -, 0, +}\n" +
             "\\end{tikzpicture}\n" +
+            "```\n" +
             "\n" +
-            "RÈGLES DE RIGUEUR :\n" +
-            "- Utilise EXCLUSIVEMENT des dollars $ ... $ à l'intérieur des accolades de \\tkzTabInit.\n" +
-            "- Ne rajoute JAMAIS de sauts de ligne ou de répétition de texte à l'intérieur des commandes \\tkzTab...\n" +
-            "- Pour les variations, utilise \\tkzTabVar{ - / $-\infty$, + / $2$, - / $-\infty$ } (exemple).\n" +
-            "- Pour les valeurs interdites dans \\tkzTabLine, utilise 'd' (double barre) au lieu de '0'.\n" +
+            "RÈGLES DE RIGUEUR (TKZ-TAB) :\n" +
+            "- Le code LaTeX DOIT impérativement être dans un bloc ```latex ... ```.\n" +
+            "- NE RAJOUTE JAMAIS de texte d'explication à l'intérieur des accolades { } de \\tkzTabInit.\n" +
+            "- Utilise EXCLUSIVEMENT des dollars $ ... $ pour les symboles mathématiques dans le tableau.\n" +
+            "- Pour les variations, utilise le format : \\tkzTabVar{ - / $-\\infty$, + / $2$, - / $-\\infty$ }.\n" +
+            "- Pour les valeurs interdites dans \\tkzTabLine, utilise 'd' (double barre) au lieu de 'z' si nécessaire.\n" +
             "\n" +
             "CONSTRAINTES PÉDAGOGIQUES À RESPECTER IMPÉRATIVEMENT :\n" +
             "- Justifier l'étude du signe du discriminant $\\Delta$ pour les polynômes du second degré.\n" +
