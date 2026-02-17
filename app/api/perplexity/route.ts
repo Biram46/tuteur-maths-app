@@ -85,13 +85,14 @@ export async function POST(request: NextRequest) {
             "- C'est le SEUL moyen pour l'élève de voir le tableau correctement dans l'interface.\n" +
             "- NE DONNE PAS le code LaTeX (tikzpicture/tkz-tab) par défaut, car cela pollue la lecture de l'élève.\n" +
             "\n" +
-            "SYNTAXE DU TABLEAU VISUEL (À RESPECTER STRICTEMENT) :\n" +
-            "@@@ table:Titre | x: -inf, 1, +inf | sign: f'(x) : -, 0, + | var: f(x) : +inf / +, searrow, -1 / -, nearrow, +inf / + @@@\n" +
-            "- 'sign:' pour les signes (+, -, 0, ||).\n" +
+            "MODÈLE DE TABLEAU COMPLET (EXIGÉ SI FACTEURS) :\n" +
+            "@@@ table:Exemple Complet | x: -inf, 1, 3, +inf | sign: (x-1) : -, 0, +, +, + | sign: (x-3) : -, -, -, 0, + | sign: f(x) : +, 0, -, 0, + @@@\n" +
+            "CONSIGNE RIGUREUSE :\n" +
+            "- Tu DOIS afficher une ligne 'sign:' pour CHAQUE facteur du polynôme avant la ligne finale.\n" +
+            "- 'sign:' pour les signes (+, -, 0, ||). Utilise '0' pour les racines d'un facteur.\n" +
             "- 'var:' pour les variations. Tu DOIS alterner : Valeur / position, Flèche, Valeur / position.\n" +
-            "- Flèches autorisées : nearrow, searrow.\n" +
-            "- Positions autorisées après le / : + (haut), - (bas).\n" +
-            "- Exemple complet : sign: (x-1) : -, 0, + | var: f(x) : -inf / -, nearrow, +inf / + @@@\n" +
+            "- Flèches : nearrow, searrow. Positions : + (haut), - (bas).\n" +
+            "- Exemple de variations : var: f(x) : -inf / -, nearrow, +inf / + @@@\n" +
             "\n" +
             "RAPPEL : Le code LaTeX ne doit être fourni QUE si l'utilisateur demande explicitement 'le code' ou 'l'export'.\n" +
             "\n" +

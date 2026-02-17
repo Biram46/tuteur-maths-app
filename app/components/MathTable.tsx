@@ -34,7 +34,8 @@ export default function MathTable({ data, title }: MathTableProps) {
 
     // Fonction pour nettoyer et traduire le LaTeX/abréviations pour le SVG
     const cleanLabel = (text: string) => {
-        let t = text.replace(/\$/g, '').trim();
+        let t = text.replace(/\$/g, '').replace(/\\/g, '').trim().toLowerCase();
+
         // Traductions courantes
         const map: Record<string, string> = {
             'inf': '∞',
@@ -43,15 +44,15 @@ export default function MathTable({ data, title }: MathTableProps) {
             '+inf': '+∞',
             '-infty': '-∞',
             '+infty': '+∞',
-            '\\infty': '∞',
-            '-\\infty': '-∞',
-            '+\\infty': '+∞',
-            '\\alpha': 'α',
-            '\\beta': 'β',
-            '\\gamma': 'γ'
+            'alpha': 'α',
+            'beta': 'β',
+            'gamma': 'γ'
         };
-        const lowerT = t.toLowerCase();
-        return map[lowerT] || t;
+
+        if (map[t]) return map[t];
+        if (t.includes('inf')) return t.replace(/inf(ty)?/g, '∞');
+
+        return text.replace(/\$/g, '').trim(); // Retourne le texte original (sans $) si pas de match
     };
 
     return (
