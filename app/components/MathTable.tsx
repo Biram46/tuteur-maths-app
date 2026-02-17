@@ -19,13 +19,14 @@ export interface MathTableProps {
  * Rendu professionnel SVG pour une précision mathématique totale.
  */
 export default function MathTable({ data, title }: MathTableProps) {
-    const id = useId();
+    const rawId = useId();
+    const id = rawId.replace(/:/g, ''); // Important pour les IDs SVG
     const { xValues, rows } = data;
 
-    // Dimensions de base
-    const labelWidth = 150;
-    const cellWidth = 80;
-    const rowHeight = 60;
+    // Dimensions de base augmentées pour éviter les chevauchements
+    const labelWidth = 160;
+    const cellWidth = 120; // Plus large pour l'infini et les flèches
+    const rowHeight = 70;
     const headerHeight = 50;
 
     const totalWidth = labelWidth + (xValues.length * cellWidth);
@@ -46,7 +47,8 @@ export default function MathTable({ data, title }: MathTableProps) {
             '\\beta': 'β',
             '\\gamma': 'γ'
         };
-        return map[t.toLowerCase()] || t;
+        const lowerT = t.toLowerCase();
+        return map[lowerT] || t;
     };
 
     return (
@@ -58,16 +60,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                     viewBox={`0 0 ${totalWidth} ${totalHeight}`}
                     className="bg-white rounded-xl"
                 >
+                    <defs>
+                        <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+                        </marker>
+                    </defs>
+
                     {/* --- CADRE ET GRILLE --- */}
                     <rect width={totalWidth} height={totalHeight} fill="white" />
 
-                    {/* Ligne horizontale sous le header (x) */}
                     <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#000" strokeWidth="2" />
-
-                    {/* Ligne verticale après les labels */}
                     <line x1={labelWidth} y1="0" x2={labelWidth} y2={totalHeight} stroke="#000" strokeWidth="2" />
 
-                    {/* --- LIGNES HORIZONTALES ENTRE LES RANGÉES --- */}
                     {rows.map((_, i) => (
                         <line
                             key={`h-line-${i}`}
@@ -103,7 +107,6 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                         return (
                             <g key={`row-${rowIndex}`}>
-                                {/* Label de la rangée */}
                                 <text
                                     x={labelWidth / 2}
                                     y={yMid}
@@ -115,20 +118,16 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     {cleanLabel(row.label)}
                                 </text>
 
-                                {/* Contenu de la rangée */}
                                 {row.content.map((item, colIndex) => {
-                                    // Calcul précis de la position X
-                                    // colIndex 0, 2, 4... sont sous les valeurs de X
-                                    // colIndex 1, 3, 5... sont entre les valeurs de X
+                                    // Calcul précis du centrage
                                     const xPos = labelWidth + (colIndex * (cellWidth / 2)) + (cellWidth / 2);
 
-                                    // Rendu des signes (+, -, 0, ||)
                                     if (row.type === 'sign') {
                                         let display = cleanLabel(item).trim();
-                                        if (display === '0') {
+                                        if (display === '0' || display === 'z') {
                                             return (
                                                 <g key={`col-${rowIndex}-${colIndex}`}>
-                                                    <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="3,3" />
+                                                    <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="4,4" />
                                                     <circle cx={xPos} cy={yMid} r="7" fill="white" />
                                                     <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-xs font-bold" fill="#000">0</text>
                                                 </g>
@@ -143,66 +142,55 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             );
                                         }
                                         return (
-                                            <text
-                                                key={`col-${rowIndex}-${colIndex}`}
-                                                x={xPos}
-                                                y={yMid}
-                                                textAnchor="middle"
-                                                dominantBaseline="middle"
-                                                className="font-serif text-base font-bold"
-                                                fill="#000"
-                                            >
-                                                {display}
-                                            </text>
+                                            <text key={`col-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-base font-bold" fill="#000">{display}</text>
                                         );
                                     }
 
-                                    // Rendu des variations (Flèches et valeurs)
                                     if (row.type === 'variation') {
-                                        const raw = item.split('/')[0].trim();
-                                        const posHint = item.split('/')[1]?.trim().toLowerCase();
-
+                                        const parts = item.split('/');
+                                        const raw = parts[0].trim();
+                                        const posHint = parts[1]?.trim().toLowerCase();
                                         const cleanItem = raw.toLowerCase().replace(/\\/g, '');
 
-                                        // Détection de flèche
-                                        if (cleanItem === 'up' || cleanItem === 'croissant' || cleanItem === 'nearrow') {
+                                        // Détection robuste des flèches
+                                        const isUp = /nearrow|up|croiss/i.test(cleanItem);
+                                        const isDown = /searrow|down|decroiss/i.test(cleanItem);
+
+                                        if (isUp) {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - 15} y1={yBase + rowHeight - 15}
-                                                    x2={xPos + 15} y2={yBase + 15}
-                                                    stroke="#2563eb" strokeWidth="2.5"
+                                                    x1={xPos - 20} y1={yBase + rowHeight - 15}
+                                                    x2={xPos + 20} y2={yBase + 15}
+                                                    stroke="#2563eb" strokeWidth="3"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
                                         }
-                                        if (cleanItem === 'down' || cleanItem === 'decroissant' || cleanItem === 'searrow') {
+                                        if (isDown) {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - 15} y1={yBase + 15}
-                                                    x2={xPos + 15} y2={yBase + rowHeight - 15}
-                                                    stroke="#2563eb" strokeWidth="2.5"
+                                                    x1={xPos - 20} y1={yBase + 15}
+                                                    x2={xPos + 20} y2={yBase + rowHeight - 15}
+                                                    stroke="#2563eb" strokeWidth="3"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
                                         }
 
-                                        // C'est une valeur. Positionnement Auto si non spécifié.
-                                        // Règle : colIndex 0, 4, 8... (début/fin de cycle) souvent en bas si décroissant, haut si croissant
-                                        // Mais on va suivre les indices pairs : 0, 2, 4... sont les noeuds.
+                                        // Valeurs : Positionnement intelligent
                                         let isBottom = posHint === '-' || posHint === 'min';
                                         let isTop = posHint === '+' || posHint === 'max';
 
-                                        // Si pas de position spécifiée, on regarde l'élément suivant pour deviner
                                         if (!posHint) {
-                                            const nextRaw = row.content[colIndex + 1]?.toLowerCase().replace(/\\/g, '');
-                                            const prevRaw = row.content[colIndex - 1]?.toLowerCase().replace(/\\/g, '');
-                                            if (nextRaw?.includes('nearrow') || prevRaw?.includes('searrow')) isBottom = true;
-                                            else if (nextRaw?.includes('searrow') || prevRaw?.includes('nearrow')) isTop = true;
+                                            const next = row.content[colIndex + 1]?.toLowerCase();
+                                            const prev = row.content[colIndex - 1]?.toLowerCase();
+                                            if (next?.includes('near') || prev?.includes('sea')) isBottom = true;
+                                            else if (next?.includes('sea') || prev?.includes('near')) isTop = true;
                                         }
 
-                                        const yPos = isBottom ? yBase + rowHeight - 12 : (isTop ? yBase + 15 : yMid);
+                                        const yPos = isBottom ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
 
                                         return (
                                             <text
@@ -211,20 +199,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 y={yPos}
                                                 textAnchor="middle"
                                                 dominantBaseline="middle"
-                                                className="font-serif text-xs font-bold"
+                                                className="font-serif text-sm font-bold"
                                                 fill="#000"
                                             >
                                                 {cleanLabel(raw)}
                                             </text>
                                         );
                                     }
-
                                     return null;
                                 })}
                             </g>
                         );
                     })}
-
                     {/* Définition de la flèche */}
                     <defs>
                         <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
