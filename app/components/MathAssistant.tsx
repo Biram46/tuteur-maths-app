@@ -272,13 +272,34 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const renderMessageContent = (content: string) => {
         if (!content) return null;
 
-        // Découpage par blocs @@@
-        const sections = content.split(/(@@@[\s\S]*?@@@)/g);
+        // 1. Découpage par blocs @@@ ET Blocs de code math-table
+        const sections = content.split(/(@@@[\s\S]*?@@@|```math-table[\s\S]*?```|```json[\s\S]*?```)/g);
 
         return sections.map((section, idx) => {
+            // Bloc @@@
             if (section.startsWith('@@@') && section.endsWith('@@@')) {
                 const rawBlock = section.substring(3, section.length - 3);
                 return renderFigure(rawBlock);
+            }
+
+            // Bloc de code math-table
+            if (section.startsWith('```math-table') && section.endsWith('```')) {
+                const rawBlock = section.substring(13, section.length - 3);
+                return renderFigure(rawBlock.includes('|') ? `table | ${rawBlock}` : rawBlock);
+            }
+
+            // Bloc JSON qui pourrait être un tableau
+            if (section.startsWith('```json') && section.endsWith('```')) {
+                try {
+                    const rawJson = section.substring(7, section.length - 3);
+                    const parsed = JSON.parse(rawJson);
+                    if (parsed.xValues || parsed.x) {
+                        return <MathTable key={idx} data={{
+                            xValues: parsed.xValues || parsed.x || [],
+                            rows: parsed.rows || parsed.lines || []
+                        }} title={parsed.title || "Tableau JSON"} />;
+                    }
+                } catch (e) { /* Pas un tableau JSON */ }
             }
 
             // Rendu Markdown pour le reste
