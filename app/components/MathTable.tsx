@@ -31,8 +31,23 @@ export default function MathTable({ data, title }: MathTableProps) {
     const totalWidth = labelWidth + (xValues.length * cellWidth);
     const totalHeight = headerHeight + (rows.length * rowHeight);
 
-    // Fonction pour nettoyer le LaTeX simple pour le SVG (KaTeX est mieux mais ici on fait du SVG direct)
-    const cleanLabel = (text: string) => text.replace(/\$/g, '');
+    // Fonction pour nettoyer et traduire le LaTeX/abréviations pour le SVG
+    const cleanLabel = (text: string) => {
+        let t = text.replace(/\$/g, '').trim();
+        // Traductions courantes
+        const map: Record<string, string> = {
+            'inf': '∞',
+            '-inf': '-∞',
+            '+inf': '+∞',
+            '\\infty': '∞',
+            '-\\infty': '-∞',
+            '+\\infty': '+∞',
+            '\\alpha': 'α',
+            '\\beta': 'β',
+            '\\gamma': 'γ'
+        };
+        return map[t.toLowerCase()] || t;
+    };
 
     return (
         <div className="my-10 w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
@@ -74,7 +89,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                             y={headerHeight / 2}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className="font-serif text-sm"
+                            className="font-serif text-sm font-bold"
                             fill="#000"
                         >
                             {cleanLabel(val)}
@@ -112,11 +127,12 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             return (
                                                 <g key={`col-${rowIndex}-${colIndex}`}>
                                                     <line x1={xPos} y1={yBase + 5} x2={xPos} y2={yBase + rowHeight - 5} stroke="#ccc" strokeDasharray="2,2" />
+                                                    <circle cx={xPos} cy={yMid} r="8" fill="white" />
                                                     <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold" fill="#000">0</text>
                                                 </g>
                                             );
                                         }
-                                        if (display === '||') {
+                                        if (display === '||' || display === 'double' || display === 'd') {
                                             // Double barre (Valeur interdite)
                                             return (
                                                 <g key={`col-${rowIndex}-${colIndex}`}>
@@ -142,42 +158,45 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                     // Rendu des variations (Flèches et valeurs)
                                     if (row.type === 'variation') {
-                                        const [cleanItem, position] = item.split('/').map(s => s.trim().toLowerCase());
+                                        const raw = item.split('/')[0].trim().toLowerCase();
+                                        const position = item.split('/')[1]?.trim().toLowerCase();
+
+                                        const cleanItem = raw.replace(/\\/g, ''); // enlever le backslash
                                         const isBottom = position === '-' || position === 'min';
                                         const isTop = position === '+' || position === 'max';
 
                                         // Détection de flèche
-                                        if (cleanItem === 'up' || cleanItem === 'croissant' || cleanItem === '->' || cleanItem === 'nearrow') {
+                                        if (cleanItem === 'up' || cleanItem === 'croissant' || cleanItem === 'nearrow') {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - cellWidth / 4 + 5}
+                                                    x1={xPos - cellWidth / 4 + 8}
                                                     y1={yBase + rowHeight - 15}
-                                                    x2={xPos + cellWidth / 4 - 5}
+                                                    x2={xPos + cellWidth / 4 - 8}
                                                     y2={yBase + 15}
                                                     stroke="#2563eb"
-                                                    strokeWidth="2"
+                                                    strokeWidth="2.5"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
                                         }
-                                        if (cleanItem === 'down' || cleanItem === 'decroissant' || cleanItem === '<-' || cleanItem === 'searrow') {
+                                        if (cleanItem === 'down' || cleanItem === 'decroissant' || cleanItem === 'searrow') {
                                             return (
                                                 <line
                                                     key={`col-${rowIndex}-${colIndex}`}
-                                                    x1={xPos - cellWidth / 4 + 5}
+                                                    x1={xPos - cellWidth / 4 + 8}
                                                     y1={yBase + 15}
-                                                    x2={xPos + cellWidth / 4 - 5}
+                                                    x2={xPos + cellWidth / 4 - 8}
                                                     y2={yBase + rowHeight - 15}
                                                     stroke="#2563eb"
-                                                    strokeWidth="2"
+                                                    strokeWidth="2.5"
                                                     markerEnd={`url(#arrow-${id})`}
                                                 />
                                             );
                                         }
 
                                         // C'est une valeur
-                                        const yPos = isBottom ? yBase + rowHeight - 10 : (isTop ? yBase + 15 : yMid);
+                                        const yPos = isBottom ? yBase + rowHeight - 12 : (isTop ? yBase + 15 : yMid);
 
                                         return (
                                             <text
@@ -186,10 +205,10 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 y={yPos}
                                                 textAnchor="middle"
                                                 dominantBaseline="middle"
-                                                className="font-serif text-[10px] font-bold"
+                                                className="font-serif text-xs font-bold"
                                                 fill="#000"
                                             >
-                                                {cleanLabel(cleanItem)}
+                                                {cleanLabel(raw)}
                                             </text>
                                         );
                                     }
