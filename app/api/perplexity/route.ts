@@ -44,16 +44,8 @@ CONSIGNE RÉPONSE :
 CONSIGNE TABLEAUX (ALIGNEMENT ET COMPLÉTUDE) :
 Si tu as N valeurs sur l'axe x (ex: -inf, -2, 1, +inf -> N=4) :
 - Chaque ligne 'sign:' DOIT impérativement contenir EXACTEMENT 2N-3 éléments.
-- INTERDICTION DE S'ARRÊTER AVANT LA FIN : Même si le signe ne change pas, tu dois le répéter pour chaque intervalle.
-- Tu DOIS marquer les valeurs interdites avec "||" sur la ligne f(x).
-- Exemple pour N=4 : Tu dois donner 5 éléments. 
-  Correct : +, 0, -, ||, +
-  Incorrect : +, 0, - (trop court !)
-
-RÈGLES DE RENDU :
-- VALEUR INTERDITE : Utilise TOUJOURS "||" pour une valeur interdite.
-- RACINE : Utilise "0" pour une racine.
-- MÉTHODE : Détaille d'abord le signe de chaque facteur séparément avant f(x).
+- COMPLÉTUDE TOTALE : Tu n'as pas le droit de t'arrêter en cours de ligne. Tu dois fournir chaque signe et symbole jusqu'au dernier intervalle avant +inf.
+- Pour une fraction, si un dénominateur s'annule en x0, tu DOIS mettre "||" sur la ligne f(x) à cette position.
 
 MODÈLE STRICT :
 \`\`\`math-table

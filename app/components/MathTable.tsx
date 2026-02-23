@@ -95,12 +95,12 @@ export default function MathTable({ data, title }: MathTableProps) {
                             if (forbiddenCols.has(colIdx)) {
                                 return (
                                     <g key={`v-f-${colIdx}`}>
-                                        <line x1={x - 2} y1={headerHeight} x2={x - 2} y2={totalHeight} stroke="#ef4444" strokeWidth="2" />
-                                        <line x1={x + 2} y1={headerHeight} x2={x + 2} y2={totalHeight} stroke="#ef4444" strokeWidth="2" />
+                                        <line x1={x - 3} y1={headerHeight} x2={x - 3} y2={totalHeight} stroke="#ef4444" strokeWidth="2.5" />
+                                        <line x1={x + 3} y1={headerHeight} x2={x + 3} y2={totalHeight} stroke="#ef4444" strokeWidth="2.5" />
                                     </g>
                                 );
                             }
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#cbd5e1" strokeDasharray="4,4" strokeWidth="1" />;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#64748b" strokeDasharray="5,3" strokeWidth="1.5" />;
                         })}
 
                         {rows.map((_, i) => (
