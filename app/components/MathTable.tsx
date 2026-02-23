@@ -95,12 +95,12 @@ export default function MathTable({ data, title }: MathTableProps) {
                             if (forbiddenCols.has(colIdx)) {
                                 return (
                                     <g key={`v-f-${colIdx}`}>
-                                        <line x1={x - 3} y1={headerHeight} x2={x - 3} y2={totalHeight} stroke="#ef4444" strokeWidth="2.5" />
-                                        <line x1={x + 3} y1={headerHeight} x2={x + 3} y2={totalHeight} stroke="#ef4444" strokeWidth="2.5" />
+                                        <line x1={x - 3} y1={headerHeight} x2={x - 3} y2={totalHeight} stroke="#dc2626" strokeWidth="3" />
+                                        <line x1={x + 3} y1={headerHeight} x2={x + 3} y2={totalHeight} stroke="#dc2626" strokeWidth="3" />
                                     </g>
                                 );
                             }
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#64748b" strokeDasharray="5,3" strokeWidth="1.5" />;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#334155" strokeDasharray="5,4" strokeWidth="2" />;
                         })}
 
                         {rows.map((_, i) => (
@@ -134,19 +134,6 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, xValues.length) === slotIdx);
                                         let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 
-                                        // Remplissage de sécurité : si c'est un intervalle (slot impair) et qu'il n'y a rien,
-                                        // on répète le dernier signe connu pour éviter un trou.
-                                        if (item === "" && slotIdx % 2 !== 0 && slotIdx > 0) {
-                                            // On cherche le dernier signe dans la ligne
-                                            for (let prev = itemIdx === -1 ? row.content.length - 1 : itemIdx - 1; prev >= 0; prev--) {
-                                                const val = row.content[prev];
-                                                if (val === '+' || val === '-') {
-                                                    item = val;
-                                                    break;
-                                                }
-                                            }
-                                        }
-
                                         const xPos = labelWidth + (slotIdx * (cellWidth / 2)) + (cellWidth / 2);
                                         const display = cleanLabel(item).toLowerCase();
 
@@ -155,7 +142,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             if (isZero) {
                                                 return (
                                                     <g key={`s-${rowIndex}-${slotIdx}`}>
-                                                        <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#94a3b8" />
+                                                        <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#64748b" />
                                                         <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold fill-black">0</text>
                                                     </g>
                                                 );
