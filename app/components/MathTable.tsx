@@ -44,6 +44,29 @@ export default function MathTable({ data, title }: MathTableProps) {
         return text.replace(/\$/g, '').trim();
     };
 
+    // --- LOGIQUE D'ALIGNEMENT ET COLONNES SPÉCIALES ---
+    const getEffIdx = (colIndex: number, len: number, n: number) => {
+        const expectedMax = (n * 2) - 1;
+        if (len === expectedMax) return colIndex;
+        if (len === n) return colIndex * 2;
+        if (len % 2 !== 0) return colIndex + 1; // Standard interval-start
+        if (len === n - 1) return colIndex * 2 + 1;
+        return colIndex + 1;
+    };
+
+    const specialCols = new Set<number>();
+    const forbiddenCols = new Set<number>();
+    rows.forEach(row => {
+        row.content.forEach((item, idx) => {
+            const d = cleanLabel(item).toLowerCase();
+            const effIdx = getEffIdx(idx, row.content.length, xValues.length);
+            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double') {
+                specialCols.add(effIdx);
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double') forbiddenCols.add(effIdx);
+            }
+        });
+    });
+
     return (
         <div className="my-10 w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <div className="relative p-[1px] bg-slate-200 rounded-2xl shadow-xl overflow-hidden max-w-full">
@@ -65,6 +88,20 @@ export default function MathTable({ data, title }: MathTableProps) {
                         {/* Grille principale */}
                         <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#000" strokeWidth="2" />
                         <line x1={labelWidth} y1="0" x2={labelWidth} y2={totalHeight} stroke="#000" strokeWidth="2" />
+
+                        {/* Rappels verticaux pour 0 et || (à travers tout le tableau) */}
+                        {Array.from(specialCols).map(colIdx => {
+                            const x = labelWidth + (colIdx * (cellWidth / 2)) + (cellWidth / 2);
+                            if (forbiddenCols.has(colIdx)) {
+                                return (
+                                    <g key={`v-f-${colIdx}`}>
+                                        <line x1={x - 2} y1={headerHeight} x2={x - 2} y2={totalHeight} stroke="#ef4444" strokeWidth="2" />
+                                        <line x1={x + 2} y1={headerHeight} x2={x + 2} y2={totalHeight} stroke="#ef4444" strokeWidth="2" />
+                                    </g>
+                                );
+                            }
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#cbd5e1" strokeDasharray="4,4" strokeWidth="1" />;
+                        })}
 
                         {rows.map((_, i) => (
                             <line key={`h-${i}`} x1="0" y1={headerHeight + (i + 1) * rowHeight} x2={totalWidth} y2={headerHeight + (i + 1) * rowHeight} stroke="#cbd5e1" strokeWidth="1" />
@@ -91,44 +128,45 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
                                     {row.content.map((item, colIndex) => {
-                                        // --- LOGIQUE D'ALIGNEMENT INTELLIGENTE ---
-                                        // Si l'IA envoie 5 éléments pour 4 valeurs de x (format standard intervalle), on décale de 1.
-                                        let effIdx = colIndex;
-                                        const expectedSlots = (xValues.length * 2) - 1;
-                                        if (row.content.length === (xValues.length * 2) - 3) {
-                                            effIdx = colIndex + 1;
-                                        }
+                                        const effIdx = getEffIdx(colIndex, row.content.length, xValues.length);
+                                        const expectedMax = (xValues.length * 2) - 1;
 
-                                        if (effIdx >= expectedSlots) return null;
+                                        if (effIdx >= expectedMax) return null;
 
                                         // Position X calculée par slot de demi-cellule
                                         const xPos = labelWidth + (effIdx * (cellWidth / 2)) + (cellWidth / 2);
-                                        const display = cleanLabel(item);
+                                        const display = cleanLabel(item).toLowerCase();
 
                                         if (row.type === 'sign') {
-                                            if (display === '0' || display === 'z') {
+                                            const isZero = display === '0' || display === 'z';
+                                            if (isZero) {
                                                 return (
                                                     <g key={`s-${rowIndex}-${colIndex}`}>
-                                                        {/* Pointillés verticaux traversants */}
-                                                        <line x1={xPos} y1={yBase} x2={xPos} y2={yBase + rowHeight} stroke="#cbd5e1" strokeDasharray="4,4" />
                                                         <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#94a3b8" />
                                                         <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold fill-black">0</text>
                                                     </g>
                                                 );
                                             }
-                                            if (display === '||' || display === 'd' || display === 'double') {
+                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined';
+                                            if (isDoubleBar) return null; // Géré par la ligne verticale globale
+
+                                            return <text key={`s-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
+                                        }
+
+                                        if (row.type === 'variation') {
+                                            const displayLower = display;
+                                            const isDoubleBar = displayLower === '||' || displayLower === 'd' || displayLower === 'double' || displayLower === 'nd' || displayLower === 'non défini';
+
+                                            if (isDoubleBar) {
                                                 return (
-                                                    <g key={`s-${rowIndex}-${colIndex}`}>
+                                                    <g key={`v-${rowIndex}-${colIndex}`}>
                                                         <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
                                                         <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
                                                     </g>
                                                 );
                                             }
-                                            return <text key={`s-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{display}</text>;
-                                        }
 
-                                        if (row.type === 'variation') {
-                                            const [val, pos] = display.split('/');
+                                            const [val, pos] = displayLower.split('/');
                                             const isUp = /nearrow|up/i.test(val);
                                             const isDown = /searrow|down/i.test(val);
 
