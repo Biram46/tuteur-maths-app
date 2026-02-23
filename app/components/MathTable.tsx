@@ -122,26 +122,39 @@ export default function MathTable({ data, title }: MathTableProps) {
                         {rows.map((row, rowIndex) => {
                             const yBase = headerHeight + rowIndex * rowHeight;
                             const yMid = yBase + rowHeight / 2;
+                            const expectedMax = (xValues.length * 2) - 1;
 
                             return (
                                 <g key={`row-${rowIndex}`}>
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
-                                    {row.content.map((item, colIndex) => {
-                                        const effIdx = getEffIdx(colIndex, row.content.length, xValues.length);
-                                        const expectedMax = (xValues.length * 2) - 1;
+                                    {/* On itère sur TOUS les slots possibles pour éviter la troncature par l'IA */}
+                                    {Array.from({ length: expectedMax }).map((_, slotIdx) => {
+                                        // On cherche si l'IA a fourni quelque chose pour ce slot
+                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, xValues.length) === slotIdx);
+                                        let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 
-                                        if (effIdx >= expectedMax) return null;
+                                        // Remplissage de sécurité : si c'est un intervalle (slot impair) et qu'il n'y a rien,
+                                        // on répète le dernier signe connu pour éviter un trou.
+                                        if (item === "" && slotIdx % 2 !== 0 && slotIdx > 0) {
+                                            // On cherche le dernier signe dans la ligne
+                                            for (let prev = itemIdx === -1 ? row.content.length - 1 : itemIdx - 1; prev >= 0; prev--) {
+                                                const val = row.content[prev];
+                                                if (val === '+' || val === '-') {
+                                                    item = val;
+                                                    break;
+                                                }
+                                            }
+                                        }
 
-                                        // Position X calculée par slot de demi-cellule
-                                        const xPos = labelWidth + (effIdx * (cellWidth / 2)) + (cellWidth / 2);
+                                        const xPos = labelWidth + (slotIdx * (cellWidth / 2)) + (cellWidth / 2);
                                         const display = cleanLabel(item).toLowerCase();
 
                                         if (row.type === 'sign') {
                                             const isZero = display === '0' || display === 'z';
                                             if (isZero) {
                                                 return (
-                                                    <g key={`s-${rowIndex}-${colIndex}`}>
+                                                    <g key={`s-${rowIndex}-${slotIdx}`}>
                                                         <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#94a3b8" />
                                                         <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold fill-black">0</text>
                                                     </g>
@@ -150,7 +163,10 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined';
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
-                                            return <text key={`s-${rowIndex}-${colIndex}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
+                                            // Si c'est vide mais qu'on a une barre verticale globale ici, on ne met rien
+                                            if (item === "" && specialCols.has(slotIdx)) return null;
+
+                                            return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
                                         }
 
                                         if (row.type === 'variation') {
@@ -159,7 +175,7 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                             if (isDoubleBar) {
                                                 return (
-                                                    <g key={`v-${rowIndex}-${colIndex}`}>
+                                                    <g key={`v-${rowIndex}-${slotIdx}`}>
                                                         <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
                                                         <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
                                                     </g>
@@ -170,12 +186,14 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isUp = /nearrow|up/i.test(val);
                                             const isDown = /searrow|down/i.test(val);
 
-                                            if (isUp) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 25} y1={yBase + rowHeight - 15} x2={xPos + 25} y2={yBase + 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
-                                            if (isDown) return <line key={`v-${rowIndex}-${colIndex}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
+                                            if (isUp) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + rowHeight - 15} x2={xPos + 25} y2={yBase + 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
+                                            if (isDown) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
 
                                             // Pour les variations, on force souvent le haut/bas si pas précisé
-                                            let isBot = pos === '-' || (effIdx % 2 === 0 && row.content[colIndex + 1]?.includes('near')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('sea'));
-                                            let isTop = pos === '+' || (effIdx % 2 === 0 && row.content[colIndex + 1]?.includes('sea')) || (colIndex > 0 && row.content[colIndex - 1]?.includes('near'));
+                                            // Note: Pour les variations, la logique de répétition de signe est plus complexe, 
+                                            // ici on se base sur slotIdx
+                                            let isBot = pos === '-' || (slotIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('near')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('sea'));
+                                            let isTop = pos === '+' || (slotIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('sea')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('near'));
 
                                             if (!pos && !isBot && !isTop) {
                                                 if (val.includes('-')) isBot = true;
@@ -183,7 +201,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             }
 
                                             const yPos = isBot ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
-                                            return <text key={`v-${rowIndex}-${colIndex}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{val}</text>;
+                                            return <text key={`v-${rowIndex}-${slotIdx}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{val}</text>;
                                         }
                                         return null;
                                     })}

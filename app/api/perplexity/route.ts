@@ -44,8 +44,13 @@ CONSIGNE RÉPONSE :
 CONSIGNE TABLEAUX (ALIGNEMENT ET COMPLÉTUDE) :
 Si tu as N valeurs sur l'axe x (ex: -inf, -2, 1, +inf -> N=4) :
 - Chaque ligne 'sign:' DOIT impérativement contenir EXACTEMENT 2N-3 éléments.
-- COMPLÉTUDE TOTALE : Tu n'as pas le droit de t'arrêter en cours de ligne. Tu dois fournir chaque signe et symbole jusqu'au dernier intervalle avant +inf.
-- Pour une fraction, si un dénominateur s'annule en x0, tu DOIS mettre "||" sur la ligne f(x) à cette position.
+- COMPLÉTUDE TOTALE : Interdiction de s'arrêter avant +inf. Tu dois remplir TOUTES les cases.
+- CAS DES FRACTIONS (CRITIQUE) : Si un facteur du dénominateur s'annule (0), tu DOIS impérativement mettre une double barre "||" sur la ligne f(x) à cette même position verticale.
+- Exemple pour f(x)=(2x+4)/(x-1) :
+  x: -inf, -2, 1, +inf
+  sign: 2x+4 : -, 0, +, +, +
+  sign: x-1 : -, -, -, 0, +
+  sign: f(x) : +, 0, -, ||, +  <-- Le || est OBLIGATOIRE sous le 1.
 
 MODÈLE STRICT :
 \`\`\`math-table
