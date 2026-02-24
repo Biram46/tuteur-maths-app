@@ -304,10 +304,18 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 return renderFigure(rawBlock);
             }
 
-            // Bloc de code math-table
-            if (section.startsWith('```math-table') && section.endsWith('```')) {
-                const rawBlock = section.substring(13, section.length - 3);
-                return renderFigure(rawBlock.includes('|') ? `table | ${rawBlock}` : rawBlock);
+            // Bloc de code math-table ou format texte brut
+            const isMathTable = section.includes('math-table') || (section.includes('x:') && (section.includes('sign:') || section.includes('var:')));
+            if ((section.startsWith('```math-table') && section.endsWith('```')) || (isMathTable && !section.startsWith('@@@'))) {
+                let rawBlock = section;
+                if (section.startsWith('```math-table')) {
+                    rawBlock = section.substring(13, section.length - 3).trim();
+                } else if (section.startsWith('math-table')) {
+                    rawBlock = section.substring(10).trim();
+                }
+
+                // On s'assure que c'est bien formaté pour renderFigure
+                return renderFigure(rawBlock.includes('|') ? `table | ${rawBlock}` : `table | ${rawBlock.replace(/\n/g, ' | ')}`);
             }
 
             // Bloc JSON qui pourrait être un tableau

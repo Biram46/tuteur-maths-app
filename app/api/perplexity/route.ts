@@ -39,35 +39,20 @@ export async function POST(request: NextRequest) {
 CONSIGNE RÉPONSE :
 1. Si l'utilisateur demande une étude complète ou que c'est pédagogiquement nécessaire, génère les deux tableaux (signes ET variations).
 2. Si l'utilisateur demande UNIQUEMENT un tableau de signes, ne génère PAS le tableau de variations.
-3. Utilise le format de bloc "math-table" pour les tableaux.
+3. Utilise le format de bloc "@@@ table | ..." pour les tableaux (plus robuste).
 
-CONSIGNE TABLEAUX (ALIGNEMENT ET COMPLÉTUDE) :
-Si tu as N valeurs sur l'axe x (ex: -inf, -2, 1, +inf -> N=4) :
-- Chaque ligne 'sign:' DOIT impérativement contenir EXACTEMENT 2N-3 éléments.
-- ANTI-TRONCATURE : Ne t'arrête JAMAIS avant +inf. Tu dois écrire chaque signe et pôle.
-- CHECKLIST RIGUEUR :
-  1. Si un facteur du dénominateur s'annule à x0, mets impérativement "||" sur la ligne f(x) à x0.
-  2. Multiplie les signes case par case pour f(x). Exemple : (-)/(+) = -, (-)/(-) = +.
-  3. Vérifie que le dernier intervalle (avant +inf) est écrit sur TOUTES les lignes.
+CONSIGNE TABLEAUX (STRUCTURE @@@) :
+- Commence par "@@@ table |".
+- Sépare chaque ligne par un pipe " | ".
+- Chaque ligne 'sign:' DOIT avoir EXACTEMENT le bon nombre d'éléments (2N-3).
+- OBLIGATION : Si c'est un quotient et que le dénominateur s'annule à x0, mets "||" sur la ligne f(x).
+- INTERDICTION : Ne jamais tronquer le tableau. Termine toujours par +inf.
 
 MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
-\`\`\`math-table
-x: -inf, -2, 1, +inf
-sign: 2x+4 : -, 0, +, +, +
-sign: x-1 : -, -, -, 0, +
-sign: f(x) : +, 0, -, ||, +
-\`\`\`
+@@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@
 
-MODÈLE STRICT :
-\`\`\`math-table
-x: -inf, 1, 3, +inf
-sign: (x-1) : -, 0, +, +, +
-sign: (x-3) : -, -, -, 0, +
-sign: f(x) : +, 0, -, ||, +
-
-x: -inf, 2, +inf
-var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+
-\`\`\`
+MODÈLE VARIATIONS :
+@@@ table | x: -inf, 2, +inf | var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+ | @@@
 
 RÈGLES D'OR :
 1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Ne répète JAMAIS une même valeur (ex: pas de "1, 1").
