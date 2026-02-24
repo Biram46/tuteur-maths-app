@@ -159,11 +159,10 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         // Support virgules OU espaces
                         currentXValues = valPart.split(/[\s,]+/).map(v => v.trim()).filter(v => v.length > 0);
                     } else if (low.includes(':') && !low.startsWith('table')) {
-                        const colonIndex = sec.lastIndexOf(':');
-                        const prefixAndLabel = sec.substring(0, colonIndex).trim();
-                        // Support virgules OU espaces pour le contenu
-                        // Support virgules OU espaces pour le contenu - On garde les slots vides pour le format 2N-1
-                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim());
+                        const rawContent = sec.substring(colonIndex + 1);
+                        const content = rawContent.includes(',')
+                            ? rawContent.split(',').map(v => v.trim())
+                            : rawContent.trim().split(/\s+/).filter(v => v.length > 0);
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
