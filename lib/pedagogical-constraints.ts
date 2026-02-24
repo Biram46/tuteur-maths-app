@@ -40,9 +40,9 @@ export const PEDAGOGICAL_CONSTRAINTS = `
     * Conclusion claire sur les intervalles de signe ou de variation.
     * Utilise les flèches $\nearrow$ et $\searrow$ pour les variations et $0$ sur la barre de signe pour les racines.
     * **Valeurs interdites (||) et discontinuités :**
-      - Dans les tableaux de signes (`\tkzTabLine`) : place ` || ` sous les valeurs interdites (ex: `, +, ||, -, `).
-      - Dans les tableaux de variations (`\tkzTabVar`) : utilise `D` pour les discontinuités / valeurs interdites.
-      - Dans le format interactif `@@@table`, utilise obligatoirement `|| ` pour les valeurs interdites.
+      - Dans les tableaux de signes (\`\\tkzTabLine\`) : place \` || \` sous les valeurs interdites (ex: \`, +, ||, -, \`).
+      - Dans les tableaux de variations (\`\\tkzTabVar\`) : utilise \`D\` pour les discontinuités / valeurs interdites.
+      - Dans le format interactif \`@@@ table\`, utilise obligatoirement \`|| \` pour les valeurs interdites.
 
 6. **SOURCES DE RÉFÉRENCE (À CONSULTER SI BESOIN) :**
    - Culture Math (ENS) - Tableaux en TeX : https://culturemath.ens.fr/thematiques/aide/tableaux-de-signes-ou-de-variations-en-tex
