@@ -60,14 +60,14 @@ export default function MathTable({ data, title }: MathTableProps) {
         if (len === expectedMid) return colIndex + 1;
 
         const currentItem = items[colIndex] ? cleanLabel(items[colIndex]).toLowerCase() : "";
-        const isSpecial = currentItem === '0' || currentItem === 'z' || currentItem === '||' || currentItem === 'nd' || currentItem === 'd' || currentItem === 'double' || currentItem.includes('barre') || currentItem === 'D';
+        const isSpecial = currentItem === '0' || currentItem === 'z' || currentItem === '||' || currentItem === 'nd' || currentItem === 'd' || currentItem === 'double' || currentItem.includes('barre');
 
         // Cas spécial : Heuristique d'alignement sur les x_i (indices pairs)
         if (isSpecial) {
             let specialCountBefore = 0;
             for (let i = 0; i < colIndex; i++) {
                 const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
-                if (prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double' || prev === 'D') specialCountBefore++;
+                if (prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double') specialCountBefore++;
             }
             return (specialCountBefore + 1) * 2;
         }
@@ -76,7 +76,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         let intervalCountBefore = 0;
         for (let i = 0; i < colIndex; i++) {
             const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
-            const isPrevSpecial = prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double' || prev === 'D';
+            const isPrevSpecial = prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double';
             if (!isPrevSpecial) intervalCountBefore++;
         }
         return (intervalCountBefore * 2) + 1;
@@ -90,9 +90,9 @@ export default function MathTable({ data, title }: MathTableProps) {
         row.content.forEach((item, idx) => {
             const d = cleanLabel(item).toLowerCase();
             const effIdx = getEffIdx(idx, len, n, row.content);
-            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'd') {
+            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
                 specialCols.add(effIdx);
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'd') forbiddenCols.add(effIdx);
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) forbiddenCols.add(effIdx);
             }
         });
     });

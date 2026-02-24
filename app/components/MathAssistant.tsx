@@ -162,7 +162,8 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         const colonIndex = sec.lastIndexOf(':');
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         // Support virgules OU espaces pour le contenu
-                        const content = sec.substring(colonIndex + 1).split(/[\s,]+/).map(v => v.trim()).filter(c => c.length > 0);
+                        // Support virgules OU espaces pour le contenu - On garde les slots vides pour le format 2N-1
+                        const content = sec.substring(colonIndex + 1).split(',').map(v => v.trim());
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
