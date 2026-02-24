@@ -50,31 +50,33 @@ export default function MathTable({ data, title }: MathTableProps) {
     const getXPos = (halfIdx: number) => labelWidth + (halfIdx * (cellWidth / 2)) + (cellWidth / 2);
 
     const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
-        const expected = (n * 2) - 3;
+        const expectedFull = (n * 2) - 1;
+        const expectedMid = (n * 2) - 3;
+
+        // Cas 1 : Format complet (2N-1) -> Correspondance directe 0..2N-2
+        if (len === expectedFull) return colIndex;
+
+        // Cas 2 : Format milieu (2N-3) -> Correspondance 1..2N-3
+        if (len === expectedMid) return colIndex + 1;
+
         const currentItem = items[colIndex] ? cleanLabel(items[colIndex]).toLowerCase() : "";
-        const isSpecial = currentItem === '0' || currentItem === 'z' || currentItem === '||' || currentItem === 'nd' || currentItem === 'd' || currentItem === 'double' || currentItem.includes('barre');
+        const isSpecial = currentItem === '0' || currentItem === 'z' || currentItem === '||' || currentItem === 'nd' || currentItem === 'd' || currentItem === 'double' || currentItem.includes('barre') || currentItem === 'D';
 
-        // Cas parfait
-        if (len === expected) return colIndex + 1;
-
-        // Si c'est un symbole spécial, on cherche la position 'x' correspondante la plus probable
+        // Cas spécial : Heuristique d'alignement sur les x_i (indices pairs)
         if (isSpecial) {
-            // Si on n'a que 1 ou 2 racines envoyées, on les aligne sur les x2, x3...
-            // C'est une heuristique : la i-ème racine envoyée va sur le i-ème x non-infini
             let specialCountBefore = 0;
             for (let i = 0; i < colIndex; i++) {
                 const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
-                if (prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double') specialCountBefore++;
+                if (prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double' || prev === 'D') specialCountBefore++;
             }
             return (specialCountBefore + 1) * 2;
         }
 
-        // Sinon, on remplit les intervalles séquentiellement
-        // On cherche combien d'intervalles ont été remplis avant
+        // Sinon, remplissage d'intervalles séquentiels (indices impairs)
         let intervalCountBefore = 0;
         for (let i = 0; i < colIndex; i++) {
             const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
-            const isPrevSpecial = prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double';
+            const isPrevSpecial = prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double' || prev === 'D';
             if (!isPrevSpecial) intervalCountBefore++;
         }
         return (intervalCountBefore * 2) + 1;
@@ -88,9 +90,9 @@ export default function MathTable({ data, title }: MathTableProps) {
         row.content.forEach((item, idx) => {
             const d = cleanLabel(item).toLowerCase();
             const effIdx = getEffIdx(idx, len, n, row.content);
-            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
+            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'd') {
                 specialCols.add(effIdx);
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) forbiddenCols.add(effIdx);
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'd') forbiddenCols.add(effIdx);
             }
         });
     });
@@ -154,15 +156,15 @@ export default function MathTable({ data, title }: MathTableProps) {
                             const yBase = headerHeight + rowIndex * rowHeight;
                             const yMid = yBase + rowHeight / 2;
                             const n = xValues.length;
-                            const expectedMax = (n * 2) - 3;
+                            const expectedMax = (n * 2) - 1;
 
                             return (
                                 <g key={`row-${rowIndex}`}>
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
-                                    {/* On itère sur TOUS les slots du 1er au dernier intervalle (indices 1 à 2n-3) */}
+                                    {/* On itère sur TOUS les slots (indices 0 à 2n-2) */}
                                     {Array.from({ length: expectedMax }).map((_, slotIdx) => {
-                                        const halfIdx = slotIdx + 1;
+                                        const halfIdx = slotIdx;
                                         const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, n, row.content) === halfIdx);
                                         let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 

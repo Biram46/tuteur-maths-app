@@ -49,11 +49,12 @@ MÉTHODE TABLEAU (ALGORITHME TUTEUR) :
    - Règle des signes : (-) * (-) = (+), (-) * (+) = (-).
    - Numérateur s'annule -> f(x) = 0.
    - Dénominateur s'annule -> f(x) = || (DOUBLE BARRE OBLIGATOIRE).
-5. Vérification Compte : Chaque ligne DOIT avoir 2N-3 éléments séparés par des virgules.
+   - **Rigueur LaTeX (tkz-tab) :** Dans \\tkzTabLine, utilise || pour les pôles finaux. Dans \\tkzTabVar, utilise D pour les discontinuités (valeurs interdites).
+5. Vérification Compte : Chaque ligne DOIT avoir 2N-1 éléments séparés par des virgules (inclut les bornes).
 
 MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
-@@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@
-(Note : On a 4 valeurs de x, donc 2*4-3 = 5 colonnes de contenu par ligne).
+@@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : , -, 0, +, +, +, | sign: x-1 : , -, -, -, 0, +, | sign: f(x) : , +, 0, -, ||, +, | @@@
+(Note : On a 4 valeurs de x, donc 2*4-1 = 7 colonnes de contenu par ligne. Les cases sous -inf et +inf sont vides ici pour le signe).
 
 RÈGLES D'OR :
 1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Jamais de doublons.
