@@ -49,15 +49,35 @@ export default function MathTable({ data, title }: MathTableProps) {
     // 0: x0, 1: interval(x0,x1), 2: x1, 3: interval(x1,x2)...
     const getXPos = (halfIdx: number) => labelWidth + (halfIdx * (cellWidth / 2)) + (cellWidth / 2);
 
-    const getEffIdx = (colIndex: number, len: number, n: number) => {
+    const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
         const expected = (n * 2) - 3;
-        // L'IA envoie normalement les éléments du 1er intervalle au dernier intervalle
+        const currentItem = items[colIndex] ? cleanLabel(items[colIndex]).toLowerCase() : "";
+        const isSpecial = currentItem === '0' || currentItem === 'z' || currentItem === '||' || currentItem === 'nd' || currentItem === 'd' || currentItem === 'double' || currentItem.includes('barre');
+
+        // Cas parfait
         if (len === expected) return colIndex + 1;
-        // Cas où l'IA n'envoie que les signes (intervalles : indices 1, 3, 5...)
-        if (len === n - 1) return (colIndex * 2) + 1;
-        // Cas où l'IA n'envoie que les racines sous x (indices 2, 4, 6...)
-        if (len === n - 2) return (colIndex * 2) + 2;
-        return colIndex + 1;
+
+        // Si c'est un symbole spécial, on cherche la position 'x' correspondante la plus probable
+        if (isSpecial) {
+            // Si on n'a que 1 ou 2 racines envoyées, on les aligne sur les x2, x3...
+            // C'est une heuristique : la i-ème racine envoyée va sur le i-ème x non-infini
+            let specialCountBefore = 0;
+            for (let i = 0; i < colIndex; i++) {
+                const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
+                if (prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double') specialCountBefore++;
+            }
+            return (specialCountBefore + 1) * 2;
+        }
+
+        // Sinon, on remplit les intervalles séquentiellement
+        // On cherche combien d'intervalles ont été remplis avant
+        let intervalCountBefore = 0;
+        for (let i = 0; i < colIndex; i++) {
+            const prev = items[i] ? cleanLabel(items[i]).toLowerCase() : "";
+            const isPrevSpecial = prev === '0' || prev === 'z' || prev === '||' || prev === 'nd' || prev === 'd' || prev === 'double';
+            if (!isPrevSpecial) intervalCountBefore++;
+        }
+        return (intervalCountBefore * 2) + 1;
     };
 
     const specialCols = new Set<number>();
@@ -67,7 +87,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         const len = row.content.length;
         row.content.forEach((item, idx) => {
             const d = cleanLabel(item).toLowerCase();
-            const effIdx = getEffIdx(idx, len, n);
+            const effIdx = getEffIdx(idx, len, n, row.content);
             if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
                 specialCols.add(effIdx);
                 if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) forbiddenCols.add(effIdx);
@@ -99,16 +119,19 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                         {/* Rappels verticaux pour 0 et || (à travers tout le tableau) */}
                         {Array.from(specialCols).map(colIdx => {
+                            // SÉCURITÉ : On ne dessine de ligne verticale QUE sous une valeur de x (indice pair)
+                            if (colIdx % 2 !== 0) return null;
+
                             const x = getXPos(colIdx);
                             if (forbiddenCols.has(colIdx)) {
                                 return (
                                     <g key={`v-f-${colIdx}`}>
-                                        <line x1={x - 3} y1={headerHeight} x2={x - 3} y2={totalHeight} stroke="#dc2626" strokeWidth="3" />
-                                        <line x1={x + 3} y1={headerHeight} x2={x + 3} y2={totalHeight} stroke="#dc2626" strokeWidth="3" />
+                                        <line x1={x - 3} y1={headerHeight} x2={x - 3} y2={totalHeight} stroke="#dc2626" strokeWidth="2.5" />
+                                        <line x1={x + 3} y1={headerHeight} x2={x + 3} y2={totalHeight} stroke="#dc2626" strokeWidth="2.5" />
                                     </g>
                                 );
                             }
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#1e293b" strokeDasharray="5,4" strokeWidth="2" />;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
                         })}
 
                         {rows.map((_, i) => (
@@ -140,7 +163,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     {/* On itère sur TOUS les slots du 1er au dernier intervalle (indices 1 à 2n-3) */}
                                     {Array.from({ length: expectedMax }).map((_, slotIdx) => {
                                         const halfIdx = slotIdx + 1;
-                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, n) === halfIdx);
+                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, n, row.content) === halfIdx);
                                         let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 
                                         const xPos = getXPos(halfIdx);
@@ -156,7 +179,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     </g>
                                                 );
                                             }
-                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre');
+                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre') || display.includes('interdite');
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
                                             // Si c'est vide mais qu'on a une barre verticale globale ici, on ne met rien
@@ -167,7 +190,7 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                         if (row.type === 'variation') {
                                             const displayLower = display;
-                                            const isDoubleBar = displayLower === '||' || displayLower === 'd' || displayLower === 'double' || displayLower === 'nd' || displayLower === 'non défini';
+                                            const isDoubleBar = displayLower === '||' || displayLower === 'd' || displayLower === 'double' || displayLower === 'nd' || displayLower === 'non défini' || displayLower === 'undefined' || displayLower === 'n.d.' || displayLower.includes('barre') || displayLower.includes('interdite');
 
                                             if (isDoubleBar) {
                                                 return (

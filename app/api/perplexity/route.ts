@@ -41,25 +41,24 @@ CONSIGNE RÉPONSE :
 2. Si l'utilisateur demande UNIQUEMENT un tableau de signes, ne génère PAS le tableau de variations.
 3. Utilise le format "@@@ table | ..." (OBLIGATOIRE).
 
-CONSIGNE TABLEAUX (RÉFÉRENCE tkz-tab) :
-- Structure : @@@ table | x: -inf, x1, x2, +inf | sign: facteur : s1, 0, s2, ||, s3 | @@@
-- RÉGLE DU COMPTE (CRITIQUE) : Si tu as N valeurs sur l'axe x, chaque ligne 'sign:' DOIT avoir EXACTEMENT 2N-3 éléments.
-  * Exemple N=4 : (-inf, -2, 1, +inf) -> 2*4-3 = 5 éléments.
-  * Exemple N=3 : (-inf, 0, +inf) -> 2*3-3 = 3 éléments.
-- ANTI-TRONCATURE : Ne t'arrête JAMAIS avant d'avoir écrit le signe de l'intervalle final avant +inf.
-- FRACTION f(x)=P(x)/Q(x) : Si Q(x) s'annule en x0, la ligne f(x) DOIT avoir un "||" à la position x0.
+MÉTHODE TABLEAU (ALGORITHME TUTEUR) :
+1. Liste toutes les valeurs charnières (racines et pôles) par ordre croissant.
+2. Axe x : Place -inf, les valeurs charnières, puis +inf. (N valeurs)
+3. Lignes facteurs : Calcule le signe pour chaque intervalle et place '0' sous la racine.
+4. Ligne f(x) (BILAN) : 
+   - Règle des signes : (-) * (-) = (+), (-) * (+) = (-).
+   - Numérateur s'annule -> f(x) = 0.
+   - Dénominateur s'annule -> f(x) = || (DOUBLE BARRE OBLIGATOIRE).
+5. Vérification Compte : Chaque ligne DOIT avoir 2N-3 éléments séparés par des virgules.
 
-MODÈLE FRACTION f(x)=(2x+4)/(x-1) (N=4) :
+MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
 @@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@
-
-MODÈLE VARIATIONS (N=3) :
-@@@ table | x: -inf, 2, +inf | var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+ | @@@
+(Note : On a 4 valeurs de x, donc 2*4-3 = 5 colonnes de contenu par ligne).
 
 RÈGLES D'OR :
-1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Ne répète JAMAIS une même valeur (ex: pas de "1, 1").
+1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Jamais de doublons.
 2. DÉCIMALES : Utilise la VIRGULE (ex: 0,5).
-3. NOTATION : P_A(B) pour les probas conditionnelles.
-4. VECTEURS : \\vec{u} ou \\vec{AB} impératif.
+3. VECTEURS : \vec{u} ou \vec{AB} impératif.
 
 Contexte : ${curriculumContext}
 ${PEDAGOGICAL_CONSTRAINTS}`;
