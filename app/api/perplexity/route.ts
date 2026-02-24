@@ -42,23 +42,23 @@ CONSIGNE RÉPONSE :
 3. Utilise le format "@@@ table | ..." (OBLIGATOIRE).
 
 MÉTHODE TABLEAU (ALGORITHME TUTEUR) :
-1. Calculs Préalables (RAISONNEMENT) : Trouve roots (num=0) et poles (den=0). Calcule f(x) pour une valeur de test dans chaque intervalle pour ne pas te tromper de signe. Check la limite en +inf pour le signe final.
-2. Axe x : Place -inf, les racines/pôles ordonnés, et +inf. (Soit N valeurs)
-3. FORMAT 2N-3 (STRICT) : Chaque ligne générée (sign/var) doit avoir EXACTEMENT 2N-3 éléments.
-   - Slot 1 : Intervalle ]x0, x1[ -> mets un signe (+/-).
-   - Slot 2 : Sous x1 -> mets 0 ou ||.
-   - Slot 3 : Intervalle ]x1, x2[ -> mets un signe (+/-).
+1. Calculs (RAISONNEMENT) : Trouve roots (num=0) et poles (den=0). 
+   - Signe : Teste une valeur dans CHAQUE intervalle. 
+   - Attention : Le signe CHANGE souvent de part et d'autre d'une racine OU d'un pôle (pense à la courbe).
+2. Axe x : Place -inf, les racines/pôles ordonnés, et +inf. (N valeurs)
+3. FORMAT 2N-3 (STRICT) : Chaque ligne f(x) (sign/var) doit avoir EXACTEMENT 2N-3 éléments séparés par des VIRGULES.
+   - NE COMMENCE PAS la liste par une virgule.
+   - Slot 1 (Intervalle) : + ou -
+   - Slot 2 (Valeur x1) : 0 ou ||
+   - Slot 3 (Intervalle) : + ou -
    - ... etc.
-4. Ligne f(x) (Règles) :
-   - Sous une racine -> mets 0.
-   - Sous un pôle -> mets || (DOUBLE BARRE OBLIGATOIRE).
-   - Dans un intervalle -> JAMAIS de 0 ou ||. Uniquement + ou -.
-5. Tableau de Variations :
-   - Ne mets PAS d'image f(x) pour des points qui ne sont pas des extrema. (Pas de f(-1) si ce n'est pas un sommet).
-   - Double barre : Utilise 'D' sous les pôles.
+4. Rigueur visuelle :
+   - Racine -> 0
+   - Pôle (Valeur interdite) -> || (DOUBLE BARRE OBLIGATOIRE)
+   - Discontinuité (Variations) -> D
 
-MODÈLE f(x)=(x+1)/(x-1) (x=-inf, -1, 1, +inf -> 4 valeurs -> 2*4-3 = 5 slots) :
-[Raisonnement : x=-1 est racine, x=1 est pôle. Intervalle ]-inf, -1[: (-)/(-)=+. Intervalle ]-1, 1[: (+)/(-)=-. Intervalle ]1, +inf[: (+)/(+)=+.]
+MODÈLE f(x)=(x+1)/(x-1) (x=-inf, -1, 1, +inf -> 4 valeurs -> 5 slots) :
+[Raisonnement : Racine x=-1, Pôle x=1. Test x=-2 -> (-)/(-) = +. Test x=0 -> (+)/(-) = -. Test x=2 -> (+)/(+) = +.]
 @@@ table | x: -inf, -1, 1, +inf | sign: f(x) : +, 0, -, ||, + | @@@
 
 RÈGLES D'OR :

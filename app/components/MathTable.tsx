@@ -186,20 +186,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre') || display.includes('interdite');
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
-                                            // Remplacement du signe manquant ( propagation du dernier signe connu dans la ligne )
-                                            if (item === "" && !specialCols.has(slotIdx)) {
-                                                // Trouver le dernier signe non vide avant cet index dans row.content
-                                                let lastSign = "";
-                                                for (let i = 0; i < row.content.length; i++) {
-                                                    const currentEff = getEffIdx(i, row.content.length, n, row.content);
-                                                    if (currentEff < slotIdx && !isSpecialItem(row.content[i])) {
-                                                        const clean = cleanLabel(row.content[i]);
-                                                        if (clean === '+' || clean === '-') lastSign = clean;
-                                                    }
-                                                }
-                                                if (lastSign) item = lastSign;
-                                            }
-
+                                            // Pas de propagation automatique des signes (trop risqué pour la rigueur mathématique)
                                             if (item === "" || item === " " || halfIdx % 2 === 0) return null;
 
                                             return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
