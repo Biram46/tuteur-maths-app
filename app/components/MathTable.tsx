@@ -33,15 +33,26 @@ export default function MathTable({ data, title }: MathTableProps) {
     const totalHeight = headerHeight + (rows.length * rowHeight);
 
     const cleanLabel = (text: string) => {
-        let t = text.replace(/\$/g, '').replace(/\\/g, '').trim().toLowerCase();
+        if (!text) return "";
+        // Normalisation agressive pour la détection : on enlève dollars, backslashes et on trimme
+        let t = text.replace(/\$/g, '').replace(/\\/g, '').trim();
+        const low = t.toLowerCase();
+
+        // Map des symboles institutionnels
         const map: Record<string, string> = {
             'inf': '∞', 'infty': '∞',
             '-inf': '-∞', '+inf': '+∞',
             '-infty': '-∞', '+infty': '+∞',
         };
-        if (map[t]) return map[t];
-        if (t.includes('inf')) return t.replace(/inf(ty)?/g, '∞');
-        return text.replace(/\$/g, '').trim();
+
+        if (map[low]) return map[low];
+
+        // Gestion des résidus d'infini
+        if (low.includes('inf')) {
+            return t.replace(/inf(ty)?/gi, '∞');
+        }
+
+        return t;
     };
 
     // --- LOGIQUE D'ALIGNEMENT ET COLONNES SPÉCIALES ---
@@ -187,10 +198,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 
                                         const xPos = getXPos(halfIdx);
-                                        const display = cleanLabel(item).toLowerCase();
+                                        const display = cleanLabel(item);
+                                        const displayLower = display.toLowerCase();
 
                                         if (row.type === 'sign') {
-                                            const isZero = display === '0' || display === 'z';
+                                            const isZero = displayLower === '0' || displayLower === 'z';
                                             if (isZero) {
                                                 return (
                                                     <g key={`s-${rowIndex}-${slotIdx}`}>
@@ -199,18 +211,17 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     </g>
                                                 );
                                             }
-                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre') || display.includes('interdite');
+                                            const isDoubleBar = isForbiddenItem(item);
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
                                             // Pas de propagation automatique des signes (trop risqué pour la rigueur mathématique)
                                             if (item === "" || item === " " || halfIdx % 2 === 0) return null;
 
-                                            return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
+                                            return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{display}</text>;
                                         }
 
                                         if (row.type === 'variation') {
-                                            const displayLower = display;
-                                            const isDoubleBar = displayLower === '||' || displayLower === 'd' || displayLower === 'double' || displayLower === 'nd' || displayLower === 'non défini' || displayLower === 'undefined' || displayLower === 'n.d.' || displayLower.includes('barre') || displayLower.includes('interdite');
+                                            const isDoubleBar = isForbiddenItem(item);
 
                                             if (isDoubleBar) {
                                                 return (
@@ -221,15 +232,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 );
                                             }
 
-                                            const [val, pos] = displayLower.split('/');
-                                            const isUp = /nearrow|up/i.test(val);
-                                            const isDown = /searrow|down/i.test(val);
+                                            // Détection flèche vs valeur
+                                            const entries = displayLower.split('/').map(v => v.trim());
+                                            const val = entries[0];
+                                            const pos = entries[1] || "";
+
+                                            const isUp = /nearrow|up/i.test(displayLower);
+                                            const isDown = /searrow|down/i.test(displayLower);
 
                                             if (isUp) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + rowHeight - 15} x2={xPos + 25} y2={yBase + 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
                                             if (isDown) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
 
-                                            // Pour les variations, on force souvent le haut/bas si pas précisé
-                                            // halfIdx pair = sous une valeur de x
+                                            // Positionnement vertical de la valeur (haut, bas ou milieu)
                                             let isBot = pos === '-' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('near')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('sea'));
                                             let isTop = pos === '+' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('sea')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('near'));
 
@@ -239,7 +253,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             }
 
                                             const yPos = isBot ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
-                                            return <text key={`v-${rowIndex}-${slotIdx}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{val}</text>;
+                                            return <text key={`v-${rowIndex}-${slotIdx}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{display}</text>;
                                         }
                                         return null;
                                     })}
