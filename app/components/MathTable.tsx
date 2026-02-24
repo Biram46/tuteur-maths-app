@@ -45,24 +45,32 @@ export default function MathTable({ data, title }: MathTableProps) {
     };
 
     // --- LOGIQUE D'ALIGNEMENT ET COLONNES SPÉCIALES ---
+    // N valeurs de x -> 2N-3 emplacements (Intervalles + Valeurs intermédiaires)
+    const getExpectedMax = (n: number) => Math.max(1, (n * 2) - 3);
+
     const getEffIdx = (colIndex: number, len: number, n: number) => {
-        const expectedMax = (n * 2) - 1;
-        if (len === expectedMax) return colIndex;
-        if (len === n) return colIndex * 2;
-        if (len % 2 !== 0) return colIndex + 1; // Standard interval-start
-        if (len === n - 1) return colIndex * 2 + 1;
-        return colIndex + 1;
+        const expected = getExpectedMax(n);
+        // Cas parfait
+        if (len === expected) return colIndex;
+        // Cas où l'IA n'envoie que les signes (intervalles)
+        if (len === n - 1) return colIndex * 2;
+        // Cas où l'IA n'envoie que les valeurs sous les x (N-2 valeurs intermédiaires)
+        if (len === n - 2) return colIndex * 2 + 1;
+        // Par défaut (sécurité)
+        return colIndex;
     };
 
     const specialCols = new Set<number>();
     const forbiddenCols = new Set<number>();
     rows.forEach(row => {
+        const n = xValues.length;
+        const len = row.content.length;
         row.content.forEach((item, idx) => {
             const d = cleanLabel(item).toLowerCase();
-            const effIdx = getEffIdx(idx, row.content.length, xValues.length);
-            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double') {
+            const effIdx = getEffIdx(idx, len, n);
+            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
                 specialCols.add(effIdx);
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double') forbiddenCols.add(effIdx);
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) forbiddenCols.add(effIdx);
             }
         });
     });
@@ -122,7 +130,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                         {rows.map((row, rowIndex) => {
                             const yBase = headerHeight + rowIndex * rowHeight;
                             const yMid = yBase + rowHeight / 2;
-                            const expectedMax = (xValues.length * 2) - 1;
+                            const expectedMax = getExpectedMax(xValues.length);
 
                             return (
                                 <g key={`row-${rowIndex}`}>

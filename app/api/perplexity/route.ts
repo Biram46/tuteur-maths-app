@@ -43,17 +43,16 @@ CONSIGNE RÉPONSE :
 
 CONSIGNE TABLEAUX (RÉFÉRENCE tkz-tab) :
 - Structure : @@@ table | x: -inf, x1, x2, +inf | sign: facteur : s1, 0, s2, ||, s3 | @@@
-- RÉGLE D'OR : Pour N valeurs de x, chaque ligne de signe DOIT avoir EXACTEMENT 2N-3 éléments.
-- CALCUL PRÉALABLE (ÉTAPE OBLIGATOIRE) :
-  1. Trouve les racines du numérateur (où f(x)=0).
-  2. Trouve les racines du dénominateur (où f(x)=||).
-  3. Vérifie le produit des signes pour chaque intervalle.
-- ALERTE TRONCATURE : Ne t'arrête jamais à la moitié. Tu dois aller jusqu'à +inf.
+- RÉGLE DU COMPTE (CRITIQUE) : Si tu as N valeurs sur l'axe x, chaque ligne 'sign:' DOIT avoir EXACTEMENT 2N-3 éléments.
+  * Exemple N=4 : (-inf, -2, 1, +inf) -> 2*4-3 = 5 éléments.
+  * Exemple N=3 : (-inf, 0, +inf) -> 2*3-3 = 3 éléments.
+- ANTI-TRONCATURE : Ne t'arrête JAMAIS avant d'avoir écrit le signe de l'intervalle final avant +inf.
+- FRACTION f(x)=P(x)/Q(x) : Si Q(x) s'annule en x0, la ligne f(x) DOIT avoir un "||" à la position x0.
 
-MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
+MODÈLE FRACTION f(x)=(2x+4)/(x-1) (N=4) :
 @@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@
 
-MODÈLE VARIATIONS :
+MODÈLE VARIATIONS (N=3) :
 @@@ table | x: -inf, 2, +inf | var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+ | @@@
 
 RÈGLES D'OR :
