@@ -71,7 +71,7 @@ export default function MathTable({ data, title }: MathTableProps) {
             let iIdx = 0;
             for (let i = 0; i < colIndex; i++) {
                 const p = cleanLabel(items[i]).toLowerCase();
-                const isP = p === '0' || p === 'z' || p === '||' || p === 'nd' || p === 'd' || p === 'double' || p === 'D';
+                const isP = p === '0' || p === 'z' || p === '||' || p === 'nd' || p === 'd' || p === 'double';
                 if (!isP) iIdx++;
             }
             return (iIdx * 2) + 1; // On place sur les intervalles (1, 3...)
@@ -80,7 +80,7 @@ export default function MathTable({ data, title }: MathTableProps) {
 
     const isSpecialItem = (val: string) => {
         const d = cleanLabel(val).toLowerCase();
-        return d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'D';
+        return d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre');
     };
 
     const specialCols = new Set<number>();
@@ -92,7 +92,7 @@ export default function MathTable({ data, title }: MathTableProps) {
             if (isSpecialItem(item)) {
                 specialCols.add(effIdx);
                 const d = cleanLabel(item).toLowerCase();
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'D') {
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
                     forbiddenCols.add(effIdx);
                 }
             }
@@ -200,7 +200,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 if (lastSign) item = lastSign;
                                             }
 
-                                            if (item === "" || item === " ") return null;
+                                            if (item === "" || item === " " || halfIdx % 2 === 0) return null;
 
                                             return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
                                         }

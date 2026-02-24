@@ -42,24 +42,24 @@ CONSIGNE RÉPONSE :
 3. Utilise le format "@@@ table | ..." (OBLIGATOIRE).
 
 MÉTHODE TABLEAU (ALGORITHME TUTEUR) :
-1. Analyse : Détermine les racines (numérateur) et pôles (dénominateur).
-2. Axe x : Place -inf, les racines/pôles par ordre croissant, et +inf. (Soit N valeurs)
-3. CONTENU (IMPÉRATIF) : Chaque ligne de contenu (sign ou var) doit comporter EXACTEMENT 2N-3 éléments séparés par des VIRGULES.
-   - Slot 1 : Entre x0 et x1
-   - Slot 2 : Sous x1
-   - Slot 3 : Entre x1 et x2
+1. Calculs Préalables (RAISONNEMENT) : Trouve roots (num=0) et poles (den=0). Calcule f(x) pour une valeur de test dans chaque intervalle pour ne pas te tromper de signe. Check la limite en +inf pour le signe final.
+2. Axe x : Place -inf, les racines/pôles ordonnés, et +inf. (Soit N valeurs)
+3. FORMAT 2N-3 (STRICT) : Chaque ligne générée (sign/var) doit avoir EXACTEMENT 2N-3 éléments.
+   - Slot 1 : Intervalle ]x0, x1[ -> mets un signe (+/-).
+   - Slot 2 : Sous x1 -> mets 0 ou ||.
+   - Slot 3 : Intervalle ]x1, x2[ -> mets un signe (+/-).
    - ... etc.
-4. Ligne f(x) (Signes) :
+4. Ligne f(x) (Règles) :
    - Sous une racine -> mets 0.
-   - Sous un pôle (valeur interdite) -> mets || (DOUBLE BARRE).
-   - Dans un intervalle -> mets + ou -. Jamais de 0 dans un intervalle.
-5. Ligne Variations :
-   - Extremas : Ne mets la valeur f(x) QUE pour les extremas locaux ou les bornes.
-   - Points de passage : Ne mets JAMAIS f(x) pour une valeur de x qui n'est pas un extremum (ex: si x=-1 n'est pas un sommet, ne mets pas f(-1)).
-   - Double barre : Utilise 'D' sous les pôles dans \\tkzTabVar.
+   - Sous un pôle -> mets || (DOUBLE BARRE OBLIGATOIRE).
+   - Dans un intervalle -> JAMAIS de 0 ou ||. Uniquement + ou -.
+5. Tableau de Variations :
+   - Ne mets PAS d'image f(x) pour des points qui ne sont pas des extrema. (Pas de f(-1) si ce n'est pas un sommet).
+   - Double barre : Utilise 'D' sous les pôles.
 
 MODÈLE f(x)=(x+1)/(x-1) (x=-inf, -1, 1, +inf -> 4 valeurs -> 2*4-3 = 5 slots) :
-@@@ table | x: -inf, -1, 1, +inf | sign: x+1 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@
+[Raisonnement : x=-1 est racine, x=1 est pôle. Intervalle ]-inf, -1[: (-)/(-)=+. Intervalle ]-1, 1[: (+)/(-)=-. Intervalle ]1, +inf[: (+)/(+)=+.]
+@@@ table | x: -inf, -1, 1, +inf | sign: f(x) : +, 0, -, ||, + | @@@
 
 RÈGLES D'OR :
 1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Jamais de doublons.
