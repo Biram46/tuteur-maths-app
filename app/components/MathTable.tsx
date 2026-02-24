@@ -45,19 +45,19 @@ export default function MathTable({ data, title }: MathTableProps) {
     };
 
     // --- LOGIQUE D'ALIGNEMENT ET COLONNES SPÉCIALES ---
-    // N valeurs de x -> 2N-3 emplacements (Intervalles + Valeurs intermédiaires)
-    const getExpectedMax = (n: number) => Math.max(1, (n * 2) - 3);
+    // Système de coordonnées par "demi-colonne" (half-indices)
+    // 0: x0, 1: interval(x0,x1), 2: x1, 3: interval(x1,x2)...
+    const getXPos = (halfIdx: number) => labelWidth + (halfIdx * (cellWidth / 2)) + (cellWidth / 2);
 
     const getEffIdx = (colIndex: number, len: number, n: number) => {
-        const expected = getExpectedMax(n);
-        // Cas parfait
-        if (len === expected) return colIndex;
-        // Cas où l'IA n'envoie que les signes (intervalles)
-        if (len === n - 1) return colIndex * 2;
-        // Cas où l'IA n'envoie que les valeurs sous les x (N-2 valeurs intermédiaires)
-        if (len === n - 2) return colIndex * 2 + 1;
-        // Par défaut (sécurité)
-        return colIndex;
+        const expected = (n * 2) - 3;
+        // L'IA envoie normalement les éléments du 1er intervalle au dernier intervalle
+        if (len === expected) return colIndex + 1;
+        // Cas où l'IA n'envoie que les signes (intervalles : indices 1, 3, 5...)
+        if (len === n - 1) return (colIndex * 2) + 1;
+        // Cas où l'IA n'envoie que les racines sous x (indices 2, 4, 6...)
+        if (len === n - 2) return (colIndex * 2) + 2;
+        return colIndex + 1;
     };
 
     const specialCols = new Set<number>();
@@ -99,7 +99,7 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                         {/* Rappels verticaux pour 0 et || (à travers tout le tableau) */}
                         {Array.from(specialCols).map(colIdx => {
-                            const x = labelWidth + (colIdx * (cellWidth / 2)) + (cellWidth / 2);
+                            const x = getXPos(colIdx);
                             if (forbiddenCols.has(colIdx)) {
                                 return (
                                     <g key={`v-f-${colIdx}`}>
@@ -108,7 +108,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     </g>
                                 );
                             }
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#334155" strokeDasharray="5,4" strokeWidth="2" />;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#1e293b" strokeDasharray="5,4" strokeWidth="2" />;
                         })}
 
                         {rows.map((_, i) => (
@@ -118,7 +118,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                         {/* --- LIGNE X --- */}
                         <text x={labelWidth / 2} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif italic text-lg fill-slate-800">x</text>
                         {xValues.map((val, i) => {
-                            const x = labelWidth + (i * cellWidth) + (cellWidth / 2);
+                            const x = getXPos(i * 2);
                             return (
                                 <text key={`x-${i}`} x={x} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold fill-black">
                                     {cleanLabel(val)}
@@ -130,19 +130,20 @@ export default function MathTable({ data, title }: MathTableProps) {
                         {rows.map((row, rowIndex) => {
                             const yBase = headerHeight + rowIndex * rowHeight;
                             const yMid = yBase + rowHeight / 2;
-                            const expectedMax = getExpectedMax(xValues.length);
+                            const n = xValues.length;
+                            const expectedMax = (n * 2) - 3;
 
                             return (
                                 <g key={`row-${rowIndex}`}>
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
 
-                                    {/* On itère sur TOUS les slots possibles pour éviter la troncature par l'IA */}
+                                    {/* On itère sur TOUS les slots du 1er au dernier intervalle (indices 1 à 2n-3) */}
                                     {Array.from({ length: expectedMax }).map((_, slotIdx) => {
-                                        // On cherche si l'IA a fourni quelque chose pour ce slot
-                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, xValues.length) === slotIdx);
+                                        const halfIdx = slotIdx + 1;
+                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, n) === halfIdx);
                                         let item = itemIdx !== -1 ? row.content[itemIdx] : "";
 
-                                        const xPos = labelWidth + (slotIdx * (cellWidth / 2)) + (cellWidth / 2);
+                                        const xPos = getXPos(halfIdx);
                                         const display = cleanLabel(item).toLowerCase();
 
                                         if (row.type === 'sign') {
@@ -185,10 +186,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             if (isDown) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
 
                                             // Pour les variations, on force souvent le haut/bas si pas précisé
-                                            // Note: Pour les variations, la logique de répétition de signe est plus complexe, 
-                                            // ici on se base sur slotIdx
-                                            let isBot = pos === '-' || (slotIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('near')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('sea'));
-                                            let isTop = pos === '+' || (slotIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('sea')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('near'));
+                                            // halfIdx pair = sous une valeur de x
+                                            let isBot = pos === '-' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('near')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('sea'));
+                                            let isTop = pos === '+' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('sea')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('near'));
 
                                             if (!pos && !isBot && !isTop) {
                                                 if (val.includes('-')) isBot = true;
