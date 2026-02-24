@@ -42,19 +42,22 @@ CONSIGNE RÉPONSE :
 3. Utilise le format "@@@ table | ..." (OBLIGATOIRE).
 
 MÉTHODE TABLEAU (ALGORITHME TUTEUR) :
-1. Liste toutes les valeurs charnières (racines et pôles) par ordre croissant.
-2. Axe x : Place -inf, les valeurs charnières, puis +inf. (N valeurs)
-3. Lignes facteurs : Calcule le signe pour chaque intervalle et place '0' sous la racine.
+1. Valeurs charnières : Identifie racines (numérateur) et pôles (dénominateur).
+2. Axe x : Place -inf, les valeurs charnières par ordre croissant, et +inf. (N valeurs)
+3. Lignes facteurs : Calcule le signe pour chaque intervalle. Place '0' uniquement sous les racines.
 4. Ligne f(x) (BILAN) : 
-   - Règle des signes : (-) * (-) = (+), (-) * (+) = (-).
-   - Numérateur s'annule -> f(x) = 0.
-   - Dénominateur s'annule -> f(x) = || (DOUBLE BARRE OBLIGATOIRE).
-   - **Rigueur LaTeX (tkz-tab) :** Dans \\tkzTabLine, utilise || pour les pôles finaux. Dans \\tkzTabVar, utilise D pour les discontinuités (valeurs interdites).
-5. Vérification Compte : Chaque ligne DOIT avoir 2N-1 éléments séparés par des virgules (inclut les bornes).
+   - Signe : Applique la règle des signes.
+   - Pôles : Place '||' (DOUBLE BARRE) impérativement sous chaque valeur interdite.
+   - **Rigueur :** Entre deux racines ou pôles, il ne peut y avoir qu'un signe (+ ou -).
+5. Tableau de Variations :
+   - N'affiche PAS f(x) pour les valeurs de x qui ne sont pas des extrema ou des bornes. 
+   - Si x=-1 n'est pas un extremum, ne mets pas "f(-1)" dans le tableau.
+   - Utilise 'D' pour les doubles barres dans \\tkzTabVar.
+6. Vérification Compte : Chaque ligne DOIT avoir exactement 2N-1 éléments séparés par des virgules.
 
-MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
-@@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : , -, 0, +, +, +, | sign: x-1 : , -, -, -, 0, +, | sign: f(x) : , +, 0, -, ||, +, | @@@
-(Note : On a 4 valeurs de x, donc 2*4-1 = 7 colonnes de contenu par ligne. Les cases sous -inf et +inf sont vides ici pour le signe).
+MODÈLE FRACTION f(x)=(x+1)/(x-1) :
+@@@ table | x: -inf, -1, 1, +inf | sign: x+1 : , -, 0, +, +, +, | sign: x-1 : , -, -, -, 0, +, | sign: f(x) : , +, 0, -, ||, +, | @@@
+(Note : 4 valeurs de x -> 7 slots. Slot 1 (sous -inf) est vide, Slot 2 (entre -inf et -1) a le signe, Slot 3 (sous -1) a 0, etc.)
 
 RÈGLES D'OR :
 1. AXE X : Commence TOUJOURS par -inf et termine TOUJOURS par +inf. Jamais de doublons.
