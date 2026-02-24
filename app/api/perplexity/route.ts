@@ -39,34 +39,32 @@ export async function POST(request: NextRequest) {
 OBJECTIF : Etude de fonction rigoureuse.
 
 CONSIGNE RÉPONSE :
-1. Si étude complète : Signes ET Variations.
-2. Signes uniquement : Pas de variations.
+1. "Etudier le signe" -> Génère UNIQUEMENT le tableau de signes de f(x). Ne génère PAS de tableau de variations sauf si spécifiquement demandé.
+2. "Etudier la fonction" ou "Etude complète" -> Génère Signes ET Variations.
 3. Format Interactif : TOUJOURS "@@@ table | ..." (OBLIGATOIRE).
 
-RÈGLES DU TABLEAU (ALGORITHME TUTEUR) :
-1. VÉRIFICATION MATHÉMATIQUE (OBLIGATOIRE AVANT LE TABLEAU) :
-   - Calcule racines (f(x)=0) et pôles (f(x) non déf).
-   - Teste CHAQUE intervalle avec une valeur réelle.
-   - Exemple pour (x+1)/(x-1) : sur ]1; +inf[, teste x=2 => f(2)=3 > 0 => SIGNE +
-   - NE TE TROMPE PAS : un pôle ou une racine impaire change le signe.
-2. FORMAT 2N-3 (STRICT) :
-   Si N est le nombre de valeurs en X (-inf, +inf inclus), f(x) a (2N-3) slots.
-   - Slots IMPAIRS (1, 3, 5...) : PLUS (+) ou MOINS (-). JAMAIS VIDE si l'intervalle existe.
-   - Slots PAIRS (2, 4...) : 0 ou ||. JAMAIS de signe (+/-) ici.
-3. SYMBOLES :
-   - || : DOUBLE BARRE OBLIGATOIRE (Valeur interdite).
-   - 0 : Racine.
-   - D : Discontinuité (Variations).
+RÈGLES DE CALCUL (ALGORITHME TUTEUR) :
+1. ANALYSE CRITIQUE (OBLIGATOIRE) :
+   - RACINE : f(x)=0 quand le NUMÉRATEUR est nul. Symbole '0' dans le tableau.
+   - PÔLE : f(x) est NON DÉFINIE quand le DÉNOMINATEUR est nul. Symbole '||' (Valeur interdite).
+   - EXEMPLE f(x)=(x+1)/(x-1) : Racine x=-1 (symbole 0), Pôle x=1 (symbole ||).
+2. INTERVALLES ET FLÈCHES :
+   - Si tu as N valeurs en X (ex: -inf, 1, +inf -> 3 valeurs), tu as EXACTEMENT N-1 intervalles (ex: 2 intervalles).
+   - Tableau de variations : Il doit y avoir EXACTEMENT une flèche (ou une valeur) par intervalle. Pas de flèche en trop.
+3. FORMAT 2N-3 (STRICT) :
+   Si N est le nombre de valeurs en X, la ligne f(x) compte (2N-3) slots.
+   - Slots IMPAIRS (1, 3, 5...) : Signe (+ ou -) ou Flèche.
+   - Slots PAIRS (2, 4...) : 0 ou ||. JAMAIS de signe ici.
 
-DÉMONSTRATION f(x)=(x+1)/(x-1) :
-X: -inf, -1, 1, +inf (N=4) -> 5 slots pour f(x).
-Test x=-2 -> + | Test x=0 -> - | Test x=2 -> +
+MODÈLE f(x)=(x+1)/(x-1) :
+X: -inf, -1, 1, +inf (N=4) -> f(x) a 2*4-3 = 5 slots.
+Raisonnement : x=-2 => +, x=0 => -, x=2 => +
 @@@ table | x: -inf, -1, 1, +inf | sign: f(x) : +, 0, -, ||, + | @@@
 
 INTERDICTIONS :
-- NE JAMAIS mettre un signe (+/-) sur une ligne verticale (slots pairs).
-- NE JAMAIS laisser d'intervalle sans signe.
-- Utilise la VIRGULE décimale.
+- Ne confonds JAMAIS racine (0) et valeur interdite (||).
+- Ne mets JAMAIS de signe (+/-) sur une barre verticale.
+- Pas de variations si l'utilisateur demande seulement le signe.
 
 Context : ${curriculumContext}
 ${PEDAGOGICAL_CONSTRAINTS}`;
