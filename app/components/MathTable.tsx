@@ -49,38 +49,55 @@ export default function MathTable({ data, title }: MathTableProps) {
     // 0: x0, 1: interval(x0,x1), 2: x1, 3: interval(x1,x2)...
     const getXPos = (halfIdx: number) => labelWidth + (halfIdx * (cellWidth / 2)) + (cellWidth / 2);
 
-    const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
-        const item = items[colIndex] ? cleanLabel(items[colIndex]).toLowerCase() : "";
-        const isSpecial = item === '0' || item === 'z' || item === '||' || item === 'nd' || item === 'd' || item === 'double' || item.includes('barre') || item === 'd' || item === 'D';
+    /**
+     * Identifie si un contenu de cellule correspond à un séparateur vertical (0 ou ||)
+     */
+    const isSpecialItem = (val: string) => {
+        const d = cleanLabel(val).toLowerCase();
+        return (
+            d === '0' || d === 'z' || d === 'zero' ||
+            d === '||' || d === 'nd' || d === 'd' || d === 'double' ||
+            d.includes('barre') || d === 'non défini' || d === 'interdite'
+        );
+    };
 
-        // Cas 1 : Format 2N-3 (Standard institutionnel) -> Alignement 1..2N-3
+    /**
+     * Identifie si un contenu de cellule doit déclencher une DOUBLE BARRE (valeur interdite)
+     */
+    const isForbiddenItem = (val: string) => {
+        const d = cleanLabel(val).toLowerCase();
+        return (
+            d === '||' || d === 'nd' || d === 'd' || d === 'double' ||
+            d.includes('barre') || d === 'non défini' || d === 'interdite'
+        );
+    };
+
+    const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
+        const item = items[colIndex] || "";
+        const isSp = isSpecialItem(item);
+
+        // Cas 1 : Format 2N-3 (Standard institutionnel)
         if (len === (n * 2) - 3) return colIndex + 1;
 
-        // Cas 2 : Format 2N-1 (Complet) -> Correspondance directe
+        // Cas 2 : Format 2N-1 (Complet)
         if (len === (n * 2) - 1) return colIndex;
 
-        // Cas 3 : Heuristique de catégorie (Si le compte est faux)
-        if (isSpecial) {
+        // Cas 3 : Heuristique par type
+        if (isSp) {
             let sIdx = 0;
             for (let i = 0; i < colIndex; i++) {
-                const p = cleanLabel(items[i]).toLowerCase();
-                if (p === '0' || p === 'z' || p === '||' || p === 'nd' || p === 'd' || p === 'double' || p === 'D') sIdx++;
+                if (isSpecialItem(items[i])) sIdx++;
             }
-            return (sIdx + 1) * 2; // On place sur les lignes verticales (2, 4...)
+            return (sIdx + 1) * 2;
         } else {
             let iIdx = 0;
             for (let i = 0; i < colIndex; i++) {
-                const p = cleanLabel(items[i]).toLowerCase();
-                const isP = p === '0' || p === 'z' || p === '||' || p === 'nd' || p === 'd' || p === 'double';
-                if (!isP) iIdx++;
+                if (!isSpecialItem(items[i])) iIdx++;
             }
-            return (iIdx * 2) + 1; // On place sur les intervalles (1, 3...)
+            const target = (iIdx * 2) + 1;
+            // Sécurité : ne jamais dépasser les limites
+            return Math.min(target, (n * 2) - 1);
         }
-    };
-
-    const isSpecialItem = (val: string) => {
-        const d = cleanLabel(val).toLowerCase();
-        return d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre');
     };
 
     const specialCols = new Set<number>();
@@ -91,8 +108,7 @@ export default function MathTable({ data, title }: MathTableProps) {
             const effIdx = getEffIdx(idx, row.content.length, n, row.content);
             if (isSpecialItem(item)) {
                 specialCols.add(effIdx);
-                const d = cleanLabel(item).toLowerCase();
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
+                if (isForbiddenItem(item)) {
                     forbiddenCols.add(effIdx);
                 }
             }
