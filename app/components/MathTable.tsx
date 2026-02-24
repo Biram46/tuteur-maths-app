@@ -78,17 +78,23 @@ export default function MathTable({ data, title }: MathTableProps) {
         }
     };
 
+    const isSpecialItem = (val: string) => {
+        const d = cleanLabel(val).toLowerCase();
+        return d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'D';
+    };
+
     const specialCols = new Set<number>();
     const forbiddenCols = new Set<number>();
     rows.forEach(row => {
         const n = xValues.length;
-        const len = row.content.length;
         row.content.forEach((item, idx) => {
-            const d = cleanLabel(item).toLowerCase();
-            const effIdx = getEffIdx(idx, len, n, row.content);
-            if (d === '0' || d === 'z' || d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) {
+            const effIdx = getEffIdx(idx, row.content.length, n, row.content);
+            if (isSpecialItem(item)) {
                 specialCols.add(effIdx);
-                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre')) forbiddenCols.add(effIdx);
+                const d = cleanLabel(item).toLowerCase();
+                if (d === '||' || d === 'nd' || d === 'd' || d === 'double' || d.includes('barre') || d === 'D') {
+                    forbiddenCols.add(effIdx);
+                }
             }
         });
     });
@@ -180,8 +186,21 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre') || display.includes('interdite');
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
-                                            // Si c'est vide mais qu'on a une barre verticale globale ici, on ne met rien
-                                            if (item === "" && specialCols.has(slotIdx)) return null;
+                                            // Remplacement du signe manquant ( propagation du dernier signe connu dans la ligne )
+                                            if (item === "" && !specialCols.has(slotIdx)) {
+                                                // Trouver le dernier signe non vide avant cet index dans row.content
+                                                let lastSign = "";
+                                                for (let i = 0; i < row.content.length; i++) {
+                                                    const currentEff = getEffIdx(i, row.content.length, n, row.content);
+                                                    if (currentEff < slotIdx && !isSpecialItem(row.content[i])) {
+                                                        const clean = cleanLabel(row.content[i]);
+                                                        if (clean === '+' || clean === '-') lastSign = clean;
+                                                    }
+                                                }
+                                                if (lastSign) item = lastSign;
+                                            }
+
+                                            if (item === "" || item === " ") return null;
 
                                             return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{item.replace(/\$/g, '')}</text>;
                                         }
