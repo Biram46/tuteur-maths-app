@@ -39,14 +39,16 @@ export async function POST(request: NextRequest) {
 CONSIGNE RÉPONSE :
 1. Si l'utilisateur demande une étude complète ou que c'est pédagogiquement nécessaire, génère les deux tableaux (signes ET variations).
 2. Si l'utilisateur demande UNIQUEMENT un tableau de signes, ne génère PAS le tableau de variations.
-3. Utilise le format de bloc "@@@ table | ..." pour les tableaux (plus robuste).
+3. Utilise le format "@@@ table | ..." (OBLIGATOIRE).
 
-CONSIGNE TABLEAUX (STRUCTURE @@@) :
-- Commence par "@@@ table |".
-- Sépare chaque ligne par un pipe " | ".
-- Chaque ligne 'sign:' DOIT avoir EXACTEMENT le bon nombre d'éléments (2N-3).
-- OBLIGATION : Si c'est un quotient et que le dénominateur s'annule à x0, mets "||" sur la ligne f(x).
-- INTERDICTION : Ne jamais tronquer le tableau. Termine toujours par +inf.
+CONSIGNE TABLEAUX (RÉFÉRENCE tkz-tab) :
+- Structure : @@@ table | x: -inf, x1, x2, +inf | sign: facteur : s1, 0, s2, ||, s3 | @@@
+- RÉGLE D'OR : Pour N valeurs de x, chaque ligne de signe DOIT avoir EXACTEMENT 2N-3 éléments.
+- CALCUL PRÉALABLE (ÉTAPE OBLIGATOIRE) :
+  1. Trouve les racines du numérateur (où f(x)=0).
+  2. Trouve les racines du dénominateur (où f(x)=||).
+  3. Vérifie le produit des signes pour chaque intervalle.
+- ALERTE TRONCATURE : Ne t'arrête jamais à la moitié. Tu dois aller jusqu'à +inf.
 
 MODÈLE FRACTION f(x)=(2x+4)/(x-1) :
 @@@ table | x: -inf, -2, 1, +inf | sign: 2x+4 : -, 0, +, +, + | sign: x-1 : -, -, -, 0, + | sign: f(x) : +, 0, -, ||, + | @@@

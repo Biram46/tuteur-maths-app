@@ -147,7 +147,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     </g>
                                                 );
                                             }
-                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined';
+                                            const isDoubleBar = display === '||' || display === 'd' || display === 'double' || display === 'nd' || display === 'non défini' || display === 'undefined' || display === 'n.d.' || display.includes('barre');
                                             if (isDoubleBar) return null; // Géré par la ligne verticale globale
 
                                             // Si c'est vide mais qu'on a une barre verticale globale ici, on ne met rien
