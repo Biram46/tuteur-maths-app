@@ -209,21 +209,43 @@ sign: f'(x) : +, ||, + |
 variation: f(x) : 1, nearrow, +inf, ||, -inf, nearrow, 1 |
 @@@
 
-⚠️ **CALCUL DES LIMITES EN TERMINALE :**
-- ⛔ INTERDIT d'utiliser les développements limités (DL) - HORS PROGRAMME !
-- ⛔ INTERDIT d'utiliser les équivalents ou la formule de Taylor
-- ✅ Utiliser le TAUX D'ACCROISSEMENT :
-  - lim(x→0) (e^x-1)/x = e^0 = 1 (nombre dérivé de e^x en 0)
-  - lim(x→0) ln(1+x)/x = 1 (nombre dérivé de ln en 1)
-  - lim(h→0) (f(a+h)-f(a))/h = f'(a)
+⛔⛔⛔ **RÈGLES ABSOLUES POUR LE CALCUL DES LIMITES EN TERMINALE** ⛔⛔⛔
 
-⚠️ **FORMAT TABLEAU DE SIGNES POUR QUOTIENT f(x) = g(x)/h(x) :**
+CES MÉTHODES SONT STRICTEMENT INTERDITES (HORS PROGRAMME) :
+- ⛔ DÉVELOPPEMENTS LIMITÉS (DL) : JAMAIS utiliser "e^x ≈ 1 + x + x²/2" ou similaire
+- ⛔ ÉQUIVALENTS : JAMAIS écrire "e^x - 1 ~ x" ou "équivalent à" ou "∼"
+- ⛔ ÉQUIVALENCE : JAMAIS utiliser le symbole "∼" ou le mot "équivalent"
+- ⛔ TAYLOR-YOUNG : JAMAIS utiliser cette formule
+
+✅ SEULE MÉTHODE AUTORISÉE : TAUX D'ACCROISSEMENT (nombre dérivé)
+- lim(x→0) (e^x-1)/x = e^0 = 1 car c'est le nombre dérivé de e^x en 0
+- lim(x→0) ln(1+x)/x = 1/1 = 1 car c'est le nombre dérivé de ln(x) en 1
+- lim(h→0) (f(a+h)-f(a))/h = f'(a) par définition du nombre dérivé
+
+EXEMPLE INTERDIT : "e^x - 1 ∼ x donc lim = 1" ❌
+EXEMPLE AUTORISÉ : "lim(x→0) (e^x-1)/x = f'(0) = e^0 = 1" ✅
+
+⛔⛔⛔ **FORMAT OBLIGATOIRE TABLEAU DE SIGNES POUR QUOTIENT** ⛔⛔⛔
+
+Si f(x) = g(x)/h(x) (fonction rationnelle ou quotient), le tableau de signes DOIT OBLIGATOIREMENT comporter :
+
+1. Une ligne pour x (les valeurs)
+2. Une ligne sign: pour le NUMÉRATEUR g(x)
+3. Une ligne sign: pour le DÉNOMINATEUR h(x)
+4. Une ligne sign: pour le QUOTIENT f(x)
+
+IL EST INTERDIT de faire un tableau de signes avec une seule ligne pour un quotient !
+
+EXEMPLE pour f(x) = (e^x - 1)/x :
+
 @@@ table |
 x: -inf, 0, +inf |
-sign: g(x) : -, 0, + |
-sign: h(x) : -, ||, + |
+sign: e^x - 1 : -, 0, + |
+sign: x : -, ||, + |
 sign: f(x) : +, ||, + |
 @@@
+
+⚠️ Les 4 lignes sont OBLIGATOIRES pour tout quotient !
 
 **RÈGLES POUR LA LIGNE "x:"**
 - Listes les valeurs de x dans l'ordre croissant
