@@ -185,6 +185,28 @@ SECTION 4 : VECTEURS
   - "Coordonnées" au lieu de "composantes".
 
 ============================================
+SECTION 4.5 : GÉOMÉTRIE ET FIGURES
+============================================
+
+⛔ **RÈGLE ABSOLUE : Toute question de géométrie DOIT générer une figure !**
+
+**FORMAT @@@ FIGURE :**
+@@@ figure
+type: coordinates
+points: A(2,3), B(-1,4), C(0,0)
+segments: [AB], [BC]
+@@@
+
+**NOTATION FRANÇAISE OBLIGATOIRE pour les coordonnées :**
+- Les coordonnées du point A se notent : $x_A$ et $y_A$
+- ⛔ INTERDIT : "x-coordinate of A", "abscissa of A", "A.x", "x-coordinate M"
+- ✅ CORRECT : "$x_A$", "$y_A$", "l'abscisse de A est $x_A$"
+
+**Formules importantes :**
+- Milieu I de [AB] : $x_I = \\frac{x_A + x_B}{2}$ et $y_I = \\frac{y_A + y_B}{2}$
+- Longueur AB : $AB = \\sqrt{(x_B - x_A)^2 + (y_B - y_A)^2}$
+
+============================================
 SECTION 5 : TABLEAUX DE SIGNES ET VARIATIONS
 ============================================
 

@@ -318,13 +318,27 @@ variation: 1, nearrow, +inf, ||, -inf, nearrow, 1
 
 === GÉOMÉTRIE ET FIGURES ===
 
-Toute question de géométrie DOIT générer une figure.
+⛔ **RÈGLE ABSOLUE : Toute question de géométrie DOIT générer une figure avec le format @@@ figure !**
+
+⚠️ **NOTATION FRANÇAISE OBLIGATOIRE pour les coordonnées :**
+- Les coordonnées du point A se notent : $x_A$ et $y_A$ (ou $A_x$ et $A_y$)
+- ⛔ INTERDIT : "x-coordinate of A", "x-coordinate M", "abscissa of A", "A.x", "A_x"
+- ✅ CORRECT : "$x_A$", "$y_A$", "l'abscisse de A est $x_A$", "l'ordonnée de A est $y_A$"
+- Pour le milieu I de [AB] : $x_I = \frac{x_A + x_B}{2}$ et $y_I = \frac{y_A + y_B}{2}$
+- Pour la longueur AB : $AB = \sqrt{(x_B - x_A)^2 + (y_B - y_A)^2}$
+
+**FORMAT OBLIGATOIRE pour les figures :**
 
 @@@ figure
 type: coordinates
 points: A(2,3), B(-1,4), C(0,0)
 segments: [AB], [BC]
 @@@
+
+**Exemple de réponse correcte :**
+"Les coordonnées du milieu I de [AB] sont :
+$x_I = \frac{x_A + x_B}{2} = \frac{2 + (-1)}{2} = 0,5$
+$y_I = \frac{y_A + y_B}{2} = \frac{3 + 5}{2} = 4$"
 
 === COURBES DE FONCTIONS ===
 
