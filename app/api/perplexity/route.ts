@@ -66,41 +66,56 @@ RÈGLES GÉNÉRALES POUR LA LIGNE "x:"
 - Exemple : x: -inf, -1, 1, +inf
 - Tu utilises "-inf" et "+inf" pour -∞ et +∞.
 
-ÉTUDE DU SIGNE UNIQUEMENT
-- Si on te demande UNIQUEMENT l’étude du signe, tu RENVOIES seulement la ligne de signes (pas de variations).
-- Format attendu pour f(x) = (x+1)/(x-1) :
-  - Analyse mathématique :
-    * Zéro : x = -1 (numérateur nul).
-    * Valeur interdite (pôle) : x = 1 (dénominateur nul).
-    * Signe : sur (-inf; -1) : +, en -1 : 0, sur (-1; 1) : -, en 1 : ||, sur (1; +inf) : +
+ÉTUDE DU SIGNE D’UNE FONCTION RATIONNELLE (FORMAT INSTITUTIONNEL FRANÇAIS)
 
-  @@@ table |
-  x: -inf, -1, 1, +inf |
-  sign: f(x) : +, 0, -, ||, + |
-  @@@
+RÈGLE DE FORMAT ABSOLUE :
+- N = nombre de valeurs de x
+- Chaque ligne "sign:" DOIT avoir EXACTEMENT 2N-3 éléments, NI PLUS NI MOINS
 
-RÈGLES STRICTES POUR LA LIGNE "sign:"
-On note N le nombre de valeurs de x (y compris -inf et +inf).  
-On doit avoir EXACTEMENT 2N-3 éléments (slots) sur la ligne "sign: f(x) : ...".
-- Les slots IMPAIRS (1, 3, 5, …) correspondent aux INTERVALLES et doivent contenir un signe + ou - (jamais vide si l’intervalle existe).
-- Les slots PAIRS (2, 4, 6, …) correspondent aux POINTS CRITIQUES entre deux intervalles (0 ou ||).
-- INTERDICTION : Ne JAMAIS mettre de signe + ou - sur un slot pair. Ne JAMAIS laisser un intervalle existant sans signe.
+EXEMPLE POUR f(x) = (x+1)/(x-1) avec x: -inf, -1, 1, +inf (N=4) :
+- 2N-3 = 5 éléments OBLIGATOIRES par ligne
 
-SYMBOLIQUE
-- "0" : racine.
-- "||" : valeur interdite.
-- "D" : discontinuité dans la ligne de VARIATIONS.
-
-TABLEAUX DE VARIATIONS (SI DEMANDÉ)
-- variation: f(x) : ..., nearrow/valeur, D, searrow/valeur, ...
-- Tu ne fais PAS passer de flèche de variation à travers une double barre / D.
-
-RÉFÉRENCE f(x) = (x+1)/(x-1) (SIGNE + VARIATIONS) :
 @@@ table |
 x: -inf, -1, 1, +inf |
+sign: x+1 : -, 0, +, +, + |
+sign: x-1 : -, -, -, 0, + |
 sign: f(x) : +, 0, -, ||, + |
-variation: f(x) : -, nearrow/0, D, searrow/0, + |
 @@@
+
+DÉCOMPOSITION DES 5 SLOTS (N=4) :
+
+Slot 1 : signe sur (-∞; -1)
+Slot 2 : valeur en x=-1
+Slot 3 : signe sur (-1; 1)
+Slot 4 : valeur en x=1
+Slot 5 : signe sur (1; +∞)
+
+LIGNE x+1 : -, 0, +, +, +
+- Slot 1 : x+1 < 0 → -
+- Slot 2 : x+1 = 0 → 0
+- Slot 3 : x+1 > 0 → +
+- Slot 4 : x+1 = 2 → +
+- Slot 5 : x+1 > 0 → +
+
+LIGNE x-1 : -, -, -, 0, +
+- Slot 1 : x-1 < 0 → -
+- Slot 2 : x-1 = -2 → -
+- Slot 3 : x-1 < 0 → -
+- Slot 4 : x-1 = 0 → 0 (le facteur s’annule !)
+- Slot 5 : x-1 > 0 → +
+
+LIGNE f(x) : +, 0, -, ||, +
+- Slot 1 : (-)÷(-) = +
+- Slot 2 : numérateur = 0 → 0
+- Slot 3 : (+)÷(-) = -
+- Slot 4 : dénominateur = 0 → || (valeur interdite)
+- Slot 5 : (+)÷(+) = +
+
+RÈGLES :
+1. TOUJOURS 2N-3 éléments par ligne sign:
+2. Sur les lignes de facteurs : mettre 0 si le facteur s’annule à cette position
+3. || UNIQUEMENT sur la dernière ligne f(x)
+4. Compte tes éléments avant d’envoyer !
 
 Context : ${curriculumContext}
 ${PEDAGOGICAL_CONSTRAINTS}`;

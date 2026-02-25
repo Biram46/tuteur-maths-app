@@ -61,8 +61,27 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             // Remplacement des tirets longs et espaces insécables
             const raw = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
 
-            // Séparation par pipe | OU par retour à la ligne \n
-            const sections = raw.split(/[|\n]/).map(s => s.trim()).filter(s => s.length > 0);
+            // Pour les tableaux, on normalise d'abord en remplaçant les retours à la ligne par des espaces
+            // Puis on divise par | uniquement
+            const isTableBlock = raw.toLowerCase().includes('table') ||
+                                 raw.toLowerCase().includes('x:') ||
+                                 raw.toLowerCase().includes('sign:') ||
+                                 raw.toLowerCase().includes('var');
+
+            let sections: string[];
+            if (isTableBlock) {
+                // Pour les tableaux : remplacer \n par espace
+                // IMPORTANT: Protéger || avant de diviser par |
+                const normalized = raw.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+
+                // Remplacer || par un placeholder, diviser par |, puis restaurer
+                const DOUBLE_BAR_PLACEHOLDER = '___DOUBLE_BAR___';
+                const protectedStr = normalized.replace(/\|\|/g, DOUBLE_BAR_PLACEHOLDER);
+                sections = protectedStr.split('|').map(s => s.trim().replace(new RegExp(DOUBLE_BAR_PLACEHOLDER, 'g'), '||')).filter(s => s.length > 0);
+            } else {
+                // Pour les autres (arbres, graphiques) : diviser par | OU \n
+                sections = raw.split(/[|\n]/).map(s => s.trim()).filter(s => s.length > 0);
+            }
 
             if (sections.length === 0) return null;
 
@@ -162,8 +181,10 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         const colonIndex = sec.lastIndexOf(':');
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         const rawContent = sec.substring(colonIndex + 1);
+
+                        // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
                         const content = rawContent.includes(',')
-                            ? rawContent.split(',').map(v => v.trim())
+                            ? rawContent.split(',').map(v => v.trim()).filter(v => v.length > 0)
                             : rawContent.trim().split(/\s+/).filter(v => v.length > 0);
 
                         let type: 'sign' | 'variation' = 'sign';
