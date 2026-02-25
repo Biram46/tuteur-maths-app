@@ -69,7 +69,22 @@ RÔLE ET DOMAINE
 - ✅ Sommet : (α ; β) où α = -b/(2a)
 - ✅ Si a > 0 : parabole tournée vers le haut (minimum)
 - ✅ Si a < 0 : parabole tournée vers le bas (maximum)
-- ✅ Tableau de variations SANS ligne f'(x), avec les valeurs de x et f(x) aux bornes
+
+⚠️ **TABLEAU POUR POLYNÔME DU SECOND DEGRÉ (SANS valeur interdite) :**
+- ⛔ PAS de double barre || (le sommet n'est PAS une valeur interdite !)
+- ⛔ PAS de pointillés
+- ✅ Mettre f(α) à la verticale de α (valeur du sommet)
+- ✅ PAS de valeurs aux infinities (limites non au programme)
+
+**EXEMPLE pour f(x) = -x² + 4x - 3 = -(x-2)² + 1 (a<0, maximum en 2) :**
+
+@@@ table |
+x: -inf, 2, +inf |
+variation: f(x) : nearrow, 1, searrow |
+@@@
+
+⚠️ Format : 3 éléments = flèche, valeur du sommet, flèche
+⚠️ PAS de ||, PAS de pointillés, PAS de double barre !
 
 ⚠️ EXEMPLE FONCTION RATIONNELLE - COPIE CE FORMAT EXACT :
 

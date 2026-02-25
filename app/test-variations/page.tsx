@@ -7,15 +7,16 @@ import MathTable from '@/app/components/MathTable';
  * Accessible via /test-variations
  */
 export default function TestVariationsPage() {
-    // Test 1: Variation simple (Seconde - sans dérivée)
-    // f(x) = -x² + 4x - 3, maximum en x=2, f(2)=1
+    // Test 1: Polynôme du second degré (Première spé - forme canonique)
+    // f(x) = -x² + 4x - 3 = -(x-2)² + 1, maximum en x=2, f(2)=1
+    // Format : flèche, valeur du sommet, flèche (SANS double barre, SANS valeurs aux infinies)
     const test1 = {
         xValues: ['-inf', '2', '+inf'],
         rows: [
             {
                 label: 'f(x)',
                 type: 'variation' as const,
-                content: ['-inf', 'nearrow', '1', 'searrow', '-inf']
+                content: ['nearrow', '1', 'searrow']
             }
         ]
     };
@@ -142,14 +143,16 @@ export default function TestVariationsPage() {
 
                 <div className="space-y-12">
                     {/* Test 1 */}
-                    <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-green-200">
                         <h2 className="text-lg font-semibold text-slate-700 mb-4">
-                            Test 1 : Parabole inversée (Seconde)
+                            Test 1 : Polynôme du second degré (Première spé - forme canonique)
                         </h2>
                         <p className="text-sm text-slate-500 mb-4">
-                            f(x) = -x² + 4x - 3, maximum en x=2, f(2)=1
+                            f(x) = -x² + 4x - 3 = -(x-2)² + 1. Maximum en x=2, f(2)=1.
+                            <br />
+                            <strong>Format :</strong> flèche, valeur du sommet, flèche (SANS double barre, SANS valeurs aux infinis)
                         </p>
-                        <MathTable data={test1} title="Tableau de Variations" />
+                        <MathTable data={test1} title="Tableau de Variations - Polynôme 2nd degré" />
                     </div>
 
                     {/* Test 2 */}

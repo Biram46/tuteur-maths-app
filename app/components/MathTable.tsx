@@ -153,13 +153,11 @@ export default function MathTable({ data, title }: MathTableProps) {
 
         // === FORMAT VARIATIONS ===
         if (isVariationRow) {
-            // Format N-1 : Première spé, uniquement flèches + || (ex: nearrow, ||, nearrow)
-            // N=3 → 3 éléments (flèche, ||, flèche)
+            // Format N-1 ou N : Première spé
+            // Cas 1 : flèches + || (ex: nearrow, ||, nearrow) pour fonction rationnelle
+            // Cas 2 : flèches + valeur (ex: nearrow, 1, searrow) pour polynôme 2nd degré
+            // N=3 → 3 éléments
             if (len === n - 1 || len === n) {
-                // Mapping: element i → position i+1 (pour que les flèches soient sur les intervalles)
-                // Element 0 (flèche) → position 1 (intervalle 0)
-                // Element 1 (||) → position 2 (sous x1)
-                // Element 2 (flèche) → position 3 (intervalle 1)
                 const isArrow = /nearrow|searrow/i.test(item);
                 const isForbidden = isForbiddenItem(item);
 
@@ -168,14 +166,16 @@ export default function MathTable({ data, title }: MathTableProps) {
                     return (Math.floor(n / 2)) * 2;
                 } else if (isArrow) {
                     // Les flèches vont sur les intervalles (positions impaires)
-                    // Compter combien de flèches avant celle-ci
                     let arrowIdx = 0;
                     for (let i = 0; i < colIndex; i++) {
                         if (/nearrow|searrow/i.test(items[i])) arrowIdx++;
                     }
                     return (arrowIdx * 2) + 1;
+                } else {
+                    // C'est une valeur (ex: f(α) au sommet) → position paire sous la valeur x correspondante
+                    // Pour un polynôme du second degré, la valeur est au milieu
+                    return (Math.floor(n / 2)) * 2;
                 }
-                return colIndex + 1;
             }
 
             // Format 2N+1 : avec limites aux valeurs interdites (ex: 1, nearrow, +inf, ||, -inf, nearrow, 1)
@@ -439,7 +439,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isArrowDown = /searrow/i.test(item);
                                             const isDoubleBarValue = isForbiddenItem(item);
 
-                                            // === FORMAT COURT PREMIÈRE SPÉ (N-1 éléments : flèches + || uniquement) ===
+                                            // === FORMAT COURT PREMIÈRE SPÉ (N-1 ou N éléments) ===
                                             if (isShortFormat) {
                                                 // Rendu tout en une fois au premier slot
                                                 if (slotIdx === 0) {
@@ -448,9 +448,10 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     const yTop = yBase + vMargin;
                                                     const yBottom = yBase + rowHeight - vMargin;
 
-                                                    // Trouver la position de la double barre
+                                                    // Trouver la position de la double barre (si présente)
                                                     const doubleBarIdx = correctedContent.findIndex(it => isForbiddenItem(it));
-                                                    const forbiddenXPos = getXPos(Math.floor(n / 2) * 2);
+                                                    const hasDoubleBar = doubleBarIdx !== -1;
+                                                    const middleXPos = getXPos(Math.floor(n / 2) * 2);
 
                                                     // Parcourir les éléments
                                                     for (let i = 0; i < contentLen; i++) {
@@ -460,25 +461,34 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                         const elIsDoubleBar = isForbiddenItem(el);
 
                                                         if (elIsDoubleBar) {
-                                                            // Double barre
+                                                            // Double barre (pour fonction rationnelle)
                                                             elements.push(
                                                                 <g key={`db-${i}`}>
-                                                                    <line x1={forbiddenXPos - 3} y1={yBase + 2} x2={forbiddenXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
-                                                                    <line x1={forbiddenXPos + 3} y1={yBase + 2} x2={forbiddenXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                    <line x1={middleXPos - 3} y1={yBase + 2} x2={middleXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                    <line x1={middleXPos + 3} y1={yBase + 2} x2={middleXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
                                                                 </g>
                                                             );
                                                         } else if (elIsArrowUp || elIsArrowDown) {
                                                             // Flèche
-                                                            // Calculer les positions x de début et fin
                                                             let xStart, xEnd;
-                                                            if (i < doubleBarIdx) {
-                                                                // Première flèche : de x0 à valeur interdite
-                                                                xStart = getXPos(0);
-                                                                xEnd = forbiddenXPos;
+                                                            if (hasDoubleBar) {
+                                                                // Avec double barre : flèches de part et d'autre
+                                                                if (i < doubleBarIdx) {
+                                                                    xStart = getXPos(0);
+                                                                    xEnd = middleXPos;
+                                                                } else {
+                                                                    xStart = middleXPos;
+                                                                    xEnd = getXPos((n - 1) * 2);
+                                                                }
                                                             } else {
-                                                                // Deuxième flèche : de valeur interdite à xN-1
-                                                                xStart = forbiddenXPos;
-                                                                xEnd = getXPos((n - 1) * 2);
+                                                                // Sans double barre (polynôme 2nd degré) : flèches de part et d'autre du sommet
+                                                                if (i === 0) {
+                                                                    xStart = getXPos(0);
+                                                                    xEnd = middleXPos;
+                                                                } else {
+                                                                    xStart = middleXPos;
+                                                                    xEnd = getXPos((n - 1) * 2);
+                                                                }
                                                             }
 
                                                             if (elIsArrowUp) {
@@ -490,6 +500,15 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                     <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
                                                                 );
                                                             }
+                                                        } else {
+                                                            // C'est une valeur (ex: f(α) au sommet pour polynôme 2nd degré)
+                                                            // Positionner à la verticale de la valeur charnière
+                                                            const yPos = yTop + 3; // En haut (pour un maximum)
+                                                            elements.push(
+                                                                <text key={`val-${i}`} x={middleXPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
+                                                                    {cleanLabel(el)}
+                                                                </text>
+                                                            );
                                                         }
                                                     }
 
