@@ -300,7 +300,9 @@ export default function MathTable({ data, title }: MathTableProps) {
         const rowForbiddenCols = new Set<number>();
         row.content.forEach((item, idx) => {
             const effIdx = getEffIdx(idx, row.content.length, n, row.content);
-            if (isSpecialItem(item)) {
+            // ⚠️ IMPORTANT : Les "0" dans la ligne de VARIATION ne doivent PAS déclencher de pointillés
+            // Seuls les "0" dans la ligne de SIGNE déclenchent des pointillés
+            if (isSpecialItem(item) && row.type !== 'variation') {
                 specialCols.add(effIdx);
             }
             if (isForbiddenItem(item)) {
@@ -464,20 +466,23 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     const yTop = yBase + vMargin;
                                                     const yBottom = yBase + rowHeight - vMargin;
 
-                                                    // Parcourir les éléments
-                                                    // Format : position i → position i+1 dans le système de demi-colonnes
-                                                    // Element 0 (flèche) → position 1 (intervalle 0)
-                                                    // Element 1 (valeur) → position 2 (sous x1)
-                                                    // Element 2 (flèche) → position 3 (intervalle 1)
-                                                    // etc.
+                                                    // Détecter si le premier élément est une valeur (pas une flèche ni ||)
+                                                    const firstEl = correctedContent[0];
+                                                    const firstIsArrow = /nearrow|searrow/i.test(firstEl);
+                                                    const firstIsDoubleBar = isForbiddenItem(firstEl);
+                                                    const startsWithValue = !firstIsArrow && !firstIsDoubleBar;
 
+                                                    // Parcourir les éléments
                                                     for (let i = 0; i < contentLen; i++) {
                                                         const el = correctedContent[i];
                                                         const elIsArrowUp = /nearrow/i.test(el);
                                                         const elIsArrowDown = /searrow/i.test(el);
                                                         const elIsDoubleBar = isForbiddenItem(el);
 
-                                                        const pos = i + 1; // Position dans le système de demi-colonnes
+                                                        // Calcul de la position
+                                                        // Si commence par une valeur: pos = i (0, 1, 2, ...)
+                                                        // Si commence par une flèche: pos = i + 1 (1, 2, 3, ...)
+                                                        const pos = startsWithValue ? i : i + 1;
 
                                                         if (elIsDoubleBar) {
                                                             // Double barre (pour fonction rationnelle avec valeur interdite)
@@ -503,7 +508,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                 );
                                                             }
                                                         } else {
-                                                            // Valeur (extremum) : positionnée sous la valeur x correspondante
+                                                            // Valeur (extremum ou borne du domaine)
                                                             const xPos = getXPos(pos);
 
                                                             // Position verticale : en haut si maximum, en bas si minimum
