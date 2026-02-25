@@ -76,7 +76,7 @@ RÔLE ET DOMAINE
 - ✅ Mettre f(α) à la verticale de α (valeur du sommet)
 - ✅ PAS de valeurs aux infinities (limites non au programme)
 
-**EXEMPLE pour f(x) = -x² + 4x - 3 = -(x-2)² + 1 (a<0, maximum en 2) :**
+**EXEMPLE 1 : Polynôme 2nd degré f(x) = -x² + 4x - 3 = -(x-2)² + 1 (a<0, maximum en 2)**
 
 @@@ table |
 x: -inf, 2, +inf |
@@ -85,6 +85,21 @@ variation: f(x) : nearrow, 1, searrow |
 
 ⚠️ Format : 3 éléments = flèche, valeur du sommet, flèche
 ⚠️ PAS de ||, PAS de pointillés, PAS de double barre !
+
+**EXEMPLE 2 : Fonction avec plusieurs extremums f(x) = x³ - 3x**
+
+f'(x) = 3x² - 3 = 3(x+1)(x-1), extremums en x=-1 et x=1
+f(-1) = 2 (maximum), f(1) = -2 (minimum)
+
+@@@ table |
+x: -inf, -1, 1, +inf |
+sign: f'(x) : +, 0, -, 0, + |
+variation: f(x) : nearrow, 2, searrow, -2, nearrow |
+@@@
+
+⚠️ Format : 5 éléments = flèche, f(-1), flèche, f(1), flèche
+⚠️ Les valeurs f(-1)=2 et f(1)=-2 sont aux positions des extremums
+⚠️ PAS de ||, PAS de double barre, PAS de pointillés sur la ligne variation !
 
 ⚠️ EXEMPLE FONCTION RATIONNELLE - COPIE CE FORMAT EXACT :
 

@@ -153,11 +153,13 @@ export default function MathTable({ data, title }: MathTableProps) {
 
         // === FORMAT VARIATIONS ===
         if (isVariationRow) {
-            // Format N-1 ou N : Première spé
-            // Cas 1 : flèches + || (ex: nearrow, ||, nearrow) pour fonction rationnelle
-            // Cas 2 : flèches + valeur (ex: nearrow, 1, searrow) pour polynôme 2nd degré
-            // N=3 → 3 éléments
-            if (len === n - 1 || len === n) {
+            // Format court Première spé (sans valeurs aux infinis) :
+            // - N=3 x-values → 3 éléments (ex: nearrow, 1, searrow) pour polynôme 2nd degré
+            // - N=4 x-values → 5 éléments (ex: nearrow, 2, searrow, -2, nearrow) pour fonction avec 2 extremums
+            // Pattern : 2N-3 éléments (N-1 flèches + N-2 valeurs aux extremums)
+            const isShortFormat = len === n - 1 || len === n || len === (n * 2) - 3;
+
+            if (isShortFormat) {
                 const isArrow = /nearrow|searrow/i.test(item);
                 const isForbidden = isForbiddenItem(item);
 
@@ -172,9 +174,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                     }
                     return (arrowIdx * 2) + 1;
                 } else {
-                    // C'est une valeur (ex: f(α) au sommet) → position paire sous la valeur x correspondante
-                    // Pour un polynôme du second degré, la valeur est au milieu
-                    return (Math.floor(n / 2)) * 2;
+                    // C'est une valeur (ex: f(α) au sommet ou aux extremums)
+                    // Position paire sous la valeur x correspondante
+                    // Compter combien de valeurs avant celle-ci
+                    let valueIdx = 0;
+                    for (let i = 0; i < colIndex; i++) {
+                        const prevItem = items[i];
+                        if (!/nearrow|searrow/i.test(prevItem) && !isForbiddenItem(prevItem)) {
+                            valueIdx++;
+                        }
+                    }
+                    // Les valeurs vont aux positions 2, 4, 6... (sous x1, x2, x3...)
+                    return (valueIdx + 1) * 2;
                 }
             }
 
@@ -322,7 +333,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                         <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#000" strokeWidth="2" />
                         <line x1={labelWidth} y1="0" x2={labelWidth} y2={totalHeight} stroke="#000" strokeWidth="2" />
 
-                        {/* Lignes pointillées pour les 0 (traversent tout le tableau) */}
+                        {/* Lignes pointillées pour les 0 (s'arrêtent AVANT la ligne de variation) */}
                         {Array.from(specialCols).map(colIdx => {
                             // On ne dessine de ligne verticale QUE sous une valeur de x (indice pair)
                             // ET seulement si ce n'est PAS une valeur interdite (||)
@@ -330,7 +341,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                             if (forbiddenCols.has(colIdx)) return null; // Les || sont dessinés séparément
 
                             const x = getXPos(colIdx);
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={totalHeight} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
+                            // S'arrêter AVANT la dernière ligne (variation)
+                            const dottedEndY = headerHeight + (rows.length - 1) * rowHeight;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
                         })}
 
                         {/* Lignes pointillées sous les valeurs interdites (de la 1ère à l'avant-dernière ligne) */}
@@ -439,7 +452,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isArrowDown = /searrow/i.test(item);
                                             const isDoubleBarValue = isForbiddenItem(item);
 
-                                            // === FORMAT COURT PREMIÈRE SPÉ (N-1 ou N éléments) ===
+                                            // === FORMAT COURT PREMIÈRE SPÉ (2N-3 éléments : flèches + valeurs aux extremums) ===
                                             if (isShortFormat) {
                                                 // Rendu tout en une fois au premier slot
                                                 if (slotIdx === 0) {
@@ -451,9 +464,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     // Trouver la position de la double barre (si présente)
                                                     const doubleBarIdx = correctedContent.findIndex(it => isForbiddenItem(it));
                                                     const hasDoubleBar = doubleBarIdx !== -1;
-                                                    const middleXPos = getXPos(Math.floor(n / 2) * 2);
 
-                                                    // Parcourir les éléments
+                                                    // Parcourir les éléments et calculer leurs positions
+                                                    let arrowCount = 0;
+                                                    let valueCount = 0;
+
                                                     for (let i = 0; i < contentLen; i++) {
                                                         const el = correctedContent[i];
                                                         const elIsArrowUp = /nearrow/i.test(el);
@@ -461,35 +476,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                         const elIsDoubleBar = isForbiddenItem(el);
 
                                                         if (elIsDoubleBar) {
-                                                            // Double barre (pour fonction rationnelle)
+                                                            // Double barre (pour fonction rationnelle avec valeur interdite)
+                                                            const xPos = getXPos((valueCount + 1) * 2);
                                                             elements.push(
                                                                 <g key={`db-${i}`}>
-                                                                    <line x1={middleXPos - 3} y1={yBase + 2} x2={middleXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
-                                                                    <line x1={middleXPos + 3} y1={yBase + 2} x2={middleXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                    <line x1={xPos - 3} y1={yBase + 2} x2={xPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                    <line x1={xPos + 3} y1={yBase + 2} x2={xPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
                                                                 </g>
                                                             );
                                                         } else if (elIsArrowUp || elIsArrowDown) {
-                                                            // Flèche
-                                                            let xStart, xEnd;
-                                                            if (hasDoubleBar) {
-                                                                // Avec double barre : flèches de part et d'autre
-                                                                if (i < doubleBarIdx) {
-                                                                    xStart = getXPos(0);
-                                                                    xEnd = middleXPos;
-                                                                } else {
-                                                                    xStart = middleXPos;
-                                                                    xEnd = getXPos((n - 1) * 2);
-                                                                }
-                                                            } else {
-                                                                // Sans double barre (polynôme 2nd degré) : flèches de part et d'autre du sommet
-                                                                if (i === 0) {
-                                                                    xStart = getXPos(0);
-                                                                    xEnd = middleXPos;
-                                                                } else {
-                                                                    xStart = middleXPos;
-                                                                    xEnd = getXPos((n - 1) * 2);
-                                                                }
-                                                            }
+                                                            // Flèche : va d'une position x à la suivante
+                                                            const xStart = getXPos(arrowCount * 2);
+                                                            const xEnd = getXPos((arrowCount + 1) * 2);
 
                                                             if (elIsArrowUp) {
                                                                 elements.push(
@@ -500,15 +498,34 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                     <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
                                                                 );
                                                             }
+                                                            arrowCount++;
                                                         } else {
-                                                            // C'est une valeur (ex: f(α) au sommet pour polynôme 2nd degré)
-                                                            // Positionner à la verticale de la valeur charnière
-                                                            const yPos = yTop + 3; // En haut (pour un maximum)
+                                                            // Valeur (extremum) : positionnée sous la valeur x correspondante
+                                                            // Les valeurs vont sous x1, x2, etc. (positions 2, 4, 6...)
+                                                            const xPos = getXPos((valueCount + 1) * 2);
+
+                                                            // Position verticale : en haut si flèche descend avant, en bas si flèche monte avant
+                                                            // Regarder la flèche précédente pour déterminer la position
+                                                            const prevArrow = i > 0 ? correctedContent[i - 1] : '';
+                                                            const nextArrow = i < contentLen - 1 ? correctedContent[i + 1] : '';
+                                                            const prevIsUp = /nearrow/i.test(prevArrow);
+                                                            const prevIsDown = /searrow/i.test(prevArrow);
+                                                            const nextIsUp = /nearrow/i.test(nextArrow);
+                                                            const nextIsDown = /searrow/i.test(nextArrow);
+
+                                                            let yPos = yMid;
+                                                            if (prevIsUp || nextIsDown) {
+                                                                yPos = yTop + 3; // Maximum
+                                                            } else if (prevIsDown || nextIsUp) {
+                                                                yPos = yBottom - 3; // Minimum
+                                                            }
+
                                                             elements.push(
-                                                                <text key={`val-${i}`} x={middleXPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
+                                                                <text key={`val-${i}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
                                                                     {cleanLabel(el)}
                                                                 </text>
                                                             );
+                                                            valueCount++;
                                                         }
                                                     }
 

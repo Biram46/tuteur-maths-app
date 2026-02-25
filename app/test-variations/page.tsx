@@ -21,8 +21,9 @@ export default function TestVariationsPage() {
         ]
     };
 
-    // Test 2: Variation avec dérivée (Première)
+    // Test 2: Fonction cube avec 2 extremums (Première spé)
     // f(x) = x³ - 3x, dérivée f'(x) = 3x² - 3
+    // Format : flèche, f(-1), flèche, f(1), flèche (SANS valeurs aux infinis)
     const test2 = {
         xValues: ['-inf', '-1', '1', '+inf'],
         rows: [
@@ -34,7 +35,8 @@ export default function TestVariationsPage() {
             {
                 label: 'f(x)',
                 type: 'variation' as const,
-                content: ['-inf', 'nearrow', '2', 'searrow', '-2', 'nearrow', '+inf']
+                // Format Première spé : valeurs aux extremums uniquement
+                content: ['nearrow', '2', 'searrow', '-2', 'nearrow']
             }
         ]
     };
@@ -156,14 +158,18 @@ export default function TestVariationsPage() {
                     </div>
 
                     {/* Test 2 */}
-                    <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-blue-200">
                         <h2 className="text-lg font-semibold text-slate-700 mb-4">
-                            Test 2 : Fonction cubique avec dérivée (Première)
+                            Test 2 : Fonction cube avec 2 extremums (Première spé)
                         </h2>
                         <p className="text-sm text-slate-500 mb-4">
-                            f(x) = x³ - 3x, f&apos;(x) = 3x² - 3
+                            f(x) = x³ - 3x, f&apos;(x) = 3x² - 3.
+                            <br />
+                            <strong>Format :</strong> flèche, f(-1)=2, flèche, f(1)=-2, flèche (SANS valeurs aux infinis)
+                            <br />
+                            <strong>⚠️ PAS de double barre, PAS de pointillés sur la ligne variation</strong>
                         </p>
-                        <MathTable data={test2} title="Tableau de Variations avec dérivée" />
+                        <MathTable data={test2} title="Tableau de Variations - Fonction avec 2 extremums" />
                     </div>
 
                     {/* Test 3 */}
