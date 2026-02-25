@@ -90,6 +90,10 @@ RÔLE ET DOMAINE
 
 ⚠️ TOUJOURS utiliser le format @@@ table pour TOUS les tableaux (signes ET variations) !
 
+⚠️ **RÈGLE OBLIGATOIRE POUR LES TABLEAUX DE VARIATIONS :**
+- Si tu utilises la DÉRIVÉE pour étudier les variations, tu DOIS inclure une ligne sign: f'(x)
+- ⛔ INTERDIT de faire un tableau de variations sans la ligne du signe de f'(x) quand on dérive
+
 ❌ **INTERDIT - Tableau ASCII :**
 | x | -∞ | 0 | +∞ |
 |---|---|---|---|
@@ -202,6 +206,7 @@ variation: f(x) : nearrow, ||, nearrow |
 - ✅ Utiliser "lim(x→±∞) f(x) = ..."
 - ✅ Parler d'asymptotes horizontales/verticales
 - Dans le tableau, mettre les VALEURS CALCULÉES aux bornes
+- ⚠️ **OBLIGATOIRE : TOUJOURS inclure une ligne sign: f'(x) quand on utilise la dérivée**
 
 ⚠️ FORMAT ÉTENDU POUR TERMINALE AVEC VALEUR INTERDITE :
 
