@@ -320,6 +320,16 @@ variation: 1, nearrow, +inf, ||, -inf, nearrow, 1
 
 ⛔ **RÈGLE ABSOLUE : Toute question de géométrie DOIT générer une figure avec le format @@@ figure !**
 
+⚠️ **RÈGLE IMPORTANTE :** Si tu calcules les coordonnées d'un point (milieu, intersection, etc.), tu DOIS l'inclure dans la figure !
+
+**EXEMPLE :** Si on te demande le milieu I de [AB], la figure DOIT contenir le point I avec ses coordonnées calculées :
+
+@@@ figure
+type: coordinates
+points: A(2,3), B(-1,5), I(0.5,4)
+segments: [AB]
+@@@
+
 ⚠️ **NOTATION FRANÇAISE OBLIGATOIRE pour les coordonnées :**
 - Les coordonnées du point A se notent : $x_A$ et $y_A$ (ou $A_x$ et $A_y$)
 - ⛔ INTERDIT : "x-coordinate of A", "x-coordinate M", "abscissa of A", "A.x", "A_x"
