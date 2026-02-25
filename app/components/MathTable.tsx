@@ -287,10 +287,13 @@ export default function MathTable({ data, title }: MathTableProps) {
     };
 
     // Collecte des colonnes spéciales par ligne (pour les lignes verticales)
-    // specialCols : colonnes avec "0" (ligne pointillée sur tout le tableau)
-    // forbiddenCols : colonnes avec "||" (double barre sur la dernière ligne uniquement)
+    // specialCols : colonnes avec "0" (ligne pointillée)
+    // forbiddenCols : colonnes avec "||" (double barre)
     const specialCols = new Set<number>();
     const forbiddenColsByRow: Map<number, Set<number>> = new Map();
+
+    // Trouver l'index de la ligne de variation
+    const variationRowIndex = rows.findIndex(row => row.type === 'variation');
 
     rows.forEach((row, rowIndex) => {
         const n = xValues.length;
@@ -307,9 +310,14 @@ export default function MathTable({ data, title }: MathTableProps) {
         forbiddenColsByRow.set(rowIndex, rowForbiddenCols);
     });
 
-    // Les doubles barres ne sont dessinées que sur la dernière ligne
+    // Les doubles barres ne sont dessinées que sur la ligne de variation
     const lastRowIndex = rows.length - 1;
-    const forbiddenCols = forbiddenColsByRow.get(lastRowIndex) || new Set<number>();
+    const forbiddenCols = forbiddenColsByRow.get(variationRowIndex !== -1 ? variationRowIndex : lastRowIndex) || new Set<number>();
+
+    // Position Y où les pointillés doivent s'arrêter (AVANT la ligne de variation)
+    const dottedLinesEndY = variationRowIndex !== -1
+        ? headerHeight + variationRowIndex * rowHeight
+        : headerHeight + (rows.length - 1) * rowHeight;
 
     return (
         <div className="my-10 w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -341,22 +349,17 @@ export default function MathTable({ data, title }: MathTableProps) {
                             if (forbiddenCols.has(colIdx)) return null; // Les || sont dessinés séparément
 
                             const x = getXPos(colIdx);
-                            // S'arrêter AVANT la dernière ligne (variation)
-                            const dottedEndY = headerHeight + (rows.length - 1) * rowHeight;
-                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
+                            return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedLinesEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
                         })}
 
-                        {/* Lignes pointillées sous les valeurs interdites (de la 1ère à l'avant-dernière ligne) */}
+                        {/* Lignes pointillées sous les valeurs interdites (s'arrêtent AVANT la ligne de variation) */}
                         {Array.from(forbiddenCols).map(colIdx => {
                             if (colIdx % 2 !== 0) return null;
 
                             const x = getXPos(colIdx);
-                            // De la 1ère ligne (ligne x) jusqu'à l'avant-dernière ligne (avant f(x))
-                            const dottedStartY = headerHeight;
-                            const dottedEndY = headerHeight + (rows.length - 1) * rowHeight;
 
                             return (
-                                <line key={`v-d-${colIdx}`} x1={x} y1={dottedStartY} x2={x} y2={dottedEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />
+                                <line key={`v-d-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedLinesEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />
                             );
                         })}
 
@@ -461,13 +464,12 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     const yTop = yBase + vMargin;
                                                     const yBottom = yBase + rowHeight - vMargin;
 
-                                                    // Trouver la position de la double barre (si présente)
-                                                    const doubleBarIdx = correctedContent.findIndex(it => isForbiddenItem(it));
-                                                    const hasDoubleBar = doubleBarIdx !== -1;
-
-                                                    // Parcourir les éléments et calculer leurs positions
-                                                    let arrowCount = 0;
-                                                    let valueCount = 0;
+                                                    // Parcourir les éléments
+                                                    // Format : position i → position i+1 dans le système de demi-colonnes
+                                                    // Element 0 (flèche) → position 1 (intervalle 0)
+                                                    // Element 1 (valeur) → position 2 (sous x1)
+                                                    // Element 2 (flèche) → position 3 (intervalle 1)
+                                                    // etc.
 
                                                     for (let i = 0; i < contentLen; i++) {
                                                         const el = correctedContent[i];
@@ -475,9 +477,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                         const elIsArrowDown = /searrow/i.test(el);
                                                         const elIsDoubleBar = isForbiddenItem(el);
 
+                                                        const pos = i + 1; // Position dans le système de demi-colonnes
+
                                                         if (elIsDoubleBar) {
                                                             // Double barre (pour fonction rationnelle avec valeur interdite)
-                                                            const xPos = getXPos((valueCount + 1) * 2);
+                                                            const xPos = getXPos(pos);
                                                             elements.push(
                                                                 <g key={`db-${i}`}>
                                                                     <line x1={xPos - 3} y1={yBase + 2} x2={xPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
@@ -485,9 +489,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                 </g>
                                                             );
                                                         } else if (elIsArrowUp || elIsArrowDown) {
-                                                            // Flèche : va d'une position x à la suivante
-                                                            const xStart = getXPos(arrowCount * 2);
-                                                            const xEnd = getXPos((arrowCount + 1) * 2);
+                                                            // Flèche : va de la position précédente à la suivante
+                                                            const xStart = getXPos(pos - 1);
+                                                            const xEnd = getXPos(pos + 1);
 
                                                             if (elIsArrowUp) {
                                                                 elements.push(
@@ -498,14 +502,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                     <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
                                                                 );
                                                             }
-                                                            arrowCount++;
                                                         } else {
                                                             // Valeur (extremum) : positionnée sous la valeur x correspondante
-                                                            // Les valeurs vont sous x1, x2, etc. (positions 2, 4, 6...)
-                                                            const xPos = getXPos((valueCount + 1) * 2);
+                                                            const xPos = getXPos(pos);
 
-                                                            // Position verticale : en haut si flèche descend avant, en bas si flèche monte avant
-                                                            // Regarder la flèche précédente pour déterminer la position
+                                                            // Position verticale : en haut si maximum, en bas si minimum
                                                             const prevArrow = i > 0 ? correctedContent[i - 1] : '';
                                                             const nextArrow = i < contentLen - 1 ? correctedContent[i + 1] : '';
                                                             const prevIsUp = /nearrow/i.test(prevArrow);
@@ -525,7 +526,6 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                                     {cleanLabel(el)}
                                                                 </text>
                                                             );
-                                                            valueCount++;
                                                         }
                                                     }
 
