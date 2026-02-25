@@ -149,6 +149,22 @@ body {
   white-space: normal;
 }
 
+/* Flèches de vecteurs plus visibles */
+.katex .mover > .mtoan,
+.katex .mover > .vlist > span > .mtoan,
+.katex .accent > .mtoan {
+  font-size: 1.3em !important;
+}
+
+.katex .vec {
+  font-size: 1.4em !important;
+}
+
+/* Augmenter la taille des accents (flèches) */
+.katex .accent-body {
+  font-size: 1.4em !important;
+}
+
 .katex table {
   width: auto !important;
   border-collapse: collapse !important;
