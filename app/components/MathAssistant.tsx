@@ -6,6 +6,9 @@ import RobotAvatar from './RobotAvatar';
 import MathGraph, { GraphPoint } from './MathGraph';
 import MathTree, { TreeNode } from './MathTree';
 import MathTable from './MathTable';
+import IntervalAxis from './IntervalAxis';
+import GeometryFigure, { GeoPoint, GeoSegment, GeoLine, GeoCircle, GeoAnnotation } from './GeometryFigure';
+import GeoGebraPlotter from './GeoGebraPlotter';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -84,6 +87,174 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
 
             if (sections.length === 0) return null;
+
+            // --- CAS 0 : INTERVALLE ---
+            if (sections[0].toLowerCase().includes('interval')) {
+                let left: number | string = 0;
+                let right: number | string = 5;
+                let leftIncluded = true;
+                let rightIncluded = false;
+
+                sections.forEach(sec => {
+                    const low = sec.toLowerCase().trim();
+                    if (low.startsWith('left:')) {
+                        const val = sec.split(':')[1].trim();
+                        if (val === '-inf' || val === '-∞') left = -Infinity;
+                        else left = parseFloat(val);
+                    } else if (low.startsWith('right:')) {
+                        const val = sec.split(':')[1].trim();
+                        if (val === '+inf' || val === '+∞') right = Infinity;
+                        else right = parseFloat(val);
+                    } else if (low.startsWith('leftincluded:')) {
+                        leftIncluded = sec.split(':')[1].trim().toLowerCase() === 'true';
+                    } else if (low.startsWith('rightincluded:')) {
+                        rightIncluded = sec.split(':')[1].trim().toLowerCase() === 'true';
+                    }
+                });
+
+                return <IntervalAxis key={rawBlock} left={left} right={right} leftIncluded={leftIncluded} rightIncluded={rightIncluded} title="Intervalle" />;
+            }
+
+            // --- CAS 0.5 : GEOGEBRA ---
+            if (sections[0].toLowerCase().includes('geogebra')) {
+                let commands: string[] = [];
+
+                sections.forEach(sec => {
+                    const low = sec.toLowerCase().trim();
+                    if (low.startsWith('commands:')) {
+                        const cmdStr = sec.substring(sec.indexOf(':') + 1).trim();
+                        commands = cmdStr.split(';').map(c => c.trim()).filter(c => c.length > 0);
+                    }
+                });
+
+                if (commands.length > 0) {
+                    return <GeoGebraPlotter key={rawBlock} commands={commands} title="Figure GeoGebra" />;
+                }
+            }
+
+            // --- CAS 0.6 : FIGURE GÉOMÉTRIQUE ANIMÉE ---
+            if (sections[0].toLowerCase().includes('figure')) {
+                const geoPoints: GeoPoint[] = [];
+                const geoSegments: GeoSegment[] = [];
+                const geoLines: GeoLine[] = [];
+                const geoCircles: GeoCircle[] = [];
+                const geoAnnotations: GeoAnnotation[] = [];
+                let hasCoordinates = true;
+                let showSteps = true;
+                let figureTitle = '';
+
+                sections.forEach(sec => {
+                    const low = sec.toLowerCase().trim();
+
+                    if (low.startsWith('type:')) {
+                        hasCoordinates = sec.split(':')[1].trim().toLowerCase() === 'coordinates';
+                    } else if (low.startsWith('steps:')) {
+                        showSteps = sec.split(':')[1].trim().toLowerCase() === 'true';
+                    } else if (low.startsWith('points:')) {
+                        // Format: points: A(2,3), B(-1,4), C(0,0)
+                        const ptsStr = sec.substring(sec.indexOf(':') + 1);
+                        const pts = ptsStr.match(/([A-Z])\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g);
+                        if (pts) {
+                            pts.forEach(pt => {
+                                const match = pt.match(/([A-Z])\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+                                if (match) {
+                                    geoPoints.push({
+                                        name: match[1],
+                                        x: parseFloat(match[2]),
+                                        y: parseFloat(match[3])
+                                    });
+                                }
+                            });
+                        }
+                    } else if (low.startsWith('segments:')) {
+                        // Format: segments: [AB], [BC]
+                        const segStr = sec.substring(sec.indexOf(':') + 1);
+                        const segs = segStr.match(/\[([A-Z])([A-Z])\]/g);
+                        if (segs) {
+                            segs.forEach(seg => {
+                                const match = seg.match(/\[([A-Z])([A-Z])\]/);
+                                if (match) {
+                                    geoSegments.push({ from: match[1], to: match[2] });
+                                }
+                            });
+                        }
+                    } else if (low.startsWith('vectors:')) {
+                        // Format: vectors: vec{u}(3,2), vec{AB}
+                        // Pour l'instant, on ajoute comme annotation
+                    } else if (low.startsWith('lines:')) {
+                        // Format: lines: (AB), d: y=2x+1
+                        const lineStr = sec.substring(sec.indexOf(':') + 1);
+                        const lines = lineStr.split(',');
+                        lines.forEach(line => {
+                            const match = line.trim().match(/\(([A-Z])([A-Z])\)/);
+                            if (match) {
+                                geoLines.push({ points: [match[1], match[2]] });
+                            }
+                        });
+                    } else if (low.startsWith('circles:')) {
+                        // Format: circles: cercle(A,3), cercle(O,A,B)
+                        const circStr = sec.substring(sec.indexOf(':') + 1);
+                        const circs = circStr.match(/cercle\s*\(\s*([A-Z])\s*,\s*([\d.]+)\s*\)/g);
+                        if (circs) {
+                            circs.forEach(circ => {
+                                const match = circ.match(/cercle\s*\(\s*([A-Z])\s*,\s*([\d.]+)\s*\)/);
+                                if (match) {
+                                    geoCircles.push({ center: match[1], radius: parseFloat(match[2]) });
+                                }
+                            });
+                        }
+                    } else if (low.startsWith('annotations:')) {
+                        // Format: annotations: milieu(A,B)=M, AB=5, angle(A,B,C)=90°
+                        const annotStr = sec.substring(sec.indexOf(':') + 1);
+                        // Milieu
+                        const midpoints = annotStr.match(/milieu\s*\(\s*([A-Z])\s*,\s*([A-Z])\s*\)\s*=\s*([A-Z])/g);
+                        if (midpoints) {
+                            midpoints.forEach(mp => {
+                                const match = mp.match(/milieu\s*\(\s*([A-Z])\s*,\s*([A-Z])\s*\)\s*=\s*([A-Z])/);
+                                if (match) {
+                                    geoAnnotations.push({ type: 'midpoint', points: [match[1], match[2]], value: match[3] });
+                                }
+                            });
+                        }
+                        // Angle
+                        const angles = annotStr.match(/angle\s*\(\s*([A-Z])\s*,\s*([A-Z])\s*,\s*([A-Z])\s*\)\s*=\s*(\d+)/g);
+                        if (angles) {
+                            angles.forEach(ang => {
+                                const match = ang.match(/angle\s*\(\s*([A-Z])\s*,\s*([A-Z])\s*,\s*([A-Z])\s*\)\s*=\s*(\d+)/);
+                                if (match) {
+                                    geoAnnotations.push({ type: 'angle', points: [match[1], match[2], match[3]], value: parseInt(match[4]) });
+                                }
+                            });
+                        }
+                        // Distance
+                        const distances = annotStr.match(/([A-Z]{2})\s*=\s*([\d.]+)/g);
+                        if (distances) {
+                            distances.forEach(dist => {
+                                const match = dist.match(/([A-Z]{2})\s*=\s*([\d.]+)/);
+                                if (match) {
+                                    geoAnnotations.push({ type: 'distance', points: [match[1][0], match[1][1]], value: match[2] });
+                                }
+                            });
+                        }
+                    }
+                });
+
+                if (geoPoints.length > 0) {
+                    return (
+                        <GeometryFigure
+                            key={rawBlock}
+                            points={geoPoints}
+                            segments={geoSegments}
+                            lines={geoLines}
+                            circles={geoCircles}
+                            annotations={geoAnnotations}
+                            hasCoordinates={hasCoordinates}
+                            showSteps={showSteps}
+                            title={figureTitle}
+                        />
+                    );
+                }
+            }
 
             // --- CAS 1 : ARBRE DE PROBABILITÉS ---
             if (sections[0].toLowerCase().includes('tree') || sections[0].toLowerCase().includes('arbre')) {
@@ -213,13 +384,18 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 if (tableGroups.length > 0) {
                     return (
                         <div key={rawBlock} className="flex flex-col gap-10 w-full items-center my-10 px-4">
-                            {tableGroups.map((group, gIdx) => (
-                                <MathTable
-                                    key={`${rawBlock}-${gIdx}`}
-                                    data={{ xValues: group.xValues, rows: group.rows }}
-                                    title={group.rows[0]?.type === 'sign' ? "Tableau de Signes" : "Tableau de Variations"}
-                                />
-                            ))}
+                            {tableGroups.map((group, gIdx) => {
+                                // Déterminer le type de tableau : si une ligne est 'variation', c'est un tableau de variations
+                                const hasVariation = group.rows.some((r: any) => r.type === 'variation');
+                                const tableTitle = hasVariation ? "Tableau de Variations" : "Tableau de Signes";
+                                return (
+                                    <MathTable
+                                        key={`${rawBlock}-${gIdx}`}
+                                        data={{ xValues: group.xValues, rows: group.rows }}
+                                        title={tableTitle}
+                                    />
+                                );
+                            })}
                         </div>
                     );
                 }

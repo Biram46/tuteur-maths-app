@@ -92,17 +92,160 @@ export default function MathTable({ data, title }: MathTableProps) {
     };
 
     /**
+     * CORRECTION AUTOMATIQUE du format de variation
+     * Si l'IA génère un format incorrect (ex: || à une position impaire),
+     * cette fonction corrige le contenu pour respecter le format attendu.
+     */
+    const correctVariationFormat = (content: string[], n: number): string[] => {
+        if (content.length !== (n * 2) - 1) return content;
+
+        // Détecter si c'est une ligne de variations
+        const hasArrows = content.some(it => /nearrow|searrow/i.test(it));
+        if (!hasArrows) return content;
+
+        // Trouver la position du ||
+        const doubleBarIdx = content.findIndex(it => isForbiddenItem(it));
+        if (doubleBarIdx === -1) return content; // Pas de ||, pas besoin de correction
+
+        // Le || doit être à une position PAIRE (sous une valeur de x)
+        // Si N=3, les positions paires sont 0, 2, 4
+        // Le || doit être à la position 2 (sous la valeur du milieu)
+
+        if (doubleBarIdx % 2 !== 0) {
+            // Le || est à une position impaire (intervalle) - FORMAT INCORRECT !
+            // On doit le déplacer à la position paire la plus proche
+            // Pour N=3, le || doit être à la position 2 (sous xValues[1])
+
+            // Créer un nouveau contenu corrigé
+            const corrected = [...content];
+
+            // Trouver la position correcte pour || (sous la valeur interdite)
+            // Pour une fonction homographique, c'est généralement la position du milieu
+            const correctPosition = Math.floor(n / 2) * 2; // Pour N=3: position 2
+
+            // Échanger les éléments
+            const temp = corrected[correctPosition];
+            corrected[correctPosition] = corrected[doubleBarIdx];
+            corrected[doubleBarIdx] = temp;
+
+            console.log(`[MathTable] Format variation corrigé: || déplacé de ${doubleBarIdx} vers ${correctPosition}`);
+            return corrected;
+        }
+
+        return content;
+    };
+
+    /**
      * Calcule l'index effectif dans le système de demi-colonnes
      * Système: 0=x0, 1=interval, 2=x1, 3=interval, 4=x2, ...
      *
-     * Format 2N-3: N valeurs x, 2N-3 slots
-     * - Slots impairs (0,2,4,...) → intervalles → positions 1,3,5,...
-     * - Slots pairs (1,3,5,...) → points critiques → positions 2,4,6,...
+     * Format 2N-3 (signes): N valeurs x, 2N-3 slots (intervalles + valeurs critiques)
+     * Format 2N-1 (variations simple): N valeurs x, 2N-1 slots (valeurs + flèches)
+     * Format 2N+1 (variations avec limites): N valeurs x, 2N+1 slots (avec 2 valeurs à la valeur interdite)
+     * Format N-1 (variations Première spé): uniquement flèches + || (sans valeurs aux bornes)
      */
     const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
         const item = items[colIndex] || "";
         const isSp = isSpecialItem(item);
 
+        // Détecter si c'est une ligne de variations (contient nearrow/searrow)
+        const isVariationRow = items.some(it => /nearrow|searrow/i.test(it));
+
+        // === FORMAT VARIATIONS ===
+        if (isVariationRow) {
+            // Format N-1 : Première spé, uniquement flèches + || (ex: nearrow, ||, nearrow)
+            // N=3 → 3 éléments (flèche, ||, flèche)
+            if (len === n - 1 || len === n) {
+                // Mapping: element i → position i+1 (pour que les flèches soient sur les intervalles)
+                // Element 0 (flèche) → position 1 (intervalle 0)
+                // Element 1 (||) → position 2 (sous x1)
+                // Element 2 (flèche) → position 3 (intervalle 1)
+                const isArrow = /nearrow|searrow/i.test(item);
+                const isForbidden = isForbiddenItem(item);
+
+                if (isForbidden) {
+                    // La double barre va sous la valeur interdite (position paire)
+                    return (Math.floor(n / 2)) * 2;
+                } else if (isArrow) {
+                    // Les flèches vont sur les intervalles (positions impaires)
+                    // Compter combien de flèches avant celle-ci
+                    let arrowIdx = 0;
+                    for (let i = 0; i < colIndex; i++) {
+                        if (/nearrow|searrow/i.test(items[i])) arrowIdx++;
+                    }
+                    return (arrowIdx * 2) + 1;
+                }
+                return colIndex + 1;
+            }
+
+            // Format 2N+1 : avec limites aux valeurs interdites (ex: 1, nearrow, +inf, ||, -inf, nearrow, 1)
+            // N=3 → 7 éléments
+            if (len === (n * 2) + 1) {
+                // Mapping spécial pour format étendu avec limites
+                // Position 0: valeur sous x0
+                // Position 1: flèche sur interval 0
+                // Position 2: limite haute sous valeur interdite
+                // Position 3: ||
+                // Position 4: limite basse sous valeur interdite
+                // Position 5: flèche sur interval 1
+                // Position 6: valeur sous x2
+
+                const doubleBarIdx = items.findIndex(it => isForbiddenItem(it));
+
+                if (colIndex < doubleBarIdx) {
+                    // Avant le || : mapping normal
+                    return colIndex;
+                } else if (colIndex === doubleBarIdx) {
+                    // Le || reste à sa position (sous la valeur interdite)
+                    return (Math.floor(n / 2)) * 2; // Position 2 pour N=3
+                } else if (colIndex === doubleBarIdx - 1) {
+                    // Valeur haute (limite gauche) - positionnée au-dessus du ||
+                    return (Math.floor(n / 2)) * 2; // Position 2 pour N=3
+                } else if (colIndex === doubleBarIdx + 1) {
+                    // Valeur basse (limite droite) - positionnée en bas du ||
+                    return (Math.floor(n / 2)) * 2; // Position 2 pour N=3
+                } else {
+                    // Après le || : décaler de 2 (car on a 2 valeurs au lieu d'0)
+                    return colIndex - 2;
+                }
+            }
+
+            // Format 2N-1 : mapping direct
+            if (len === (n * 2) - 1) {
+                return colIndex;
+            }
+
+            // Si on a moins d'éléments, il faut une heuristique
+            // Compter les flèches et les valeurs
+            let arrowCount = 0;
+            let valueCount = 0;
+
+            for (let i = 0; i < colIndex; i++) {
+                if (/nearrow|searrow/i.test(items[i])) {
+                    arrowCount++;
+                } else if (!isForbiddenItem(items[i])) {
+                    valueCount++;
+                }
+            }
+
+            // Si l'élément actuel est une flèche
+            if (/nearrow|searrow/i.test(item)) {
+                // La flèche va à la position d'intervalle correspondante
+                return (arrowCount * 2) + 1;
+            }
+
+            // Si c'est une valeur interdite
+            if (isForbiddenItem(item)) {
+                // La placer sous la valeur x correspondante
+                // Compter combien de valeurs de x avant cette position
+                return (valueCount + arrowCount) * 2;
+            }
+
+            // Sinon c'est une valeur normale
+            return valueCount * 2;
+        }
+
+        // === FORMAT SIGNES (2N-3 éléments) ===
         // Cas 1 : Format 2N-3 (Standard institutionnel)
         // Ex: x: -inf, -1, 1, +inf (N=4) → 5 slots: +,0,-,||,+
         // Slot 0(+) → pos 1, Slot 1(0) → pos 2, Slot 2(-) → pos 3, Slot 3(||) → pos 4, Slot 4(+) → pos 5
@@ -243,6 +386,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                             const n = xValues.length;
                             const expectedMax = (n * 2) - 1;
 
+                            // Appliquer la correction du format si nécessaire
+                            const correctedContent = row.type === 'variation'
+                                ? correctVariationFormat(row.content, n)
+                                : row.content;
+
                             return (
                                 <g key={`row-${rowIndex}`}>
                                     <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
@@ -250,8 +398,8 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     {/* On itère sur TOUS les slots (indices 0 à 2n-2) */}
                                     {Array.from({ length: expectedMax }).map((_, slotIdx) => {
                                         const halfIdx = slotIdx;
-                                        const itemIdx = row.content.findIndex((_, idx) => getEffIdx(idx, row.content.length, n, row.content) === halfIdx);
-                                        let item = itemIdx !== -1 ? row.content[itemIdx] : "";
+                                        const itemIdx = correctedContent.findIndex((_, idx) => getEffIdx(idx, correctedContent.length, n, correctedContent) === halfIdx);
+                                        let item = itemIdx !== -1 ? correctedContent[itemIdx] : "";
 
                                         const xPos = getXPos(halfIdx);
                                         const display = cleanLabel(item);
@@ -281,9 +429,77 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         }
 
                                         if (row.type === 'variation') {
-                                            const isDoubleBar = isForbiddenItem(item);
+                                            // === DÉTECTION DU FORMAT ===
+                                            const contentLen = correctedContent.length;
+                                            const isExtendedFormat = contentLen === (n * 2) + 1; // Format 2N+1 avec limites (Terminale)
+                                            const isShortFormat = contentLen === n - 1 || contentLen === n; // Format N-1 : flèches uniquement (Première spé)
 
-                                            if (isDoubleBar) {
+                                            // === DÉTECTION DIRECTE DES FLÈCHES ===
+                                            const isArrowUp = /nearrow/i.test(item);
+                                            const isArrowDown = /searrow/i.test(item);
+                                            const isDoubleBarValue = isForbiddenItem(item);
+
+                                            // === FORMAT COURT PREMIÈRE SPÉ (N-1 éléments : flèches + || uniquement) ===
+                                            if (isShortFormat) {
+                                                // Rendu tout en une fois au premier slot
+                                                if (slotIdx === 0) {
+                                                    const elements = [];
+                                                    const vMargin = 12;
+                                                    const yTop = yBase + vMargin;
+                                                    const yBottom = yBase + rowHeight - vMargin;
+
+                                                    // Trouver la position de la double barre
+                                                    const doubleBarIdx = correctedContent.findIndex(it => isForbiddenItem(it));
+                                                    const forbiddenXPos = getXPos(Math.floor(n / 2) * 2);
+
+                                                    // Parcourir les éléments
+                                                    for (let i = 0; i < contentLen; i++) {
+                                                        const el = correctedContent[i];
+                                                        const elIsArrowUp = /nearrow/i.test(el);
+                                                        const elIsArrowDown = /searrow/i.test(el);
+                                                        const elIsDoubleBar = isForbiddenItem(el);
+
+                                                        if (elIsDoubleBar) {
+                                                            // Double barre
+                                                            elements.push(
+                                                                <g key={`db-${i}`}>
+                                                                    <line x1={forbiddenXPos - 3} y1={yBase + 2} x2={forbiddenXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                    <line x1={forbiddenXPos + 3} y1={yBase + 2} x2={forbiddenXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                                </g>
+                                                            );
+                                                        } else if (elIsArrowUp || elIsArrowDown) {
+                                                            // Flèche
+                                                            // Calculer les positions x de début et fin
+                                                            let xStart, xEnd;
+                                                            if (i < doubleBarIdx) {
+                                                                // Première flèche : de x0 à valeur interdite
+                                                                xStart = getXPos(0);
+                                                                xEnd = forbiddenXPos;
+                                                            } else {
+                                                                // Deuxième flèche : de valeur interdite à xN-1
+                                                                xStart = forbiddenXPos;
+                                                                xEnd = getXPos((n - 1) * 2);
+                                                            }
+
+                                                            if (elIsArrowUp) {
+                                                                elements.push(
+                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yBottom} x2={xEnd - 8} y2={yTop} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                );
+                                                            } else {
+                                                                elements.push(
+                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+
+                                                    return <g key={`v-${rowIndex}-short`}>{elements}</g>;
+                                                }
+                                                return null; // Ne rien rendre pour les autres slots
+                                            }
+
+                                            // Double barre (valeur interdite) - géré séparément pour le format étendu
+                                            if (isDoubleBarValue && !isExtendedFormat) {
                                                 return (
                                                     <g key={`v-${rowIndex}-${slotIdx}`}>
                                                         <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
@@ -292,28 +508,223 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                 );
                                             }
 
-                                            // Détection flèche vs valeur
-                                            const entries = displayLower.split('/').map(v => v.trim());
-                                            const val = entries[0];
-                                            const pos = entries[1] || "";
+                                            // === FORMAT ÉTENDU AVEC LIMITES (2N+1 éléments) ===
+                                            if (isExtendedFormat) {
+                                                const doubleBarIdx = correctedContent.findIndex(it => isForbiddenItem(it));
+                                                const forbiddenXPos = getXPos(Math.floor(n / 2) * 2); // Position x de la valeur interdite
 
-                                            const isUp = /nearrow|up/i.test(displayLower);
-                                            const isDown = /searrow|down/i.test(displayLower);
+                                                // Rendu spécial pour le format étendu
+                                                // On ne rend pas par slot, mais on rend tout en une fois
+                                                if (slotIdx === 0) {
+                                                    // Rendre tous les éléments du format étendu
+                                                    const elements = [];
 
-                                            if (isUp) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + rowHeight - 15} x2={xPos + 25} y2={yBase + 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
-                                            if (isDown) return <line key={`v-${rowIndex}-${slotIdx}`} x1={xPos - 25} y1={yBase + 15} x2={xPos + 25} y2={yBase + rowHeight - 15} stroke="#4f46e5" strokeWidth="3" markerEnd={`url(#arrow-${id})`} />;
+                                                    // Marges
+                                                    const vMargin = 12;
+                                                    const yTop = yBase + vMargin;
+                                                    const yBottom = yBase + rowHeight - vMargin;
 
-                                            // Positionnement vertical de la valeur (haut, bas ou milieu)
-                                            let isBot = pos === '-' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('near')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('sea'));
-                                            let isTop = pos === '+' || (halfIdx % 2 === 0 && row.content[itemIdx + 1]?.includes('sea')) || (itemIdx > 0 && row.content[itemIdx - 1]?.includes('near'));
+                    // 1. Première valeur (sous x0)
+                    const val0 = correctedContent[0];
+                    const x0 = getXPos(0);
+                    const arrow1 = correctedContent[1];
+                    const isArrow1Up = /nearrow/i.test(arrow1);
+                    const isArrow1Down = /searrow/i.test(arrow1);
 
-                                            if (!pos && !isBot && !isTop) {
-                                                if (val.includes('-')) isBot = true;
-                                                else if (val.includes('+')) isTop = true;
+                    let yVal0 = yMid;
+                    if (isArrow1Up) yVal0 = yBottom;
+                    else if (isArrow1Down) yVal0 = yTop;
+
+                    elements.push(
+                        <text key="val0" x={x0} y={yVal0} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
+                            {cleanLabel(val0)}
+                        </text>
+                    );
+
+                    // Positions pour les limites à la valeur interdite
+                    const xLeftLimit = forbiddenXPos - 20;  // Limite gauche (avant ||)
+                    const xRightLimit = forbiddenXPos + 20; // Limite droite (après ||)
+
+                    // 2. Limite gauche (à GAUCHE de la double barre) - ex: +∞
+                    const valLeft = correctedContent[doubleBarIdx - 1];
+                    const isArrow1UpToInf = /nearrow/i.test(arrow1);
+                    const yLeftLimit = isArrow1UpToInf ? yTop + 5 : yBottom - 5;
+
+                    elements.push(
+                        <text key="valLeft" x={xLeftLimit} y={yLeftLimit} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[12px] font-black fill-black">
+                            {cleanLabel(valLeft)}
+                        </text>
+                    );
+
+                    // 3. Première flèche (de x0 vers limite gauche)
+                    if (isArrow1Up || isArrow1Down) {
+                        if (isArrow1Up) {
+                            elements.push(
+                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                            );
+                        } else {
+                            elements.push(
+                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                            );
+                        }
+                    }
+
+                    // 4. Double barre
+                    elements.push(
+                        <g key="doublebar">
+                            <line x1={forbiddenXPos - 3} y1={yBase + 2} x2={forbiddenXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                            <line x1={forbiddenXPos + 3} y1={yBase + 2} x2={forbiddenXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                        </g>
+                    );
+
+                    // 5. Limite droite (à DROITE de la double barre) - ex: -∞
+                    const valRight = correctedContent[doubleBarIdx + 1];
+                    const arrow2 = correctedContent[doubleBarIdx + 2];
+                    const isArrow2UpFromInf = /nearrow/i.test(arrow2);
+                    const yRightLimit = isArrow2UpFromInf ? yBottom - 5 : yTop + 5;
+
+                    elements.push(
+                        <text key="valRight" x={xRightLimit} y={yRightLimit} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[12px] font-black fill-black">
+                            {cleanLabel(valRight)}
+                        </text>
+                    );
+
+                    // 6. Deuxième flèche (de limite droite vers x2)
+                    const isArrow2Up = /nearrow/i.test(arrow2);
+                    const isArrow2Down = /searrow/i.test(arrow2);
+                    const x2 = getXPos((n - 1) * 2);
+
+                    if (isArrow2Up || isArrow2Down) {
+                        const val2 = correctedContent[contentLen - 1];
+                        let yVal2 = yMid;
+                        if (isArrow2Up) yVal2 = yTop;
+                        else if (isArrow2Down) yVal2 = yBottom;
+
+                        if (isArrow2Up) {
+                            elements.push(
+                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                            );
+                        } else {
+                            elements.push(
+                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                            );
+                        }
+
+                        // 7. Dernière valeur
+                        elements.push(
+                            <text key="val2" x={x2} y={yVal2} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
+                                {cleanLabel(val2)}
+                            </text>
+                        );
+                    }
+
+                    return <g key={`v-${rowIndex}-extended`}>{elements}</g>;
+                                                }
+                                                return null; // Ne rien rendre pour les autres slots
                                             }
 
-                                            const yPos = isBot ? yBase + rowHeight - 15 : (isTop ? yBase + 15 : yMid);
-                                            return <text key={`v-${rowIndex}-${slotIdx}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">{display}</text>;
+                                            // === FORMAT STANDARD (2N-1 éléments) ===
+                                            // Double barre (valeur interdite)
+                                            if (isDoubleBarValue) {
+                                                return (
+                                                    <g key={`v-${rowIndex}-${slotIdx}`}>
+                                                        <line x1={xPos - 2} y1={yBase + 2} x2={xPos - 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
+                                                        <line x1={xPos + 2} y1={yBase + 2} x2={xPos + 2} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2" />
+                                                    </g>
+                                                );
+                                            }
+
+                                            // === FLÈCHES ===
+                                            if (isArrowUp || isArrowDown) {
+                                                // Les flèches sont sur les positions impaires (intervalles)
+                                                if (halfIdx % 2 === 0) return null;
+
+                                                // Positions de début et fin de la flèche
+                                                const xStart = getXPos(halfIdx - 1);
+                                                const xEnd = getXPos(halfIdx + 1);
+
+                                                // Marges
+                                                const vMargin = 12;
+                                                const yTop = yBase + vMargin;
+                                                const yBottom = yBase + rowHeight - vMargin;
+
+                                                if (isArrowUp) {
+                                                    // Flèche montante : bas-gauche vers haut-droite
+                                                    return (
+                                                        <line
+                                                            key={`v-${rowIndex}-${slotIdx}`}
+                                                            x1={xStart + 5}
+                                                            y1={yBottom}
+                                                            x2={xEnd - 8}
+                                                            y2={yTop}
+                                                            stroke="#4f46e5"
+                                                            strokeWidth="2.5"
+                                                            markerEnd={`url(#arrow-${id})`}
+                                                        />
+                                                    );
+                                                } else {
+                                                    // Flèche descendante : haut-gauche vers bas-droite
+                                                    return (
+                                                        <line
+                                                            key={`v-${rowIndex}-${slotIdx}`}
+                                                            x1={xStart + 5}
+                                                            y1={yTop}
+                                                            x2={xEnd - 8}
+                                                            y2={yBottom}
+                                                            stroke="#4f46e5"
+                                                            strokeWidth="2.5"
+                                                            markerEnd={`url(#arrow-${id})`}
+                                                        />
+                                                    );
+                                                }
+                                            }
+
+                                            // === VALEURS (positions paires, sous les valeurs de x) ===
+                                            if (halfIdx % 2 !== 0) return null;
+
+                                            // Trouver les flèches adjacentes pour le positionnement vertical
+                                            const prevItem = itemIdx > 0 ? correctedContent[itemIdx - 1] : '';
+                                            const nextItem = itemIdx < correctedContent.length - 1 ? correctedContent[itemIdx + 1] : '';
+
+                                            const prevIsUp = /nearrow/i.test(prevItem);
+                                            const prevIsDown = /searrow/i.test(prevItem);
+                                            const nextIsUp = /nearrow/i.test(nextItem);
+                                            const nextIsDown = /searrow/i.test(nextItem);
+
+                                            // Position verticale
+                                            let yPos = yMid;
+                                            const vMargin = 14;
+
+                                            if (prevIsUp) {
+                                                yPos = yBase + vMargin; // Maximum en haut
+                                            } else if (prevIsDown) {
+                                                yPos = yBase + rowHeight - vMargin; // Minimum en bas
+                                            } else if (nextIsDown) {
+                                                yPos = yBase + vMargin; // Maximum en haut
+                                            } else if (nextIsUp) {
+                                                yPos = yBase + rowHeight - vMargin; // Minimum en bas
+                                            } else if (halfIdx === 0) {
+                                                if (nextIsUp) yPos = yBase + rowHeight - vMargin;
+                                                else if (nextIsDown) yPos = yBase + vMargin;
+                                            } else if (halfIdx === (n - 1) * 2) {
+                                                if (prevIsUp) yPos = yBase + vMargin;
+                                                else if (prevIsDown) yPos = yBase + rowHeight - vMargin;
+                                            }
+
+                                            const isInfinite = display.includes('∞');
+
+                                            return (
+                                                <text
+                                                    key={`v-${rowIndex}-${slotIdx}`}
+                                                    x={xPos}
+                                                    y={yPos}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    className={`font-serif text-[13px] font-black fill-black ${isInfinite ? 'text-[11px]' : ''}`}
+                                                >
+                                                    {display}
+                                                </text>
+                                            );
                                         }
                                         return null;
                                     })}
@@ -323,7 +734,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                     </svg>
                 </div>
                 <div className="absolute top-2 right-4 pointer-events-none opacity-20">
-                    <span className="text-[8px] font-mono font-bold uppercase tracking-tighter">MATH-ENGINE v2.6</span>
+                    <span className="text-[8px] font-mono font-bold uppercase tracking-tighter">MATH-ENGINE v2.7-VAR</span>
                 </div>
             </div>
             {title && <p className="mt-3 text-[10px] text-slate-500 font-bold uppercase tracking-widest">{title}</p>}
