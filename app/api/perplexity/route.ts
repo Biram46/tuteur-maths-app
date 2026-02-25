@@ -79,7 +79,41 @@ EXEMPLE DE RÉDACTION INTERDITE ❌ :
 
 ⚠️ TOUTE QUESTION DE GÉOMÉTRIE DOIT OBLIGATOIREMENT GÉNÉRER UNE FIGURE !
 
-Si la question mentionne : points, coordonnées, repère, milieu, longueur, vecteur, droite, segment, triangle, cercle, etc. → TU DOIS CRÉER UNE FIGURE avec le format @@@ figure !
+⚠️ **DISTINCTION GÉOMÉTRIE PURE vs GÉOMÉTRIE REPÉRÉE :**
+
+**1. GÉOMÉTRIE REPÉRÉE (avec coordonnées dans un repère) :**
+- Si l'énoncé donne des coordonnées : A(2;3), B(4;5), etc.
+- Si l'énoncé mentionne "repère orthonormé"
+→ Utiliser type: coordinates avec les coordonnées
+
+**2. GÉOMÉTRIE PURE (sans repère) :**
+- Si l'énoncé donne des longueurs : AB = 5 cm, BC = 6 cm
+- Si l'énoncé mentionne triangle, cercle, sans coordonnées
+→ Utiliser type: geometry SANS coordonnées, placer les points géométriquement
+→ ⛔ NE PAS afficher de repère orthonormé !
+
+⚠️ **ÉLÉMENTS À INCLURE DANS LA FIGURE :**
+- Si on parle de hauteur : tracer la hauteur (segment perpendiculaire)
+- Si on parle de médiane : tracer la médiane
+- Si on parle de médiatrice : tracer la médiatrice
+- Si on calcule une aire avec une base et une hauteur : tracer la hauteur correspondante
+
+**EXEMPLE GÉOMÉTRIE PURE (triangle avec hauteur) :**
+@@@ figure
+type: geometry
+triangle: ABC isocele en A
+lengths: AB = 5, AC = 5, BC = 6
+height: de A vers BC, pied H
+segments: [AB], [AC], [BC], [AH]
+labels: AB=5cm, AC=5cm, BC=6cm
+@@@
+
+**EXEMPLE GÉOMÉTRIE REPÉRÉE :**
+@@@ figure
+type: coordinates
+points: A(2,3), B(-1,5), I(0.5,4)
+segments: [AB]
+@@@
 
 ⚠️ **RÈGLE ABSOLUE : TOUTES LES NOTATIONS MATHÉMATIQUES DOIVENT ÊTRE EN LaTeX !**
 
@@ -87,23 +121,13 @@ Si la question mentionne : points, coordonnées, repère, milieu, longueur, vect
 - ❌ "AB = 5" → ✅ "$AB = 5$"
 - ❌ "racine carrée de 2" ou "sqrt(2)" → ✅ "$\sqrt{2}$"
 - ❌ "vecteur AB" → ✅ "$\vec{AB}$"
-- ❌ "AB au carré" ou "AB^2" → ✅ "$AB^2$"
-- ❌ "x_A = 2" → ✅ "$x_A = 2$"
+- ❌ "hauteur AH" → ✅ "la hauteur $AH$"
 
 ✅ **TOUJOURS utiliser LaTeX avec $ :**
-- Vecteurs : $\vec{AB}$, $\vec{u}$, $\vec{v}$
-- Racine carrée : $\sqrt{2}$, $\sqrt{x^2 + y^2}$
-- Coordonnées : $x_A$, $y_A$, $x_B - x_A$
-- Longueurs : $AB$, $BC$, $AB = \sqrt{(x_B - x_A)^2 + (y_B - y_A)^2}$
-- Fractions : $\frac{a}{b}$, $\frac{x_A + x_B}{2}$
-- Puissances : $x^2$, $10^3$
-
-EXEMPLE OBLIGATOIRE :
-@@@ figure
-type: coordinates
-points: A(2,3), B(-1,5), I(0.5,4)
-segments: [AB]
-@@@
+- Vecteurs : $\vec{AB}$, $\vec{u}$
+- Racine carrée : $\sqrt{2}$
+- Longueurs : $AB$, $BC$
+- Hauteur : $AH$ où $H$ est le pied de la hauteur
 
 ⛔ SI TU NE GÉNÈRES PAS DE FIGURE POUR UNE QUESTION DE GÉOMÉTRIE, C'EST UNE ERREUR !
 
