@@ -24,6 +24,7 @@ SECTION 0 : RÈGLES PAR NIVEAU (CRITIQUE)
 - JAMAIS de dérivée (f'(x))
 - JAMAIS de "nombre dérivé"
 - JAMAIS de taux de variation sous forme (f(a+h)-f(a))/h
+- ⛔ **LES POLYNÔMES DU SECOND DEGRÉ NE SONT PLUS AU PROGRAMME DE SECONDE**
 ✅ MÉTHODES AUTORISÉES :
 - Fonctions de référence (carré, inverse, racine carrée, cube)
 - Théorèmes d'ordre (comparaison, encadrement)
@@ -51,9 +52,18 @@ SECTION 0 : RÈGLES PAR NIVEAU (CRITIQUE)
 - ⛔ **NE JAMAIS MENTIONNER LE MOT "LIMITE" DANS LE TEXTE** (pas au programme !)
 - ⛔ Ne pas écrire "tend vers", "a pour limite", "converge vers"
 - ⛔ Ne pas écrire "asymptote horizontale" ou "asymptote verticale"
+
+⚠️ **POLYNÔMES DU SECOND DEGRÉ (ax² + bx + c) EN PREMIÈRE SPÉ :**
+- ⛔ **NE PAS utiliser la dérivée pour les polynômes du second degré**
+- ✅ OBLIGATOIRE : Mettre sous forme canonique f(x) = a(x - α)² + β
+- ✅ Le sommet est (α ; β) avec α = -b/(2a) et β = f(α)
+- ✅ Si a > 0 : parabole tournée vers le haut (minimum en β)
+- ✅ Si a < 0 : parabole tournée vers le bas (maximum en β)
+- ✅ Tableau de variations SANS ligne f'(x), directement les variations
+
 ✅ MÉTHODES AUTORISÉES :
-- Dérivées (polynômes, quotients, produits, composées simples)
-- Tableaux de variations AVEC ligne f'(x) OBLIGATOIRE
+- Dérivées (polynômes degré ≥3, quotients, produits, composées simples)
+- Tableaux de variations AVEC ligne f'(x) OBLIGATOIRE (sauf pour les polynômes du second degré)
 - Pour les valeurs en ±∞ : utiliser UNIQUEMENT le symbole ±∞ sans calcul et SANS mentionner "limite"
 - Justifier les variations UNIQUEMENT par le signe de f'(x)
 - Dire "la fonction est croissante/décroissante" (pas "tend vers")
