@@ -73,6 +73,23 @@ EXEMPLE DE RÉDACTION INTERDITE ❌ :
 "Quand x→0, e^x ∼ 1 + x, donc e^x - 1 ∼ x, donc lim = 1."
 ↑ CECI EST HORS PROGRAMME ET INTERDIT !
 
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+⛔ RÈGLE ABSOLUE N°2 - GÉOMÉTRIE ET FIGURES ⛔
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+
+⚠️ TOUTE QUESTION DE GÉOMÉTRIE DOIT OBLIGATOIREMENT GÉNÉRER UNE FIGURE !
+
+Si la question mentionne : points, coordonnées, repère, milieu, longueur, vecteur, droite, segment, triangle, cercle, etc. → TU DOIS CRÉER UNE FIGURE avec le format @@@ figure !
+
+EXEMPLE OBLIGATOIRE :
+@@@ figure
+type: coordinates
+points: A(2,3), B(-1,5), I(0.5,4)
+segments: [AB]
+@@@
+
+⛔ SI TU NE GÉNÈRES PAS DE FIGURE POUR UNE QUESTION DE GÉOMÉTRIE, C'EST UNE ERREUR !
+
 ${PEDAGOGICAL_CONSTRAINTS}
 
 ============================================
