@@ -97,7 +97,7 @@ export default function MathTable({ data, title }: MathTableProps) {
      * cette fonction corrige le contenu pour respecter le format attendu.
      */
     const correctVariationFormat = (content: string[], n: number): string[] => {
-        if (content.length !== (n * 2) - 1) return content;
+        const len = content.length;
 
         // Détecter si c'est une ligne de variations
         const hasArrows = content.some(it => /nearrow|searrow/i.test(it));
@@ -107,29 +107,35 @@ export default function MathTable({ data, title }: MathTableProps) {
         const doubleBarIdx = content.findIndex(it => isForbiddenItem(it));
         if (doubleBarIdx === -1) return content; // Pas de ||, pas besoin de correction
 
-        // Le || doit être à une position PAIRE (sous une valeur de x)
-        // Si N=3, les positions paires sont 0, 2, 4
-        // Le || doit être à la position 2 (sous la valeur du milieu)
+        // === FORMAT 2N-1 (Première spé avec valeurs aux extremums) ===
+        if (len === (n * 2) - 1) {
+            // Le || doit être à une position PAIRE (sous une valeur de x)
+            if (doubleBarIdx % 2 !== 0) {
+                const corrected = [...content];
+                const correctPosition = Math.floor(n / 2) * 2; // Pour N=3: position 2
+                const temp = corrected[correctPosition];
+                corrected[correctPosition] = corrected[doubleBarIdx];
+                corrected[doubleBarIdx] = temp;
+                console.log(`[MathTable] Format 2N-1 corrigé: || déplacé de ${doubleBarIdx} vers ${correctPosition}`);
+                return corrected;
+            }
+        }
 
-        if (doubleBarIdx % 2 !== 0) {
-            // Le || est à une position impaire (intervalle) - FORMAT INCORRECT !
-            // On doit le déplacer à la position paire la plus proche
-            // Pour N=3, le || doit être à la position 2 (sous xValues[1])
-
-            // Créer un nouveau contenu corrigé
-            const corrected = [...content];
-
-            // Trouver la position correcte pour || (sous la valeur interdite)
-            // Pour une fonction homographique, c'est généralement la position du milieu
-            const correctPosition = Math.floor(n / 2) * 2; // Pour N=3: position 2
-
-            // Échanger les éléments
-            const temp = corrected[correctPosition];
-            corrected[correctPosition] = corrected[doubleBarIdx];
-            corrected[doubleBarIdx] = temp;
-
-            console.log(`[MathTable] Format variation corrigé: || déplacé de ${doubleBarIdx} vers ${correctPosition}`);
-            return corrected;
+        // === FORMAT 2N+1 (Terminale avec limites) ===
+        // Format attendu: val0, arrow1, limGauche, ||, limDroite, arrow2, valN
+        // Le || doit être à la position impaire du milieu
+        if (len === (n * 2) + 1) {
+            // Pour N=3, le || doit être à la position 3 (après limGauche, avant limDroite)
+            const expectedDoubleBarPos = n; // Pour N=3: position 3
+            if (doubleBarIdx !== expectedDoubleBarPos) {
+                const corrected = [...content];
+                // Échanger pour mettre le || à la bonne position
+                const temp = corrected[expectedDoubleBarPos];
+                corrected[expectedDoubleBarPos] = corrected[doubleBarIdx];
+                corrected[doubleBarIdx] = temp;
+                console.log(`[MathTable] Format 2N+1 corrigé: || déplacé de ${doubleBarIdx} vers ${expectedDoubleBarPos}`);
+                return corrected;
+            }
         }
 
         return content;
