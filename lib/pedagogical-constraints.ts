@@ -92,6 +92,31 @@ variation: f(x) : nearrow, ||, nearrow
 - Exponentielles et logarithmes
 - Suites numériques
 
+⚠️ **CALCUL DES LIMITES EN TERMINALE :**
+- ⛔ INTERDIT d'utiliser les développements limités (DL) - HORS PROGRAMME !
+- ⛔ INTERDIT d'utiliser les équivalents ou la formule de Taylor
+- ✅ MÉTHODES AUTORISÉES :
+  - Taux d'accroissement : lim(x→a) (f(x)-f(a))/(x-a) = f'(a)
+  - Exemple : lim(x→0) (e^x-1)/x = e^0 = 1 (nombre dérivé de e^x en 0)
+  - Exemple : lim(x→0) ln(1+x)/x = 1/1 = 1 (nombre dérivé de ln(x) en 1)
+  - Théorèmes d'opération sur les limites
+  - Théorème des gendarmes
+
+⚠️ **FORMAT DU TABLEAU DE SIGNES POUR UN QUOTIENT f(x) = g(x)/h(x) :**
+Le tableau doit comporter des lignes séparées :
+- Ligne 1 : x (valeurs)
+- Ligne 2 : signe de g(x) (numérateur)
+- Ligne 3 : signe de h(x) (dénominateur)
+- Ligne 4 : signe de f(x) (quotient)
+
+Exemple pour f(x) = (e^x-1)/x :
+@@@ table |
+x: -inf, 0, +inf |
+sign: e^x-1 : -, 0, + |
+sign: x : -, ||, + |
+sign: f(x) : +, ||, + |
+@@@
+
 ============================================
 SECTION 1 : NOTATION DES INTERVALLES (FRANÇAIS)
 ============================================

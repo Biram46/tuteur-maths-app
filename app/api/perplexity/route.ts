@@ -209,6 +209,22 @@ sign: f'(x) : +, ||, + |
 variation: f(x) : 1, nearrow, +inf, ||, -inf, nearrow, 1 |
 @@@
 
+⚠️ **CALCUL DES LIMITES EN TERMINALE :**
+- ⛔ INTERDIT d'utiliser les développements limités (DL) - HORS PROGRAMME !
+- ⛔ INTERDIT d'utiliser les équivalents ou la formule de Taylor
+- ✅ Utiliser le TAUX D'ACCROISSEMENT :
+  - lim(x→0) (e^x-1)/x = e^0 = 1 (nombre dérivé de e^x en 0)
+  - lim(x→0) ln(1+x)/x = 1 (nombre dérivé de ln en 1)
+  - lim(h→0) (f(a+h)-f(a))/h = f'(a)
+
+⚠️ **FORMAT TABLEAU DE SIGNES POUR QUOTIENT f(x) = g(x)/h(x) :**
+@@@ table |
+x: -inf, 0, +inf |
+sign: g(x) : -, 0, + |
+sign: h(x) : -, ||, + |
+sign: f(x) : +, ||, + |
+@@@
+
 **RÈGLES POUR LA LIGNE "x:"**
 - Listes les valeurs de x dans l'ordre croissant
 - Chaque valeur apparaît UNE SEULE FOIS (PAS de doublon !)
