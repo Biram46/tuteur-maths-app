@@ -68,7 +68,7 @@ export default function GeometryFigure({
     circles = [],
     annotations = [],
     hasCoordinates = true,
-    domain = { x: [-6, 6], y: [-5, 5] },
+    domain,
     title,
     showSteps = true
 }: GeometryFigureProps) {
@@ -88,6 +88,39 @@ export default function GeometryFigure({
 
     // Map pour accéder rapidement aux coordonnées par nom
     const pointMap = new Map(parsedPoints.map(p => [p.name, p]));
+
+    // Calcul automatique du domaine basé sur les points
+    const autoDomain = (() => {
+        if (domain) return domain; // Utiliser le domaine fourni s'il existe
+
+        if (parsedPoints.length === 0) {
+            return { x: [-6, 6] as [number, number], y: [-5, 5] as [number, number] };
+        }
+
+        // Trouver les bornes min/max des coordonnées
+        const xCoords = parsedPoints.map(p => p.x);
+        const yCoords = parsedPoints.map(p => p.y);
+
+        let xMin = Math.min(...xCoords);
+        let xMax = Math.max(...xCoords);
+        let yMin = Math.min(...yCoords);
+        let yMax = Math.max(...yCoords);
+
+        // S'assurer que l'origine est visible
+        xMin = Math.min(xMin, -1);
+        xMax = Math.max(xMax, 1);
+        yMin = Math.min(yMin, -1);
+        yMax = Math.max(yMax, 1);
+
+        // Ajouter une marge de 20%
+        const xPadding = Math.max((xMax - xMin) * 0.3, 2);
+        const yPadding = Math.max((yMax - yMin) * 0.3, 2);
+
+        return {
+            x: [Math.floor(xMin - xPadding), Math.ceil(xMax + xPadding)] as [number, number],
+            y: [Math.floor(yMin - yPadding), Math.ceil(yMax + yPadding)] as [number, number]
+        };
+    })();
 
     // Nombre total d'étapes
     const totalSteps = 4; // 1: Points, 2: Segments, 3: Lignes/Cercles, 4: Annotations
@@ -166,8 +199,8 @@ export default function GeometryFigure({
         const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
         // Échelles
-        const x = d3.scaleLinear().domain(domain.x).range([0, width]);
-        const y = d3.scaleLinear().domain(domain.y).range([height, 0]);
+        const x = d3.scaleLinear().domain(autoDomain.x).range([0, width]);
+        const y = d3.scaleLinear().domain(autoDomain.y).range([height, 0]);
 
         // === ÉTAPE 0 ou TOUTES: Repère orthonormé ===
         if (hasCoordinates) {
@@ -352,8 +385,8 @@ export default function GeometryFigure({
                     const intercept = p1.y - slope * p1.x;
 
                     // Étendre la ligne aux bords
-                    const x1 = domain.x[0];
-                    const x2 = domain.x[1];
+                    const x1 = autoDomain.x[0];
+                    const x2 = autoDomain.x[1];
                     const y1 = slope * x1 + intercept;
                     const y2 = slope * x2 + intercept;
 
@@ -562,7 +595,7 @@ export default function GeometryFigure({
                 .text(title);
         }
 
-    }, [isVisible, currentStep, showSteps, points, segments, lines, circles, annotations, hasCoordinates, domain, title]);
+    }, [isVisible, currentStep, showSteps, points, segments, lines, circles, annotations, hasCoordinates, autoDomain, title]);
 
     const replayAnimation = useCallback(() => {
         setCurrentStep(0);
