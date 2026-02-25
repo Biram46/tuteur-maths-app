@@ -264,6 +264,10 @@ EXEMPLE AUTORISÉ : "lim(x→0) (e^x-1)/x = f'(0) = e^0 = 1" ✅
 
 ⛔⛔⛔ **FORMAT OBLIGATOIRE TABLEAU DE SIGNES POUR QUOTIENT** ⛔⛔⛔
 
+⚠️ **RÈGLE ABSOLUE : Si l'élève demande "tableau de signes ET tableau de variations", tu DOIS générer les DEUX tableaux !**
+- NE JAMAIS oublier le tableau de signes !
+- TOUJOURS commencer par le tableau de signes, puis le tableau de variations
+
 Si f(x) = g(x)/h(x) (fonction rationnelle ou quotient), le tableau de signes DOIT OBLIGATOIREMENT comporter :
 
 1. Une ligne pour x (les valeurs)
