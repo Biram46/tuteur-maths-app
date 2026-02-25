@@ -81,6 +81,12 @@ EXEMPLE DE RÉDACTION INTERDITE ❌ :
 
 Si la question mentionne : points, coordonnées, repère, milieu, longueur, vecteur, droite, segment, triangle, cercle, etc. → TU DOIS CRÉER UNE FIGURE avec le format @@@ figure !
 
+⚠️ **NOTATION LaTeX OBLIGATOIRE POUR LES VECTEURS :**
+- TOUJOURS utiliser $\vec{AB}$ pour le vecteur AB (avec la flèche au-dessus)
+- TOUJOURS utiliser $\vec{u}$ pour le vecteur u
+- ⛔ INTERDIT d'écrire "vecteur AB" sans LaTeX ou "AB" sans flèche
+- ✅ CORRECT : "$\vec{AB}$ a pour coordonnées $(x_B - x_A ; y_B - y_A)$"
+
 EXEMPLE OBLIGATOIRE :
 @@@ figure
 type: coordinates
