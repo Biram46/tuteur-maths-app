@@ -14,25 +14,37 @@ export async function POST(request: NextRequest) {
         const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.DEEP_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
 
-        if (!perplexityKey || (!deepseekKey && !openaiKey)) {
-            return NextResponse.json({ error: 'Configs manquantes' }, { status: 500 });
+        // Perplexity est optionnel - seul OpenAI ou DeepSeek est requis
+        if (!deepseekKey && !openaiKey) {
+            return NextResponse.json({ error: 'Configs manquantes: OpenAI ou DeepSeek requis' }, { status: 500 });
         }
 
         const userQuestion = messages[messages.length - 1].content;
 
-        // Perplexity pour le contexte de programme
-        const searchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'sonar',
-                messages: [{ role: 'system', content: "Tu es expert Éducation Nationale." }, { role: 'user', content: `Programme scolaire : ${userQuestion}` }],
-                temperature: 0.1,
-            }),
-        });
+        // Perplexity pour le contexte de programme (avec fallback)
+        let curriculumContext = "";
+        try {
+            const searchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'sonar',
+                    messages: [{ role: 'system', content: "Tu es expert Éducation Nationale." }, { role: 'user', content: `Programme scolaire : ${userQuestion}` }],
+                    temperature: 0.1,
+                }),
+                signal: AbortSignal.timeout(10000), // Timeout 10s
+            });
 
-        const searchData = await searchResponse.json();
-        const curriculumContext = searchData.choices?.[0]?.message?.content || "";
+            if (searchResponse.ok) {
+                const searchData = await searchResponse.json();
+                curriculumContext = searchData.choices?.[0]?.message?.content || "";
+            } else {
+                console.warn(`Perplexity API returned ${searchResponse.status}, using fallback`);
+            }
+        } catch (perplexityError) {
+            console.warn('Perplexity unavailable, continuing without curriculum context:', perplexityError);
+            // Continue sans contexte Perplexity - l'IA principale peut quand même répondre
+        }
 
         const reasoningPrompt = `Tu es mimimaths@i, assistant de mathématiques pour le site aimaths.fr.
 
