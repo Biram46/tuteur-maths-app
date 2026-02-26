@@ -13,10 +13,11 @@ export async function POST(request: NextRequest) {
         const perplexityKey = process.env.PERPLEXITY_API_KEY;
         const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.DEEP_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
+        const zhipuKey = process.env.ZHIPU_API_KEY;
 
-        // Perplexity est optionnel - seul OpenAI ou DeepSeek est requis
-        if (!deepseekKey && !openaiKey) {
-            return NextResponse.json({ error: 'Configs manquantes: OpenAI ou DeepSeek requis' }, { status: 500 });
+        // Au moins une IA de raisonnement est requise (OpenAI, DeepSeek ou GLM-5)
+        if (!openaiKey && !deepseekKey && !zhipuKey) {
+            return NextResponse.json({ error: 'Configs manquantes: OpenAI, DeepSeek ou GLM-5 requis' }, { status: 500 });
         }
 
         const userQuestion = messages[messages.length - 1].content;
@@ -420,23 +421,74 @@ title: Courbe de f
 
 Contexte programme : ${curriculumContext}`;
 
-        const model = openaiKey ? 'o3-mini' : 'deepseek-reasoner';
-        const apiUrl = openaiKey ? 'https://api.openai.com/v1/chat/completions' : 'https://api.deepseek.com/v1/chat/completions';
-        const apiKey = openaiKey || deepseekKey;
+        // Chaîne de fallback: OpenAI → DeepSeek → GLM-5
+        const providers = [];
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model,
-                messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
-                stream: true
-            }),
-        });
+        if (openaiKey) {
+            providers.push({
+                name: 'OpenAI',
+                url: 'https://api.openai.com/v1/chat/completions',
+                model: 'o3-mini',
+                key: openaiKey
+            });
+        }
 
-        return new Response(response.body, {
-            headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-        });
+        if (deepseekKey) {
+            providers.push({
+                name: 'DeepSeek',
+                url: 'https://api.deepseek.com/v1/chat/completions',
+                model: 'deepseek-reasoner',
+                key: deepseekKey
+            });
+        }
+
+        if (zhipuKey) {
+            providers.push({
+                name: 'GLM-5',
+                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                model: 'glm-4-flash',
+                key: zhipuKey
+            });
+        }
+
+        // Essayer chaque provider en cascade
+        let lastError = null;
+        for (const provider of providers) {
+            try {
+                console.log(`Trying ${provider.name} (${provider.model})...`);
+
+                const response = await fetch(provider.url, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: provider.model,
+                        messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
+                        stream: true
+                    }),
+                    signal: AbortSignal.timeout(60000), // Timeout 60s
+                });
+
+                if (response.ok) {
+                    console.log(`${provider.name} responded successfully`);
+                    return new Response(response.body, {
+                        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+                    });
+                } else {
+                    const errorText = await response.text();
+                    console.warn(`${provider.name} failed with status ${response.status}: ${errorText.slice(0, 200)}`);
+                    lastError = `${provider.name}: ${response.status}`;
+                }
+            } catch (err) {
+                console.warn(`${provider.name} error:`, err);
+                lastError = `${provider.name}: ${err}`;
+            }
+        }
+
+        // Tous les providers ont échoué
+        return NextResponse.json({
+            error: 'Toutes les IA sont indisponibles',
+            details: lastError
+        }, { status: 503 });
 
     } catch (error: any) {
         console.error('Erreur API:', error);
