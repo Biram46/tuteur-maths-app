@@ -446,7 +446,7 @@ Contexte programme : ${curriculumContext}`;
             providers.push({
                 name: 'GLM-5',
                 url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-                model: 'glm-4-flash',
+                model: 'GLM-4.5-Flash',
                 key: zhipuKey
             });
         }
