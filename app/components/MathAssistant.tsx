@@ -11,6 +11,12 @@ import GeometryFigure, { GeoPoint, GeoSegment, GeoLine, GeoCircle, GeoAnnotation
 import GeoGebraPlotter from './GeoGebraPlotter';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+if (typeof window !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -18,6 +24,35 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { fixLatexContent } from '@/lib/latex-fixer';
+
+// Convert PDF pages to images
+async function convertPdfToImages(file: File): Promise<{ base64: string; mimeType: string }[]> {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const images: { base64: string; mimeType: string }[] = [];
+
+    for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 5); pageNum++) { // Max 5 pages
+        const page = await pdf.getPage(pageNum);
+        const scale = 2; // Higher resolution
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({
+            canvasContext: context!,
+            viewport: viewport,
+            canvas: canvas
+        } as any).promise;
+
+        const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+        images.push({ base64, mimeType: 'image/jpeg' });
+    }
+
+    return images;
+}
 
 
 interface MathAssistantProps {
@@ -1085,49 +1120,69 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         }]);
 
         try {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const base64Data = (reader.result as string).split(',')[1];
-                const mimeType = file.type;
+            if (file.size > 20 * 1024 * 1024) {
+                throw new Error("Le fichier est trop volumineux (max 20 Mo).");
+            }
 
-                if (file.size > 10 * 1024 * 1024) {
-                    throw new Error("Le fichier est trop volumineux (max 10 Mo).");
+            let imagesToProcess: { base64: string; mimeType: string }[];
+
+            // Convertir PDF en images
+            if (isPdf) {
+                try {
+                    imagesToProcess = await convertPdfToImages(file);
+                    console.log(`[PDF] Converti en ${imagesToProcess.length} image(s)`);
+                } catch (pdfError: any) {
+                    console.error("[PDF] Erreur conversion:", pdfError);
+                    throw new Error("Impossible de lire le PDF. Essayez de prendre une capture d'écran à la place.");
                 }
+            } else {
+                // Pour les images, lire directement en base64
+                const base64Data = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                    reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
+                });
+                imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
+            }
+
+            // Analyser chaque image (pour PDF multi-pages, on combine les résultats)
+            let combinedTranscription = "";
+            for (let i = 0; i < imagesToProcess.length; i++) {
+                const { base64, mimeType } = imagesToProcess[i];
 
                 const response = await fetch('/api/vision', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64Data, mimeType })
+                    body: JSON.stringify({ image: base64, mimeType })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
                     const errorMsg = data.suggestion || data.error || data.message || "Erreur lors de l'analyse";
-                    setMessages(prev => [...prev, {
-                        role: 'assistant',
-                        content: `❌ **Oups ! Un petit souci technique...**\n\n${errorMsg}`
-                    }]);
-                    setIsScanning(false);
-                    setLoading(false);
-                    return;
+                    throw new Error(errorMsg);
                 }
 
-                const transcribedText = data.transcription;
-                if (!transcribedText) {
-                    throw new Error("Aucun texte n'a pu être extrait du document.");
+                if (data.transcription) {
+                    if (imagesToProcess.length > 1) {
+                        combinedTranscription += `**Page ${i + 1}:**\n${data.transcription}\n\n`;
+                    } else {
+                        combinedTranscription = data.transcription;
+                    }
                 }
+            }
 
-                const userMessage: ChatMessage = { role: 'user', content: transcribedText };
-                const newMessages = [...messages, userMessage];
-                setMessages(newMessages);
-                setIsScanning(false);
-                await startStreamingResponse(newMessages);
-            };
-            reader.onerror = () => {
-                throw new Error("Erreur lors de la lecture du fichier local.");
-            };
+            if (!combinedTranscription) {
+                throw new Error("Aucun texte n'a pu être extrait du document.");
+            }
+
+            const userMessage: ChatMessage = { role: 'user', content: combinedTranscription };
+            const newMessages = [...messages, userMessage];
+            setMessages(newMessages);
+            setIsScanning(false);
+            await startStreamingResponse(newMessages);
+
         } catch (error: any) {
             console.error("Scan Error:", error);
             setMessages(prev => [...prev, {
