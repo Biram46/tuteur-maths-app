@@ -293,49 +293,69 @@ export default function MathTable({ data, title }: MathTableProps) {
     };
 
     // Collecte des colonnes spéciales par ligne (pour les lignes verticales)
-    // specialCols : colonnes avec "0" (ligne pointillée)
-    // forbiddenCols : colonnes avec "||" (double barre)
+    // specialCols : colonnes avec "0" (ligne pointillée jusqu'en bas)
+    // forbiddenCols : colonnes avec "||" (double barre + ligne pointillée courte)
     const specialCols = new Set<number>();
     const forbiddenColsByRow: Map<number, Set<number>> = new Map();
 
     // Trouver l'index de la ligne de variation
     const variationRowIndex = rows.findIndex(row => row.type === 'variation');
 
+    // BUG FIX 2 : Collecter les positions interdites depuis TOUTES les lignes sign
+    // pour que la ligne pointillée s'arrête avant la dernière ligne
+    const allForbiddenCols = new Set<number>();
+
     rows.forEach((row, rowIndex) => {
         const n = xValues.length;
         const rowForbiddenCols = new Set<number>();
+        const isLastRow = rowIndex === rows.length - 1;
+
         row.content.forEach((item, idx) => {
             const effIdx = getEffIdx(idx, row.content.length, n, row.content);
             // ⚠️ IMPORTANT : Les "0" dans la ligne de VARIATION ne doivent PAS déclencher de pointillés
             // Seuls les "0" dans la ligne de SIGNE déclenchent des pointillés
-            if (isSpecialItem(item) && row.type !== 'variation') {
+            if (isSpecialItem(item) && row.type !== 'variation' && !isForbiddenItem(item)) {
                 specialCols.add(effIdx);
+            }
+            // Les "||" sur les lignes de facteurs (pas dernière) → leur position est un zéro du facteur
+            // On les ajoute à specialCols car le facteur s'annule là
+            if (isForbiddenItem(item) && !isLastRow && row.type === 'sign') {
+                // On ne les met PAS dans specialCols car ce n'est pas un zéro de f(x)
+                // Ils sont gérés par la ligne pointillée courte (forbiddenDottedLines)
             }
             if (isForbiddenItem(item)) {
                 rowForbiddenCols.add(effIdx);
+                // BUG FIX 2 : Collecter depuis toutes les lignes
+                if (row.type === 'sign' || row.type === 'variation') {
+                    allForbiddenCols.add(effIdx);
+                }
             }
         });
         forbiddenColsByRow.set(rowIndex, rowForbiddenCols);
     });
 
-    // Les doubles barres ne sont dessinées que sur la ligne de variation
+    // Les doubles barres ne sont dessinées que sur la ligne de variation ou dernière ligne
     const lastRowIndex = rows.length - 1;
-    const forbiddenCols = forbiddenColsByRow.get(variationRowIndex !== -1 ? variationRowIndex : lastRowIndex) || new Set<number>();
+    const forbiddenCols = allForbiddenCols.size > 0
+        ? allForbiddenCols
+        : (forbiddenColsByRow.get(variationRowIndex !== -1 ? variationRowIndex : lastRowIndex) || new Set<number>());
 
-    // Position Y où les pointillés doivent s'arrêter (AVANT la ligne de variation)
-    const dottedLinesEndY = variationRowIndex !== -1
-        ? headerHeight + variationRowIndex * rowHeight
-        : headerHeight + (rows.length - 1) * rowHeight;
+    // Position Y où les pointillés pour les 0 doivent s'arrêter (en BAS du tableau)
+    const dottedLinesEndY = totalHeight;
+
+    // Position Y où les pointillés pour les valeurs interdites doivent s'arrêter (avant la dernière ligne)
+    const forbiddenDottedLinesEndY = headerHeight + (rows.length - 1) * rowHeight;
 
     return (
-        <div className="my-10 w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="relative p-[1px] bg-slate-200 rounded-2xl shadow-xl overflow-hidden max-w-full">
-                <div className="bg-white rounded-[15px] overflow-x-auto custom-scrollbar-horizontal">
+        <div style={{ margin: '2.5rem 0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ position: 'relative', padding: '1px', background: '#e2e8f0', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', overflow: 'hidden', maxWidth: '100%' }}>
+                <div style={{ background: 'white', borderRadius: '15px', overflowX: 'auto' }}>
                     <svg
+                        xmlns="http://www.w3.org/2000/svg"
                         width={totalWidth}
                         height={totalHeight}
                         viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-                        className="min-w-full"
+                        style={{ minWidth: '100%', display: 'block' }}
                     >
                         <defs>
                             <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
@@ -360,14 +380,14 @@ export default function MathTable({ data, title }: MathTableProps) {
                             return <line key={`v-s-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedLinesEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />;
                         })}
 
-                        {/* Lignes pointillées sous les valeurs interdites (s'arrêtent AVANT la ligne de variation) */}
+                        {/* Lignes pointillées sous les valeurs interdites (s'arrêtent AVANT la dernière ligne) */}
                         {Array.from(forbiddenCols).map(colIdx => {
                             if (colIdx % 2 !== 0) return null;
 
                             const x = getXPos(colIdx);
 
                             return (
-                                <line key={`v-d-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={dottedLinesEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />
+                                <line key={`v-d-${colIdx}`} x1={x} y1={headerHeight} x2={x} y2={forbiddenDottedLinesEndY} stroke="#1e293b" strokeDasharray="4,4" strokeWidth="1.5" />
                             );
                         })}
 
@@ -393,11 +413,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                         ))}
 
                         {/* --- LIGNE X --- */}
-                        <text x={labelWidth / 2} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif italic text-lg fill-slate-800">x</text>
+                        <text x={labelWidth / 2} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" fontSize="16" fill="#1e293b">x</text>
                         {xValues.map((val, i) => {
                             const x = getXPos(i * 2);
                             return (
-                                <text key={`x-${i}`} x={x} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" className="font-serif text-sm font-bold fill-black">
+                                <text key={`x-${i}`} x={x} y={headerHeight / 2} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="13" fontWeight="bold" fill="#000000">
                                     {cleanLabel(val)}
                                 </text>
                             );
@@ -408,6 +428,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                             const yBase = headerHeight + rowIndex * rowHeight;
                             const yMid = yBase + rowHeight / 2;
                             const n = xValues.length;
+                            // BUG FIX 1 : Pour le format 2N-3 (signes), on n'a que (n*2)-1 positions
+                            // mais les données occupent halfIdx de 1 à (n*2)-3.
+                            // On itère sur (n*2)-1 slots pour couvrir toutes les positions possibles.
                             const expectedMax = (n * 2) - 1;
 
                             // Appliquer la correction du format si nécessaire
@@ -415,15 +438,36 @@ export default function MathTable({ data, title }: MathTableProps) {
                                 ? correctVariationFormat(row.content, n)
                                 : row.content;
 
+                            // BUG FIX 1 : Pré-calculer le mapping halfIdx → item pour éviter les collisions findIndex
+                            // findIndex retourne toujours le PREMIER match, ce qui cause des bugs quand deux items
+                            // auraient le même effIdx (ex: après un ||, le décalage peut créer des doublons)
+                            const halfIdxToItem = new Map<number, string>();
+                            correctedContent.forEach((it, idx) => {
+                                const eIdx = getEffIdx(idx, correctedContent.length, n, correctedContent);
+                                // Ne pas écraser si déjà assigné (garder le premier)
+                                if (!halfIdxToItem.has(eIdx)) {
+                                    halfIdxToItem.set(eIdx, it);
+                                }
+                            });
+
                             return (
                                 <g key={`row-${rowIndex}`}>
-                                    <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[11px] font-bold fill-indigo-900">{cleanLabel(row.label)}</text>
+                                    <text x={labelWidth / 2} y={yMid} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="11" fontWeight="bold" fill="#3730a3">{cleanLabel(row.label)}</text>
 
                                     {/* On itère sur TOUS les slots (indices 0 à 2n-2) */}
                                     {Array.from({ length: expectedMax }).map((_, slotIdx) => {
                                         const halfIdx = slotIdx;
-                                        const itemIdx = correctedContent.findIndex((_, idx) => getEffIdx(idx, correctedContent.length, n, correctedContent) === halfIdx);
-                                        let item = itemIdx !== -1 ? correctedContent[itemIdx] : "";
+                                        // BUG FIX 1 : Utiliser la map pré-calculée au lieu de findIndex
+                                        const item = halfIdxToItem.get(halfIdx) ?? "";
+                                        // Pour les lignes variation qui utilisent itemIdx pour les flèches adjacentes
+                                        // On cherche l'index réel dans correctedContent en vérifiant l'effIdx
+                                        let itemIdx = -1;
+                                        for (let _i = 0; _i < correctedContent.length; _i++) {
+                                            if (correctedContent[_i] === item && getEffIdx(_i, correctedContent.length, n, correctedContent) === halfIdx) {
+                                                itemIdx = _i;
+                                                break;
+                                            }
+                                        }
 
                                         const xPos = getXPos(halfIdx);
                                         const display = cleanLabel(item);
@@ -431,16 +475,23 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                         if (row.type === 'sign') {
                                             const isZero = displayLower === '0' || displayLower === 'z';
-                                            if (isZero) {
+                                            const isDoubleBar = isForbiddenItem(item);
+
+                                            // BUG FIX 2 : Sur les lignes de facteurs (pas la dernière ligne),
+                                            // afficher "0" pour les valeurs interdites "||" car le facteur s'annule en cette valeur.
+                                            // Ex: x-1 → s'annule en x=1 même si c'est une valeur interdite pour f(x)
+                                            const isFactorRow = rowIndex < rows.length - 1;
+                                            const showZeroForDenominator = isFactorRow && isDoubleBar;
+
+                                            if (isZero || showZeroForDenominator) {
                                                 return (
                                                     <g key={`s-${rowIndex}-${slotIdx}`}>
                                                         <circle cx={xPos} cy={yMid} r="7" fill="white" stroke="#64748b" />
-                                                        <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[10px] font-bold fill-black">0</text>
+                                                        <text x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" fontFamily="monospace" fontSize="10" fontWeight="bold" fill="#000000">0</text>
                                                     </g>
                                                 );
                                             }
-                                            const isDoubleBar = isForbiddenItem(item);
-                                            if (isDoubleBar) return null; // Géré par la ligne verticale globale
+                                            if (isDoubleBar) return null; // Géré par la double barre rouge globale
 
                                             // Les signes ne s'affichent que sur les INTERVALLES (positions impaires)
                                             // Les positions paires correspondent aux valeurs de x
@@ -449,7 +500,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             // Vérification : un signe doit être + ou -
                                             if (display !== '+' && display !== '-') return null;
 
-                                            return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" className="font-serif text-lg font-bold fill-slate-800">{display}</text>;
+                                            return <text key={`s-${rowIndex}-${slotIdx}`} x={xPos} y={yMid} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="18" fontWeight="bold" fill="#1e293b">{display}</text>;
                                         }
 
                                         if (row.type === 'variation') {
@@ -533,7 +584,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                             }
 
                                                             elements.push(
-                                                                <text key={`val-${i}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
+                                                                <text key={`val-${i}`} x={xPos} y={yPos} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="13" fontWeight="900" fill="#000000">
                                                                     {cleanLabel(el)}
                                                                 </text>
                                                             );
@@ -571,101 +622,101 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     const yTop = yBase + vMargin;
                                                     const yBottom = yBase + rowHeight - vMargin;
 
-                    // 1. Première valeur (sous x0)
-                    const val0 = correctedContent[0];
-                    const x0 = getXPos(0);
-                    const arrow1 = correctedContent[1];
-                    const isArrow1Up = /nearrow/i.test(arrow1);
-                    const isArrow1Down = /searrow/i.test(arrow1);
+                                                    // 1. Première valeur (sous x0)
+                                                    const val0 = correctedContent[0];
+                                                    const x0 = getXPos(0);
+                                                    const arrow1 = correctedContent[1];
+                                                    const isArrow1Up = /nearrow/i.test(arrow1);
+                                                    const isArrow1Down = /searrow/i.test(arrow1);
 
-                    let yVal0 = yMid;
-                    if (isArrow1Up) yVal0 = yBottom;
-                    else if (isArrow1Down) yVal0 = yTop;
+                                                    let yVal0 = yMid;
+                                                    if (isArrow1Up) yVal0 = yBottom;
+                                                    else if (isArrow1Down) yVal0 = yTop;
 
-                    elements.push(
-                        <text key="val0" x={x0} y={yVal0} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
-                            {cleanLabel(val0)}
-                        </text>
-                    );
+                                                    elements.push(
+                                                        <text key="val0" x={x0} y={yVal0} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="13" fontWeight="900" fill="#000000">
+                                                            {cleanLabel(val0)}
+                                                        </text>
+                                                    );
 
-                    // Positions pour les limites à la valeur interdite
-                    const xLeftLimit = forbiddenXPos - 20;  // Limite gauche (avant ||)
-                    const xRightLimit = forbiddenXPos + 20; // Limite droite (après ||)
+                                                    // Positions pour les limites à la valeur interdite
+                                                    const xLeftLimit = forbiddenXPos - 20;  // Limite gauche (avant ||)
+                                                    const xRightLimit = forbiddenXPos + 20; // Limite droite (après ||)
 
-                    // 2. Limite gauche (à GAUCHE de la double barre) - ex: +∞
-                    const valLeft = correctedContent[doubleBarIdx - 1];
-                    const isArrow1UpToInf = /nearrow/i.test(arrow1);
-                    const yLeftLimit = isArrow1UpToInf ? yTop + 5 : yBottom - 5;
+                                                    // 2. Limite gauche (à GAUCHE de la double barre) - ex: +∞
+                                                    const valLeft = correctedContent[doubleBarIdx - 1];
+                                                    const isArrow1UpToInf = /nearrow/i.test(arrow1);
+                                                    const yLeftLimit = isArrow1UpToInf ? yTop + 5 : yBottom - 5;
 
-                    elements.push(
-                        <text key="valLeft" x={xLeftLimit} y={yLeftLimit} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[12px] font-black fill-black">
-                            {cleanLabel(valLeft)}
-                        </text>
-                    );
+                                                    elements.push(
+                                                        <text key="valLeft" x={xLeftLimit} y={yLeftLimit} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="12" fontWeight="900" fill="#000000">
+                                                            {cleanLabel(valLeft)}
+                                                        </text>
+                                                    );
 
-                    // 3. Première flèche (de x0 vers limite gauche)
-                    if (isArrow1Up || isArrow1Down) {
-                        if (isArrow1Up) {
-                            elements.push(
-                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
-                            );
-                        } else {
-                            elements.push(
-                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
-                            );
-                        }
-                    }
+                                                    // 3. Première flèche (de x0 vers limite gauche)
+                                                    if (isArrow1Up || isArrow1Down) {
+                                                        if (isArrow1Up) {
+                                                            elements.push(
+                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                            );
+                                                        } else {
+                                                            elements.push(
+                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                            );
+                                                        }
+                                                    }
 
-                    // 4. Double barre
-                    elements.push(
-                        <g key="doublebar">
-                            <line x1={forbiddenXPos - 3} y1={yBase + 2} x2={forbiddenXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
-                            <line x1={forbiddenXPos + 3} y1={yBase + 2} x2={forbiddenXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
-                        </g>
-                    );
+                                                    // 4. Double barre
+                                                    elements.push(
+                                                        <g key="doublebar">
+                                                            <line x1={forbiddenXPos - 3} y1={yBase + 2} x2={forbiddenXPos - 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                            <line x1={forbiddenXPos + 3} y1={yBase + 2} x2={forbiddenXPos + 3} y2={yBase + rowHeight - 2} stroke="#ef4444" strokeWidth="2.5" />
+                                                        </g>
+                                                    );
 
-                    // 5. Limite droite (à DROITE de la double barre) - ex: -∞
-                    const valRight = correctedContent[doubleBarIdx + 1];
-                    const arrow2 = correctedContent[doubleBarIdx + 2];
-                    const isArrow2UpFromInf = /nearrow/i.test(arrow2);
-                    const yRightLimit = isArrow2UpFromInf ? yBottom - 5 : yTop + 5;
+                                                    // 5. Limite droite (à DROITE de la double barre) - ex: -∞
+                                                    const valRight = correctedContent[doubleBarIdx + 1];
+                                                    const arrow2 = correctedContent[doubleBarIdx + 2];
+                                                    const isArrow2UpFromInf = /nearrow/i.test(arrow2);
+                                                    const yRightLimit = isArrow2UpFromInf ? yBottom - 5 : yTop + 5;
 
-                    elements.push(
-                        <text key="valRight" x={xRightLimit} y={yRightLimit} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[12px] font-black fill-black">
-                            {cleanLabel(valRight)}
-                        </text>
-                    );
+                                                    elements.push(
+                                                        <text key="valRight" x={xRightLimit} y={yRightLimit} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="12" fontWeight="900" fill="#000000">
+                                                            {cleanLabel(valRight)}
+                                                        </text>
+                                                    );
 
-                    // 6. Deuxième flèche (de limite droite vers x2)
-                    const isArrow2Up = /nearrow/i.test(arrow2);
-                    const isArrow2Down = /searrow/i.test(arrow2);
-                    const x2 = getXPos((n - 1) * 2);
+                                                    // 6. Deuxième flèche (de limite droite vers x2)
+                                                    const isArrow2Up = /nearrow/i.test(arrow2);
+                                                    const isArrow2Down = /searrow/i.test(arrow2);
+                                                    const x2 = getXPos((n - 1) * 2);
 
-                    if (isArrow2Up || isArrow2Down) {
-                        const val2 = correctedContent[contentLen - 1];
-                        let yVal2 = yMid;
-                        if (isArrow2Up) yVal2 = yTop;
-                        else if (isArrow2Down) yVal2 = yBottom;
+                                                    if (isArrow2Up || isArrow2Down) {
+                                                        const val2 = correctedContent[contentLen - 1];
+                                                        let yVal2 = yMid;
+                                                        if (isArrow2Up) yVal2 = yTop;
+                                                        else if (isArrow2Down) yVal2 = yBottom;
 
-                        if (isArrow2Up) {
-                            elements.push(
-                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
-                            );
-                        } else {
-                            elements.push(
-                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
-                            );
-                        }
+                                                        if (isArrow2Up) {
+                                                            elements.push(
+                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                            );
+                                                        } else {
+                                                            elements.push(
+                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                            );
+                                                        }
 
-                        // 7. Dernière valeur
-                        elements.push(
-                            <text key="val2" x={x2} y={yVal2} textAnchor="middle" dominantBaseline="middle" className="font-serif text-[13px] font-black fill-black">
-                                {cleanLabel(val2)}
-                            </text>
-                        );
-                    }
+                                                        // 7. Dernière valeur
+                                                        elements.push(
+                                                            <text key="val2" x={x2} y={yVal2} textAnchor="middle" dominantBaseline="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="13" fontWeight="900" fill="#000000">
+                                                                {cleanLabel(val2)}
+                                                            </text>
+                                                        );
+                                                    }
 
-                    return <g key={`v-${rowIndex}-extended`}>{elements}</g>;
+                                                    return <g key={`v-${rowIndex}-extended`}>{elements}</g>;
                                                 }
                                                 return null; // Ne rien rendre pour les autres slots
                                             }
@@ -767,7 +818,10 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     y={yPos}
                                                     textAnchor="middle"
                                                     dominantBaseline="middle"
-                                                    className={`font-serif text-[13px] font-black fill-black ${isInfinite ? 'text-[11px]' : ''}`}
+                                                    fontFamily="Georgia, 'Times New Roman', serif"
+                                                    fontSize={isInfinite ? 11 : 13}
+                                                    fontWeight="900"
+                                                    fill="#000000"
                                                 >
                                                     {display}
                                                 </text>
@@ -780,11 +834,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                         })}
                     </svg>
                 </div>
-                <div className="absolute top-2 right-4 pointer-events-none opacity-20">
-                    <span className="text-[8px] font-mono font-bold uppercase tracking-tighter">MATH-ENGINE v2.7-VAR</span>
+                <div style={{ position: 'absolute', top: '0.5rem', right: '1rem', pointerEvents: 'none', opacity: 0.2 }}>
+                    <span style={{ fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MATH-ENGINE v2.8</span>
                 </div>
             </div>
-            {title && <p className="mt-3 text-[10px] text-slate-500 font-bold uppercase tracking-widest">{title}</p>}
+            {title && <p style={{ marginTop: '0.75rem', fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</p>}
         </div>
     );
 }
