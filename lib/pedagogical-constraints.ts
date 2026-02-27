@@ -276,8 +276,13 @@ SECTION 4.5 : GÉOMÉTRIE ET FIGURES
 ⛔ **RÈGLE ABSOLUE : Toute question de géométrie DOIT générer une figure !**
 
 **FORMAT @@@ FIGURE :**
+
+⛔⛔ **type: geometry** = figure SANS repère → pour triangles, cercles, quadrilatères, etc.
+⛔⛔ **type: coordinates** = AVEC repère → uniquement si l'énoncé parle de coordonnées
+
+Exemple géométrie pure (SANS repère) :
 @@@ figure
-type: coordinates
+type: geometry
 points: A(2,3), B(-1,4), C(0,0)
 segments: [AB], [BC]
 @@@

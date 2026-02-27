@@ -100,26 +100,30 @@ Pour un triangle ABC avec AB=5, AC=5, BC=6 (isocèle en A) :
 - Calcule la position de A avec le théorème de Pythagore : A(0,4) car la hauteur vaut 4
 - Ajoute le pied de la hauteur H : H(0,0)
 
-**FORMAT OBLIGATOIRE (même pour géométrie pure) :**
-@@@ figure
-type: coordinates
-points: B(-3,0), C(3,0), A(0,4), H(0,0)
-segments: [AB], [AC], [BC], [AH]
-@@@
+⚠️ **RÈGLE ABSOLUE SUR LE TYPE DE FIGURE :**
 
-⚠️ **type: coordinates** = affiche le repère (grillé)
-⚠️ **type: geometry** = masque le repère (pour géométrie pure)
+⛔⛔ **type: coordinates** = affiche un REPÈRE ORTHONORMÉ avec grille et axes x/y
+   → À utiliser UNIQUEMENT si l'énoncé parle de repère, de coordonnées, de vecteurs dans un repère
+   → Exemples : "Dans un repère, A(2;3)...", "Calcule les coordonnées du milieu..."
 
-**ÉLÉMENTS À INCLURE :**
-- Si on calcule une aire avec une hauteur : tracer la hauteur (segment perpendiculaire)
-- Exemple : pour triangle ABC, ajouter le pied H de la hauteur de A vers BC
+⛔⛔ **type: geometry** = figure SANS repère, SANS grille, SANS axes
+   → À utiliser pour TOUTE figure géométrique pure (triangles, cercles, quadrilatères...)
+   → Exemples : "Triangle ABC isocèle", "Cercle de centre O", "Parallélogramme ABCD"
 
-**EXEMPLE COMPLET - Triangle isocèle avec hauteur :**
+**EXEMPLE 1 — Géométrie pure (triangle, cercle...) → type: geometry :**
 @@@ figure
 type: geometry
 points: B(-3,0), C(3,0), A(0,4), H(0,0)
 segments: [AB], [AC], [BC], [AH]
 @@@
+
+**EXEMPLE 2 — Repère demandé (coordonnées) → type: coordinates :**
+@@@ figure
+type: coordinates
+points: A(2,3), B(-1,5), I(0.5,4)
+segments: [AB]
+@@@
+
 
 ⚠️ **RÈGLE ABSOLUE : TOUTES LES NOTATIONS MATHÉMATIQUES DOIVENT ÊTRE EN LaTeX !**
 
