@@ -342,11 +342,29 @@ export default function MathTable({ data, title }: MathTableProps) {
     // Position Y où les pointillés pour les valeurs interdites doivent s'arrêter (avant la dernière ligne)
     const forbiddenDottedLinesEndY = headerHeight + (rows.length - 1) * rowHeight;
 
-    // Référence au marqueur de flèche SVG
-    // IMPORTANT : On utilise url(#id) sans base URL car window.location.href
-    // casse les références dans Comet, Opera et certaines versions de Safari
-    // quand l'URL contient des paramètres de requête ou des hash.
-    const arrowRef = `url(#arrow-${id})`;
+    /**
+     * makeArrow — dessine une flèche SVG sans <marker> ni url() référence.
+     * Compatible avec TOUS les navigateurs (Chrome, Firefox, Safari, Opera, Edge, Comet).
+     * Calcule la pointe de flèche comme un <polygon> transformé dans la bonne direction.
+     */
+    const makeArrow = (key: string, x1: number, y1: number, x2: number, y2: number) => {
+        const color = '#4f46e5';
+        const headSize = 7; // taille de la pointe en px
+        // angle de la ligne
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        return (
+            <g key={key}>
+                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth="2.5" />
+                <polygon
+                    points={`0,${-headSize / 2} ${headSize},0 0,${headSize / 2}`}
+                    fill={color}
+                    transform={`translate(${x2},${y2}) rotate(${angle})`}
+                />
+            </g>
+        );
+    };
 
     return (
         <div style={{ margin: '2.5rem 0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -360,11 +378,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                         viewBox={`0 0 ${totalWidth} ${totalHeight}`}
                         style={{ display: 'block', maxWidth: 'none' }}
                     >
-                        <defs>
-                            <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
-                            </marker>
-                        </defs>
+                        {/* Pas de <defs><marker> — les flèches sont dessinées avec makeArrow() */}
 
                         <rect width={totalWidth} height={totalHeight} fill="white" />
 
@@ -564,13 +578,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                             const xEnd = getXPos(pos + 1);
 
                                                             if (elIsArrowUp) {
-                                                                elements.push(
-                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yBottom} x2={xEnd - 8} y2={yTop} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                                );
+                                                                elements.push(makeArrow(`arr-${i}`, xStart + 5, yBottom, xEnd - 8, yTop));
                                                             } else {
-                                                                elements.push(
-                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                                );
+                                                                elements.push(makeArrow(`arr-${i}`, xStart + 5, yTop, xEnd - 8, yBottom));
                                                             }
                                                         } else {
                                                             // Valeur (extremum ou borne du domaine)
@@ -665,13 +675,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     // 3. Première flèche (de x0 vers limite gauche)
                                                     if (isArrow1Up || isArrow1Down) {
                                                         if (isArrow1Up) {
-                                                            elements.push(
-                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                            );
+                                                            elements.push(makeArrow('arrow1', x0 + 10, yVal0 - 3, xLeftLimit + 5, yLeftLimit + 8));
                                                         } else {
-                                                            elements.push(
-                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                            );
+                                                            elements.push(makeArrow('arrow1', x0 + 10, yVal0 + 3, xLeftLimit + 5, yLeftLimit - 8));
                                                         }
                                                     }
 
@@ -707,13 +713,9 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                         else if (isArrow2Down) yVal2 = yBottom;
 
                                                         if (isArrow2Up) {
-                                                            elements.push(
-                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                            );
+                                                            elements.push(makeArrow('arrow2', xRightLimit - 5, yRightLimit - 8, x2 - 10, yVal2 + 3));
                                                         } else {
-                                                            elements.push(
-                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
-                                                            );
+                                                            elements.push(makeArrow('arrow2', xRightLimit - 5, yRightLimit + 8, x2 - 10, yVal2 - 3));
                                                         }
 
                                                         // 7. Dernière valeur
@@ -756,32 +758,10 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                                 if (isArrowUp) {
                                                     // Flèche montante : bas-gauche vers haut-droite
-                                                    return (
-                                                        <line
-                                                            key={`v-${rowIndex}-${slotIdx}`}
-                                                            x1={xStart + 5}
-                                                            y1={yBottom}
-                                                            x2={xEnd - 8}
-                                                            y2={yTop}
-                                                            stroke="#4f46e5"
-                                                            strokeWidth="2.5"
-                                                            markerEnd={arrowRef}
-                                                        />
-                                                    );
+                                                    return makeArrow(`v-${rowIndex}-${slotIdx}`, xStart + 5, yBottom, xEnd - 8, yTop);
                                                 } else {
                                                     // Flèche descendante : haut-gauche vers bas-droite
-                                                    return (
-                                                        <line
-                                                            key={`v-${rowIndex}-${slotIdx}`}
-                                                            x1={xStart + 5}
-                                                            y1={yTop}
-                                                            x2={xEnd - 8}
-                                                            y2={yBottom}
-                                                            stroke="#4f46e5"
-                                                            strokeWidth="2.5"
-                                                            markerEnd={arrowRef}
-                                                        />
-                                                    );
+                                                    return makeArrow(`v-${rowIndex}-${slotIdx}`, xStart + 5, yTop, xEnd - 8, yBottom);
                                                 }
                                             }
 
