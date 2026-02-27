@@ -370,7 +370,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         <div style={{ margin: '2.5rem 0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {/* Suppression overflow:hidden du conteneur externe - cause l'invisible du SVG sur Comet/Opera */}
             <div style={{ position: 'relative', padding: '1px', background: '#e2e8f0', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', maxWidth: '100%', overflow: 'visible' }}>
-                <div style={{ background: 'white', borderRadius: '15px', overflowX: 'auto', overflow: 'auto' }}>
+                <div style={{ background: 'white', borderRadius: '15px', overflowX: 'auto', overflowY: 'visible', minHeight: `${totalHeight + 2}px` }}>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width={totalWidth}

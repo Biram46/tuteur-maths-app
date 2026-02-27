@@ -975,8 +975,19 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         const img = new Image();
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            canvas.width = svgEl.clientWidth || svgEl.getBoundingClientRect().width || 800;
-                            canvas.height = svgEl.clientHeight || svgEl.getBoundingClientRect().height || 200;
+                            const svgTyped = svgEl as SVGSVGElement;
+                            // CORRECTION : getBoundingClientRect() retourne 0 pour les éléments hors DOM
+                            // → utiliser les attributs SVG width/height en priorité
+                            canvas.width = svgEl.clientWidth
+                                || svgTyped.width?.baseVal?.value
+                                || parseFloat(svgEl.getAttribute('width') || '0')
+                                || svgEl.getBoundingClientRect().width
+                                || 800;
+                            canvas.height = svgEl.clientHeight
+                                || svgTyped.height?.baseVal?.value
+                                || parseFloat(svgEl.getAttribute('height') || '0')
+                                || svgEl.getBoundingClientRect().height
+                                || 200;
                             const ctx = canvas.getContext('2d');
                             if (ctx) {
                                 ctx.fillStyle = '#ffffff';
@@ -1027,15 +1038,25 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             }
 
                             // 1. Convertir chaque SVG du clone en <img> PNG
-                            const svgElements = clonedDoc.querySelectorAll('svg');
-                            for (const svgEl of Array.from(svgElements)) {
-                                // On exclut les petites icônes (< 50px)
-                                const rect = svgEl.getBoundingClientRect();
-                                if (rect.width < 50 || rect.height < 30) continue;
+                            const clonedSvgList = Array.from(clonedDoc.querySelectorAll('svg')) as SVGSVGElement[];
+                            // Récupérer aussi les SVGs originaux (dans le DOM réel) pour la qualité
+                            const originalSvgList = Array.from((msgEl as HTMLElement).querySelectorAll('svg')) as SVGElement[];
 
-                                const originalSvg = document.querySelector(`#msg-${i} svg`) as SVGElement | null;
-                                const targetSvg = originalSvg || (svgEl as SVGElement);
-                                const dataUrl = await svgToDataUrl(targetSvg);
+                            for (let svgIdx = 0; svgIdx < clonedSvgList.length; svgIdx++) {
+                                const svgEl = clonedSvgList[svgIdx];
+                                // CORRECTION : getBoundingClientRect() retourne TOUJOURS 0 dans un doc cloné
+                                // car le clone n'est pas attaché au layout de la page.
+                                // → Utiliser les attributs width/height du SVG lui-même.
+                                const svgW = svgEl.width?.baseVal?.value
+                                    || parseFloat(svgEl.getAttribute('width') || '0');
+                                const svgH = svgEl.height?.baseVal?.value
+                                    || parseFloat(svgEl.getAttribute('height') || '0');
+                                // Exclure les petites icônes
+                                if (svgW < 50 || svgH < 30) continue;
+
+                                // Utiliser l'original correspondant (meilleure qualité de rendu)
+                                const targetSvg = originalSvgList[svgIdx] || svgEl;
+                                const dataUrl = await svgToDataUrl(targetSvg as SVGElement);
                                 if (dataUrl) {
                                     const img = clonedDoc.createElement('img');
                                     img.src = dataUrl;
@@ -1191,408 +1212,408 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
 
 
-const processFile = async (file: File) => {
-    setIsScanning(true);
-    setLoading(true);
-    const isPdf = file.type === 'application/pdf';
+    const processFile = async (file: File) => {
+        setIsScanning(true);
+        setLoading(true);
+        const isPdf = file.type === 'application/pdf';
 
-    // Message visuel immédiat
-    setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `✨ *Analyse photonique en cours... Je scanne votre ${isPdf ? 'document PDF' : 'image (capture)'}.*`
-    }]);
-
-    try {
-        if (file.size > 20 * 1024 * 1024) {
-            throw new Error("Le fichier est trop volumineux (max 20 Mo).");
-        }
-
-        let imagesToProcess: { base64: string; mimeType: string }[];
-
-        // Convertir PDF en images
-        if (isPdf) {
-            try {
-                imagesToProcess = await convertPdfToImages(file);
-                console.log(`[PDF] Converti en ${imagesToProcess.length} image(s)`);
-            } catch (pdfError: any) {
-                console.error("[PDF] Erreur conversion:", pdfError);
-                throw new Error("Impossible de lire le PDF. Essayez de prendre une capture d'écran à la place.");
-            }
-        } else {
-            // Pour les images, lire directement en base64
-            const base64Data = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
-            });
-            imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
-        }
-
-        // Analyser chaque image (pour PDF multi-pages, on combine les résultats)
-        let combinedTranscription = "";
-        for (let i = 0; i < imagesToProcess.length; i++) {
-            const { base64, mimeType } = imagesToProcess[i];
-
-            const response = await fetch('/api/vision', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: base64, mimeType })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const errorMsg = data.suggestion || data.error || data.message || "Erreur lors de l'analyse";
-                throw new Error(errorMsg);
-            }
-
-            if (data.transcription) {
-                if (imagesToProcess.length > 1) {
-                    combinedTranscription += `**Page ${i + 1}:**\n${data.transcription}\n\n`;
-                } else {
-                    combinedTranscription = data.transcription;
-                }
-            }
-        }
-
-        if (!combinedTranscription) {
-            throw new Error("Aucun texte n'a pu être extrait du document.");
-        }
-
-        const userMessage: ChatMessage = { role: 'user', content: combinedTranscription };
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
-        setIsScanning(false);
-        await startStreamingResponse(newMessages);
-
-    } catch (error: any) {
-        console.error("Scan Error:", error);
+        // Message visuel immédiat
         setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `❌ **Erreur :** ${error.message || "Impossible de scanner le document."}`
+            content: `✨ *Analyse photonique en cours... Je scanne votre ${isPdf ? 'document PDF' : 'image (capture)'}.*`
         }]);
-        setIsScanning(false);
-        setLoading(false);
-    }
-};
 
-const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await processFile(file);
-    // Reset l'input pour permettre de uploader le même fichier si besoin
-    e.target.value = '';
-};
-
-const handlePaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
-            const file = items[i].getAsFile();
-            if (file) {
-                e.preventDefault(); // Empêche de coller le texte si c'est une image
-                await processFile(file);
-                break;
+        try {
+            if (file.size > 20 * 1024 * 1024) {
+                throw new Error("Le fichier est trop volumineux (max 20 Mo).");
             }
-        }
-    }
-};
 
-const startStreamingResponse = async (msgs: ChatMessage[]) => {
-    setLoading(true);
-    setIsTalking(true);
+            let imagesToProcess: { base64: string; mimeType: string }[];
 
-    // --- ACKNOWLEDGMENT VOCAL IMMÉDIAT ---
-    if (isVoiceEnabled) {
-        const acknowledgments = [
-            "D'accord, je regarde ça tout de suite.",
-            "Laisse-moi une seconde pour analyser ce problème.",
-            "C'est une bonne question, je prépare une réponse détaillée.",
-            "Je lance la recherche pour te donner une explication précise.",
-            "D'accord, je commence l'analyse de ta demande."
-        ];
-        const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
-        // On lance le TTS sans attendre qu'il finisse pour ne pas bloquer l'appel API
-        speakMessage(randomAck, -1);
-    }
+            // Convertir PDF en images
+            if (isPdf) {
+                try {
+                    imagesToProcess = await convertPdfToImages(file);
+                    console.log(`[PDF] Converti en ${imagesToProcess.length} image(s)`);
+                } catch (pdfError: any) {
+                    console.error("[PDF] Erreur conversion:", pdfError);
+                    throw new Error("Impossible de lire le PDF. Essayez de prendre une capture d'écran à la place.");
+                }
+            } else {
+                // Pour les images, lire directement en base64
+                const base64Data = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                    reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
+                });
+                imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
+            }
 
-    // On pré-ajoute le message de l'assistant (vide pour le stream)
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+            // Analyser chaque image (pour PDF multi-pages, on combine les résultats)
+            let combinedTranscription = "";
+            for (let i = 0; i < imagesToProcess.length; i++) {
+                const { base64, mimeType } = imagesToProcess[i];
 
-    try {
-        const response = await fetch('/api/perplexity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: msgs, context: baseContext }),
-        });
+                const response = await fetch('/api/vision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, mimeType })
+                });
 
-        if (!response.ok) throw new Error('Erreur API');
+                const data = await response.json();
 
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error('Reader non disponible');
+                if (!response.ok) {
+                    const errorMsg = data.suggestion || data.error || data.message || "Erreur lors de l'analyse";
+                    throw new Error(errorMsg);
+                }
 
-        const decoder = new TextDecoder();
-        let fullText = "";
-        let currentSentence = "";
-        let inMathBlock = false;
-        let lastUpdate = Date.now();
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.substring(6);
-                    if (jsonStr === '[DONE]') break;
-                    try {
-                        const json = JSON.parse(jsonStr);
-                        const content = json.choices[0]?.delta?.content || "";
-                        if (content) {
-                            fullText += content;
-                            currentSentence += content;
-
-                            // Mise à jour UI throttlée (max toutes les 60ms)
-                            const now = Date.now();
-                            if (now - lastUpdate > 60) {
-                                setMessages(prev => {
-                                    const updated = [...prev];
-                                    updated[updated.length - 1] = {
-                                        role: 'assistant',
-                                        content: fullText
-                                    };
-                                    return updated;
-                                });
-                                lastUpdate = now;
-                            }
-
-                            // Détection de fin de phrase pour le TTS
-                            // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
-                            if (content.includes('@@@')) inMathBlock = !inMathBlock;
-                            if (content.includes('$$')) inMathBlock = !inMathBlock;
-
-                            if (!inMathBlock && isVoiceEnabled) {
-                                const sentenceEndings = /[.!?](\s|$)/;
-                                if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
-                                    // On nettoie un peu la phrase avant de l'ajouter à la queue
-                                    const sentenceToSpeak = currentSentence.trim();
-                                    speechQueue.current.push(sentenceToSpeak);
-                                    currentSentence = "";
-                                    processSpeechQueue();
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // Erreur de parsing JSON ignorée sur les chunks
+                if (data.transcription) {
+                    if (imagesToProcess.length > 1) {
+                        combinedTranscription += `**Page ${i + 1}:**\n${data.transcription}\n\n`;
+                    } else {
+                        combinedTranscription = data.transcription;
                     }
                 }
             }
+
+            if (!combinedTranscription) {
+                throw new Error("Aucun texte n'a pu être extrait du document.");
+            }
+
+            const userMessage: ChatMessage = { role: 'user', content: combinedTranscription };
+            const newMessages = [...messages, userMessage];
+            setMessages(newMessages);
+            setIsScanning(false);
+            await startStreamingResponse(newMessages);
+
+        } catch (error: any) {
+            console.error("Scan Error:", error);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `❌ **Erreur :** ${error.message || "Impossible de scanner le document."}`
+            }]);
+            setIsScanning(false);
+            setLoading(false);
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processFile(file);
+        // Reset l'input pour permettre de uploader le même fichier si besoin
+        e.target.value = '';
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
+                const file = items[i].getAsFile();
+                if (file) {
+                    e.preventDefault(); // Empêche de coller le texte si c'est une image
+                    await processFile(file);
+                    break;
+                }
+            }
+        }
+    };
+
+    const startStreamingResponse = async (msgs: ChatMessage[]) => {
+        setLoading(true);
+        setIsTalking(true);
+
+        // --- ACKNOWLEDGMENT VOCAL IMMÉDIAT ---
+        if (isVoiceEnabled) {
+            const acknowledgments = [
+                "D'accord, je regarde ça tout de suite.",
+                "Laisse-moi une seconde pour analyser ce problème.",
+                "C'est une bonne question, je prépare une réponse détaillée.",
+                "Je lance la recherche pour te donner une explication précise.",
+                "D'accord, je commence l'analyse de ta demande."
+            ];
+            const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+            // On lance le TTS sans attendre qu'il finisse pour ne pas bloquer l'appel API
+            speakMessage(randomAck, -1);
         }
 
-        // Fin du stream : application du fixFinal et lecture du reste
-        const finalFixed = fixLatexContent(fullText).content;
-        setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
-            return updated;
-        });
+        // On pré-ajoute le message de l'assistant (vide pour le stream)
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-        if (currentSentence.trim().length > 0 && isVoiceEnabled) {
-            speechQueue.current.push(currentSentence.trim());
-            processSpeechQueue();
+        try {
+            const response = await fetch('/api/perplexity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: msgs, context: baseContext }),
+            });
+
+            if (!response.ok) throw new Error('Erreur API');
+
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('Reader non disponible');
+
+            const decoder = new TextDecoder();
+            let fullText = "";
+            let currentSentence = "";
+            let inMathBlock = false;
+            let lastUpdate = Date.now();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.substring(6);
+                        if (jsonStr === '[DONE]') break;
+                        try {
+                            const json = JSON.parse(jsonStr);
+                            const content = json.choices[0]?.delta?.content || "";
+                            if (content) {
+                                fullText += content;
+                                currentSentence += content;
+
+                                // Mise à jour UI throttlée (max toutes les 60ms)
+                                const now = Date.now();
+                                if (now - lastUpdate > 60) {
+                                    setMessages(prev => {
+                                        const updated = [...prev];
+                                        updated[updated.length - 1] = {
+                                            role: 'assistant',
+                                            content: fullText
+                                        };
+                                        return updated;
+                                    });
+                                    lastUpdate = now;
+                                }
+
+                                // Détection de fin de phrase pour le TTS
+                                // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
+                                if (content.includes('@@@')) inMathBlock = !inMathBlock;
+                                if (content.includes('$$')) inMathBlock = !inMathBlock;
+
+                                if (!inMathBlock && isVoiceEnabled) {
+                                    const sentenceEndings = /[.!?](\s|$)/;
+                                    if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
+                                        // On nettoie un peu la phrase avant de l'ajouter à la queue
+                                        const sentenceToSpeak = currentSentence.trim();
+                                        speechQueue.current.push(sentenceToSpeak);
+                                        currentSentence = "";
+                                        processSpeechQueue();
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // Erreur de parsing JSON ignorée sur les chunks
+                        }
+                    }
+                }
+            }
+
+            // Fin du stream : application du fixFinal et lecture du reste
+            const finalFixed = fixLatexContent(fullText).content;
+            setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
+                return updated;
+            });
+
+            if (currentSentence.trim().length > 0 && isVoiceEnabled) {
+                speechQueue.current.push(currentSentence.trim());
+                processSpeechQueue();
+            }
+
+        } catch (error) {
+            console.error('Erreur Assistant:', error);
+            setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur est survenue lors de la communication." };
+                return updated;
+            });
+            setIsTalking(false);
+        } finally {
+            setLoading(false);
         }
+    };
 
-    } catch (error) {
-        console.error('Erreur Assistant:', error);
-        setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur est survenue lors de la communication." };
-            return updated;
-        });
-        setIsTalking(false);
-    } finally {
-        setLoading(false);
-    }
-};
+    const processSpeechQueue = () => {
+        if (isSpeakingQueue.current || speechQueue.current.length === 0) return;
+        isSpeakingQueue.current = true;
+        const nextSentence = speechQueue.current.shift();
+        if (nextSentence) {
+            speakMessage(nextSentence, -2); // -2 code spécial pour la queue
+        } else {
+            isSpeakingQueue.current = false;
+        }
+    };
 
-const processSpeechQueue = () => {
-    if (isSpeakingQueue.current || speechQueue.current.length === 0) return;
-    isSpeakingQueue.current = true;
-    const nextSentence = speechQueue.current.shift();
-    if (nextSentence) {
-        speakMessage(nextSentence, -2); // -2 code spécial pour la queue
-    } else {
-        isSpeakingQueue.current = false;
-    }
-};
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!input.trim() || loading || isScanning) return;
+        const userMessage: ChatMessage = { role: 'user', content: input };
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
+        setInput('');
+        await startStreamingResponse(newMessages);
+    };
 
-const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!input.trim() || loading || isScanning) return;
-    const userMessage: ChatMessage = { role: 'user', content: input };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput('');
-    await startStreamingResponse(newMessages);
-};
+    if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl animate-pulse"></div>;
 
-if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl animate-pulse"></div>;
+    return (
+        <div className="w-full mx-auto bg-[#020617] overflow-hidden flex flex-col h-full font-['Exo_2',_sans-serif] relative shadow-2xl">
+            {/* SECTION 1: ROBOT VIDEO COLUMN (FIXED TOP) */}
+            <div className="shrink-0 h-[160px] bg-slate-900/40 border-b border-white/5 flex flex-col items-center justify-center p-3 relative overflow-hidden">
+                {/* Background effects */}
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent"></div>
+                <div className="absolute top-4 left-6 flex items-center gap-3 z-10">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest font-mono">Live</span>
+                    </div>
+                </div>
 
-return (
-    <div className="w-full mx-auto bg-[#020617] overflow-hidden flex flex-col h-full font-['Exo_2',_sans-serif] relative shadow-2xl">
-        {/* SECTION 1: ROBOT VIDEO COLUMN (FIXED TOP) */}
-        <div className="shrink-0 h-[160px] bg-slate-900/40 border-b border-white/5 flex flex-col items-center justify-center p-3 relative overflow-hidden">
-            {/* Background effects */}
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent"></div>
-            <div className="absolute top-4 left-6 flex items-center gap-3 z-10">
-                <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest font-mono">Live</span>
+                <div className="absolute top-4 right-6 z-10">
+                    <button
+                        onClick={handleExportBilan}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-widest transition-all"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        PDF
+                    </button>
+                </div>
+
+                {/* Avatar Video Frame */}
+                <div className="relative group mt-4">
+                    <div className={`absolute -inset-6 rounded-full blur-3xl transition-all duration-1000 ${isTalking ? 'bg-cyan-500/30 scale-110' : 'bg-blue-500/10'}`}></div>
+                    <div className="relative bg-black/60 p-1.5 rounded-full ring-2 ring-slate-800 shadow-[0_0_20px_rgba(6,182,212,0.1)] overflow-hidden">
+                        <RobotAvatar isTalking={isTalking} volume={speechVolume} width={85} height={85} />
+                    </div>
+                    {isTalking && (
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                            <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite]"></div>
+                            <div className="w-1 h-6 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
+                            <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="mt-2 text-center z-10">
+                    <h3 className="text-[9px] font-black text-white uppercase tracking-[0.4em] font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">mimimaths@i</h3>
+                    <div className="flex items-center justify-center gap-4 mt-0.5">
+                        <label className="relative inline-flex items-center cursor-pointer pointer-events-auto">
+                            <input
+                                type="checkbox"
+                                checked={isVoiceEnabled}
+                                onChange={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-600"></div>
+                            <span className="ms-2 text-[9px] font-bold uppercase tracking-widest text-cyan-400/80">
+                                {isVoiceEnabled ? 'Audio On' : 'Muet'}
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div className="absolute top-4 right-6 z-10">
-                <button
-                    onClick={handleExportBilan}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-widest transition-all"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                    PDF
-                </button>
-            </div>
-
-            {/* Avatar Video Frame */}
-            <div className="relative group mt-4">
-                <div className={`absolute -inset-6 rounded-full blur-3xl transition-all duration-1000 ${isTalking ? 'bg-cyan-500/30 scale-110' : 'bg-blue-500/10'}`}></div>
-                <div className="relative bg-black/60 p-1.5 rounded-full ring-2 ring-slate-800 shadow-[0_0_20px_rgba(6,182,212,0.1)] overflow-hidden">
-                    <RobotAvatar isTalking={isTalking} volume={speechVolume} width={85} height={85} />
-                </div>
-                {isTalking && (
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                        <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite]"></div>
-                        <div className="w-1 h-6 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
-                        <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
+            {/* SECTION 2: CHAT AREA (FLEX-1) */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative bg-[#020617]">
+                {messages.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full opacity-[0.1] select-none text-center">
+                        <div className="text-6xl mb-4">📐</div>
+                        <p className="text-[10px] font-mono uppercase tracking-[0.8em] text-cyan-400">Intelligence Active</p>
                     </div>
                 )}
-            </div>
 
-            <div className="mt-2 text-center z-10">
-                <h3 className="text-[9px] font-black text-white uppercase tracking-[0.4em] font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">mimimaths@i</h3>
-                <div className="flex items-center justify-center gap-4 mt-0.5">
-                    <label className="relative inline-flex items-center cursor-pointer pointer-events-auto">
-                        <input
-                            type="checkbox"
-                            checked={isVoiceEnabled}
-                            onChange={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                            className="sr-only peer"
-                        />
-                        <div className="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-600"></div>
-                        <span className="ms-2 text-[9px] font-bold uppercase tracking-widest text-cyan-400/80">
-                            {isVoiceEnabled ? 'Audio On' : 'Muet'}
-                        </span>
-                    </label>
-                </div>
-            </div>
-        </div>
+                {messages.map((msg, index) => (
+                    <div key={index} id={`msg-${index}`} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
+                        <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed relative group ${msg.role === 'user'
+                            ? 'bg-blue-600/10 border border-blue-500/20 text-blue-50 rounded-tr-none'
+                            : 'bg-slate-900/50 border border-slate-800/50 text-slate-100 rounded-tl-none'}`}>
 
-        {/* SECTION 2: CHAT AREA (FLEX-1) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative bg-[#020617]">
-            {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full opacity-[0.1] select-none text-center">
-                    <div className="text-6xl mb-4">📐</div>
-                    <p className="text-[10px] font-mono uppercase tracking-[0.8em] text-cyan-400">Intelligence Active</p>
-                </div>
-            )}
-
-            {messages.map((msg, index) => (
-                <div key={index} id={`msg-${index}`} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
-                    <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed relative group ${msg.role === 'user'
-                        ? 'bg-blue-600/10 border border-blue-500/20 text-blue-50 rounded-tr-none'
-                        : 'bg-slate-900/50 border border-slate-800/50 text-slate-100 rounded-tl-none'}`}>
-
-                        {msg.role === 'assistant' && msg.content !== '...' && (
-                            <button
-                                onClick={() => speakMessage(msg.content, index, msg.audio)}
-                                className={`absolute -right-10 top-0 p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 ${speakingIndex === index ? 'text-cyan-400 opacity-100' : ''}`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-                                </svg>
-                            </button>
-                        )}
-
-                        <div className="prose prose-invert prose-cyan max-w-none prose-sm w-full overflow-hidden">
-                            {msg.role === 'assistant' && (msg.content === '' || msg.content === '...') && loading ? (
-                                <div className="flex items-center gap-2 text-cyan-400 font-mono text-[10px] animate-pulse py-4">
-                                    <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
-                                    <span className="uppercase tracking-widest font-bold">Réflexion photonique...</span>
-                                </div>
-                            ) : (
-                                <div className="message-content-wrapper space-y-4">
-                                    {renderMessageContent(msg.content)}
-                                </div>
+                            {msg.role === 'assistant' && msg.content !== '...' && (
+                                <button
+                                    onClick={() => speakMessage(msg.content, index, msg.audio)}
+                                    className={`absolute -right-10 top-0 p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 ${speakingIndex === index ? 'text-cyan-400 opacity-100' : ''}`}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                                    </svg>
+                                </button>
                             )}
+
+                            <div className="prose prose-invert prose-cyan max-w-none prose-sm w-full overflow-hidden">
+                                {msg.role === 'assistant' && (msg.content === '' || msg.content === '...') && loading ? (
+                                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-[10px] animate-pulse py-4">
+                                        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
+                                        <span className="uppercase tracking-widest font-bold">Réflexion photonique...</span>
+                                    </div>
+                                ) : (
+                                    <div className="message-content-wrapper space-y-4">
+                                        {renderMessageContent(msg.content)}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
-            <div ref={messagesEndRef} className="h-4" />
-        </div>
+                ))}
+                <div ref={messagesEndRef} className="h-4" />
+            </div>
 
-        {/* SECTION 3: INPUT BAR (BOTTOM) */}
-        <div className="shrink-0 p-4 bg-slate-950 border-t border-white/5">
-            <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
-                <div className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center pr-2 focus-within:ring-1 focus-within:ring-cyan-500/30">
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                        onPaste={handlePaste}
-                        placeholder="Écrivez ici ou collez une capture d'écran..."
-                        className="flex-1 bg-transparent border-none text-slate-100 px-4 py-3 resize-none text-[15px] min-h-[44px] max-h-[120px] focus:ring-0 placeholder:text-slate-600"
-                        disabled={loading || isScanning}
-                    />
-                    <div className="flex items-center shrink-0">
-                        <button
-                            type="button"
-                            onClick={toggleRecording}
-                            className={`p-2 transition-all rounded-full ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-500 hover:text-cyan-400'}`}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                            </svg>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-                            className="p-2 text-slate-500 hover:text-cyan-400 transition-all"
-                            title="Scanner un exercice (Image ou PDF)"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                            </svg>
-                        </button>
+            {/* SECTION 3: INPUT BAR (BOTTOM) */}
+            <div className="shrink-0 p-4 bg-slate-950 border-t border-white/5">
+                <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+                    <div className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center pr-2 focus-within:ring-1 focus-within:ring-cyan-500/30">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                            onPaste={handlePaste}
+                            placeholder="Écrivez ici ou collez une capture d'écran..."
+                            className="flex-1 bg-transparent border-none text-slate-100 px-4 py-3 resize-none text-[15px] min-h-[44px] max-h-[120px] focus:ring-0 placeholder:text-slate-600"
+                            disabled={loading || isScanning}
+                        />
+                        <div className="flex items-center shrink-0">
+                            <button
+                                type="button"
+                                onClick={toggleRecording}
+                                className={`p-2 transition-all rounded-full ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-500 hover:text-cyan-400'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+                                className="p-2 text-slate-500 hover:text-cyan-400 transition-all"
+                                title="Scanner un exercice (Image ou PDF)"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <button type="submit" disabled={loading || !input.trim() || isScanning} className="bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl h-[44px] w-[44px] flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0">
-                    {loading && !isScanning ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
-                    )}
-                </button>
-            </form>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" className="hidden" aria-hidden="true" />
+                    <button type="submit" disabled={loading || !input.trim() || isScanning} className="bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl h-[44px] w-[44px] flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0">
+                        {loading && !isScanning ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
+                        )}
+                    </button>
+                </form>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" className="hidden" aria-hidden="true" />
+            </div>
         </div>
-    </div>
-);
+    );
 }
