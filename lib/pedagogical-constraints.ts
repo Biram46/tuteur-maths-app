@@ -160,8 +160,23 @@ sign: f(x) : -, 0, ||, 0, +, +, + |
 - La ligne finale combine tous les signes (règle des signes)
 
 ⚠️ **EXEMPLE 4 : CRITIQUE - Quotient avec numérateur factorisé f(x) = (x+3)(x-2)/(x-1)**
-- Valeurs critiques : x=-3 (x+3=0), x=1 (interdit, x-1=0), x=2 (x-2=0)
-- N=5 x-values → 7 éléments par ligne sign:
+- x-values : -inf, -3, 1, 2, +inf (N=5)
+- Chaque ligne sign: a exactement 2×5-3 = **7 éléments**
+- Valeurs critiques : x=-3 (zéro de x+3), x=1 (interdit, zéro de x-1), x=2 (zéro de x-2)
+
+🔑 **MAPPING POSITION → COLONNE x pour cet exemple (x: -inf, -3, 1, 2, +inf) :**
+- Position 1 → intervalle ]-inf, -3[
+- Position 2 → sous x = **-3**
+- Position 3 → intervalle ]-3, 1[
+- Position 4 → sous x = **1**
+- Position 5 → intervalle ]1, 2[
+- Position 6 → sous x = **2**
+- Position 7 → intervalle ]2, +inf[
+
+🔑 **RÈGLE : chaque facteur ne met son 0 (ou ||) QUE sous la valeur qui L'annule :**
+- (x+3) s'annule en x=-3 → mets "0" à la POSITION 2 uniquement
+- (x-1) s'annule en x=1 → mets "||" à la POSITION 4 uniquement (car dénominateur)
+- (x-2) s'annule en x=2 → mets "0" à la POSITION 6 uniquement
 
 @@@ table |
 x: -inf, -3, 1, 2, +inf |
@@ -174,6 +189,14 @@ sign: f(x) : -, 0, +, ||, -, 0, + |
 ⚠️ RÈGLE ABSOLUE : UNE ligne sign: par facteur élémentaire (x+3 ET x-2 séparément, pas ensemble !)
 ⚠️ x-1 est au dénominateur → "||" dans sa ligne sign: ET dans la ligne f(x)
 ⚠️ x+3 et x-2 sont au numérateur → "0" dans leurs lignes sign: (PAS "||")
+⚠️ Ne JAMAIS mettre "0" ou "||" à la même colonne pour deux facteurs différents s'ils ont des zéros distincts !
+
+❌ ERREUR FRÉQUENTE À ÉVITER :
+sign: x - 2 : -, 0, -, -, -, -, +  ← MAUVAIS ! Le 0 est à la position 2 (sous x=-3) au lieu de la position 6 (sous x=2)
+sign: x - 1 : -, 0, -, ||, +, +, + ← MAUVAIS ! Le 0 inutile est à x=-3 au lieu d'avoir uniquement le || à x=1
+
+✅ Format correct pour signe: x - 2 avec zéro en x=2 :
+sign: x - 2 : -, -, -, -, -, 0, +   ← CORRECT (0 en position 6, sous x=2)
 
 ⚠️ **FORMAT OBLIGATOIRE POUR LES TABLEAUX DE SIGNES :**
 Pour N valeurs de x, chaque ligne DOIT avoir exactement 2N-3 éléments.
@@ -182,16 +205,18 @@ Pour N valeurs de x, chaque ligne DOIT avoir exactement 2N-3 éléments.
 - Position 3: signe sur l'intervalle ]x1, x2[
 - Position 4: 0 ou || sous x2
 - ... etc (pattern: signe, spécial, signe, spécial, ..., signe)
+- Les positions impaires (1, 3, 5...) sont TOUJOURS des signes + ou -
+- Les positions paires (2, 4, 6...) sont TOUJOURS 0, || ou le signe si le facteur ne change pas
 
-EXEMPLE avec N=5 x-values ([-inf, -3, -2, 1, +inf]) :
+EXEMPLE avec N=5 x-values ([-inf, a, b, c, +inf]) :
 - Chaque ligne a 2×5-3 = 7 éléments
-- Position 1: signe sur ]-inf, -3[
-- Position 2: 0 ou || sous x=-3
-- Position 3: signe sur ]-3, -2[
-- Position 4: 0 ou || sous x=-2
-- Position 5: signe sur ]-2, 1[
-- Position 6: 0 ou || sous x=1
-- Position 7: signe sur ]1, +inf[
+- Position 1: signe sur ]-inf, a[
+- Position 2: 0 (si facteur s'annule en a) ou || (si dénominateur) ou signe (sinon)
+- Position 3: signe sur ]a, b[
+- Position 4: 0 (si facteur s'annule en b) ou || ou signe
+- Position 5: signe sur ]b, c[
+- Position 6: 0 (si facteur s'annule en c) ou || ou signe
+- Position 7: signe sur ]c, +inf[
 
 ============================================
 SECTION 1 : NOTATION DES INTERVALLES (FRANÇAIS)

@@ -136,6 +136,129 @@ export default function TestVariationsPage() {
         ]
     };
 
+    // ==========================================
+    // TESTS TABLEAUX DE SIGNES POUR QUOTIENTS
+    // ==========================================
+
+    // Test Signe 1: Tableau de signes pour quotient f(x) = (e^x - 1)/x
+    // Facteur e^x - 1 : négatif avant 0, nul en 0, positif après
+    // Facteur x (dénominateur) : négatif avant 0, interdit en 0, positif après
+    // Quotient : positif partout (valeur interdite en 0)
+    const testSigne1 = {
+        xValues: ['-inf', '0', '+inf'],
+        rows: [
+            {
+                label: 'e^x - 1',
+                type: 'sign' as const,
+                content: ['-', '0', '+']
+            },
+            {
+                label: 'x',
+                type: 'sign' as const,
+                content: ['-', '||', '+']
+            },
+            {
+                label: 'f(x)',
+                type: 'sign' as const,
+                content: ['+', '||', '+']
+            }
+        ]
+    };
+
+    // Test Signe 2: Tableau de signes pour produit f(x) = -2(x+1)(x-4)
+    // Format: une ligne par facteur
+    const testSigne2 = {
+        xValues: ['-inf', '-1', '4', '+inf'],
+        rows: [
+            {
+                label: 'x + 1',
+                type: 'sign' as const,
+                content: ['-', '0', '+', '+']
+            },
+            {
+                label: 'x - 4',
+                type: 'sign' as const,
+                content: ['-', '-', '-', '0', '+']
+            },
+            {
+                label: '-2',
+                type: 'sign' as const,
+                content: ['-', '-', '-', '-']
+            },
+            {
+                label: 'f(x)',
+                type: 'sign' as const,
+                content: ['-', '0', '+', '0', '-']
+            }
+        ]
+    };
+
+    // Test Signe 3: Tableau de signes pour quotient f(x) = (x-1)(x+3)/(x+2)
+    // Chaque facteur sur une ligne séparée
+    // (x-1) : racine en 1
+    // (x+3) : racine en -3
+    // (x+2) au dénominateur : valeur interdite en -2
+    const testSigne3 = {
+        xValues: ['-inf', '-3', '-2', '1', '+inf'],
+        rows: [
+            {
+                label: 'x - 1',
+                type: 'sign' as const,
+                content: ['-', '-', '-', '0', '+']
+            },
+            {
+                label: 'x + 3',
+                type: 'sign' as const,
+                content: ['-', '0', '+', '+', '+']
+            },
+            {
+                label: 'x + 2',
+                type: 'sign' as const,
+                content: ['-', '-', '||', '+', '+']
+            },
+            {
+                label: 'f(x)',
+                type: 'sign' as const,
+                // Signes combinés: (-)(-)(-)=-, puis 0, puis (-)(+)(-)=+, puis ||, puis (-)(+)(+)=-, puis 0, puis +++
+                content: ['-', '0', '+', '||', '-', '0', '+']
+            }
+        ]
+    };
+
+    // Test Signe 4: f(x) = (x+3)(x-2)/(x-1) - CAS DU BUG
+    // Valeur interdite en x=1, zéros en x=-3 et x=2
+    // Format 2N-3: 7 éléments pour N=5 x-values
+    // Positions: 1=]-inf,-3[, 2=x=-3, 3=]-3,1[, 4=x=1, 5=]1,2[, 6=x=2, 7=]2,+inf[
+    const testSigne4 = {
+        xValues: ['-inf', '-3', '1', '2', '+inf'],
+        rows: [
+            {
+                label: 'x + 3',
+                type: 'sign' as const,
+                // Zéro en x=-3 (position 2), négatif avant, positif après
+                content: ['-', '0', '+', '+', '+', '+', '+']
+            },
+            {
+                label: 'x - 2',
+                type: 'sign' as const,
+                // Zéro en x=2 (position 6), négatif avant, positif après
+                content: ['-', '-', '-', '-', '-', '0', '+']
+            },
+            {
+                label: 'x - 1',
+                type: 'sign' as const,
+                // Valeur interdite en x=1 (position 4), négatif avant, positif après
+                content: ['-', '-', '-', '||', '+', '+', '+']
+            },
+            {
+                label: 'f(x)',
+                type: 'sign' as const,
+                // Combinaison: (-)(-)/(-)=-, 0, (+)(-)/(-)=+, ||, (+)(-)/(+)=-, 0, (+)(+)/(+)=+
+                content: ['-', '0', '+', '||', '-', '0', '+']
+            }
+        ]
+    };
+
     return (
         <div className="min-h-screen bg-slate-100 p-8">
             <div className="max-w-4xl mx-auto">
@@ -237,6 +360,73 @@ export default function TestVariationsPage() {
                         </p>
                         <MathTable data={test6} title="Parabole avec minimum" />
                     </div>
+
+                    {/* Séparateur */}
+                    <div className="border-t-4 border-indigo-300 my-8">
+                        <h2 className="text-2xl font-bold text-indigo-700 mt-4 mb-6 text-center">
+                            📋 Tests Tableaux de Signes (Quotients)
+                        </h2>
+                    </div>
+
+                    {/* Test Signe 1 */}
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-red-200">
+                        <h2 className="text-lg font-semibold text-slate-700 mb-4">
+                            Test Signe 1 : Quotient f(x) = (e^x - 1)/x
+                        </h2>
+                        <p className="text-sm text-slate-500 mb-4">
+                            <strong>Vérifier :</strong>
+                            <br />• Ligne pointillée sous x=0 pour le numérateur (0) → va jusqu&apos;en bas
+                            <br />• Ligne pointillée sous x=0 pour le dénominateur (||) → s&apos;arrête avant la dernière ligne
+                            <br />• Double barre rouge sur la dernière ligne pour la valeur interdite
+                        </p>
+                        <MathTable data={testSigne1} title="Tableau de signes - Quotient simple" />
+                    </div>
+
+                    {/* Test Signe 2 */}
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-orange-200">
+                        <h2 className="text-lg font-semibold text-slate-700 mb-4">
+                            Test Signe 2 : Produit f(x) = -2(x+1)(x-4)
+                        </h2>
+                        <p className="text-sm text-slate-500 mb-4">
+                            <strong>Format général : une ligne par facteur</strong>
+                            <br />• (x+1) : racine en -1 → ligne pointillée jusqu&apos;en bas
+                            <br />• (x-4) : racine en 4 → ligne pointillée jusqu&apos;en bas
+                            <br />• -2 : constante négative
+                            <br />• f(x) : produit des signes
+                        </p>
+                        <MathTable data={testSigne2} title="Tableau de signes - Produit avec 3 facteurs" />
+                    </div>
+
+                    {/* Test Signe 3 */}
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-purple-200">
+                        <h2 className="text-lg font-semibold text-slate-700 mb-4">
+                            Test Signe 3 : Quotient f(x) = (x-1)(x+3)/(x+2)
+                        </h2>
+                        <p className="text-sm text-slate-500 mb-4">
+                            <strong>Format général : une ligne par facteur</strong>
+                            <br />• (x-1) : racine en 1 → ligne pointillée jusqu&apos;en bas
+                            <br />• (x+3) : racine en -3 → ligne pointillée jusqu&apos;en bas
+                            <br />• (x+2) au dénominateur : valeur interdite en -2 → ligne pointillée s&apos;arrête avant dernière ligne + double barre
+                            <br />• f(x) : combinaison des signes
+                        </p>
+                        <MathTable data={testSigne3} title="Tableau de signes - Quotient avec 3 facteurs" />
+                    </div>
+
+                    {/* Test Signe 4 - CAS DU BUG */}
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-red-400">
+                        <h2 className="text-lg font-semibold text-slate-700 mb-4">
+                            ⚠️ Test Signe 4 : f(x) = (x+3)(x-2)/(x-1) - CAS DU BUG
+                        </h2>
+                        <p className="text-sm text-slate-500 mb-4">
+                            <strong>C'est le cas signalé dans les bugs !</strong>
+                            <br />• x+3 : racine en -3
+                            <br />• x-2 : racine en 2
+                            <br />• x-1 au dénominateur : valeur interdite en 1
+                            <br />• <strong>Vérifier :</strong> Double barre || en x=1 sur la ligne f(x)
+                            <br />• <strong>Vérifier :</strong> Lignes pointillées en x=-3 et x=2
+                        </p>
+                        <MathTable data={testSigne4} title="Tableau de signes - f(x) = (x+3)(x-2)/(x-1)" />
+                    </div>
                 </div>
 
                 <div className="mt-12 p-6 bg-amber-50 rounded-2xl border border-amber-200">
@@ -247,6 +437,10 @@ export default function TestVariationsPage() {
                         <li>Les doubles barres || s&apos;affichent correctement pour les valeurs interdites</li>
                         <li>Les signes + et - s&apos;affichent sur les intervalles (positions impaires)</li>
                         <li>Les infinis s&apos;affichent avec le symbole ∞</li>
+                        <li><strong>Tableaux de signes :</strong></li>
+                        <li className="ml-4">• Lignes pointillées sous les 0 (racines) → vont jusqu&apos;en bas du tableau</li>
+                        <li className="ml-4">• Lignes pointillées sous les || (valeurs interdites) → s&apos;arrêtent avant la dernière ligne</li>
+                        <li className="ml-4">• Doubles barres rouges sur la dernière ligne aux positions interdites</li>
                     </ul>
                 </div>
             </div>
