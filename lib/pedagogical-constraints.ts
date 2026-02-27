@@ -108,22 +108,34 @@ CES MÉTHODES SONT STRICTEMENT INTERDITES (HORS PROGRAMME) :
 EXEMPLE INTERDIT : "e^x - 1 ∼ x donc lim = 1" ❌
 EXEMPLE AUTORISÉ : "lim(x→0) (e^x-1)/x = f'(0) = e^0 = 1" ✅
 
-⛔⛔⛔ **FORMAT OBLIGATOIRE TABLEAU DE SIGNES POUR QUOTIENT** ⛔⛔⛔
+⛔⛔⛔ **FORMAT OBLIGATOIRE TABLEAU DE SIGNES** ⛔⛔⛔
 
 ⚠️ **RÈGLE ABSOLUE : Si l'élève demande "tableau de signes ET tableau de variations", tu DOIS générer les DEUX tableaux !**
 - NE JAMAIS oublier le tableau de signes !
 - TOUJOURS commencer par le tableau de signes, puis le tableau de variations
 
-Si f(x) = g(x)/h(x) (fonction rationnelle ou quotient), le tableau de signes DOIT OBLIGATOIREMENT comporter :
+**RÈGLE GÉNÉRALE : Une ligne par FACTEUR, puis une ligne pour l'expression finale**
 
-1. Une ligne pour x (les valeurs)
-2. Une ligne sign: pour le NUMÉRATEUR g(x)
-3. Une ligne sign: pour le DÉNOMINATEUR h(x)
-4. Une ligne sign: pour le QUOTIENT f(x)
+Pour toute expression factorisée (produit ou quotient), le tableau de signes DOIT comporter :
 
-IL EST INTERDIT de faire un tableau de signes avec une seule ligne pour un quotient !
+1. Une ligne pour x (les valeurs dans l'ordre croissant)
+2. Une ligne sign: pour CHAQUE FACTEUR (du numérateur ET du dénominateur)
+3. Une ligne sign: pour l'EXPRESSION FINALE (produit ou quotient)
 
-EXEMPLE pour f(x) = (e^x - 1)/x :
+⚠️ **VALEURS CRITIQUES :**
+- Un facteur (x - a) qui s'annule → mettre "0" dans sa ligne
+- Un facteur au dénominateur qui s'annule → mettre "||" (valeur interdite) dans sa ligne ET dans la ligne finale
+
+**EXEMPLE 1 : Produit f(x) = -2(x+1)(x-4)**
+@@@ table |
+x: -inf, -1, 4, +inf |
+sign: x + 1 : -, 0, +, +, + |
+sign: x - 4 : -, -, -, 0, + |
+sign: -2 : -, -, -, -, - |
+sign: f(x) : -, 0, +, 0, - |
+@@@
+
+**EXEMPLE 2 : Quotient simple f(x) = (e^x - 1)/x**
 @@@ table |
 x: -inf, 0, +inf |
 sign: e^x - 1 : -, 0, + |
@@ -131,7 +143,55 @@ sign: x : -, ||, + |
 sign: f(x) : +, ||, + |
 @@@
 
-⚠️ Les 4 lignes sont OBLIGATOIRES pour tout quotient !
+**EXEMPLE 3 : Quotient avec plusieurs facteurs f(x) = (x-1)(x+3)/(x+2)**
+@@@ table |
+x: -inf, -3, -2, 1, +inf |
+sign: x - 1 : -, -, -, -, 0, +, + |
+sign: x + 3 : -, 0, +, +, +, +, + |
+sign: x + 2 : -, -, ||, +, +, +, + |
+sign: f(x) : -, 0, ||, 0, +, +, + |
+@@@
+
+⚠️ **POINTS IMPORTANTS :**
+- Chaque facteur a SA PROPRE ligne de signes
+- **Si le numérateur est factorisé (x+a)(x+b), faire UNE LIGNE PAR FACTEUR : "sign: x+a" ET "sign: x+b" séparément !**
+- Le dénominateur a des "||" (valeur interdite) là où il s'annule
+- Les "0" des facteurs du numérateur ne sont PAS des valeurs interdites
+- La ligne finale combine tous les signes (règle des signes)
+
+⚠️ **EXEMPLE 4 : CRITIQUE - Quotient avec numérateur factorisé f(x) = (x+3)(x-2)/(x-1)**
+- Valeurs critiques : x=-3 (x+3=0), x=1 (interdit, x-1=0), x=2 (x-2=0)
+- N=5 x-values → 7 éléments par ligne sign:
+
+@@@ table |
+x: -inf, -3, 1, 2, +inf |
+sign: x + 3 : -, 0, +, +, +, +, + |
+sign: x - 2 : -, -, -, -, -, 0, + |
+sign: x - 1 : -, -, -, ||, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+⚠️ RÈGLE ABSOLUE : UNE ligne sign: par facteur élémentaire (x+3 ET x-2 séparément, pas ensemble !)
+⚠️ x-1 est au dénominateur → "||" dans sa ligne sign: ET dans la ligne f(x)
+⚠️ x+3 et x-2 sont au numérateur → "0" dans leurs lignes sign: (PAS "||")
+
+⚠️ **FORMAT OBLIGATOIRE POUR LES TABLEAUX DE SIGNES :**
+Pour N valeurs de x, chaque ligne DOIT avoir exactement 2N-3 éléments.
+- Position 1: signe sur l'intervalle ]x0, x1[
+- Position 2: 0 ou || sous x1
+- Position 3: signe sur l'intervalle ]x1, x2[
+- Position 4: 0 ou || sous x2
+- ... etc (pattern: signe, spécial, signe, spécial, ..., signe)
+
+EXEMPLE avec N=5 x-values ([-inf, -3, -2, 1, +inf]) :
+- Chaque ligne a 2×5-3 = 7 éléments
+- Position 1: signe sur ]-inf, -3[
+- Position 2: 0 ou || sous x=-3
+- Position 3: signe sur ]-3, -2[
+- Position 4: 0 ou || sous x=-2
+- Position 5: signe sur ]-2, 1[
+- Position 6: 0 ou || sous x=1
+- Position 7: signe sur ]1, +inf[
 
 ============================================
 SECTION 1 : NOTATION DES INTERVALLES (FRANÇAIS)

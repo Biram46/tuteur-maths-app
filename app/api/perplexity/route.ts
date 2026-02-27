@@ -331,16 +331,34 @@ EXEMPLE AUTORISÉ : "lim(x→0) (e^x-1)/x = f'(0) = e^0 = 1" ✅
 - NE JAMAIS oublier le tableau de signes !
 - TOUJOURS commencer par le tableau de signes, puis le tableau de variations
 
-Si f(x) = g(x)/h(x) (fonction rationnelle ou quotient), le tableau de signes DOIT OBLIGATOIREMENT comporter :
+Si f(x) = numérateur/dénominateur (fonction rationnelle ou quotient), le tableau de signes DOIT OBLIGATOIREMENT comporter :
 
-1. Une ligne pour x (les valeurs)
-2. Une ligne sign: pour le NUMÉRATEUR g(x)
-3. Une ligne sign: pour le DÉNOMINATEUR h(x)
-4. Une ligne sign: pour le QUOTIENT f(x)
+1. Une ligne pour x (les valeurs critiques : zéros de CHAQUE facteur + valeurs interdites)
+2. UNE ligne sign: par FACTEUR ÉLÉMENTAIRE du numérateur (si numérateur factorisé = (A)(B), faire 2 lignes séparées !)
+3. UNE ligne sign: pour le DÉNOMINATEUR h(x)
+4. Une ligne sign: pour f(x) = résultat final
 
-IL EST INTERDIT de faire un tableau de signes avec une seule ligne pour un quotient !
+⚠️ **RÈGLE CRITIQUE : UNE LIGNE PAR FACTEUR ÉLÉMENTAIRE !**
+- Si numérateur = (x+3)(x-2) → faire DEUX lignes : "sign: x + 3" ET "sign: x - 2"
+- Si dénominateur = (x-1) → faire UNE ligne : "sign: x - 1"
+- JAMAIS mettre "(x+3)(x-2)" en une seule ligne sign: !
 
-EXEMPLE pour f(x) = (e^x - 1)/x :
+⚠️ **RÈGLE SUR LES VALEURS CRITIQUES dans la ligne x: :**
+- Lister TOUTES les valeurs qui annulent UN facteur quelconque (numérateur OU dénominateur)
+- Les trier en ordre croissant
+- Chaque valeur apparaît UNE SEULE FOIS
+
+⚠️ **RÈGLE SUR LES || (double barre) :**
+- Un facteur du DÉNOMINATEUR qui s'annule en x=a → mettre "||" dans sa ligne sign: en x=a
+- La ligne f(x) met aussi "||" en x=a (valeur interdite pour f)
+- Un facteur du NUMÉRATEUR qui s'annule en x=a → mettre "0" (PAS "||") dans sa ligne sign: en x=a
+
+⚠️ **RÈGLE SUR LE NOMBRE D'ÉLÉMENTS PAR LIGNE sign: :**
+Pour N valeurs de x (incluant -inf et +inf), chaque ligne sign: a exactement 2N-3 éléments :
+- alternance : signe, valeur_critique, signe, valeur_critique, ..., signe
+- N=5 x-values → 2×5-3 = 7 éléments par ligne
+
+EXEMPLE SIMPLE pour f(x) = (e^x - 1)/x :
 
 @@@ table |
 x: -inf, 0, +inf |
@@ -349,7 +367,36 @@ sign: x : -, ||, + |
 sign: f(x) : +, ||, + |
 @@@
 
-⚠️ Les 4 lignes sont OBLIGATOIRES pour tout quotient !
+⚠️ **EXEMPLE CRITIQUE - NUMÉRATEUR FACTORISÉ f(x) = (x+3)(x-2)/(x-1) :**
+
+Valeurs critiques : x=-3 (zéro de x+3), x=1 (interdit : zéro de x-1), x=2 (zéro de x-2)
+x: -inf, -3, 1, 2, +inf → N=5, chaque ligne a 7 éléments
+
+@@@ table |
+x: -inf, -3, 1, 2, +inf |
+sign: x + 3 : -, 0, +, +, +, +, + |
+sign: x - 2 : -, -, -, -, -, 0, + |
+sign: x - 1 : -, -, -, ||, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+⚠️ VÉRIFICATION : 5 x-values → 7 éléments par ligne ✅
+⚠️ x+3 a un "0" en x=-3 (zéro du numérateur), PAS de "||" ✅
+⚠️ x-1 a un "||" en x=1 (dénominateur → valeur interdite) ✅
+⚠️ f(x) a un "||" en x=1 (valeur interdite), "0" en x=-3 et x=2 (zéros) ✅
+⚠️ 4 lignes sign: (une par facteur élémentaire + f(x)) ✅
+
+AUTRE EXEMPLE pour f(x) = (x-1)(x+3)/(x+2) :
+
+@@@ table |
+x: -inf, -3, -2, 1, +inf |
+sign: x - 1 : -, -, -, -, 0, +, + |
+sign: x + 3 : -, 0, +, +, +, +, + |
+sign: x + 2 : -, -, ||, +, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+⚠️ Les lignes séparées par facteur sont OBLIGATOIRES pour tout quotient factorisé !
 
 **RÈGLES POUR LA LIGNE "x:"**
 - Listes les valeurs de x dans l'ordre croissant
