@@ -301,14 +301,20 @@ export default function MathTable({ data, title }: MathTableProps) {
     // Trouver l'index de la ligne de variation
     const variationRowIndex = rows.findIndex(row => row.type === 'variation');
 
-    // BUG FIX 2 : Collecter les positions interdites depuis TOUTES les lignes sign
-    // pour que la ligne pointillée s'arrête avant la dernière ligne
-    const allForbiddenCols = new Set<number>();
+    // CORRECTION : Les colonnes interdites globales sont déterminées UNIQUEMENT 
+    // par la DERNIÈRE ligne de signe (f(x)), qui est la source de vérité.
+    // On ne prend PAS l'union de toutes les lignes pour éviter les faux positifs
+    // (ex: si l'IA met un || par erreur dans une ligne de facteur à une mauvaise position).
+    const lastSignRowIndex = (() => {
+        for (let i = rows.length - 1; i >= 0; i--) {
+            if (rows[i].type === 'sign') return i;
+        }
+        return rows.length - 1;
+    })();
 
     rows.forEach((row, rowIndex) => {
         const n = xValues.length;
         const rowForbiddenCols = new Set<number>();
-        const isLastRow = rowIndex === rows.length - 1;
 
         row.content.forEach((item, idx) => {
             const effIdx = getEffIdx(idx, row.content.length, n, row.content);
@@ -317,28 +323,18 @@ export default function MathTable({ data, title }: MathTableProps) {
             if (isSpecialItem(item) && row.type !== 'variation' && !isForbiddenItem(item)) {
                 specialCols.add(effIdx);
             }
-            // Les "||" sur les lignes de facteurs (pas dernière) → leur position est un zéro du facteur
-            // On les ajoute à specialCols car le facteur s'annule là
-            if (isForbiddenItem(item) && !isLastRow && row.type === 'sign') {
-                // On ne les met PAS dans specialCols car ce n'est pas un zéro de f(x)
-                // Ils sont gérés par la ligne pointillée courte (forbiddenDottedLines)
-            }
             if (isForbiddenItem(item)) {
                 rowForbiddenCols.add(effIdx);
-                // BUG FIX 2 : Collecter depuis toutes les lignes
-                if (row.type === 'sign' || row.type === 'variation') {
-                    allForbiddenCols.add(effIdx);
-                }
             }
         });
         forbiddenColsByRow.set(rowIndex, rowForbiddenCols);
     });
 
-    // Les doubles barres ne sont dessinées que sur la ligne de variation ou dernière ligne
-    const lastRowIndex = rows.length - 1;
-    const forbiddenCols = allForbiddenCols.size > 0
-        ? allForbiddenCols
-        : (forbiddenColsByRow.get(variationRowIndex !== -1 ? variationRowIndex : lastRowIndex) || new Set<number>());
+    // Les doubles barres globales = colonnes || de la DERNIÈRE ligne sign (f(x))
+    // Si pas de ligne sign, on prend la ligne de variation
+    const forbiddenCols = forbiddenColsByRow.get(lastSignRowIndex)
+        || forbiddenColsByRow.get(variationRowIndex !== -1 ? variationRowIndex : rows.length - 1)
+        || new Set<number>();
 
     // Position Y où les pointillés pour les 0 doivent s'arrêter (en BAS du tableau)
     const dottedLinesEndY = totalHeight;
@@ -346,16 +342,23 @@ export default function MathTable({ data, title }: MathTableProps) {
     // Position Y où les pointillés pour les valeurs interdites doivent s'arrêter (avant la dernière ligne)
     const forbiddenDottedLinesEndY = headerHeight + (rows.length - 1) * rowHeight;
 
+    // Référence au marqueur de flèche SVG
+    // IMPORTANT : On utilise url(#id) sans base URL car window.location.href
+    // casse les références dans Comet, Opera et certaines versions de Safari
+    // quand l'URL contient des paramètres de requête ou des hash.
+    const arrowRef = `url(#arrow-${id})`;
+
     return (
         <div style={{ margin: '2.5rem 0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ position: 'relative', padding: '1px', background: '#e2e8f0', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', overflow: 'hidden', maxWidth: '100%' }}>
-                <div style={{ background: 'white', borderRadius: '15px', overflowX: 'auto' }}>
+            {/* Suppression overflow:hidden du conteneur externe - cause l'invisible du SVG sur Comet/Opera */}
+            <div style={{ position: 'relative', padding: '1px', background: '#e2e8f0', borderRadius: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.12)', maxWidth: '100%', overflow: 'visible' }}>
+                <div style={{ background: 'white', borderRadius: '15px', overflowX: 'auto', overflow: 'auto' }}>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width={totalWidth}
                         height={totalHeight}
                         viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-                        style={{ minWidth: '100%', display: 'block' }}
+                        style={{ display: 'block', maxWidth: 'none' }}
                     >
                         <defs>
                             <marker id={`arrow-${id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
@@ -478,10 +481,15 @@ export default function MathTable({ data, title }: MathTableProps) {
                                             const isDoubleBar = isForbiddenItem(item);
 
                                             // BUG FIX 2 : Sur les lignes de facteurs (pas la dernière ligne),
-                                            // afficher "0" pour les valeurs interdites "||" car le facteur s'annule en cette valeur.
-                                            // Ex: x-1 → s'annule en x=1 même si c'est une valeur interdite pour f(x)
+                                            // afficher "0" pour les valeurs interdites "||" UNIQUEMENT si :
+                                            // 1. Ce n'est pas la dernière ligne (ligne f(x))
+                                            // 2. L'item dans la DONNÉE BRUTE de cette ligne est bien "||"
+                                            //    ET ce slot correspond à une colonne interdite globale (forbiddenCols)
+                                            // IMPORTANT : Ne pas afficher 0 si l'item local est +/- ou vide car
+                                            // cela évite le "zéro en trop" sur x=2 quand x-2 a déjà son propre 0.
                                             const isFactorRow = rowIndex < rows.length - 1;
-                                            const showZeroForDenominator = isFactorRow && isDoubleBar;
+                                            // On n'affiche 0 que si l'item lui-même est || ET qu'il est dans une forbiddenCol
+                                            const showZeroForDenominator = isFactorRow && isDoubleBar && forbiddenCols.has(halfIdx);
 
                                             if (isZero || showZeroForDenominator) {
                                                 return (
@@ -557,11 +565,11 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                                             if (elIsArrowUp) {
                                                                 elements.push(
-                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yBottom} x2={xEnd - 8} y2={yTop} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yBottom} x2={xEnd - 8} y2={yTop} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                                 );
                                                             } else {
                                                                 elements.push(
-                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                    <line key={`arr-${i}`} x1={xStart + 5} y1={yTop} x2={xEnd - 8} y2={yBottom} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                                 );
                                                             }
                                                         } else {
@@ -658,11 +666,11 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                     if (isArrow1Up || isArrow1Down) {
                                                         if (isArrow1Up) {
                                                             elements.push(
-                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 - 3} x2={xLeftLimit + 5} y2={yLeftLimit + 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                             );
                                                         } else {
                                                             elements.push(
-                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                <line key="arrow1" x1={x0 + 10} y1={yVal0 + 3} x2={xLeftLimit + 5} y2={yLeftLimit - 8} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                             );
                                                         }
                                                     }
@@ -700,11 +708,11 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                                         if (isArrow2Up) {
                                                             elements.push(
-                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit - 8} x2={x2 - 10} y2={yVal2 + 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                             );
                                                         } else {
                                                             elements.push(
-                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={`url(#arrow-${id})`} />
+                                                                <line key="arrow2" x1={xRightLimit - 5} y1={yRightLimit + 8} x2={x2 - 10} y2={yVal2 - 3} stroke="#4f46e5" strokeWidth="2.5" markerEnd={arrowRef} />
                                                             );
                                                         }
 
@@ -757,7 +765,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                             y2={yTop}
                                                             stroke="#4f46e5"
                                                             strokeWidth="2.5"
-                                                            markerEnd={`url(#arrow-${id})`}
+                                                            markerEnd={arrowRef}
                                                         />
                                                     );
                                                 } else {
@@ -771,7 +779,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                                             y2={yBottom}
                                                             stroke="#4f46e5"
                                                             strokeWidth="2.5"
-                                                            markerEnd={`url(#arrow-${id})`}
+                                                            markerEnd={arrowRef}
                                                         />
                                                     );
                                                 }
