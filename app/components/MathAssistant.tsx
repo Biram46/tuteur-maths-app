@@ -19,6 +19,79 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { fixLatexContent } from '@/lib/latex-fixer';
 
+/**
+ * 🛡️ GARDE-FOU FORMAT TABLEAU
+ * Détecte si l'IA a généré un tableau Markdown/ASCII au lieu du format @@@
+ * et le convertit automatiquement. Permet de garder l'IA non-déterministe
+ * (réponses naturelles et variées) tout en garantissant un rendu correct.
+ */
+function patchMarkdownTables(content: string): string {
+    // Si la réponse contient déjà un @@@ table → rien à faire
+    if (content.includes('@@@')) return content;
+
+    // Cherche un bloc de type :
+    // | x      | -∞ | -3 | 1  | 2  | +∞ |
+    // |--------|----|----|----|----|-----|
+    // | x+3    | -  | 0  | +  | +  | +  |
+    const mdTableRegex = /(\|[^\n]+\|\n\|[-| :]+\|\n(?:\|[^\n]+\|\n?)+)/g;
+    const matches = content.match(mdTableRegex);
+
+    if (!matches) return content;
+
+    let patched = content;
+    for (const match of matches) {
+        try {
+            const lines = match.trim().split('\n').filter(l => l.trim());
+            if (lines.length < 3) continue;
+
+            // Ligne 0 : en-têtes  |  x | -∞ | -3 | 1 | 2 | +∞ |
+            const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
+            // Ligne 1 : séparateurs -> ignorée
+            // Lignes 2+ : données
+            const dataLines = lines.slice(2);
+
+            if (!headers[0]) continue;
+
+            // Détecter la ligne x
+            const xLineIdx = dataLines.findIndex(l => {
+                const firstCell = l.split('|')[1]?.trim().toLowerCase() || '';
+                return firstCell === 'x';
+            });
+
+            if (xLineIdx === -1) {
+                // Essayer si les en-têtes contiennent les x-values (format horizontal)
+                // | x | -∞ | -3 | 1 | 2 | +∞ |
+                if (headers[0].toLowerCase() === 'x') {
+                    const xValues = headers.slice(1)
+                        .map(v => v.replace('−', '-').replace('∞', 'inf').replace('+∞', '+inf').replace('-∞', '-inf'))
+                        .join(', ');
+
+                    let tableBlock = `table |\nx: ${xValues} |\n`;
+                    for (const dl of dataLines) {
+                        const cells = dl.split('|').map(c => c.trim()).filter(c => c);
+                        if (cells.length < 2) continue;
+                        const label = cells[0];
+                        const values = cells.slice(1).map(v =>
+                            v.replace('−', '-').replace('≥', '').replace('∞', 'inf')
+                                .replace('+∞', '+inf').replace('-∞', '-inf')
+                        ).join(', ');
+                        const isVariation = /↗|↘|nearrow|searrow/i.test(values);
+                        const lineType = isVariation ? 'var' : 'sign';
+                        tableBlock += `${lineType}: ${label} : ${values} |\n`;
+                    }
+
+                    const replacement = `@@@\n${tableBlock}@@@`;
+                    patched = patched.replace(match, replacement);
+                }
+            }
+        } catch (e) {
+            console.warn('[patchMarkdownTables] Erreur conversion:', e);
+        }
+    }
+
+    return patched;
+}
+
 // Convert PDF pages to images
 async function convertPdfToImages(file: File): Promise<{ base64: string; mimeType: string }[]> {
     // Dynamically import pdfjs-dist (client-side only)
@@ -1417,7 +1490,9 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
 
             // Fin du stream : application du fixFinal et lecture du reste
-            const finalFixed = fixLatexContent(fullText).content;
+            // patchMarkdownTables : si l'IA a généré un tableau Markdown au lieu de @@@,
+            // on le convertit automatiquement (garde-fou non-déterminisme)
+            const finalFixed = patchMarkdownTables(fixLatexContent(fullText).content);
             setMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1] = { role: 'assistant', content: finalFixed };

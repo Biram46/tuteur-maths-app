@@ -510,9 +510,10 @@ Contexte programme : ${curriculumContext}`;
                     body: JSON.stringify({
                         model: provider.model,
                         messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
-                        stream: true,
-                        // temperature: 0 → réponse déterministe, format @@@ table respecté systématiquement
-                        temperature: 0
+                        stream: true
+                        // Pas de temperature forcée : on garde le modèle non-déterministe
+                        // pour des réponses naturelles et variées. La robustesse du format
+                        // des tableaux est gérée côté client par patchMarkdownTables().
                     }),
                     signal: AbortSignal.timeout(60000), // Timeout 60s
                 });
