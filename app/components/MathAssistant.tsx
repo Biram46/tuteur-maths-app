@@ -460,10 +460,19 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         const rawContent = sec.substring(colonIndex + 1);
 
-                        // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
-                        const content = rawContent.includes(',')
+                                               // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
+                        const rawValues = rawContent.includes(',')
                             ? rawContent.split(',').map(v => v.trim()).filter(v => v.length > 0)
                             : rawContent.trim().split(/\s+/).filter(v => v.length > 0);
+
+                        // Dédupliquer les valeurs consécutives identiques, sauf les zéros
+                        const content = rawValues.filter((v, i) => {
+                            if (i === 0) return true;
+                            const isZero = v.trim() === '0' || v.trim().toLowerCase() === 'z';
+                            const prevIsZero = rawValues[i-1].trim() === '0' || rawValues[i-1].trim().toLowerCase() === 'z';
+                            return isZero || prevIsZero || v !== rawValues[i-1];
+                        });
+
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
