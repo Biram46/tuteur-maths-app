@@ -428,7 +428,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                 {row.type === 'variation' ? (
                                     // RENDU VARIATION : flèches SVG
                                     (() => {
-                                        const arrows: JSX.Element[] = [];
+                                        const arrows: React.JSX.Element[] = [];
 
                                         // Valeurs aux positions des x
                                         for (let halfIdx = 0; halfIdx < n * 2; halfIdx += 2) {
@@ -539,7 +539,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                                 ) : (
                                     // RENDU SIGNE : texte (+, -, 0, ||)
                                     (() => {
-                                        const cells: JSX.Element[] = [];
+                                        const cells: React.JSX.Element[] = [];
 
                                         for (let halfIdx = 0; halfIdx < (n * 2) - 1; halfIdx++) {
                                             const val = halfIdxToItem.get(halfIdx);
@@ -640,3 +640,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         </div>
     );
 }
+
+
+
+
