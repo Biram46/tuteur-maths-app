@@ -15,26 +15,22 @@ export interface MathTableProps {
 }
 
 /**
- * 📊 MOTEUR DE RENDU MATHÉMATIQUE "MATH ENGINE" v2.8
- * Précision chirurgicale et design institutionnel français.
- * Fix cross-browser : dy="0.35em" (Safari/iOS), SVG responsive, suppression console.log
+ * MOTEUR DE RENDU MATHÉMATIQUE "MATH ENGINE" v2.9
+ * Fix: flèche ligne x, pointillés parasites, ligne pointillée trop longue
  */
 export default function MathTable({ data, title }: MathTableProps) {
     const rawId = useId();
     const id = rawId.replace(/:/g, '');
     const { xValues, rows } = data;
 
-    // --- VALIDATION DU FORMAT ---
     const n = xValues.length;
-    const expectedSlots = (n * 2) - 3;
 
-    // --- CONFIGURATION GÉOMÉTRIQUE ---
     const labelWidth = 140;
     const cellWidth = 120;
     const rowHeight = 70;
     const headerHeight = 50;
 
-    const totalWidth = labelWidth + (xValues.length * cellWidth) + 60; // +60 pour sécurité bord droit
+    const totalWidth = labelWidth + (xValues.length * cellWidth) + 60;
     const totalHeight = headerHeight + (rows.length * rowHeight);
 
     const cleanLabel = (text: string) => {
@@ -49,15 +45,10 @@ export default function MathTable({ data, title }: MathTableProps) {
         };
 
         if (map[low]) return map[low];
-
-        if (low.includes('inf')) {
-            return t.replace(/inf(ty)?/gi, '∞');
-        }
-
+        if (low.includes('inf')) return t.replace(/inf(ty)?/gi, '∞');
         return t;
     };
 
-    // --- LOGIQUE D'ALIGNEMENT ET COLONNES SPÉCIALES ---
     const getXPos = (halfIdx: number) => labelWidth + (halfIdx * (cellWidth / 2)) + (cellWidth / 2);
 
     const isSpecialItem = (val: string) => {
@@ -65,7 +56,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         const d = cleanLabel(val).toLowerCase().trim();
         return (
             d === '0' || d === 'z' || d === 'zero' ||
-            d === '||' || d === '|' || d === 'nd' || d === 'double' ||
+            d === '\|\|' || d === '|' || d === 'nd' || d === 'double' ||
             d.includes('barre') || d === 'non défini' || d === 'interdite' ||
             d === 'd' || d === 'discontinuité'
         );
@@ -75,7 +66,7 @@ export default function MathTable({ data, title }: MathTableProps) {
         if (!val) return false;
         const d = cleanLabel(val).toLowerCase().trim();
         return (
-            d === '||' || d === '|' || d === 'nd' || d === 'double' ||
+            d === '\|\|' || d === '|' || d === 'nd' || d === 'double' ||
             d.includes('barre') || d === 'non défini' || d === 'interdite' ||
             d === 'd' || d === 'discontinuité'
         );
@@ -83,7 +74,6 @@ export default function MathTable({ data, title }: MathTableProps) {
 
     const correctVariationFormat = (content: string[], n: number): string[] => {
         const len = content.length;
-
         const hasArrows = content.some(it => /nearrow|searrow/i.test(it));
         if (!hasArrows) return content;
 
@@ -118,7 +108,6 @@ export default function MathTable({ data, title }: MathTableProps) {
     const getEffIdx = (colIndex: number, len: number, n: number, items: string[]) => {
         const item = items[colIndex] || "";
         const isSp = isSpecialItem(item);
-
         const isVariationRow = items.some(it => /nearrow|searrow/i.test(it));
 
         if (isVariationRow) {
@@ -140,9 +129,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                     let valueIdx = 0;
                     for (let i = 0; i < colIndex; i++) {
                         const prevItem = items[i];
-                        if (!/nearrow|searrow/i.test(prevItem) && !isForbiddenItem(prevItem)) {
-                            valueIdx++;
-                        }
+                        if (!/nearrow|searrow/i.test(prevItem) && !isForbiddenItem(prevItem)) valueIdx++;
                     }
                     return (valueIdx + 1) * 2;
                 }
@@ -150,50 +137,27 @@ export default function MathTable({ data, title }: MathTableProps) {
 
             if (len === (n * 2) + 1) {
                 const doubleBarIdx = items.findIndex(it => isForbiddenItem(it));
-
-                if (colIndex < doubleBarIdx) {
-                    return colIndex;
-                } else if (colIndex === doubleBarIdx) {
-                    return (Math.floor(n / 2)) * 2;
-                } else if (colIndex === doubleBarIdx - 1) {
-                    return (Math.floor(n / 2)) * 2;
-                } else if (colIndex === doubleBarIdx + 1) {
-                    return (Math.floor(n / 2)) * 2;
-                } else {
-                    return colIndex - 2;
-                }
+                if (colIndex < doubleBarIdx) return colIndex;
+                else if (colIndex === doubleBarIdx) return (Math.floor(n / 2)) * 2;
+                else if (colIndex === doubleBarIdx - 1) return (Math.floor(n / 2)) * 2;
+                else if (colIndex === doubleBarIdx + 1) return (Math.floor(n / 2)) * 2;
+                else return colIndex - 2;
             }
 
-            if (len === (n * 2) - 1) {
-                return colIndex;
-            }
+            if (len === (n * 2) - 1) return colIndex;
 
             let arrowCount = 0;
             let valueCount = 0;
-
             for (let i = 0; i < colIndex; i++) {
-                if (/nearrow|searrow/i.test(items[i])) {
-                    arrowCount++;
-                } else if (!isForbiddenItem(items[i])) {
-                    valueCount++;
-                }
+                if (/nearrow|searrow/i.test(items[i])) arrowCount++;
+                else if (!isForbiddenItem(items[i])) valueCount++;
             }
-
-            if (/nearrow|searrow/i.test(item)) {
-                return (arrowCount * 2) + 1;
-            }
-
-            if (isForbiddenItem(item)) {
-                return (valueCount + arrowCount) * 2;
-            }
-
+            if (/nearrow|searrow/i.test(item)) return (arrowCount * 2) + 1;
+            if (isForbiddenItem(item)) return (valueCount + arrowCount) * 2;
             return valueCount * 2;
         }
 
-        if (len === (n * 2) - 3) {
-            return colIndex + 1;
-        }
-
+        if (len === (n * 2) - 3) return colIndex + 1;
         if (len === (n * 2) - 1) return colIndex;
 
         if (isSp) {
@@ -216,7 +180,6 @@ export default function MathTable({ data, title }: MathTableProps) {
     const forbiddenColsByRow: Map<number, Set<number>> = new Map();
 
     const variationRowIndex = rows.findIndex(row => row.type === 'variation');
-
     const lastSignRowIndex = rows.reduce((last, row, idx) => row.type === 'sign' ? idx : last, -1);
 
     rows.forEach((row, rowIdx) => {
@@ -232,11 +195,11 @@ export default function MathTable({ data, title }: MathTableProps) {
 
             if (isForbiddenItem(item) && isXValuePosition) {
                 forbiddenForThisRow.add(halfIdx);
-                if (rowIdx === lastSignRowIndex) {
-                    specialCols.add(halfIdx);
-                }
-            } else if (isSpecialItem(item) && item !== '||' && item !== '|' && !isForbiddenItem(item)) {
-                if (isXValuePosition && rowIdx === lastSignRowIndex) {
+                if (rowIdx === lastSignRowIndex) specialCols.add(halfIdx);
+            } else if (isXValuePosition && rowIdx === lastSignRowIndex) {
+                // FIX BUG 2 : uniquement les vrais zéros génèrent un pointillé
+                const cleaned = cleanLabel(item).toLowerCase().trim();
+                if (cleaned === '0' || cleaned === 'z' || cleaned === 'zero') {
                     specialCols.add(halfIdx);
                 }
             }
@@ -247,7 +210,11 @@ export default function MathTable({ data, title }: MathTableProps) {
 
     const globalForbiddenCols = forbiddenColsByRow.get(lastSignRowIndex) || new Set<number>();
 
-    // --- RENDU ---
+    // FIX BUG 3 : la ligne pointillée s'arrête avant la dernière ligne si variation présente
+    const specialColsBottomY = variationRowIndex !== -1
+        ? totalHeight - rowHeight  // s'arrête avant la dernière ligne (variation)
+        : totalHeight;
+
     return (
         <div className="w-full overflow-x-auto my-6 custom-scrollbar-horizontal">
             <div style={{ minWidth: `${totalWidth}px` }}>
@@ -282,6 +249,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                     {/* Ligne horizontale après l'en-tête */}
                     <line x1="0" y1={headerHeight} x2={totalWidth} y2={headerHeight} stroke="#1e293b" strokeWidth="1.5" />
 
+                    {/* FIX BUG 1 : Flèche axe x dessinée EN PREMIER (z-index SVG)
+                        Les valeurs x seront rendues par-dessus la flèche */}
+                    <line
+                        x1={labelWidth + 5}
+                        y1={headerHeight / 2}
+                        x2={totalWidth - 10}
+                        y2={headerHeight / 2}
+                        stroke="#1e293b"
+                        strokeWidth="1"
+                        markerEnd={`url(#arrow-right-${id})`}
+                    />
+
                     {/* En-tête "x" */}
                     <text
                         x={labelWidth / 2}
@@ -296,7 +275,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                         x
                     </text>
 
-                    {/* Valeurs de x dans l'en-tête */}
+                    {/* Valeurs de x dans l'en-tête — rendues APRÈS la flèche */}
                     {xValues.map((xVal, xIdx) => {
                         const halfIdx = xIdx * 2;
                         const xPos = getXPos(halfIdx);
@@ -304,7 +283,6 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                         return (
                             <g key={`xval-${xIdx}`}>
-                                {/* Ligne verticale de séparation des colonnes x */}
                                 {xIdx > 0 && (
                                     <line
                                         x1={xPos - cellWidth / 2}
@@ -316,6 +294,14 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         strokeDasharray={isForbidden ? "0" : "3,3"}
                                     />
                                 )}
+                                {/* Fond blanc local pour masquer la flèche derrière la valeur */}
+                                <rect
+                                    x={xPos - 18}
+                                    y={headerHeight / 2 - 12}
+                                    width={36}
+                                    height={24}
+                                    fill="white"
+                                />
                                 <text
                                     x={xPos}
                                     y={headerHeight / 2}
@@ -339,42 +325,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                         const len = content.length;
                         const forbiddenCols = forbiddenColsByRow.get(rowIdx) || new Set<number>();
 
-                        // Ligne horizontale de séparation
-                        if (rowIdx > 0) {
-                            return (
-                                <g key={`row-sep-${rowIdx}`}>
-                                    <line x1="0" y1={yTop} x2={totalWidth} y2={yTop} stroke="#1e293b" strokeWidth="1" />
-                                </g>
-                            );
-                        }
-                        return null;
-                    })}
-
-                    {rows.map((row, rowIdx) => {
-                        const yTop = headerHeight + rowIdx * rowHeight;
-                        const yMid = yTop + rowHeight / 2;
-                        const rawContent = row.content;
-                        const content = row.type === 'variation' ? correctVariationFormat(rawContent, n) : rawContent;
-                        const len = content.length;
-                        const forbiddenCols = forbiddenColsByRow.get(rowIdx) || new Set<number>();
-
-                        // Map halfIdx → item pour cette ligne
                         const halfIdxToItem = new Map<number, string>();
                         content.forEach((it, colIndex) => {
                             const eIdx = getEffIdx(colIndex, len, n, content);
-                            if (!halfIdxToItem.has(eIdx)) {
-                                halfIdxToItem.set(eIdx, it);
-                            }
+                            if (!halfIdxToItem.has(eIdx)) halfIdxToItem.set(eIdx, it);
                         });
 
                         return (
                             <g key={`row-${rowIdx}`}>
-                                {/* Ligne horizontale de séparation */}
                                 {rowIdx > 0 && (
                                     <line x1="0" y1={yTop} x2={totalWidth} y2={yTop} stroke="#1e293b" strokeWidth="1" />
                                 )}
 
-                                {/* Label de la ligne */}
                                 <text
                                     x={labelWidth / 2}
                                     y={yMid}
@@ -387,36 +349,32 @@ export default function MathTable({ data, title }: MathTableProps) {
                                     {cleanLabel(row.label)}
                                 </text>
 
-                                {/* Colonnes spéciales : double barre pour les valeurs interdites */}
+                                {/* Double barre pour valeurs interdites */}
                                 {Array.from(forbiddenCols).map(halfIdx => {
                                     const xPos = getXPos(halfIdx);
                                     return (
                                         <g key={`forbidden-${rowIdx}-${halfIdx}`}>
-                                            <rect
-                                                x={xPos - 8}
-                                                y={yTop}
-                                                width={16}
-                                                height={rowHeight}
-                                                fill="#f1f5f9"
-                                            />
+                                            <rect x={xPos - 8} y={yTop} width={16} height={rowHeight} fill="#f1f5f9" />
                                             <line x1={xPos - 4} y1={yTop} x2={xPos - 4} y2={yTop + rowHeight} stroke="#1e293b" strokeWidth="1.5" />
                                             <line x1={xPos + 4} y1={yTop} x2={xPos + 4} y2={yTop + rowHeight} stroke="#1e293b" strokeWidth="1.5" />
                                         </g>
                                     );
                                 })}
 
-                                {/* Lignes pointillées pour les colonnes avec "0" (non-interdites) */}
+                                {/* FIX BUG 3 : Pointillés uniquement sous les zéros,
+                                    s'arrêtent avant la dernière ligne si variation présente */}
                                 {Array.from(specialCols)
                                     .filter(halfIdx => !globalForbiddenCols.has(halfIdx))
                                     .map(halfIdx => {
                                         const xPos = getXPos(halfIdx);
+                                        const isLastRow = rowIdx === rows.length - 1;
+                                        // Si c'est la dernière ligne ET qu'il y a une variation → ne pas tracer
+                                        if (isLastRow && variationRowIndex !== -1) return null;
                                         return (
                                             <line
                                                 key={`special-dot-${rowIdx}-${halfIdx}`}
-                                                x1={xPos}
-                                                y1={yTop}
-                                                x2={xPos}
-                                                y2={yTop + rowHeight}
+                                                x1={xPos} y1={yTop}
+                                                x2={xPos} y2={yTop + rowHeight}
                                                 stroke="#94a3b8"
                                                 strokeWidth="1"
                                                 strokeDasharray="4,4"
@@ -424,77 +382,57 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         );
                                     })}
 
-                                {/* Rendu du contenu des cellules */}
+                                {/* Contenu */}
                                 {row.type === 'variation' ? (
-                                    // RENDU VARIATION : flèches SVG
                                     (() => {
                                         const arrows: React.JSX.Element[] = [];
 
-                                        // Valeurs aux positions des x
                                         for (let halfIdx = 0; halfIdx < n * 2; halfIdx += 2) {
                                             const val = halfIdxToItem.get(halfIdx);
                                             if (!val) continue;
-                                            const isForbidden = isForbiddenItem(val);
-                                            if (isForbidden) continue; // La double barre est déjà dessinée
+                                            if (isForbiddenItem(val)) continue;
 
                                             const xPos = getXPos(halfIdx);
-
-                                            // Déterminer la position verticale (haut ou bas) selon le contexte
-                                            // Regarder les flèches adjacentes
                                             const leftArrow = halfIdxToItem.get(halfIdx - 1);
                                             const rightArrow = halfIdxToItem.get(halfIdx + 1);
 
                                             let yVal = yMid;
-                                            if (leftArrow && /nearrow/i.test(leftArrow)) yVal = yTop + 12; // flèche montante arrive en haut
-                                            else if (leftArrow && /searrow/i.test(leftArrow)) yVal = yTop + rowHeight - 12; // flèche descendante arrive en bas
-                                            else if (rightArrow && /nearrow/i.test(rightArrow)) yVal = yTop + rowHeight - 12; // flèche montante part du bas
-                                            else if (rightArrow && /searrow/i.test(rightArrow)) yVal = yTop + 12; // flèche descendante part du haut
+                                            if (leftArrow && /nearrow/i.test(leftArrow)) yVal = yTop + 12;
+                                            else if (leftArrow && /searrow/i.test(leftArrow)) yVal = yTop + rowHeight - 12;
+                                            else if (rightArrow && /nearrow/i.test(rightArrow)) yVal = yTop + rowHeight - 12;
+                                            else if (rightArrow && /searrow/i.test(rightArrow)) yVal = yTop + 12;
 
                                             arrows.push(
-                                                <text
-                                                    key={`val-${halfIdx}`}
-                                                    x={xPos}
-                                                    y={yVal}
-                                                    dy="0.35em"
-                                                    textAnchor="middle"
-                                                    fontSize="13"
-                                                    fill="#1e293b"
-                                                >
+                                                <text key={`val-${halfIdx}`} x={xPos} y={yVal} dy="0.35em" textAnchor="middle" fontSize="13" fill="#1e293b">
                                                     {cleanLabel(val)}
                                                 </text>
                                             );
                                         }
 
-                                        // Flèches sur les intervalles
                                         for (let halfIdx = 1; halfIdx < n * 2 - 1; halfIdx += 2) {
                                             const val = halfIdxToItem.get(halfIdx);
                                             if (!val) continue;
 
                                             const xStart = getXPos(halfIdx - 1);
                                             const xEnd = getXPos(halfIdx + 1);
-
-                                            // Déterminer les valeurs aux extrémités pour la hauteur des flèches
                                             const leftVal = halfIdxToItem.get(halfIdx - 1);
                                             const rightVal = halfIdxToItem.get(halfIdx + 1);
-
                                             const leftIsForbidden = leftVal ? isForbiddenItem(leftVal) : false;
                                             const rightIsForbidden = rightVal ? isForbiddenItem(rightVal) : false;
 
                                             let yStart = yMid;
                                             let yEnd = yMid;
-
                                             const margin = 20;
 
                                             if (/nearrow/i.test(val)) {
-                                                yStart = leftIsForbidden ? yTop + rowHeight - margin : (leftVal ? yTop + rowHeight - margin : yTop + rowHeight - margin);
-                                                yEnd = rightIsForbidden ? yTop + margin : (rightVal ? yTop + margin : yTop + margin);
+                                                yStart = yTop + rowHeight - margin;
+                                                yEnd = yTop + margin;
                                             } else if (/searrow/i.test(val)) {
-                                                yStart = leftIsForbidden ? yTop + margin : (leftVal ? yTop + margin : yTop + margin);
-                                                yEnd = rightIsForbidden ? yTop + rowHeight - margin : (rightVal ? yTop + rowHeight - margin : yTop + rowHeight - margin);
+                                                yStart = yTop + margin;
+                                                yEnd = yTop + rowHeight - margin;
                                             }
 
-                                            // Ajustement selon les valeurs adjacentes réelles
-                                            if (leftVal && !leftIsForbidden && !isForbiddenItem(leftVal)) {
+                                            if (leftVal && !leftIsForbidden) {
                                                 const leftArrowPrev = halfIdxToItem.get(halfIdx - 2);
                                                 if (/nearrow/i.test(val) && leftArrowPrev && /nearrow/i.test(leftArrowPrev)) yStart = yTop + margin;
                                                 if (/nearrow/i.test(val) && leftArrowPrev && /searrow/i.test(leftArrowPrev)) yStart = yTop + rowHeight - margin;
@@ -507,29 +445,13 @@ export default function MathTable({ data, title }: MathTableProps) {
 
                                             if (/nearrow/i.test(val)) {
                                                 arrows.push(
-                                                    <line
-                                                        key={`arrow-${halfIdx}`}
-                                                        x1={xStartAdjusted}
-                                                        y1={yStart}
-                                                        x2={xEndAdjusted}
-                                                        y2={yEnd}
-                                                        stroke="#1e293b"
-                                                        strokeWidth="1.5"
-                                                        markerEnd={`url(#nearrow-marker-${id})`}
-                                                    />
+                                                    <line key={`arrow-${halfIdx}`} x1={xStartAdjusted} y1={yStart} x2={xEndAdjusted} y2={yEnd}
+                                                        stroke="#1e293b" strokeWidth="1.5" markerEnd={`url(#nearrow-marker-${id})`} />
                                                 );
                                             } else if (/searrow/i.test(val)) {
                                                 arrows.push(
-                                                    <line
-                                                        key={`arrow-${halfIdx}`}
-                                                        x1={xStartAdjusted}
-                                                        y1={yStart}
-                                                        x2={xEndAdjusted}
-                                                        y2={yEnd}
-                                                        stroke="#1e293b"
-                                                        strokeWidth="1.5"
-                                                        markerEnd={`url(#searrow-marker-${id})`}
-                                                    />
+                                                    <line key={`arrow-${halfIdx}`} x1={xStartAdjusted} y1={yStart} x2={xEndAdjusted} y2={yEnd}
+                                                        stroke="#1e293b" strokeWidth="1.5" markerEnd={`url(#searrow-marker-${id})`} />
                                                 );
                                             }
                                         }
@@ -537,54 +459,32 @@ export default function MathTable({ data, title }: MathTableProps) {
                                         return arrows;
                                     })()
                                 ) : (
-                                    // RENDU SIGNE : texte (+, -, 0, ||)
                                     (() => {
                                         const cells: React.JSX.Element[] = [];
-
                                         for (let halfIdx = 0; halfIdx < (n * 2) - 1; halfIdx++) {
                                             const val = halfIdxToItem.get(halfIdx);
                                             if (!val) continue;
+                                            if (isForbiddenItem(val)) continue;
 
                                             const xPos = getXPos(halfIdx);
-                                            const isForbidden = isForbiddenItem(val);
-
-                                            if (isForbidden) continue; // Déjà géré par la double barre
 
                                             if (val === '0' || val.toLowerCase() === 'z' || val.toLowerCase() === 'zero') {
                                                 cells.push(
-                                                    <text
-                                                        key={`cell-${halfIdx}`}
-                                                        x={xPos}
-                                                        y={yMid}
-                                                        dy="0.35em"
-                                                        textAnchor="middle"
-                                                        fontSize="16"
-                                                        fontWeight="bold"
-                                                        fill="#1e293b"
-                                                    >
-                                                        0
-                                                    </text>
+                                                    <text key={`cell-${halfIdx}`} x={xPos} y={yMid} dy="0.35em" textAnchor="middle"
+                                                        fontSize="16" fontWeight="bold" fill="#1e293b">0</text>
                                                 );
                                             } else {
                                                 const isPositive = val.trim() === '+';
                                                 const isNegative = val.trim() === '-';
                                                 cells.push(
-                                                    <text
-                                                        key={`cell-${halfIdx}`}
-                                                        x={xPos}
-                                                        y={yMid}
-                                                        dy="0.35em"
-                                                        textAnchor="middle"
-                                                        fontSize="20"
-                                                        fontWeight="bold"
-                                                        fill={isPositive ? '#16a34a' : isNegative ? '#dc2626' : '#1e293b'}
-                                                    >
+                                                    <text key={`cell-${halfIdx}`} x={xPos} y={yMid} dy="0.35em" textAnchor="middle"
+                                                        fontSize="20" fontWeight="bold"
+                                                        fill={isPositive ? '#16a34a' : isNegative ? '#dc2626' : '#1e293b'}>
                                                         {val.trim()}
                                                     </text>
                                                 );
                                             }
                                         }
-
                                         return cells;
                                     })()
                                 )}
@@ -592,16 +492,15 @@ export default function MathTable({ data, title }: MathTableProps) {
                         );
                     })}
 
-                    {/* Lignes pointillées globales pour les colonnes spéciales (descendent dans toutes les lignes) */}
+                    {/* Lignes pointillées globales pour colonnes spéciales
+                        FIX BUG 3 : s'arrêtent à specialColsBottomY (avant dernière ligne si variation) */}
                     {Array.from(globalForbiddenCols).map(halfIdx => {
                         const xPos = getXPos(halfIdx);
                         return (
                             <line
                                 key={`global-forbidden-line-${halfIdx}`}
-                                x1={xPos}
-                                y1={headerHeight}
-                                x2={xPos}
-                                y2={totalHeight}
+                                x1={xPos} y1={headerHeight}
+                                x2={xPos} y2={specialColsBottomY}
                                 stroke="#1e293b"
                                 strokeWidth="1"
                                 strokeDasharray="4,4"
@@ -610,28 +509,10 @@ export default function MathTable({ data, title }: MathTableProps) {
                         );
                     })}
 
-                    {/* Flèche axe x */}
-                    <line
-                        x1={labelWidth + 10}
-                        y1={headerHeight / 2}
-                        x2={totalWidth - 20}
-                        y2={headerHeight / 2}
-                        stroke="#1e293b"
-                        strokeWidth="1"
-                        markerEnd={`url(#arrow-right-${id})`}
-                    />
-
-                    {/* Titre du tableau */}
+                    {/* Titre */}
                     {title && (
-                        <text
-                            x={totalWidth / 2}
-                            y={totalHeight + 20}
-                            dy="0.35em"
-                            textAnchor="middle"
-                            fontSize="12"
-                            fill="#64748b"
-                            fontStyle="italic"
-                        >
+                        <text x={totalWidth / 2} y={totalHeight + 20} dy="0.35em" textAnchor="middle"
+                            fontSize="12" fill="#64748b" fontStyle="italic">
                             {title}
                         </text>
                     )}
@@ -640,7 +521,3 @@ export default function MathTable({ data, title }: MathTableProps) {
         </div>
     );
 }
-
-
-
-
