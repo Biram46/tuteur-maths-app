@@ -166,6 +166,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
     // Fonction pour extraire et rendre les figures @@@
     const renderFigure = (rawBlock: string) => {
+        console.log('🔍 RAW BLOCK:', rawBlock);  // ← ajoutez cette ligne
         try {
             // Remplacement des tirets longs et espaces insécables
             const raw = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
