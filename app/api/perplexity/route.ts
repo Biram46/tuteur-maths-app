@@ -480,7 +480,8 @@ Contexte programme : ${curriculumContext}`;
                 name: 'OpenAI',
                 url: 'https://api.openai.com/v1/chat/completions',
                 model: 'o3-mini',
-                key: openaiKey
+                key: openaiKey,
+                temperature: 0  // Déterministe pour garantir le format des tableaux
             });
         }
 
@@ -489,7 +490,8 @@ Contexte programme : ${curriculumContext}`;
                 name: 'DeepSeek',
                 url: 'https://api.deepseek.com/v1/chat/completions',
                 model: 'deepseek-reasoner',
-                key: deepseekKey
+                key: deepseekKey,
+                temperature: 0  // Déterministe pour garantir le format des tableaux
             });
         }
 
@@ -498,7 +500,8 @@ Contexte programme : ${curriculumContext}`;
                 name: 'GLM-5',
                 url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
                 model: 'GLM-4.5-Flash',
-                key: zhipuKey
+                key: zhipuKey,
+                temperature: 0  // Déterministe pour garantir le format des tableaux
             });
         }
 
@@ -514,10 +517,8 @@ Contexte programme : ${curriculumContext}`;
                     body: JSON.stringify({
                         model: provider.model,
                         messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
-                        stream: true
-                        // Pas de temperature forcée : on garde le modèle non-déterministe
-                        // pour des réponses naturelles et variées. La robustesse du format
-                        // des tableaux est gérée côté client par patchMarkdownTables().
+                        stream: true,
+                        temperature: provider.temperature  // temperature=0 pour format déterministe des tableaux
                     }),
                     signal: AbortSignal.timeout(60000), // Timeout 60s
                 });
