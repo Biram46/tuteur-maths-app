@@ -1,18 +1,20 @@
 export const dynamic = 'force-dynamic';
 import MathAssistant from '@/app/components/MathAssistant';
 import { createClient } from '@/lib/supabaseAction';
-import { redirect } from 'next/navigation';
 
 /**
  * Page de l'assistant mathématique mimimaths@i
  * Structure optimisée pour la visibilité de l'input.
+ * NB: auth optionnelle — accessible sans connexion pour les tests.
  */
 export default async function AssistantPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/login');
+    let userEmail: string | null = null;
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        userEmail = user?.email ?? null;
+    } catch {
+        // Mode non connecté : on continue sans redirection
     }
     return (
         <div className="h-screen bg-slate-100 flex flex-col overflow-hidden">
@@ -66,7 +68,7 @@ export default async function AssistantPage() {
 
                     {/* Colonne MILIEU - 8 col - L'assistant prend toute la place verticale restante */}
                     <div className="col-span-8 h-full overflow-hidden">
-                        <MathAssistant baseContext={`L'utilisateur se nomme ${user.email?.split('@')[0] || 'élève'}.`} />
+                        <MathAssistant baseContext={`L'utilisateur se nomme ${userEmail?.split('@')[0] || 'élève'}.`} />
                     </div>
 
                     {/* Colonne DROITE - 2 col */}

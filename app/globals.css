@@ -150,9 +150,9 @@ body {
 }
 
 /* Flèches de vecteurs plus visibles */
-.katex .mover > .mtoan,
-.katex .mover > .vlist > span > .mtoan,
-.katex .accent > .mtoan {
+.katex .mover>.mtoan,
+.katex .mover>.vlist>span>.mtoan,
+.katex .accent>.mtoan {
   font-size: 1.3em !important;
 }
 
@@ -163,6 +163,16 @@ body {
 /* Augmenter la taille des accents (flèches) */
 .katex .accent-body {
   font-size: 1.4em !important;
+}
+
+/* Force dark text for KaTeX inside SVG tables (foreignObject inherits
+   the chat bubble's text-slate-100 making it invisible on white backgrounds)
+   MUST have higher specificity than .message-content-wrapper .katex rules below */
+.message-content-wrapper svg foreignObject .katex,
+.message-content-wrapper svg foreignObject .katex *,
+svg foreignObject .katex,
+svg foreignObject .katex * {
+  color: #1e293b !important;
 }
 
 .katex table {
@@ -432,6 +442,179 @@ body {
     page-break-after: avoid;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAT MESSAGES — Typography & Visibility in Dark Mode
+   Replaces Tailwind prose classes (oklch color issues in TWv4)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Base text */
+.message-content-wrapper {
+  color: #e2e8f0;
+  font-size: 15px;
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+/* Paragraphs */
+.message-content-wrapper p {
+  color: #e2e8f0;
+  margin-bottom: 1em;
+}
+
+.message-content-wrapper p:last-child {
+  margin-bottom: 0;
+}
+
+/* KaTeX inline & display math — EXCLUDE SVG foreignObject (tables have dark bg) */
+.message-content-wrapper>.katex,
+.message-content-wrapper>.katex *,
+.message-content-wrapper>div>.katex,
+.message-content-wrapper>div>.katex *,
+.message-content-wrapper .katex-scroll-wrapper .katex,
+.message-content-wrapper .katex-scroll-wrapper .katex * {
+  color: #ffffff !important;
+}
+
+.message-content-wrapper .katex-display {
+  color: #ffffff !important;
+  margin: 1em 0;
+}
+
+/* Bold and strong text */
+.message-content-wrapper strong,
+.message-content-wrapper b {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Italic */
+.message-content-wrapper em,
+.message-content-wrapper i {
+  color: #cbd5e1;
+}
+
+/* Inline code */
+.message-content-wrapper code {
+  color: #67e8f9 !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Code blocks */
+.message-content-wrapper pre {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.message-content-wrapper pre code {
+  background: transparent !important;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Headings */
+.message-content-wrapper h1,
+.message-content-wrapper h2,
+.message-content-wrapper h3,
+.message-content-wrapper h4 {
+  color: #f1f5f9 !important;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.message-content-wrapper h1 {
+  font-size: 1.5em;
+}
+
+.message-content-wrapper h2 {
+  font-size: 1.25em;
+}
+
+.message-content-wrapper h3 {
+  font-size: 1.1em;
+}
+
+/* Lists */
+.message-content-wrapper ul,
+.message-content-wrapper ol {
+  padding-left: 1.5em;
+  margin: 0.75em 0;
+  color: #e2e8f0;
+}
+
+.message-content-wrapper ul {
+  list-style-type: disc;
+}
+
+.message-content-wrapper ol {
+  list-style-type: decimal;
+}
+
+.message-content-wrapper li {
+  color: #e2e8f0;
+  margin-bottom: 0.25em;
+}
+
+.message-content-wrapper li::marker {
+  color: #67e8f9;
+}
+
+/* Blockquotes */
+.message-content-wrapper blockquote {
+  border-left: 3px solid #22d3ee;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Horizontal rules */
+.message-content-wrapper hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 1.5em 0;
+}
+
+/* Links */
+.message-content-wrapper a {
+  color: #38bdf8 !important;
+  text-decoration: underline;
+}
+
+.message-content-wrapper a:hover {
+  color: #7dd3fc !important;
+}
+
+/* Tables (Markdown tables, not MathTable SVG) */
+.message-content-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.message-content-wrapper th,
+.message-content-wrapper td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5em 0.75em;
+  color: #e2e8f0;
+}
+
+.message-content-wrapper th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
 
 /* Custom Scrollbar for Dark Mode Dashboard - Cross-browser support */
 .custom-scrollbar {

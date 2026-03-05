@@ -460,18 +460,15 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         const rawContent = sec.substring(colonIndex + 1);
 
-                                               // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
+                        // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
                         const rawValues = rawContent.includes(',')
                             ? rawContent.split(',').map(v => v.trim()).filter(v => v.length > 0)
                             : rawContent.trim().split(/\s+/).filter(v => v.length > 0);
 
-                        // Dédupliquer les valeurs consécutives identiques, sauf les zéros
-                        const content = rawValues.filter((v, i) => {
-                            if (i === 0) return true;
-                            const isZero = v.trim() === '0' || v.trim().toLowerCase() === 'z';
-                            const prevIsZero = rawValues[i-1].trim() === '0' || rawValues[i-1].trim().toLowerCase() === 'z';
-                            return isZero || prevIsZero || v !== rawValues[i-1];
-                        });
+                        // IMPORTANT : NE PAS dédupliquer les valeurs consécutives !
+                        // Chaque valeur correspond à une colonne précise du tableau (2N-3 éléments).
+                        // Supprimer les doublons casse l'alignement des signes avec les x-values.
+                        const content = rawValues;
 
 
                         let type: 'sign' | 'variation' = 'sign';
@@ -942,7 +939,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     setSpeechVolume(0);
                     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
                     if (sourceRef.current) sourceRef.current.disconnect();
-                    URL.revokeObjectURL(url);
+
                     if (index === -2) {
                         isSpeakingQueue.current = false;
                         processSpeechQueue();
@@ -1006,6 +1003,29 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     // --- EXPORT BILAN EN PDF ---
     const handleExportBilan = async () => {
         if (messages.length === 0) return;
+        // normalizePdfText : remplace les chars Unicode hors Latin-1 par du texte ASCII
+        // Necessaire car jsPDF Helvetica ne supporte que Latin-1 (U+0000 a U+00FF)
+        const normalizePdfText = (text: string): string => text
+            .replace(/[\u2013\u2014]/g, '-')
+            .replace(/\u00A0/g, ' ')
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2018\u2019\u2032]/g, "'")
+            .replace(/[\u2022\u2023\u25E6\u2043]/g, '-')
+            .replace(/\u00B7/g, '.')
+            .replace(/[\u2192\u27F6\u2794]/g, '->')
+            .replace(/[\u2190\u27F5]/g, '<-')
+            .replace(/[\u2191\u2197]/g, '/\\')
+            .replace(/[\u2193\u2198]/g, '\\/')
+            .replace(/\u221E/g, 'infini')
+            .replace(/[\u2265\u2267]/g, '>=')
+            .replace(/[\u2264\u2266]/g, '<=')
+            .replace(/\u2260/g, '!=')
+            .replace(/\u00D7/g, 'x')
+            .replace(/\u221A/g, 'racine')
+            .replace(/\u00B1/g, '+/-')
+            .replace(/\u03B1/g, 'alpha').replace(/\u03B2/g, 'beta').replace(/\u03C0/g, 'pi')
+            .replace(/[^\x00-\xFF]/g, '?');
+
 
         try {
             setLoading(true);
@@ -1028,14 +1048,14 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     doc.setTextColor(15, 23, 42);
                     doc.setFont("helvetica", "bold");
                     doc.setFontSize(24);
-                    doc.text("BILAN PÉDAGOGIQUE", pageWidth / 2, 22, { align: 'center' });
+                    doc.text("BILAN PEDAGOGIQUE", pageWidth / 2, 22, { align: 'center' });
                     doc.setFontSize(10);
                     doc.setTextColor(71, 85, 105);
-                    doc.text(`mimimaths@i • Rapport d'apprentissage • ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 32, { align: 'center' });
+                    doc.text(`mimimaths@i | Rapport d'apprentissage | ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 32, { align: 'center' });
                 } else {
                     doc.setFontSize(8);
                     doc.setTextColor(100, 116, 139);
-                    doc.text("mimimaths@i — Suite du bilan", pageWidth / 2, 14, { align: 'center' });
+                    doc.text("mimimaths@i - Suite du bilan", pageWidth / 2, 14, { align: 'center' });
                 }
             };
 
@@ -1043,7 +1063,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 doc.setFontSize(7);
                 doc.setTextColor(148, 163, 184);
                 doc.text(
-                    `Page ${pageNum} • ${new Date().toLocaleString('fr-FR')} • mimimaths@i`,
+                    `Page ${pageNum} | ${new Date().toLocaleString('fr-FR')} • mimimaths@i`,
                     pageWidth / 2, pageHeight - 6, { align: 'center' }
                 );
             };
@@ -1052,36 +1072,54 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             const svgToDataUrl = (svgEl: SVGElement): Promise<string> => {
                 return new Promise((resolve) => {
                     try {
-                        const svgData = new XMLSerializer().serializeToString(svgEl);
-                        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                        const url = URL.createObjectURL(svgBlob);
+                        const svgTyped = svgEl as SVGSVGElement;
+
+                        // Déterminer les dimensions réelles à partir du viewBox ou des attributs
+                        let w = 0, h = 0;
+
+                        // 1. viewBox est la source de vérité pour MathTable (width="100%")
+                        const vb = svgTyped.getAttribute('viewBox');
+                        if (vb) {
+                            const parts = vb.split(/[\s,]+/).map(Number);
+                            if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                                w = parts[2];
+                                h = parts[3];
+                            }
+                        }
+
+                        // 2. Attributs width/height explicites (en pixels)
+                        if (!w) w = svgTyped.width?.baseVal?.value || parseFloat(svgEl.getAttribute('width') || '0') || 0;
+                        if (!h) h = svgTyped.height?.baseVal?.value || parseFloat(svgEl.getAttribute('height') || '0') || 0;
+
+                        // 3. Dimensions réelles du DOM (en dernier recours)
+                        if (!w) w = svgEl.clientWidth || svgEl.getBoundingClientRect().width || 800;
+                        if (!h) h = svgEl.clientHeight || svgEl.getBoundingClientRect().height || 200;
+
+                        // Cloner le SVG pour fixer les dimensions (éviter width="100%")
+                        const clonedSvg = svgEl.cloneNode(true) as SVGSVGElement;
+                        clonedSvg.setAttribute('width', String(w));
+                        clonedSvg.setAttribute('height', String(h));
+                        if (!vb) clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+                        const svgData = new XMLSerializer().serializeToString(clonedSvg);
+                        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+
+                        const scale = 2; // Rendu 2x pour la netteté
                         const img = new Image();
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            const svgTyped = svgEl as SVGSVGElement;
-                            // CORRECTION : getBoundingClientRect() retourne 0 pour les éléments hors DOM
-                            // → utiliser les attributs SVG width/height en priorité
-                            canvas.width = svgEl.clientWidth
-                                || svgTyped.width?.baseVal?.value
-                                || parseFloat(svgEl.getAttribute('width') || '0')
-                                || svgEl.getBoundingClientRect().width
-                                || 800;
-                            canvas.height = svgEl.clientHeight
-                                || svgTyped.height?.baseVal?.value
-                                || parseFloat(svgEl.getAttribute('height') || '0')
-                                || svgEl.getBoundingClientRect().height
-                                || 200;
+                            canvas.width = w * scale;
+                            canvas.height = h * scale;
                             const ctx = canvas.getContext('2d');
                             if (ctx) {
                                 ctx.fillStyle = '#ffffff';
                                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                ctx.drawImage(img, 0, 0);
+                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                             }
-                            URL.revokeObjectURL(url);
                             resolve(canvas.toDataURL('image/png'));
                         };
-                        img.onerror = () => { URL.revokeObjectURL(url); resolve(''); };
-                        img.src = url;
+                        img.onerror = () => { resolve(''); };
+                        img.src = svgDataUrl;
                     } catch {
                         resolve('');
                     }
@@ -1120,26 +1158,30 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                 el.style.border = '1px solid #e2e8f0';
                             }
 
-                            // 1. Convertir chaque SVG du clone en <img> PNG
-                            const clonedSvgList = Array.from(clonedDoc.querySelectorAll('svg')) as SVGSVGElement[];
-                            // Récupérer aussi les SVGs originaux (dans le DOM réel) pour la qualité
-                            const originalSvgList = Array.from((msgEl as HTMLElement).querySelectorAll('svg')) as SVGElement[];
+                            // 1. Convertir chaque SVG du message en <img> PNG
+                            //    IMPORTANT: chercher dans `el` (message cloné) et non dans tout `clonedDoc`
+                            const clonedMsgSvgs = el ? Array.from(el.querySelectorAll('svg')) as SVGSVGElement[] : [];
+                            const originalMsgSvgs = Array.from((msgEl as HTMLElement).querySelectorAll('svg')) as SVGSVGElement[];
 
-                            for (let svgIdx = 0; svgIdx < clonedSvgList.length; svgIdx++) {
-                                const svgEl = clonedSvgList[svgIdx];
-                                // CORRECTION : getBoundingClientRect() retourne TOUJOURS 0 dans un doc cloné
-                                // car le clone n'est pas attaché au layout de la page.
-                                // → Utiliser les attributs width/height du SVG lui-même.
-                                const svgW = svgEl.width?.baseVal?.value
-                                    || parseFloat(svgEl.getAttribute('width') || '0');
-                                const svgH = svgEl.height?.baseVal?.value
-                                    || parseFloat(svgEl.getAttribute('height') || '0');
-                                // Exclure les petites icônes
+                            for (let svgIdx = 0; svgIdx < clonedMsgSvgs.length; svgIdx++) {
+                                const clonedSvg = clonedMsgSvgs[svgIdx];
+
+                                // Déterminer la taille via viewBox (car MathTable a width="100%")
+                                let svgW = 0, svgH = 0;
+                                const vb = clonedSvg.getAttribute('viewBox');
+                                if (vb) {
+                                    const p = vb.split(/[\s,]+/).map(Number);
+                                    if (p.length === 4) { svgW = p[2]; svgH = p[3]; }
+                                }
+                                if (!svgW) svgW = clonedSvg.width?.baseVal?.value || parseFloat(clonedSvg.getAttribute('width') || '0');
+                                if (!svgH) svgH = clonedSvg.height?.baseVal?.value || parseFloat(clonedSvg.getAttribute('height') || '0');
+
+                                // Exclure les petites icônes (speaker, etc.)
                                 if (svgW < 50 || svgH < 30) continue;
 
-                                // Utiliser l'original correspondant (meilleure qualité de rendu)
-                                const targetSvg = originalSvgList[svgIdx] || svgEl;
-                                const dataUrl = await svgToDataUrl(targetSvg as SVGElement);
+                                // Utiliser le SVG ORIGINAL (meilleure qualité — il est dans le DOM réel)
+                                const sourceSvg = originalMsgSvgs[svgIdx] || clonedSvg;
+                                const dataUrl = await svgToDataUrl(sourceSvg as SVGElement);
                                 if (dataUrl) {
                                     const img = clonedDoc.createElement('img');
                                     img.src = dataUrl;
@@ -1149,7 +1191,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                     img.style.margin = '10px auto';
                                     img.style.border = '1px solid #e2e8f0';
                                     img.style.borderRadius = '8px';
-                                    svgEl.parentNode?.replaceChild(img, svgEl);
+                                    clonedSvg.parentNode?.replaceChild(img, clonedSvg);
                                 }
                             }
 
@@ -1171,32 +1213,101 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                 }
                             }
 
-                            // 3. Injecter les styles de normalisation PDF
+                            // 3. Injecter les styles PDF : TOUT en noir sur blanc
                             const styleTag = clonedDoc.createElement('style');
                             styleTag.innerHTML = `
-                                * { color-scheme: light !important; text-shadow: none !important; box-shadow: none !important; }
-                                body, html, #msg-${i} { background-color: #ffffff !important; color: #000000 !important; }
-                                .katex { color: #000000 !important; }
-                                .katex-display { margin: 0.5em 0 !important; }
-                                .text-cyan-400, .text-cyan-300, .text-slate-100, .text-blue-50 { color: #000000 !important; }
-                                .bg-blue-600\\/10, .bg-slate-900\\/50, .bg-slate-900, .bg-slate-950 {
+                                * {
+                                    color-scheme: light !important;
+                                    text-shadow: none !important;
+                                    box-shadow: none !important;
+                                }
+                                body, html, div, p, span, li, ul, ol, h1, h2, h3, h4, h5, h6,
+                                strong, b, em, i, a, code, pre, blockquote, td, th, label {
+                                    color: #000000 !important;
+                                    background-color: transparent !important;
+                                }
+                                #msg-${i}, #msg-${i} > div {
                                     background-color: #ffffff !important;
+                                    color: #000000 !important;
+                                }
+                                .katex, .katex *, .katex .mord, .katex .mbin,
+                                .katex .mrel, .katex .mopen, .katex .mclose,
+                                .katex .mpunct, .katex .minner {
+                                    color: #000000 !important;
+                                }
+                                .katex-display { margin: 0.5em 0 !important; color: #000000 !important; }
+                                .message-content-wrapper, .message-content-wrapper * {
+                                    color: #000000 !important;
+                                }
+                                code {
+                                    color: #1e293b !important;
+                                    background: #f1f5f9 !important;
                                     border: 1px solid #e2e8f0 !important;
+                                }
+                                pre {
+                                    background: #f8fafc !important;
+                                    border: 1px solid #e2e8f0 !important;
+                                }
+                                blockquote {
+                                    border-left: 3px solid #94a3b8 !important;
+                                    color: #374151 !important;
                                 }
                                 .math-figure-container { margin: 20px 0 !important; background: white !important; }
                                 img { max-width: 100% !important; height: auto !important; }
                             `;
                             clonedDoc.head.appendChild(styleTag);
 
-                            // 4. Forcer les couleurs oklch en noir
-                            const allEls = clonedDoc.getElementsByTagName('*');
-                            const colorRx = /(oklch|oklab|lab|lch|hwb)\([^)]*\)/g;
-                            for (let j = 0; j < allEls.length; j++) {
-                                const elt = allEls[j] as HTMLElement;
-                                const s = elt.getAttribute('style') || '';
-                                if (colorRx.test(s)) elt.setAttribute('style', s.replace(colorRx, '#000000'));
-                                if (window.getComputedStyle(elt).color === 'rgb(255, 255, 255)') {
+                            // 4. Remplacer les éléments KaTeX par du texte brut
+                            //    html2canvas ne peut PAS rendre les polices KaTeX → texte invisible
+                            //    ATTENTION : .katex contient DEUX enfants :
+                            //      - .katex-mathml (MathML caché, pour accessibilité)
+                            //      - .katex-html   (rendu visible)
+                            //    → Extraire UNIQUEMENT le texte de .katex-html sinon double caractères !
+                            if (el) {
+                                // Helper : extraire le texte visible d'un élément KaTeX
+                                const getKatexText = (katexEl: HTMLElement): string => {
+                                    // Chercher .katex-html pour le texte visible
+                                    const htmlPart = katexEl.querySelector('.katex-html');
+                                    if (htmlPart) return (htmlPart as HTMLElement).textContent || '';
+                                    // Fallback : supprimer .katex-mathml et prendre le reste
+                                    const mathml = katexEl.querySelector('.katex-mathml');
+                                    if (mathml) mathml.remove();
+                                    return katexEl.textContent || '';
+                                };
+
+                                // Traiter les KaTeX display (blocs $$...$$)
+                                const katexDisplays = Array.from(el.querySelectorAll('.katex-display'));
+                                katexDisplays.forEach(kd => {
+                                    const text = getKatexText(kd as HTMLElement);
+                                    const div = clonedDoc.createElement('div');
+                                    div.textContent = text;
+                                    div.style.cssText = 'color: #000000; font-size: 16px; font-style: italic; font-family: "Times New Roman", Georgia, serif; text-align: center; margin: 0.5em 0; padding: 8px 0;';
+                                    kd.parentNode?.replaceChild(div, kd);
+                                });
+
+                                // Traiter les KaTeX inline ($...$)
+                                const katexSpans = Array.from(el.querySelectorAll('.katex'));
+                                katexSpans.forEach(ks => {
+                                    const text = getKatexText(ks as HTMLElement);
+                                    const span = clonedDoc.createElement('span');
+                                    span.textContent = text;
+                                    span.style.cssText = 'color: #000000; font-style: italic; font-family: "Times New Roman", Georgia, serif; font-size: inherit;';
+                                    ks.parentNode?.replaceChild(span, ks);
+                                });
+                            }
+
+                            // 5. FORCE BRUTE : parcourir TOUS les éléments du message cloné
+                            //    et forcer la couleur noire
+                            if (el) {
+                                const allEls = el.getElementsByTagName('*');
+                                for (let j = 0; j < allEls.length; j++) {
+                                    const elt = allEls[j] as HTMLElement;
                                     elt.style.color = '#000000';
+                                    const bg = elt.style.backgroundColor;
+                                    if (bg && (bg.includes('rgb(2,') || bg.includes('rgb(15,') || bg.includes('rgba(0,') ||
+                                        bg.includes('oklch') || bg.includes('#020617') || bg.includes('#0f172a'))) {
+                                        elt.style.backgroundColor = '#ffffff';
+                                    }
                                 }
                             }
                         }
@@ -1545,6 +1656,107 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         const newMessages = [...messages, userMessage];
         setMessages(newMessages);
         setInput('');
+
+        // ── INTERCEPTION TABLEAU DE SIGNES (expression unique) ──
+        const inputLower = input.toLowerCase();
+        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
+        // Ne pas intercepter les listes multi-expressions (ex: "1) ... 2) ...")
+        // ⚠️ On exige que le chiffre+) soit précédé d'un début de ligne/phrase,
+        //    PAS d'un opérateur mathématique comme +/-/*/x — sinon (3x+2)(7x-1) matche en faux positif.
+        const isMultiExpr = /(?:^|[\n;])\s*\d+\s*\)[\s\S]*(?:\n|;)\s*\d+\s*\)/.test(input);
+
+        if (wantsSignTable && !isMultiExpr) {
+            let expr = '';
+            const eqMatch = input.match(/=\s*(.+)/);
+            if (eqMatch) expr = eqMatch[1].trim();
+            if (!expr) {
+                const deMatch = input.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+            }
+            expr = expr
+                .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
+                .replace(/\s+$/g, '').replace(/[.!?]+$/g, '');
+
+            if (expr && expr.includes('x') && expr.length > 1) {
+                console.log(`[MathEngine] 🎯 Tableau de signes pour: "${expr}"`);
+                try {
+                    const engineRes = await fetch('/api/math-engine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: 'premiere' }),
+                    });
+                    const engineData = await engineRes.json();
+                    if (engineData.success && engineData.aaaBlock) {
+                        const tableBlock = engineData.aaaBlock;
+                        console.log(`[MathEngine] ✅ Injection directe du tableau SymPy`);
+                        const enrichedMessages: ChatMessage[] = [
+                            ...newMessages,
+                            {
+                                role: 'user' as const,
+                                content: `[SYSTÈME] Tableau calculé. NE GÉNÈRE AUCUN bloc @@@. Explique les étapes : factorisation, valeurs critiques, signe par intervalle, conclusion. Expression : ${expr}${engineData.discriminantSteps?.length ? '\nDiscriminant:\n' + engineData.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n') : ''}`
+                            }
+                        ];
+                        const tablePrefix = tableBlock + '\n\n';
+                        // AJOUTER un nouveau message assistant (pas remplacer !)
+                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
+
+                        setLoading(true);
+                        setIsTalking(true);
+                        try {
+                            const response = await fetch('/api/perplexity', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                            });
+                            if (!response.ok) throw new Error('Erreur API');
+                            const reader = response.body?.getReader();
+                            if (!reader) throw new Error('Reader non disponible');
+                            const decoder = new TextDecoder();
+                            let aiText = '';
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                for (const line of decoder.decode(value).split('\n')) {
+                                    if (!line.startsWith('data: ')) continue;
+                                    const jsonStr = line.substring(6);
+                                    if (jsonStr === '[DONE]') break;
+                                    try {
+                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+                                        if (c) {
+                                            aiText += c;
+                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                            setMessages(prev => {
+                                                const u = [...prev];
+                                                u[u.length - 1] = { role: 'assistant', content: tablePrefix + clean };
+                                                return u;
+                                            });
+                                        }
+                                    } catch { }
+                                }
+                            }
+                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+                            setMessages(prev => {
+                                const u = [...prev];
+                                u[u.length - 1] = { role: 'assistant', content: finalContent };
+                                return u;
+                            });
+                        } catch (error) {
+                            console.error('Erreur streaming:', error);
+                        } finally {
+                            setLoading(false);
+                            setIsTalking(false);
+                        }
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('[MathEngine] Erreur, fallback IA:', err);
+                }
+            }
+        }
+
+        // Pas de tableau de signes détecté → flux normal (IA seule)
         await startStreamingResponse(newMessages);
     };
 
@@ -1621,8 +1833,9 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 {messages.map((msg, index) => (
                     <div key={index} id={`msg-${index}`} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
                         <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed relative group ${msg.role === 'user'
-                            ? 'bg-blue-600/10 border border-blue-500/20 text-blue-50 rounded-tr-none'
-                            : 'bg-slate-900/50 border border-slate-800/50 text-slate-100 rounded-tl-none'}`}>
+                            ? 'bg-blue-600/10 border border-blue-500/20 rounded-tr-none'
+                            : 'bg-slate-900/50 border border-slate-800/50 rounded-tl-none'}`}
+                            style={{ color: msg.role === 'user' ? '#eff6ff' : '#e2e8f0' }}>
 
                             {msg.role === 'assistant' && msg.content !== '...' && (
                                 <button
@@ -1635,7 +1848,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                 </button>
                             )}
 
-                            <div className="prose prose-invert prose-cyan max-w-none prose-sm w-full overflow-hidden">
+                            <div className="max-w-none w-full overflow-hidden text-[15px] leading-relaxed" style={{ color: '#e2e8f0' }}>
                                 {msg.role === 'assistant' && (msg.content === '' || msg.content === '...') && loading ? (
                                     <div className="flex items-center gap-2 text-cyan-400 font-mono text-[10px] animate-pulse py-4">
                                         <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>

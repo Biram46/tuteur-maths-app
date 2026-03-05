@@ -20,32 +20,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Configs manquantes: OpenAI, DeepSeek ou GLM-5 requis' }, { status: 500 });
         }
 
-        const userQuestion = messages[messages.length - 1].content;
 
-        // Perplexity pour le contexte de programme (avec fallback)
-        let curriculumContext = "";
-        try {
-            const searchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: 'sonar',
-                    messages: [{ role: 'system', content: "Tu es expert Éducation Nationale." }, { role: 'user', content: `Programme scolaire : ${userQuestion}` }],
-                    temperature: 0.1,
-                }),
-                signal: AbortSignal.timeout(10000), // Timeout 10s
-            });
-
-            if (searchResponse.ok) {
-                const searchData = await searchResponse.json();
-                curriculumContext = searchData.choices?.[0]?.message?.content || "";
-            } else {
-                console.warn(`Perplexity API returned ${searchResponse.status}, using fallback`);
-            }
-        } catch (perplexityError) {
-            console.warn('Perplexity unavailable, continuing without curriculum context:', perplexityError);
-            // Continue sans contexte Perplexity - l'IA principale peut quand même répondre
-        }
 
         const reasoningPrompt = `Tu es mimimaths@i, assistant de mathématiques pour le site aimaths.fr.
 
@@ -402,6 +377,77 @@ sign: f(x) : -, 0, +, ||, -, 0, + |
 
 ⚠️ Les lignes séparées par facteur sont OBLIGATOIRES pour tout quotient factorisé !
 
+⛔⛔⛔ **RÈGLES TABLEAU DE SIGNES SELON LE TYPE DE FONCTION** ⛔⛔⛔
+
+**TYPE 1 — EXPONENTIELLE e^(u(x)) :**
+- e^(u(x)) est TOUJOURS strictement positif → pas de zéro, pas de valeur interdite
+- Ne PAS créer de ligne sign: pour e^u seul (inutile, signe constant +)
+- Si f(x) = g(x) · e^(u(x)) → le signe de f(x) = le signe de g(x)
+- Exemple : f(x) = (x - 1) · eˣ
+  Seul facteur qui change de signe : (x - 1), zéro en x=1
+
+@@@ table |
+x: -inf, 1, +inf |
+sign: x - 1 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+**TYPE 2 — LOGARITHME ln(u(x)) :**
+- Domaine : u(x) > 0 (ne PAS inclure les x où u(x) ≤ 0 dans le tableau)
+- ln(u(x)) = 0 quand u(x) = 1
+- ln(u(x)) < 0 quand 0 < u(x) < 1
+- ln(u(x)) > 0 quand u(x) > 1
+- La borne gauche du domaine (où u=0) s'écrit comme première valeur de x:
+- Exemple : f(x) = ln(x) (domaine ]0, +∞[)
+  ln(x) = 0 en x = 1
+
+@@@ table |
+x: 0, 1, +inf |
+sign: ln(x) : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+- Exemple : f(x) = ln(2x - 1) (domaine ]1/2, +∞[)
+  ln(2x-1) = 0 quand 2x-1 = 1, soit x = 1
+
+@@@ table |
+x: 1/2, 1, +inf |
+sign: ln(2x-1) : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+**TYPE 3 — IRRATIONNEL √(u(x)) :**
+- Domaine : u(x) ≥ 0
+- √(u(x)) ≥ 0 toujours sur son domaine → signe toujours + (ou 0 à la borne)
+- Zéro : √(u(x)) = 0 quand u(x) = 0 (à la borne gauche du domaine)
+- Ne PAS mettre de signe - pour √ (impossible sur le domaine)
+- Exemple : f(x) = (x - 2) · √(x + 1) (domaine [-1, +∞[)
+  √(x+1) = 0 en x = -1 ; (x-2) = 0 en x = 2
+
+@@@ table |
+x: -1, 2, +inf |
+sign: x - 2 : -, -, 0, + |
+sign: √(x+1) : 0, +, +, + |
+sign: f(x) : 0, -, 0, + |
+@@@
+
+⚠️ Pour √(u) à la borne gauche : mettre "0" (pas "-"), la valeur est 0 pas négative !
+
+**TYPE 4 — POLYNÔME (rappel) :**
+- Affine ax+b : zéro en x = -b/a, signe = signe de a après cette valeur
+- Trinôme ax²+bx+c : calculer Δ = b²-4ac AVANT le tableau (obligatoire en Première+)
+  - Δ > 0 : deux racines x₁ < x₂, signe opposé à a entre x₁ et x₂
+  - Δ = 0 : racine double x₀, signe de a partout sauf 0 en x₀
+  - Δ < 0 : pas de racine, signe = signe de a partout
+- Exemple : f(x) = (-2x+3)(x²+2x+3), Δ de x²+2x+3 = 4-12 = -8 < 0 → toujours positif (a=1>0)
+
+@@@ table |
+x: -inf, 3/2, +inf |
+sign: x²+2x+3 : +, +, + |
+sign: -2x+3 : +, 0, - |
+sign: f(x) : +, 0, - |
+@@@
+
 **RÈGLES POUR LA LIGNE "x:"**
 - Listes les valeurs de x dans l'ordre croissant
 - Chaque valeur apparaît UNE SEULE FOIS (PAS de doublon !)
@@ -470,7 +516,7 @@ points: (1,0), (3,0), (2,-1)
 title: Courbe de f
 @@@
 
-Contexte programme : ${curriculumContext}`;
+Contexte programme : Programme scolaire français (Seconde, Première, Terminale).`;
 
         // Chaîne de fallback: OpenAI → DeepSeek → GLM-5
         const providers = [];
@@ -479,9 +525,9 @@ Contexte programme : ${curriculumContext}`;
             providers.push({
                 name: 'OpenAI',
                 url: 'https://api.openai.com/v1/chat/completions',
-                model: 'o3-mini',
+                model: 'gpt-4o-mini',  // rapide et économique
                 key: openaiKey,
-                temperature: 0  // Déterministe pour garantir le format des tableaux
+                temperature: 0
             });
         }
 
@@ -511,6 +557,11 @@ Contexte programme : ${curriculumContext}`;
             try {
                 console.log(`Trying ${provider.name} (${provider.model})...`);
 
+                // ⚡ Timeout uniquement pour ÉTABLIR la connexion (15s).
+                // Une fois le stream lancé, on ne l'interrompt PAS (pas de AbortSignal sur le body).
+                const connectController = new AbortController();
+                const connectTimeout = setTimeout(() => connectController.abort(), 15000);
+
                 const response = await fetch(provider.url, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
@@ -518,17 +569,21 @@ Contexte programme : ${curriculumContext}`;
                         model: provider.model,
                         messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
                         stream: true,
-                        temperature: provider.temperature  // temperature=0 pour format déterministe des tableaux
+                        temperature: provider.temperature
                     }),
-                    signal: AbortSignal.timeout(60000), // Timeout 60s
+                    signal: connectController.signal,
                 });
+
+                clearTimeout(connectTimeout); // Connexion établie → annuler le timeout
 
                 if (response.ok) {
                     console.log(`${provider.name} responded successfully`);
+                    // Streamer sans AbortSignal → le stream peut durer sans se couper
                     return new Response(response.body, {
                         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
                     });
                 } else {
+                    clearTimeout(connectTimeout);
                     const errorText = await response.text();
                     console.warn(`${provider.name} failed with status ${response.status}: ${errorText.slice(0, 200)}`);
                     lastError = `${provider.name}: ${response.status}`;
@@ -538,6 +593,7 @@ Contexte programme : ${curriculumContext}`;
                 lastError = `${provider.name}: ${err}`;
             }
         }
+
 
         // Tous les providers ont échoué
         return NextResponse.json({
