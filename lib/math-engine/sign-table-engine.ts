@@ -79,6 +79,7 @@ export interface SignTableResult {
     criticalPoints: number[];
     domain?: string;
     discriminantSteps?: DiscriminantStep[];
+    aiContext?: string;       // Instructions pédagogiques pour l'IA (adaptées au niveau + type de facteurs)
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -987,6 +988,132 @@ function buildDiscriminantSteps(factors: FactorAnalysis[]): DiscriminantStep[] {
 }
 
 // ─────────────────────────────────────────────────────────────
+// GÉNÉRATION DU CONTEXTE IA (instructions pédagogiques)
+// ─────────────────────────────────────────────────────────────
+
+const SIGN_NIVEAU_LABELS: Record<string, string> = {
+    'Seconde': 'Seconde',
+    'Premiere': 'Première',
+    'Terminale': 'Terminale',
+    'seconde': 'Seconde',
+    'seconde_sthr': 'Seconde STHR',
+    'premiere_commune': 'Première (tronc commun)',
+    'premiere_techno': 'Première Technologique',
+    'premiere_spe': 'Première Spécialité Maths',
+    'terminale_spe': 'Terminale Spécialité Maths',
+    'terminale_comp': 'Terminale Maths Complémentaires',
+    'terminale_expert': 'Terminale Maths Expertes',
+    'terminale_techno': 'Terminale Technologique',
+};
+
+/**
+ * Construit les instructions pédagogiques pour l'IA concernant les tableaux de signes.
+ *
+ * Centralise TOUTES les contraintes par type de facteur et par niveau.
+ * Pour ajouter une nouvelle catégorie, il suffit d'ajouter un cas ici.
+ */
+function buildSignTableAIContext(
+    factors: FactorAnalysis[],
+    niveau: string,
+    expression: string
+): string {
+    const niveauLabel = SIGN_NIVEAU_LABELS[niveau] ?? niveau;
+    const lines: string[] = [];
+
+    lines.push(`Niveau : ${niveauLabel}.`);
+    lines.push(`NE GÉNÈRE AUCUN bloc @@@.`);
+
+    // ── Détection des types de facteurs présents ──
+    const hasAffine = factors.some(f => f.factorType === 'affine');
+    const hasTrinomial = factors.some(f => f.factorType === 'trinomial');
+    const hasLn = factors.some(f => f.factorType === 'ln');
+    const hasExp = factors.some(f => f.factorType === 'exp');
+    const hasSqrt = factors.some(f => f.factorType === 'sqrt');
+    const hasDenominator = factors.some(f => f.type === 'denominator');
+    const isOnlyAffine = factors.length === 1 && hasAffine && !hasDenominator;
+    const isOnlyTrinomial = factors.length === 1 && hasTrinomial && !hasDenominator;
+
+    // ── [A] FONCTIONS AFFINES ──
+    if (isOnlyAffine) {
+        lines.push(`Type : fonction affine f(x) = ax + b.`);
+        lines.push(`Propose DEUX méthodes au choix :`);
+        lines.push(``);
+        lines.push(`MÉTHODE 1 – Règle du signe de a (méthode directe) :`);
+        lines.push(`  → Calculer la valeur d'annulation x₀ = -b/a`);
+        lines.push(`  → ax + b est du signe de a pour x > x₀, vaut 0 pour x = x₀, du signe de -a pour x < x₀`);
+        lines.push(`  → Afficher ce résultat SANS résoudre d'inéquation.`);
+        lines.push(``);
+        lines.push(`MÉTHODE 2 – Résolution d'inéquations (méthode algébrique) :`);
+        lines.push(`  → Résoudre ax + b > 0, ax + b < 0, ax + b = 0`);
+        lines.push(`  → Afficher le message pédagogique : "💡 Remarque : en pratique, il suffit de résoudre ax+b > 0 et ax+b = 0. Le signe de ax+b < 0 s'en déduit par complémentarité."`);
+    }
+
+    // ── [B] POLYNÔMES DU SECOND DEGRÉ ──
+    if (hasTrinomial) {
+        const triFactors = factors.filter(f => f.factorType === 'trinomial');
+        for (const tf of triFactors) {
+            const tri = tf.trinomialInfo;
+            if (!tri) continue;
+
+            lines.push(``);
+            lines.push(`Type : polynôme du second degré (facteur ${tf.label}).`);
+            lines.push(`Étapes obligatoires dans cet ordre :`);
+            lines.push(`  1. Calculer Δ = b²-4ac`);
+
+            if (tri.delta > 1e-10) {
+                lines.push(`  2. CAS Δ > 0 : deux racines réelles distinctes`);
+                lines.push(`     x₁ = (-b-√Δ)/(2a), x₂ = (-b+√Δ)/(2a) avec x₁ < x₂`);
+                lines.push(`     Le trinôme est du signe de a pour x < x₁ et x > x₂, du signe de -a pour x₁ < x < x₂`);
+                lines.push(`     Afficher les racines exactes (avec √) ET décimales approchées`);
+            } else if (Math.abs(tri.delta) < 1e-10) {
+                lines.push(`  2. CAS Δ = 0 : une racine double x₀ = -b/(2a)`);
+                lines.push(`     Le trinôme est du signe de a pour tout x ≠ x₀, vaut 0 en x₀`);
+                lines.push(`     Message : "Le trinôme a un signe constant (signe de a), sauf en x₀ où il s'annule."`);
+            } else {
+                lines.push(`  2. CAS Δ < 0 : pas de racine réelle`);
+                lines.push(`     Le trinôme est du signe de a pour tout x ∈ ℝ`);
+                lines.push(`     Message : "Le trinôme est du signe de a pour tout réel x (pas de racine réelle)."`);
+                lines.push(`     PAS de factorisation si Δ < 0`);
+            }
+
+            lines.push(`  Afficher Δ et les racines de façon pédagogique (étapes visibles)`);
+        }
+
+        if (isOnlyTrinomial) {
+            lines.push(`PAS de limites (hors programme pour les tableaux de signes).`);
+        }
+    }
+
+    // ── Facteurs multiples (produit/quotient) ──
+    if (factors.length > 1) {
+        if (hasAffine) {
+            lines.push(``);
+            lines.push(`Pour chaque facteur affine : utilise la règle du signe de a (méthode directe).`);
+        }
+        lines.push(`Explique la règle des signes du produit/quotient : compter le nombre de facteurs négatifs.`);
+        if (hasDenominator) {
+            lines.push(`Signale les valeurs interdites (dénominateur = 0) avec double barre ||.`);
+        }
+    }
+
+    // ── Facteurs spéciaux ──
+    if (hasExp) {
+        lines.push(`Rappelle que e^u(x) > 0 pour tout x (ne change pas le signe).`);
+    }
+    if (hasSqrt) {
+        lines.push(`Rappelle que √u(x) ≥ 0 sur son domaine.`);
+    }
+    if (hasLn) {
+        lines.push(`Rappelle que ln(u) = 0 quand u = 1, ln(u) > 0 quand u > 1, ln(u) < 0 quand 0 < u < 1.`);
+    }
+
+    // ── FUTUR : ajouter les nouvelles catégories ici ──
+    // if (hasTrig) { ... }
+
+    return lines.join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────
 // GÉNÉRATION DU TABLEAU DE SIGNES (POINT D'ENTRÉE)
 // ─────────────────────────────────────────────────────────────
 
@@ -1170,6 +1297,7 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
             criticalPoints,
             domain,
             discriminantSteps: discriminantSteps.length > 0 ? discriminantSteps : undefined,
+            aiContext: buildSignTableAIContext(factors, niveau, expression),
         };
     } catch (err: any) {
         return {

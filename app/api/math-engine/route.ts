@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
                 const sympyResult = await callSignTableSympy(expression, niveau);
                 if (sympyResult.success) {
                     console.log(`[MathEngine] ✅ MOTEUR SYMPY utilisé pour "${expression}"`);
+                    // Générer l'aiContext via le moteur JS (même si le tableau vient de SymPy)
+                    const jsForContext = generateSignTable({
+                        expression,
+                        numeratorFactors: options.numeratorFactors,
+                        denominatorFactors: options.denominatorFactors,
+                        searchDomain: options.searchDomain,
+                        niveau: niveau as any,
+                    });
                     return NextResponse.json({
                         success: true,
                         aaaBlock: sympyResult.aaaBlock,
@@ -82,6 +90,7 @@ export async function POST(req: NextRequest) {
                         criticalPoints: sympyResult.criticalPoints,
                         // Étapes Δ pour les trinômes (injectées dans le contexte IA)
                         discriminantSteps: sympyResult.discriminantSteps ?? [],
+                        aiContext: jsForContext.aiContext,
                         engine: 'sympy',
                     });
                 }
@@ -92,6 +101,7 @@ export async function POST(req: NextRequest) {
                     numeratorFactors: options.numeratorFactors,
                     denominatorFactors: options.denominatorFactors,
                     searchDomain: options.searchDomain,
+                    niveau: niveau as any,
                 });
 
                 if (!result.success) {
@@ -103,6 +113,7 @@ export async function POST(req: NextRequest) {
                     aaaBlock: result.aaaBlock,
                     rawData: result.tableSpec,
                     criticalPoints: result.criticalPoints,
+                    aiContext: result.aiContext,
                     engine: 'js-fallback',
                 });
             }
@@ -127,6 +138,8 @@ export async function POST(req: NextRequest) {
                     rawData: result.tableSpec,
                     derivativeExpr: result.derivativeExpr,
                     extrema: result.extrema,
+                    method: result.method,
+                    aiContext: result.aiContext,
                 });
             }
 

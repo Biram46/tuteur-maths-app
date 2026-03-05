@@ -9,6 +9,8 @@ import MathTable from './MathTable';
 import IntervalAxis from './IntervalAxis';
 import GeometryFigure, { GeoPoint, GeoSegment, GeoLine, GeoCircle, GeoAnnotation } from './GeometryFigure';
 import GeoGebraPlotter from './GeoGebraPlotter';
+import LevelSelector from './LevelSelector';
+import type { NiveauLycee } from '@/lib/niveaux';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -137,8 +139,45 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [isTalking, setIsTalking] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+    const [selectedNiveau, setSelectedNiveau] = useState<NiveauLycee | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    // ── Détection du niveau dans le message utilisateur ──
+    function detectNiveauFromMessage(msg: string): NiveauLycee | null {
+        const low = msg.toLowerCase();
+        // Terminale expert
+        if (/terminale\s*(maths?\s*)?expert/i.test(low)) return 'terminale_expert';
+        // Terminale complémentaire
+        if (/terminale\s*(maths?\s*)?comp/i.test(low)) return 'terminale_comp';
+        // Terminale techno
+        if (/terminale\s*(techno|sti|stl|stmg|st2s)/i.test(low)) return 'terminale_techno';
+        // Terminale spé / générale
+        if (/terminale|tle|term/i.test(low)) return 'terminale_spe';
+        // Première techno
+        if (/premi[eè]re\s*(techno|sti|stl|stmg|st2s)/i.test(low)) return 'premiere_techno';
+        // Première spé
+        if (/premi[eè]re\s*(sp[eé]|maths)/i.test(low)) return 'premiere_spe';
+        // Première commune
+        if (/premi[eè]re|1[eè]?re/i.test(low)) return 'premiere_commune';
+        // Seconde STHR
+        if (/seconde\s*sthr/i.test(low)) return 'seconde_sthr';
+        // Seconde
+        if (/seconde|2nde|2de/i.test(low)) return 'seconde';
+        return null;
+    }
+
+    // ── Résolution du niveau effectif : sélecteur > détection message > défaut ──
+    function resolveNiveau(userMessage: string): NiveauLycee {
+        if (selectedNiveau) return selectedNiveau;
+        const detected = detectNiveauFromMessage(userMessage);
+        if (detected) {
+            // Auto-sélectionner pour les prochains messages
+            setSelectedNiveau(detected);
+            return detected;
+        }
+        return 'premiere_spe'; // défaut
+    }
 
     useEffect(() => {
         setMounted(true);
@@ -1684,7 +1723,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const engineRes = await fetch('/api/math-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: 'premiere' }),
+                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: resolveNiveau(input) }),
                     });
                     const engineData = await engineRes.json();
                     if (engineData.success && engineData.aaaBlock) {
@@ -1694,7 +1733,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             ...newMessages,
                             {
                                 role: 'user' as const,
-                                content: `[SYSTÈME] Tableau calculé. NE GÉNÈRE AUCUN bloc @@@. Explique les étapes : factorisation, valeurs critiques, signe par intervalle, conclusion. Expression : ${expr}${engineData.discriminantSteps?.length ? '\nDiscriminant:\n' + engineData.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n') : ''}`
+                                content: `[SYSTÈME] Tableau de signes calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes : factorisation, valeurs critiques, signe par intervalle, conclusion.'}${engineData.discriminantSteps?.length ? '\nDiscriminant:\n' + engineData.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n') : ''}`
                             }
                         ];
                         const tablePrefix = tableBlock + '\n\n';
@@ -1756,7 +1795,100 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
         }
 
-        // Pas de tableau de signes détecté → flux normal (IA seule)
+        // ── INTERCEPTION TABLEAU DE VARIATIONS (expression unique) ──
+        const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
+
+        if (wantsVariationTable && !isMultiExpr) {
+            let expr = '';
+            const eqMatch = input.match(/=\s*(.+)/);
+            if (eqMatch) expr = eqMatch[1].trim();
+            if (!expr) {
+                const deMatch = input.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+            }
+            expr = expr
+                .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
+                .replace(/\s+$/g, '').replace(/[.!?]+$/g, '');
+
+            if (expr && expr.includes('x') && expr.length > 1) {
+                console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
+                try {
+                    const engineRes = await fetch('/api/math-engine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(input) }),
+                    });
+                    const engineData = await engineRes.json();
+                    if (engineData.success && engineData.aaaBlock) {
+                        const tableBlock = engineData.aaaBlock;
+                        console.log(`[MathEngine] ✅ Injection directe du tableau de variations`);
+                        const enrichedMessages: ChatMessage[] = [
+                            ...newMessages,
+                            {
+                                role: 'user' as const,
+                                content: `[SYSTÈME] Tableau de variations calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes de l\'étude des variations.'}`
+                            }
+                        ];
+                        const tablePrefix = tableBlock + '\n\n';
+                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
+
+                        setLoading(true);
+                        setIsTalking(true);
+                        try {
+                            const response = await fetch('/api/perplexity', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                            });
+                            if (!response.ok) throw new Error('Erreur API');
+                            const reader = response.body?.getReader();
+                            if (!reader) throw new Error('Reader non disponible');
+                            const decoder = new TextDecoder();
+                            let aiText = '';
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                for (const line of decoder.decode(value).split('\n')) {
+                                    if (!line.startsWith('data: ')) continue;
+                                    const jsonStr = line.substring(6);
+                                    if (jsonStr === '[DONE]') break;
+                                    try {
+                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+                                        if (c) {
+                                            aiText += c;
+                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                            setMessages(prev => {
+                                                const u = [...prev];
+                                                u[u.length - 1] = { role: 'assistant', content: tablePrefix + clean };
+                                                return u;
+                                            });
+                                        }
+                                    } catch { }
+                                }
+                            }
+                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+                            setMessages(prev => {
+                                const u = [...prev];
+                                u[u.length - 1] = { role: 'assistant', content: finalContent };
+                                return u;
+                            });
+                        } catch (error) {
+                            console.error('Erreur streaming:', error);
+                        } finally {
+                            setLoading(false);
+                            setIsTalking(false);
+                        }
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('[MathEngine] Erreur variation, fallback IA:', err);
+                }
+            }
+        }
+
+        // Pas de tableau détecté → flux normal (IA seule)
         await startStreamingResponse(newMessages);
     };
 
@@ -1773,6 +1905,11 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                         <span className="text-[10px] font-bold text-white uppercase tracking-widest font-mono">Live</span>
                     </div>
+                    <LevelSelector
+                        selectedLevel={selectedNiveau}
+                        onLevelChange={setSelectedNiveau}
+                        compact
+                    />
                 </div>
 
                 <div className="absolute top-4 right-6 z-10">
