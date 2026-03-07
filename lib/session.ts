@@ -43,7 +43,11 @@ export async function updateSession(request: NextRequest) {
     const isForgotPasswordPage = request.nextUrl.pathname === '/forgot-password'
     const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
     const isApiRoute = request.nextUrl.pathname.startsWith('/api')
-    const isPublicRoute = isStudentLoginPage || isAdminLoginPage || isForgotPasswordPage || isAuthRoute || isApiRoute
+    const isAssistantRoute = request.nextUrl.pathname === '/assistant'
+    const isGraphRoute = request.nextUrl.pathname === '/graph'
+    const isTestRoute = request.nextUrl.pathname.startsWith('/test')
+    const isResourceRoute = request.nextUrl.pathname === '/resource'
+    const isPublicRoute = isStudentLoginPage || isAdminLoginPage || isForgotPasswordPage || isAuthRoute || isApiRoute || isAssistantRoute || isGraphRoute || isTestRoute || isResourceRoute
 
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && !isAdminLoginPage
 

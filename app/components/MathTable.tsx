@@ -300,54 +300,108 @@ export default function MathTable({ data, title }: MathTableProps) {
         const elements: React.JSX.Element[] = [];
 
         const content = row.content;
-        const len = content.length;
 
         /**
-         * Deux formats possibles :
-         *
-         * FORMAT A — 2N-1 éléments (Terminale, avec valeurs aux bornes) :
-         *   content[2k]   = valeur en x[k]     (k = 0..N-1)
-         *   content[2k+1] = flèche intervalle k (k = 0..N-2)
-         *
-         * FORMAT B — 2N-3 éléments (1ère/Seconde, SANS valeurs aux bornes) :
-         *   content[0]      = flèche intervalle 0
-         *   content[2k-1]   = valeur en x[k]       (k = 1..N-2)
-         *   content[2k]     = flèche intervalle k   (k = 1..N-2)
-         *   content[2N-4]   = flèche intervalle N-2
-         *   (x[0] et x[N-1] n'ont pas de valeur)
-         *
-         * Détection : FORMAT A si len === 2N-1, FORMAT B sinon.
+         * Le variation engine produit une liste de tokens alternant :
+         *   [val0], arrow0, [val1 | limitLeft '||' limitRight], arrow1, ...
+         * 
+         * On reconstruit pour chaque x-value k (0..N-1) :
+         *   - valAtXk[k] = valeur à afficher, ou null
+         *   - forbiddenAt[k] = true si c'est une valeur interdite (||)
+         *   - leftLimitAt[k] = limite à gauche (si forbidden && Terminale)
+         *   - rightLimitAt[k] = limite à droite (si forbidden && Terminale)
+         * Et pour chaque intervalle k (0..N-2) :
+         *   - arrowAtInterval[k] = 'nearrow' | 'searrow' | null
+         * 
+         * Parsing séquentiel :
+         *   On attend en alternance : une position x-value (colonne paire) puis un intervalle (flèche).
+         *   À chaque position x-value, si le token est '||', c'est une discontinuité.
+         *   Si c'est "nearrow"/"searrow", c'est une flèche (= pas en format complet, format B).
          */
-        const isFullFormat = len === 2 * N - 1;
 
-        // ── Construire les tableaux de valeurs et de flèches indexés par k ──
-        // valAtXk[k] = valeur à afficher en x[k], ou null si pas de valeur
-        // arrowAtInterval[k] = flèche dans l'intervalle (x[k], x[k+1])
         const valAtXk: (string | null)[] = new Array(N).fill(null);
         const arrowAtInterval: (string | null)[] = new Array(N - 1).fill(null);
+        const forbiddenAt: boolean[] = new Array(N).fill(false);
 
-        if (isFullFormat) {
-            // FORMAT A : content[2k] = val, content[2k+1] = flèche
-            for (let k = 0; k < N; k++) {
-                valAtXk[k] = content[2 * k] ?? null;
-            }
-            for (let k = 0; k < N - 1; k++) {
-                arrowAtInterval[k] = content[2 * k + 1] ?? null;
-            }
-        } else {
-            // FORMAT B : content[0] = flèche0, content[1] = val_x1, content[2] = flèche1, ...
-            // Longueur attendue 2N-3 → N-2 valeurs (aux x[1]..x[N-2]) et N-1 flèches
-            // Structure : [flèche0, val1, flèche1, val2, flèche2, ..., val(N-2), flèche(N-2)]
-            // content[0]      → flèche 0
-            // content[2k-1]   → val en x[k]   pour k=1..N-2
-            // content[2k]     → flèche k       pour k=1..N-2
-            for (let k = 0; k < N - 1; k++) {
-                arrowAtInterval[k] = content[2 * k] ?? null; // flèche k
-                if (k >= 1 && k <= N - 2) {
-                    valAtXk[k] = content[2 * k - 1] ?? null; // val en x[k]
+        // Scanning séquentiel token par token
+        let tokenIdx = 0;
+        let xIdx = 0;      // quel x-value on traite (0..N-1)
+
+        // Détecter si c'est le format "complet" (commence par une valeur/||, pas une flèche)
+        // Format A : val, arrow, val, arrow, ..., val
+        // Format B : arrow, val, arrow, val, ..., arrow (sans valeurs aux bornes)
+        const firstIsArrow = content.length > 0 && isArrow(content[0]);
+        const isFormatB = firstIsArrow;
+
+        if (isFormatB) {
+            // Format B : pas de valeurs aux bornes -∞ et +∞
+            // Structure : [arrow0, val1, arrow1, val2, ..., arrow(N-2)]
+            for (let k = 0; k < N - 1 && tokenIdx < content.length; k++) {
+                // Flèche k
+                arrowAtInterval[k] = content[tokenIdx] ?? null;
+                tokenIdx++;
+                // Valeur au point x[k+1] (sauf dernier)
+                if (k < N - 2 && tokenIdx < content.length) {
+                    const tok = content[tokenIdx];
+                    if (isForbidden(tok)) {
+                        forbiddenAt[k + 1] = true;
+                        valAtXk[k + 1] = '||';
+                        tokenIdx++;
+                    } else if (isArrow(tok)) {
+                        // Pas de valeur ici, la prochaine est déjà une flèche
+                    } else {
+                        valAtXk[k + 1] = tok;
+                        tokenIdx++;
+                    }
                 }
             }
-            // valAtXk[0] et valAtXk[N-1] = null (pas de valeur aux bornes)
+        } else {
+            // Format A (complet) : val0, arrow0, val1|..., arrow1, ...
+            // Mais les discontinuités insèrent [limitLeft, ||, limitRight] au lieu d'une valeur
+            for (xIdx = 0; xIdx < N && tokenIdx < content.length; xIdx++) {
+                // Lire la valeur/discontinuité à x[xIdx]
+                const tok = content[tokenIdx];
+                if (isForbidden(tok)) {
+                    // Simple || (format 1ère Spé)
+                    forbiddenAt[xIdx] = true;
+                    valAtXk[xIdx] = '||';
+                    tokenIdx++;
+                } else if (isArrow(tok)) {
+                    // On est tombé sur une flèche alors qu'on attendait une valeur
+                    // → c'est qu'il n'y a pas de valeur ici (format mixte)
+                    // Ne pas avancer tokenIdx, on va le traiter comme flèche
+                } else {
+                    // Regarder si le token SUIVANT est || (= c'est une limite latérale gauche)
+                    if (tokenIdx + 1 < content.length && isForbidden(content[tokenIdx + 1])) {
+                        // Format Terminale : limitLeft, ||, limitRight
+                        // limitLeft = tok
+                        valAtXk[xIdx] = tok; // on affiche la limite gauche au-dessus
+                        forbiddenAt[xIdx] = true; // c'est quand même une discontinuité
+                        tokenIdx++; // skip limitLeft
+                        tokenIdx++; // skip ||
+                        // limitRight : on le stocke aussi
+                        if (tokenIdx < content.length && !isArrow(content[tokenIdx])) {
+                            // limitRight sera la valeur de départ de la flèche suivante
+                            // On va le stocker comme valeur "droite" de la discontinuité
+                            // Pour l'affichage, on met la limite de gauche en haut et celle de droite en bas (ou inversement)
+                            // Simplifions : on affiche || et les limites sont dans le contexte IA
+                            tokenIdx++; // skip limitRight
+                        }
+                    } else {
+                        // Valeur normale (extremum ou limite à l'infini)
+                        valAtXk[xIdx] = tok;
+                        tokenIdx++;
+                    }
+                }
+
+                // Lire la flèche de l'intervalle (x[xIdx], x[xIdx+1]) si on n'est pas au dernier x
+                if (xIdx < N - 1 && tokenIdx < content.length) {
+                    if (isArrow(content[tokenIdx])) {
+                        arrowAtInterval[xIdx] = content[tokenIdx];
+                        tokenIdx++;
+                    }
+                }
+            }
         }
 
         // ── Calculer la position Y de chaque colonne x-value ──
@@ -357,7 +411,9 @@ export default function MathTable({ data, title }: MathTableProps) {
             const leftArrow = k > 0 ? arrowAtInterval[k - 1] : null;
             const rightArrow = k < N - 1 ? arrowAtInterval[k] : null;
 
-            if (leftArrow && /nearrow/i.test(leftArrow)) {
+            if (forbiddenAt[k]) {
+                yAtX[k] = yMid;
+            } else if (leftArrow && /nearrow/i.test(leftArrow)) {
                 yAtX[k] = yTop + margin;             // arrivée ↗ → haut
             } else if (leftArrow && /searrow/i.test(leftArrow)) {
                 yAtX[k] = yTop + ROW_H - margin;    // arrivée ↘ → bas
@@ -371,10 +427,9 @@ export default function MathTable({ data, title }: MathTableProps) {
         // ── Dessiner les valeurs ──
         for (let k = 0; k < N; k++) {
             const val = valAtXk[k];
-            if (!val) continue;
             const xPos = xCenter(2 * k);
 
-            if (isForbidden(val)) {
+            if (forbiddenAt[k]) {
                 // Double barre verticale pour valeur interdite dans le tableau de variations
                 elements.push(
                     <g key={`vfb-${k}`}>
@@ -385,7 +440,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                             stroke="#1e293b" strokeWidth="1.5" />
                     </g>
                 );
-            } else {
+            } else if (val) {
                 elements.push(
                     <text key={`v-${k}`} x={xPos} y={yAtX[k]} dy="0.35em"
                         textAnchor="middle" fontSize="13" fill="#1e293b">
@@ -404,8 +459,8 @@ export default function MathTable({ data, title }: MathTableProps) {
             const xStart = xCenter(2 * k);
             const xEnd = xCenter(2 * (k + 1));
 
-            const leftForbidden = isForbidden(valAtXk[k] ?? '');
-            const rightForbidden = isForbidden(valAtXk[k + 1] ?? '');
+            const leftForbidden = forbiddenAt[k];
+            const rightForbidden = forbiddenAt[k + 1];
             const hasLeftVal = valAtXk[k] !== null && !leftForbidden;
             const hasRightVal = valAtXk[k + 1] !== null && !rightForbidden;
 
@@ -420,10 +475,18 @@ export default function MathTable({ data, title }: MathTableProps) {
                 : hasRightVal ? xEnd - valOffset
                     : xEnd - noValOffset;
 
-            const yA = yAtX[k];
-            const yB = yAtX[k + 1];
-
+            // ── Y positions: handle discontinuities ──
             const isNear = /nearrow/i.test(arrow);
+            let yA = yAtX[k];
+            let yB = yAtX[k + 1];
+
+            if (leftForbidden) {
+                yA = isNear ? (yTop + ROW_H - margin) : (yTop + margin);
+            }
+            if (rightForbidden) {
+                yB = isNear ? (yTop + margin) : (yTop + ROW_H - margin);
+            }
+
             elements.push(
                 <line key={`arr-${k}`}
                     x1={xA} y1={yA} x2={xB} y2={yB}

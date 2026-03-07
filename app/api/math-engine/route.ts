@@ -120,6 +120,28 @@ export async function POST(req: NextRequest) {
 
             // ───────────────────────────────────────────────────────
             case 'variation_table': {
+                // ── Stratégie hybride : SymPy pour le signe de f'(x), JS pour le reste ──
+                // La dérivée de fonctions rationnelles tend vers 0 à l'infini,
+                // ce qui rend l'évaluation numérique peu fiable. SymPy est exact.
+                let derivativeExprForSympy: string | undefined;
+                try {
+                    const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                    derivativeExprForSympy = computeDerivative(expression);
+                    if (derivativeExprForSympy) {
+                        console.log(`[MathEngine] Variation: f'(x) = ${derivativeExprForSympy}`);
+                        // Appeler SymPy pour le signe de f'(x) — résultat exact
+                        const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                        if (sympyDerivSign.success && sympyDerivSign.fxValues) {
+                            console.log(`[MathEngine] Variation: ✅ SymPy signe f'(x) OK`);
+                            // Passer le résultat SymPy au variation engine
+                            options.derivativeExpr = derivativeExprForSympy;
+                            (options as any).sympyDerivSign = sympyDerivSign;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[MathEngine] Variation: calcul dérivée échoué, JS-only');
+                }
+
                 const result = generateVariationTable({
                     expression,
                     niveau,
@@ -220,23 +242,57 @@ export async function POST(req: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// APPEL SUPABASE EDGE FUNCTION — Tableau de signes Python/SymPy
+// APPEL API PYTHON — Tableau de signes SymPy
 // ─────────────────────────────────────────────────────────────
 
 async function callSignTableSympy(
     expression: string,
     niveau: string
 ): Promise<Record<string, any>> {
+    // Priorité 1 : API Python séparée (SYMPY_API_URL)
+    // Priorité 2 : Supabase Edge Function (fallback legacy)
+    const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+
+    if (pythonApiUrl) {
+        try {
+            console.log(`[MathEngine] SymPy Python API: appel pour "${expression}"...`);
+            const startTime = Date.now();
+            const res = await fetch(`${pythonApiUrl}/sign-table`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expression, niveau }),
+                signal: AbortSignal.timeout(30000),
+            });
+            const elapsed = Date.now() - startTime;
+
+            if (!res.ok) {
+                console.warn(`[MathEngine] SymPy Python API: HTTP ${res.status} (${elapsed}ms) → fallback JS`);
+                return { success: false, error: `SymPy API HTTP ${res.status}` };
+            }
+            const result = await res.json();
+            if (result.success) {
+                console.log(`[MathEngine] SymPy Python API: ✅ succès en ${elapsed}ms`);
+            } else {
+                console.warn(`[MathEngine] SymPy Python API: ❌ ${result.error} (${elapsed}ms) → fallback JS`);
+            }
+            return result;
+        } catch (err: any) {
+            console.warn(`[MathEngine] SymPy Python API: ❌ ${err.message} → fallback JS`);
+            return { success: false, error: err.message ?? 'Timeout SymPy API' };
+        }
+    }
+
+    // Fallback Supabase Edge Function (legacy, probablement cassé)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-        console.warn('[MathEngine] SymPy: config Supabase manquante → fallback JS');
-        return { success: false, error: 'Config Supabase manquante' };
+        console.warn('[MathEngine] SymPy: aucune API configurée → fallback JS');
+        return { success: false, error: 'Aucune API SymPy configurée' };
     }
 
     try {
-        console.log(`[MathEngine] SymPy: appel pour "${expression}"...`);
+        console.log(`[MathEngine] SymPy Edge Function (legacy): appel pour "${expression}"...`);
         const startTime = Date.now();
         const res = await fetch(
             `${supabaseUrl}/functions/v1/sign-table-sympy`,
@@ -247,22 +303,20 @@ async function callSignTableSympy(
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ expression, niveau }),
-                // 45s : le premier appel charge Pyodide+SymPy (~15-20s)
-                // Les appels suivants sont rapides (~2-5s)
                 signal: AbortSignal.timeout(45000),
             }
         );
         const elapsed = Date.now() - startTime;
 
         if (!res.ok) {
-            console.warn(`[MathEngine] SymPy: HTTP ${res.status} (${elapsed}ms) → fallback JS`);
+            console.warn(`[MathEngine] SymPy Edge: HTTP ${res.status} (${elapsed}ms) → fallback JS`);
             return { success: false, error: `SymPy HTTP ${res.status}` };
         }
         const result = await res.json();
-        console.log(`[MathEngine] SymPy: ✅ succès en ${elapsed}ms`);
+        console.log(`[MathEngine] SymPy Edge: ✅ succès en ${elapsed}ms`);
         return result;
     } catch (err: any) {
-        console.warn(`[MathEngine] SymPy: ❌ ${err.message} → fallback JS`);
+        console.warn(`[MathEngine] SymPy Edge: ❌ ${err.message} → fallback JS`);
         return { success: false, error: err.message ?? 'Timeout SymPy' };
     }
 }

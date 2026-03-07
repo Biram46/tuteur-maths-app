@@ -323,8 +323,10 @@ export function inferOutputType(question: string): MathOutputType | null {
     if (/triangle|cercle|parallelogramme|quadrilatere|segment|milieu|figure|geomet/.test(q)) return 'geometry';
     if (/coordonnee|repere|vecteur/.test(q)) return 'geometry';
 
-    // Graphique
-    if (/courbe|graphe|graphique|tracer|representer/.test(q)) return 'graph';
+    // Graphique — Vocabulaire BO (Seconde → Terminale)
+    if (/courbe|graphe|graphique|tracer|trace|representer|representation/.test(q)) return 'graph';
+    if (/courbe\s+representative|representation\s+graphique|lecture\s+graphique/.test(q)) return 'graph';
+    if (/visualise|dessine|affiche.*(courbe|fonction|graph)/.test(q)) return 'graph';
     if (/intervalle|ensemble\s+de\s+definition/.test(q)) return 'interval';
 
     return null;

@@ -557,16 +557,45 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             const title = (sections[0]?.includes(',') || sections[0]?.includes(':') || sections[0]?.includes('domain:')) ? "Analyse Graphique" : sections[0];
             const points: GraphPoint[] = [];
             const entities: any[] = [];
+            const graphFunctions: { fn: string; color: string; domain?: [number, number] }[] = [];
+            let graphAsymptotes: number[] = [];
             let domain = { x: [-5, 5] as [number, number], y: [-4, 4] as [number, number] };
             let hideAxesValue = false;
 
-            // 1. D'abord les métadonnées et points
+            // Palette de couleurs pour les fonctions multiples
+            const fnColors = ['#3b82f6', '#f43f5e', '#34d399', '#fbbf24', '#a855f7', '#06b6d4'];
+
+            // 1. D'abord les métadonnées, fonctions et points
             sections.forEach(sec => {
                 const low = sec.toLowerCase().trim();
                 if (low === 'pure' || low === 'hideaxes' || low === 'geometry') hideAxesValue = true;
                 else if (low.startsWith('domain:')) {
-                    const d = low.replace('domain:', '').split(',').map(Number);
+                    const d = low.replace('domain:', '').trim().split(',').map(Number);
                     if (d.length >= 4) domain = { x: [d[0], d[1]], y: [d[2], d[3]] };
+                } else if (low.startsWith('function:')) {
+                    // Parser la ligne function: expression
+                    const fnExpr = sec.substring(sec.indexOf(':') + 1).trim();
+                    if (fnExpr) {
+                        graphFunctions.push({
+                            fn: fnExpr,
+                            color: fnColors[graphFunctions.length % fnColors.length]
+                        });
+                    }
+                } else if (low.startsWith('asymptotes:')) {
+                    const asymStr = sec.substring(sec.indexOf(':') + 1).trim();
+                    graphAsymptotes = asymStr.split(',').map(Number).filter(n => !isNaN(n));
+                } else if (low.startsWith('points:')) {
+                    // Format IA : points: (1,0), (3,0), (2,-1)
+                    const ptsStr = sec.substring(sec.indexOf(':') + 1);
+                    const ptMatches = ptsStr.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g);
+                    if (ptMatches) {
+                        ptMatches.forEach(pt => {
+                            const m = pt.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+                            if (m) {
+                                points.push({ x: parseFloat(m[1]), y: parseFloat(m[2]) });
+                            }
+                        });
+                    }
                 } else if (low.startsWith('point:')) {
                     const p = sec.split(':')[1].split(',');
                     if (p.length >= 3) entities.push({ type: 'point', name: p[0].trim(), x1: parseFloat(p[1]), y1: parseFloat(p[2]) });
@@ -626,11 +655,19 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
             // Ancienne règle supprimée : if (entities.length > 0 && points.length === 0) hideAxesValue = true;
 
-            if (points.length > 0 || entities.length > 0) {
+            if (points.length > 0 || entities.length > 0 || graphFunctions.length > 0) {
                 return (
                     <div key={rawBlock} className="w-full math-figure-container my-6">
                         <div className="animate-in zoom-in duration-700">
-                            <MathGraph points={points} entities={entities} domain={domain} title={title} hideAxes={hideAxesValue} />
+                            <MathGraph
+                                points={points}
+                                entities={entities}
+                                functions={graphFunctions}
+                                domain={domain}
+                                title={title}
+                                hideAxes={hideAxesValue}
+                                asymptotes={graphAsymptotes}
+                            />
                         </div>
                     </div>
                 );
@@ -693,11 +730,38 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         rehypePlugins={[rehypeKatex]}
                         components={{
                             p: ({ node, ...props }) => <p className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
-                            code: ({ node, className, ...props }) => <code className="bg-black/60 px-1.5 py-0.5 rounded text-[13px] font-mono text-cyan-300" {...props} />
+                            code: ({ node, className, ...props }) => <code className="bg-black/60 px-1.5 py-0.5 rounded text-[13px] font-mono text-cyan-300" {...props} />,
+                            a: ({ node, href, children, ...props }) => {
+                                if (href === '/graph') {
+                                    return (
+                                        <a
+                                            href="/graph"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-lg text-cyan-300 hover:text-cyan-100 hover:border-cyan-400 transition-all duration-200 no-underline font-medium text-sm"
+                                            {...props}
+                                        >
+                                            📊 {children}
+                                        </a>
+                                    );
+                                }
+                                return <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline" {...props}>{children}</a>;
+                            },
                         }}
                     >
                         {section}
                     </ReactMarkdown>
+                    {/* Bouton graphe visible si le contenu mentionne la courbe */}
+                    {section.includes('bouton ci-dessous') && (
+                        <div className="mt-3 mb-1">
+                            <button
+                                onClick={() => window.open('/graph', '_blank')}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:scale-105 active:scale-95"
+                            >
+                                📊 Ouvrir la courbe représentative
+                            </button>
+                        </div>
+                    )}
                 </div>
             );
         });
@@ -920,7 +984,26 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         body: JSON.stringify({ text: truncatedText, voice: 'nova' }),
                     });
 
-                    if (!response.ok) throw new Error('TTS API failure');
+                    if (!response.ok) {
+                        // API TTS indisponible — fallback silencieux vers synthèse navigateur
+                        const errBody = await response.json().catch(() => ({}));
+                        console.warn(`TTS API indisponible (${response.status}):`, errBody?.details || 'erreur inconnue', '→ fallback navigateur');
+                        const utterance = new SpeechSynthesisUtterance(truncatedText);
+                        utterance.lang = 'fr-FR';
+                        utterance.onstart = () => setIsTalking(true);
+                        utterance.onend = () => {
+                            setSpeakingIndex(null);
+                            setIsTalking(false);
+                            setSpeechVolume(0);
+                            if (index === -2) {
+                                isSpeakingQueue.current = false;
+                                processSpeechQueue();
+                            }
+                            resolve();
+                        };
+                        window.speechSynthesis.speak(utterance);
+                        return;
+                    }
                     const blob = await response.blob();
                     url = URL.createObjectURL(blob);
                 }
@@ -1514,11 +1597,24 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 throw new Error("Aucun texte n'a pu être extrait du document.");
             }
 
-            const userMessage: ChatMessage = { role: 'user', content: combinedTranscription };
-            const newMessages = [...messages, userMessage];
+            // ── Supprimer le message "Analyse photonique en cours..." ──
+            setMessages(prev => prev.filter(m =>
+                !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
+            ));
+
+            // ── Afficher la transcription comme message user ──
+            const userMessage: ChatMessage = { role: 'user', content: `📷 **Exercice scanné :**\n\n${combinedTranscription}` };
+            const currentMessages = messages.filter(m =>
+                !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
+            );
+            const newMessages = [...currentMessages, userMessage];
             setMessages(newMessages);
             setIsScanning(false);
-            await startStreamingResponse(newMessages);
+            setLoading(false);
+
+            // ── Router la transcription via handleSendMessage pour activer les moteurs mathématiques ──
+            // (exercices multi-questions, tableaux de signes, variations, graphes, etc.)
+            await handleSendMessageWithText(combinedTranscription, newMessages);
 
         } catch (error: any) {
             console.error("Scan Error:", error);
@@ -1593,6 +1689,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             let currentSentence = "";
             let inMathBlock = false;
             let lastUpdate = Date.now();
+            let rafPending = false;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -1612,16 +1709,23 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                 fullText += content;
                                 currentSentence += content;
 
-                                // Mise à jour UI throttlée (max toutes les 60ms)
+                                // Mise à jour UI throttlée (max toutes les 150ms via rAF)
                                 const now = Date.now();
-                                if (now - lastUpdate > 60) {
-                                    setMessages(prev => {
-                                        const updated = [...prev];
-                                        updated[updated.length - 1] = {
-                                            role: 'assistant',
-                                            content: fullText
-                                        };
-                                        return updated;
+                                if (now - lastUpdate > 150 && !rafPending) {
+                                    rafPending = true;
+                                    // ✅ Appliquer fixLatexContent PENDANT le streaming
+                                    // pour que \( \) \[ \] soient convertis en $ $$ pour KaTeX
+                                    const snapshot = fixLatexContent(fullText).content;
+                                    requestAnimationFrame(() => {
+                                        setMessages(prev => {
+                                            const updated = [...prev];
+                                            updated[updated.length - 1] = {
+                                                role: 'assistant',
+                                                content: snapshot
+                                            };
+                                            return updated;
+                                        });
+                                        rafPending = false;
                                     });
                                     lastUpdate = now;
                                 }
@@ -1688,34 +1792,515 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         }
     };
 
-    const handleSendMessage = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!input.trim() || loading || isScanning) return;
-        const userMessage: ChatMessage = { role: 'user', content: input };
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
-        setInput('');
-
+    // ═══════════════════════════════════════════════════════════════════
+    // MOTEUR DE ROUTAGE : détecte le type de demande et active le bon moteur
+    // Appelé par handleSendMessage (texte tapé) ET processFile (capture d'écran)
+    // ═══════════════════════════════════════════════════════════════════
+    const handleSendMessageWithText = async (inputText: string, newMessages: ChatMessage[]) => {
         // ── INTERCEPTION TABLEAU DE SIGNES (expression unique) ──
-        const inputLower = input.toLowerCase();
+        const inputLower = inputText.toLowerCase();
         const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
-        // Ne pas intercepter les listes multi-expressions (ex: "1) ... 2) ...")
-        // ⚠️ On exige que le chiffre+) soit précédé d'un début de ligne/phrase,
-        //    PAS d'un opérateur mathématique comme +/-/*/x — sinon (3x+2)(7x-1) matche en faux positif.
-        const isMultiExpr = /(?:^|[\n;])\s*\d+\s*\)[\s\S]*(?:\n|;)\s*\d+\s*\)/.test(input);
+        // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
+        const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
+
+        // ═══════════════════════════════════════════════════════════
+        // HANDLER EXERCICE MULTI-QUESTIONS
+        // Flux pédagogique : IA explique → tableau SymPy en conclusion
+        // ═══════════════════════════════════════════════════════════
+        if (isMultiExpr) {
+            try {
+                // ── 1. Extraire l'expression commune du préambule ──
+                let commonExpr = '';
+                // Nettoyer le texte OCR : retirer les $ du LaTeX inline
+                const cleanedInput = inputText.replace(/\$\$/g, '').replace(/\$/g, '');
+                // Extraire tout ce qui suit '=' jusqu'au premier retour à la ligne
+                // ⚠️ Ne PAS utiliser \d\) dans le lookahead car ça matche (2x-1) !
+                // Supporte : "f(x) = ...", "Soit f(x) = ...", "définie par : f(x) = ...", "par : f(x) = ..."
+                const preMatch = cleanedInput.match(/(?:soit|on\s+(?:consid[eè]re|pose|d[eé]finit)|d[eé]finie?\s+(?:sur\s+\S+\s+)?par\s*:?)?\s*(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+)/i);
+                if (preMatch) {
+                    // Prendre tout jusqu'au premier \n (l'expression est sur une seule ligne)
+                    // ⚠️ Ne PAS utiliser split(/\d+\s*[).]/) car ça coupe "+1." dans l'expression !
+                    commonExpr = preMatch[1].split('\n')[0].trim()
+                        .replace(/[.!?]+$/, '')
+                        // ⚠️ Retirer le texte français après l'expression
+                        // Ex: "3/(x²+2x-3), et on note (Cf) sa courbe" → "3/(x²+2x-3)"
+                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
+                        // Retirer aussi tout texte après "; " qui est un séparateur de phrase
+                        .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                        .trim();
+                }
+                if (!commonExpr) {
+                    const eqMatch = cleanedInput.match(/=\s*(.+)/);
+                    if (eqMatch) commonExpr = eqMatch[1].split('\n')[0].trim()
+                        .replace(/[.!?]+$/, '')
+                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
+                        .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                        .trim();
+                }
+
+                const cleanMathExpr = (e: string) => e
+                    .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                    // Retirer résidus LaTeX $, \, etc.
+                    .replace(/\$/g, '').replace(/\\\\/g, '')
+                    .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                    .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
+                    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
+                    .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
+                    .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
+                    .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
+                    .replace(/\bln\s*\(/g, 'log(')
+                    // ⚠️ Multiplication implicite (crucial pour les expressions OCR)
+                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x, 3pi → 3*pi
+                    .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
+                    .replace(/\)(\w)/g, ')*$1')             // )x → )*x
+                    .replace(/\)\(/g, ')*(')                // )( → )*(
+                    // 🛡️ FILET DE SÉCURITÉ : supprimer tout texte non-mathématique résiduel
+                    // après l'expression (virgule + texte français, mots parasites OCR)
+                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                    .replace(/\s+(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\s+.*$/i, '')
+                    .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '').trim();
+
+                const prettifyExpr = (ex: string): string => ex
+                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                    .replace(/\blog\(/g, 'ln(')
+                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+
+                // ── 2. Parser les questions numérotées ──
+                interface ExQ { num: string; text: string; type: 'sign_table' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
+                const questions: ExQ[] = [];
+                const qRegex = /(\d+)\s*[).]\s*(.+?)(?=\n\s*\d+\s*[).]|\s*$)/g;
+                let qM;
+                while ((qM = qRegex.exec(inputText)) !== null) {
+                    const qText = qM[2].trim();
+                    const qNorm = qText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    let qType: ExQ['type'] = 'ai';
+                    // Parité
+                    if (/parit|pair|impair/i.test(qNorm)) qType = 'parity';
+                    // Limites
+                    else if (/limite|borne|comportement.*infini|branche.*infini/i.test(qNorm)) qType = 'limits';
+                    // Dérivée + signe de f' → tableau de signes de la dérivée
+                    else if (/deriv|f'\s*\(|calculer.*deriv/i.test(qNorm) && /signe/i.test(qNorm)) qType = 'derivative_sign';
+                    // Tableau de signes de f
+                    else if (/signe|etudier.*signe|tableau.*signe/i.test(qNorm) && !/deriv|f'/i.test(qNorm)) qType = 'sign_table';
+                    // Tableau de variations
+                    else if (/variation|dresser.*variation|tableau.*variation/i.test(qNorm)) qType = 'variation_table';
+                    // Courbe
+                    else if (/trace|courbe|graphe|graphique|represent|dessine/i.test(qNorm)) qType = 'graph';
+                    // Résolution
+                    else if (/resou|inequation|equation/i.test(qNorm)) qType = 'solve';
+                    questions.push({ num: qM[1], text: qText, type: qType });
+                }
+
+                const exprClean = cleanMathExpr(commonExpr);
+                console.log('[ExerciceMode]', { commonExpr, exprClean, questions: questions.map(q => `${q.num}) ${q.type}`) });
+
+                if (questions.length >= 2 && exprClean) {
+                    setLoading(true);
+                    setIsTalking(true);
+
+                    // ── 3. Pré-calculer tous les résultats déterministes ──
+                    let signTableBlock = '';
+                    let variationTableBlock = '';
+                    let signCtx = '';
+                    let tableOfValues = '';
+
+                    for (const q of questions) {
+                        if (q.type === 'sign_table') {
+                            try {
+                                const res = await fetch('/api/math-engine', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: 'sign_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                                });
+                                const data = await res.json();
+                                if (data.success && data.aaaBlock) {
+                                    signTableBlock = data.aaaBlock;
+                                    signCtx = data.discriminantSteps?.length
+                                        ? '\nInfos SymPy:\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                        : '';
+                                }
+                            } catch { /* AI fallback */ }
+                        }
+                        if (q.type === 'derivative_sign') {
+                            // Calculer la dérivée avec mathjs puis demander le tableau de signes de f'(x)
+                            try {
+                                const { derivative, simplify } = await import('mathjs');
+                                const san = (e2: string) => e2
+                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
+                                    .replace(/−/g, '-')
+                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x
+                                    .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
+                                    .replace(/\)(\w)/g, ')*$1')             // )x → )*x
+                                    .replace(/\)\(/g, ')*(');               // )( → )*(
+                                const derivNode = derivative(san(exprClean), 'x');
+                                const derivExpr = simplify(derivNode).toString()
+                                    .replace(/\s+/g, ' ').trim();  // Nettoyer espaces superflus
+                                console.log(`[ExerciceMode] Dérivée calculée: f'(x) = ${derivExpr}`);
+
+                                // Calculer les racines numériquement pour aider le moteur JS en fallback
+                                let numFactors: { label: string; expr: string }[] | undefined;
+                                try {
+                                    const { compile: compileM } = await import('mathjs');
+                                    const compiledDeriv = compileM(san(derivExpr));
+                                    // Trouver les racines par balayage (méthode numérique simple)
+                                    const roots: number[] = [];
+                                    for (let xi = -20; xi <= 20; xi += 0.01) {
+                                        const y1 = compiledDeriv.evaluate({ x: xi });
+                                        const y2 = compiledDeriv.evaluate({ x: xi + 0.01 });
+                                        if (typeof y1 === 'number' && typeof y2 === 'number' && isFinite(y1) && isFinite(y2)) {
+                                            if (y1 * y2 <= 0) {
+                                                // Affiner par bisection
+                                                let lo = xi, hi = xi + 0.01;
+                                                for (let bk = 0; bk < 50; bk++) {
+                                                    const mid = (lo + hi) / 2;
+                                                    const ym = compiledDeriv.evaluate({ x: mid });
+                                                    if (ym * compiledDeriv.evaluate({ x: lo }) <= 0) hi = mid; else lo = mid;
+                                                }
+                                                const root = Math.round((lo + hi) / 2 * 1e9) / 1e9;
+                                                if (!roots.some(r => Math.abs(r - root) < 0.001)) roots.push(root);
+                                            }
+                                        }
+                                    }
+                                    if (roots.length > 0) {
+                                        numFactors = roots.map(r => {
+                                            const rStr = Math.abs(r) < 1e-9 ? '0' : String(Math.round(r * 1000) / 1000);
+                                            const rNum = parseFloat(rStr);
+                                            if (Math.abs(rNum) < 1e-9) return { label: 'x', expr: 'x' };
+                                            if (rNum > 0) return { label: `x - ${rStr}`, expr: `x - ${rStr}` };
+                                            return { label: `x + ${Math.abs(rNum)}`, expr: `x + ${Math.abs(rNum)}` };
+                                        });
+                                        // Calculer le coefficient constant (ex: -4 dans -4x(x-1)(x+1))
+                                        // Comparer le signe de f'(x_test) avec le produit des facteurs en x_test
+                                        try {
+                                            const testX = roots.length > 0 ? roots[roots.length - 1] + 1 : 5;
+                                            const fPrimeAtTest = compiledDeriv.evaluate({ x: testX });
+                                            const productAtTest = roots.reduce((prod, r) => prod * (testX - r), 1);
+                                            if (typeof fPrimeAtTest === 'number' && isFinite(fPrimeAtTest) && Math.abs(productAtTest) > 1e-9) {
+                                                const coeffSign = Math.sign(fPrimeAtTest) * Math.sign(productAtTest);
+                                                if (coeffSign < 0) {
+                                                    // Le coefficient est négatif → calculer sa valeur
+                                                    const coeffValue = fPrimeAtTest / productAtTest;
+                                                    const coeffRounded = Math.round(coeffValue);
+                                                    const coeffLabel = Math.abs(coeffRounded - coeffValue) < 0.01 ? String(coeffRounded) : String(Math.round(coeffValue * 100) / 100);
+                                                    numFactors.unshift({ label: coeffLabel, expr: coeffLabel });
+                                                    console.log(`[ExerciceMode] Coefficient constant négatif ajouté: ${coeffLabel}`);
+                                                }
+                                            }
+                                        } catch { /* pas grave */ }
+                                        console.log(`[ExerciceMode] Racines f'(x)=0: ${roots.join(', ')} → facteurs: ${numFactors.map(f => f.label).join(', ')}`);
+                                    }
+                                } catch { /* pas grave, SymPy fera le boulot */ }
+
+                                // Demander le tableau de signes de la dérivée au moteur
+                                const res = await fetch('/api/math-engine', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        type: 'sign_table',
+                                        expression: derivExpr,
+                                        niveau: resolveNiveau(inputText),
+                                        options: numFactors ? { numeratorFactors: numFactors } : undefined,
+                                    }),
+                                });
+                                const data = await res.json();
+                                if (data.success && data.aaaBlock) {
+                                    // Remplacer f(x) par f'(x) dans le label du tableau
+                                    signTableBlock = data.aaaBlock
+                                        .replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
+                                    signCtx = `\nInfo : f'(x) = ${derivExpr}` + (data.discriminantSteps?.length
+                                        ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                        : '');
+                                    console.log(`[ExerciceMode] ✅ Tableau de signes f'(x) via ${data.engine || 'moteur'}`);
+                                } else {
+                                    console.warn(`[ExerciceMode] ⚠️ Tableau de signes f'(x) échoué:`, data.error);
+                                }
+                            } catch (derivErr) {
+                                console.warn('[ExerciceMode] Erreur calcul dérivée:', derivErr);
+                                // Fallback : on laisse l'IA gérer
+                            }
+                        }
+                        if (q.type === 'variation_table') {
+                            try {
+                                const res = await fetch('/api/math-engine', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: 'variation_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                                });
+                                const data = await res.json();
+                                if (data.success && data.aaaBlock) {
+                                    variationTableBlock = data.aaaBlock;
+                                }
+                            } catch { /* AI fallback */ }
+                        }
+                        if (q.type === 'graph') {
+                            console.log(`[ExerciceMode] 📊 Handler GRAPH déclenché, exprClean="${exprClean}"`);
+                            try {
+                                const { compile: compileExpr } = await import('mathjs');
+                                const san = (e2: string) => e2
+                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
+                                    .replace(/−/g, '-')
+                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')
+                                    .replace(/(\d)\(/g, '$1*(')
+                                    .replace(/\)(\w)/g, ')*$1')
+                                    .replace(/\)\(/g, ')*(');
+                                const sanExpr = san(exprClean);
+                                console.log(`[ExerciceMode] 📊 Expression sanitisée: "${sanExpr}"`);
+                                const compiled = compileExpr(sanExpr);
+                                const xVals = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+                                const rows: string[] = [];
+                                for (const xv of xVals) {
+                                    try {
+                                        const yv = compiled.evaluate({ x: xv });
+                                        if (typeof yv === 'number' && isFinite(yv)) {
+                                            rows.push(`| ${xv} | ${Math.round(yv * 100) / 100} |`);
+                                        }
+                                    } catch { /* skip */ }
+                                }
+                                if (rows.length > 0) tableOfValues = `| x | f(x) |\n|---|---|\n${rows.join('\n')}`;
+                                console.log(`[ExerciceMode] 📊 Tableau de valeurs: ${rows.length} points calculés`);
+                            } catch (gErr) {
+                                console.error('[ExerciceMode] 📊 ERREUR compilation expression:', gErr);
+                            }
+
+                            // Stocker les données du graphe pour ouverture via lien cliquable
+                            try {
+                                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                                const prettyName = exprClean
+                                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                                    .replace(/\blog\(/g, 'ln(')
+                                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                                const gs = {
+                                    curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
+                                    intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
+                                    title: `f(x) = ${prettyName}`,
+                                };
+                                localStorage.setItem('graphState', JSON.stringify(gs));
+                                console.log(`[ExerciceMode] 📊 graphState stocké dans localStorage:`, JSON.stringify(gs).substring(0, 200));
+                                // Envoyer via BroadcastChannel
+                                try {
+                                    const bch = new BroadcastChannel('mimimaths-graph');
+                                    bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
+                                    console.log('[ExerciceMode] 📊 BroadcastChannel envoyé');
+                                } catch (bcErr) { console.warn('[ExerciceMode] 📊 BroadcastChannel échoué:', bcErr); }
+                                // Essayer d'ouvrir le popup
+                                try {
+                                    const gw = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
+                                    console.log(`[ExerciceMode] 📊 window.open résultat: ${gw ? 'ouvert' : 'bloqué'}`);
+                                } catch { console.warn('[ExerciceMode] 📊 window.open échoué'); }
+                            } catch (gsErr) {
+                                console.error('[ExerciceMode] 📊 ERREUR stockage graphState:', gsErr);
+                            }
+                        }
+                    }
+
+                    // ── 4. Prompt IA : expliquer puis [TABLE_SIGNES] / [TABLE_VARIATIONS] ──
+                    const aiParts: string[] = [];
+                    for (const q of questions) {
+                        if (q.type === 'parity') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nÉtudie la parité de f :\n- Précise le domaine de définition Df et vérifie qu'il est symétrique par rapport à 0.\n- Calcule f(-x) en détaillant chaque étape.\n- Compare f(-x) avec f(x) et f(-x) avec -f(x).\n- Conclus : f est paire (si f(-x) = f(x)), impaire (si f(-x) = -f(x)), ou ni paire ni impaire.\n- Si paire/impaire, indique la conséquence sur la courbe (axe de symétrie Oy / centre de symétrie O).`
+                            );
+                        } else if (q.type === 'limits') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nCalcule les limites aux bornes du domaine de définition :\n- Pour chaque borne (±∞ ou points d'annulation du dénominateur), factorise par le terme de plus haut degré.\n- Utilise la notation lim avec flèche (pas de notation d/dx, c'est hors programme).\n- Interprète graphiquement chaque limite : asymptote horizontale, verticale, ou branche parabolique.\n- Rédige comme dans un programme de Terminale de l'Éducation Nationale.`
+                            );
+                        } else if (q.type === 'derivative_sign') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
+                            );
+                        } else if (q.type === 'sign_table') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nExplique la méthode : identifie le type de polynôme, calcule Δ = b² - 4ac, trouve les racines x₁ et x₂, explique le signe en fonction du coefficient de x².${signCtx}\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
+                            );
+                        } else if (q.type === 'solve') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question ${Number(q.num) - 1}), ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
+                            );
+                        } else if (q.type === 'variation_table') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nExplique : calcule f'(x) avec les formules programme Lycée (PAS de notation d/dx), étudie le signe de f'(x), détermine les intervalles de croissance et décroissance, calcule la valeur de l'extremum.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_VARIATIONS]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
+                            );
+                        } else if (q.type === 'graph') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\nLa courbe a été tracée automatiquement par le moteur graphique. Clique sur le bouton ci-dessous pour l'ouvrir.`
+                            );
+                        } else {
+                            aiParts.push(`**${q.num})** ${q.text}\nRéponds de manière pédagogique en suivant strictement le programme de Terminale de l'Éducation Nationale (Bulletin Officiel).\nNe PAS utiliser de notation hors programme (comme d/dx, nabla, etc.).`);
+                        }
+                    }
+
+                    const enrichedMessages: ChatMessage[] = [
+                        ...newMessages,
+                        {
+                            role: 'user' as const,
+                            content: `[SYSTÈME] Exercice complet sur f(x) = ${exprClean}.\nRéponds comme un élève modèle qui traite chaque question de l'exercice.\n\n${aiParts.join('\n\n')}\n\nRÈGLES ABSOLUES :\n- NE GÉNÈRE AUCUN bloc @@@ ni tableau ASCII\n- Écris [TABLE_SIGNES] et [TABLE_VARIATIONS] EXACTEMENT là où indiqué\n- Pour chaque question commence par le numéro en gras\n- Détaille TOUTES les étapes de calcul\n- ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔\n- ⛔ JAMAIS écrire d/dx, df/dx, dy/dx, d²f/dx²\n- ⛔ JAMAIS écrire \\frac{d}{dx} ou \\frac{df}{dx}\n- ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)\n- ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."`
+                        }
+                    ];
+
+                    // ── 5. Streaming + remplacement des placeholders ──
+                    const header = `📝 **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
+                    setMessages(prev => [...prev, { role: 'assistant', content: header + '⏳ *Résolution en cours...*' }]);
+
+                    try {
+                        const response = await fetch('/api/perplexity', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                        });
+                        if (!response.ok) throw new Error('Erreur API');
+                        const reader = response.body?.getReader();
+                        if (!reader) throw new Error('Reader non disponible');
+                        const decoder = new TextDecoder();
+                        let aiText = '';
+                        let lastUpdate = 0;
+                        // ⛔ Fonction pour supprimer la notation d/dx (Leibniz → Lagrange)
+                        // SÉCURISÉE : ne touche PAS au LaTeX normal (\frac{a}{b}, etc.)
+                        const stripDdx = (t: string) => t
+                            // Plaintext exact : d(expr)/dx → (expr)'
+                            .replace(/\bd\(([^)]+)\)\/dx\b/gi, "($1)'")
+                            // Plaintext exact : df/dx → f'(x)
+                            .replace(/\bdf\/dx\b/gi, "f'(x)")
+                            // Plaintext exact : d/dx → (supprimé)
+                            .replace(/\bd\/dx\b/gi, "")
+                            // d²f/dx² → f''(x)
+                            .replace(/\bd[²2]f?\/dx[²2]/gi, "f''(x)");
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            for (const ln of decoder.decode(value).split('\n')) {
+                                if (!ln.startsWith('data: ')) continue;
+                                const js = ln.substring(6);
+                                if (js === '[DONE]') break;
+                                try {
+                                    const c = JSON.parse(js).choices?.[0]?.delta?.content || '';
+                                    if (c) {
+                                        aiText += c;
+                                        // Throttle : max 1 update / 250ms pour éviter 'Maximum update depth exceeded'
+                                        const now = Date.now();
+                                        if (now - lastUpdate > 250) {
+                                            lastUpdate = now;
+                                            let disp = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                            if (signTableBlock) disp = disp.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
+                                            if (variationTableBlock) disp = disp.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
+                                            const fixedDisp = fixLatexContent(header + disp).content;
+                                            setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
+                                        }
+                                    }
+                                } catch { }
+                            }
+                        }
+                        let finalText = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                        if (signTableBlock) finalText = finalText.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
+                        if (variationTableBlock) finalText = finalText.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
+                        if (tableOfValues && !finalText.includes('| x | f(x) |')) {
+                            finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
+                        }
+                        // Toujours ajouter le graphe pour un exercice sur une fonction
+                        // (même si pas de question 'graph' explicite dans l'OCR)
+                        try {
+                            const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                            const prettyName = exprClean
+                                .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                                .replace(/\blog\(/g, 'ln(')
+                                .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                                .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                            const gs = {
+                                curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
+                                intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
+                                title: `Courbe de f(x) = ${prettyName}`,
+                            };
+                            localStorage.setItem('graphState', JSON.stringify(gs));
+                            try {
+                                const bch = new BroadcastChannel('mimimaths-graph');
+                                bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
+                            } catch { /* ignore */ }
+                            console.log(`[ExerciceMode] 📊 graphState stocké pour ${exprClean}`);
+                        } catch { /* ignore */ }
+                        finalText += '\n\n---\n\n📊 Clique sur le bouton ci-dessous pour voir la courbe.';
+                        finalText = stripDdx(finalText);
+                        const finalContent = patchMarkdownTables(fixLatexContent(header + finalText).content);
+                        setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: finalContent }; return u; });
+                    } catch (error) {
+                        console.error('[ExerciceMode] Erreur streaming:', error);
+                    } finally {
+                        setLoading(false);
+                        setIsTalking(false);
+                    }
+                    return;
+                }
+            } catch (err) {
+                console.warn('[ExerciceMode] Erreur, fallback standard:', err);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // HANDLER "ÉTUDIER UNE FONCTION" (auto-génère les sous-questions BO)
+        // Programme Éducation Nationale : domaine → parité → limites → dérivée → variations → courbe
+        // ═══════════════════════════════════════════════════════════
+        const wantsStudyFunction = /(?:étudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
+            || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower);
+
+        if (wantsStudyFunction && !isMultiExpr) {
+            try {
+                // Extraire l'expression
+                let studyExpr = '';
+                const eqMatch = inputText.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
+                if (eqMatch) studyExpr = eqMatch[1].trim()
+                    .replace(/[.!?]+$/, '')
+                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                    .trim();
+                if (!studyExpr) {
+                    const deMatch = inputText.match(/=\s*(.+)/);
+                    if (deMatch) studyExpr = deMatch[1].split('\n')[0].trim()
+                        .replace(/[.!?]+$/, '')
+                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                        .trim();
+                }
+                if (studyExpr && studyExpr.includes('x')) {
+                    // Construire l'input avec sous-questions numérotées
+                    const niveau = resolveNiveau(inputText);
+                    const isTerminale = niveau.startsWith('terminale');
+
+                    let generatedInput = `f(x) = ${studyExpr}\n`;
+                    let qNum = 1;
+                    generatedInput += `${qNum}. Déterminer le domaine de définition de f.\n`; qNum++;
+                    generatedInput += `${qNum}. Étudier la parité de f.\n`; qNum++;
+                    if (isTerminale) {
+                        generatedInput += `${qNum}. Déterminer les limites de f aux bornes de son domaine de définition.\n`; qNum++;
+                    }
+                    generatedInput += `${qNum}. Calculer la fonction dérivée de f et étudier son signe.\n`; qNum++;
+                    generatedInput += `${qNum}. Dresser le tableau de variations de f.\n`; qNum++;
+                    generatedInput += `${qNum}. Tracer la courbe représentative de f.\n`;
+
+                    console.log('[ÉtudeFunction] Auto-généré:', generatedInput);
+                    // Relancer handleSendMessageWithText avec les sous-questions auto-générées
+                    await handleSendMessageWithText(generatedInput, newMessages);
+                    return;
+                }
+            } catch (err) {
+                console.warn('[ÉtudeFunction] Erreur, fallback:', err);
+            }
+        }
 
         if (wantsSignTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = input.match(/=\s*(.+)/);
+            const eqMatch = inputText.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = input.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
             }
             expr = expr
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
-                .replace(/\s+$/g, '').replace(/[.!?]+$/g, '');
+                // Retirer le texte français résiduel après l'expression
+                .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de signes pour: "${expr}"`);
@@ -1723,7 +2308,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const engineRes = await fetch('/api/math-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: resolveNiveau(input) }),
+                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: resolveNiveau(inputText) }),
                     });
                     const engineData = await engineRes.json();
                     if (engineData.success && engineData.aaaBlock) {
@@ -1753,6 +2338,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             if (!reader) throw new Error('Reader non disponible');
                             const decoder = new TextDecoder();
                             let aiText = '';
+                            let lastSignUpdate = 0;
                             while (true) {
                                 const { done, value } = await reader.read();
                                 if (done) break;
@@ -1764,12 +2350,18 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                         const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
                                         if (c) {
                                             aiText += c;
-                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                            setMessages(prev => {
-                                                const u = [...prev];
-                                                u[u.length - 1] = { role: 'assistant', content: tablePrefix + clean };
-                                                return u;
-                                            });
+                                            // Throttle : max 1 update / 100ms pour éviter 'Maximum update depth exceeded'
+                                            const now = Date.now();
+                                            if (now - lastSignUpdate > 100) {
+                                                lastSignUpdate = now;
+                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
+                                                setMessages(prev => {
+                                                    const u = [...prev];
+                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
+                                                    return u;
+                                                });
+                                            }
                                         }
                                     } catch { }
                                 }
@@ -1800,16 +2392,19 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
         if (wantsVariationTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = input.match(/=\s*(.+)/);
+            const eqMatch = inputText.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = input.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
             }
             expr = expr
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
-                .replace(/\s+$/g, '').replace(/[.!?]+$/g, '');
+                // Retirer le texte français résiduel après l'expression
+                .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
@@ -1817,7 +2412,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     const engineRes = await fetch('/api/math-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(input) }),
+                        body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(inputText) }),
                     });
                     const engineData = await engineRes.json();
                     if (engineData.success && engineData.aaaBlock) {
@@ -1846,6 +2441,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             if (!reader) throw new Error('Reader non disponible');
                             const decoder = new TextDecoder();
                             let aiText = '';
+                            let lastVarUpdate = 0;
                             while (true) {
                                 const { done, value } = await reader.read();
                                 if (done) break;
@@ -1857,12 +2453,18 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                                         const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
                                         if (c) {
                                             aiText += c;
-                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                            setMessages(prev => {
-                                                const u = [...prev];
-                                                u[u.length - 1] = { role: 'assistant', content: tablePrefix + clean };
-                                                return u;
-                                            });
+                                            // Throttle : max 1 update / 200ms pour éviter 'Maximum update depth exceeded'
+                                            const now = Date.now();
+                                            if (now - lastVarUpdate > 200) {
+                                                lastVarUpdate = now;
+                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
+                                                setMessages(prev => {
+                                                    const u = [...prev];
+                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
+                                                    return u;
+                                                });
+                                            }
                                         }
                                     } catch { }
                                 }
@@ -1888,8 +2490,464 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
             }
         }
 
+        // ── INTERCEPTION TRACÉ DE COURBE / GRAPHIQUE ──
+        // Vocabulaire officiel BO Éducation Nationale (Seconde → Terminale)
+        // On normalise l'input pour supprimer les accents (évite les problèmes d'encodage é/è/ê)
+        const inputNorm = inputLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const wantsGraph = (
+            /\btrace\b|\btracer\b|\btrace\b|\bdessine\b|\bdessin\b/i.test(inputNorm)
+            || /\bcourbe\b|\bgraphe\b|\bgraphique\b|\bplot\b/i.test(inputNorm)
+            || /represent/i.test(inputNorm)  // représente, représentation (sans accent)
+            || /visualise|affiche|montre/i.test(inputNorm)
+            || /lecture\s+graphique/i.test(inputNorm)
+        ) && !/signe|variation/i.test(inputNorm);
+        const wantsAddCurve = (
+            // Mots-clés explicites : "ajoute", "rajoute", "superpose"
+            (/ajoute|rajoute|superpose/i.test(inputNorm) && /courbe|fonction|graph|f\s*\(|g\s*\(|h\s*\(/i.test(inputNorm))
+            // "sur ce graphe", "sur le même graphe/graphique", "sur le graphique"
+            || /sur\s+(ce|le\s+meme|le)\s+(graph|graphe|graphique)/i.test(inputNorm)
+            // "aussi", "en plus", "également" + tracé
+            || (/aussi|en\s+plus|egalement/i.test(inputNorm) && /trace|dessine/i.test(inputNorm))
+            // "et trace", "et dessine" (début de phrase ou après virgule)
+            || /(?:,|et)\s+(?:trace|dessine)/i.test(inputNorm)
+            // g(x) ou h(x) mentionné quand il y a déjà une courbe (= probable ajout)
+            || (/[gh]\s*\(\s*x\s*\)/i.test(inputLower) && (() => {
+                try {
+                    const stored = localStorage.getItem('graphState');
+                    if (stored) {
+                        const s = JSON.parse(stored);
+                        return s.curves && s.curves.length > 0;
+                    }
+                } catch { /* ignore */ }
+                return false;
+            })())
+        );
+        const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
+        const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
+            && /graphi|graph|courbe|=|>|<|\bx\b/i.test(inputNorm);
+        const wantsTangente = /tangente|tangent/i.test(inputNorm);
+        const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
+        const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
+
+
+        if (wantsGraphAction) {
+            try {
+                // ── Fonctions utilitaires ──
+                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+
+                // Extraction de l'intervalle
+                let gInterval: [number, number] = [-10, 10];
+                const intMatch = inputText.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
+                if (intMatch) gInterval = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
+                const intMatch2 = inputText.match(/(?:entre|de)\s+([+-]?\d+(?:\.\d+)?)\s+(?:et|à)\s+([+-]?\d+(?:\.\d+)?)/i);
+                if (intMatch2) gInterval = [parseFloat(intMatch2[1]), parseFloat(intMatch2[2])];
+
+                // Formater une expression mathjs en notation lisible (pour affichage)
+                const prettifyMath = (expr: string): string => {
+                    return expr
+                        // sqrt(expr) → √(expr)
+                        .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                        .replace(/\bsqrt\b/g, '√')
+                        // log(x) → ln(x) en notation française
+                        .replace(/\blog\(/g, 'ln(')
+                        // e^(x) → eˣ — on laisse e^(...) pour lisibilité
+                        // Puissances : ^2 → ², ^3 → ³, ^4 → ⁴
+                        .replace(/\^2(?![0-9])/g, '²')
+                        .replace(/\^3(?![0-9])/g, '³')
+                        .replace(/\^4(?![0-9])/g, '⁴')
+                        // Multiplication : * → ×
+                        .replace(/\*/g, '×')
+                        // pi → π
+                        .replace(/\bpi\b/g, 'π')
+                        // Espaces autour des opérateurs
+                        .replace(/([^\s])([+\-])/g, '$1 $2')
+                        .replace(/([+\-])([^\s])/g, '$1 $2')
+                        // Nettoyage doubles espaces
+                        .replace(/\s+/g, ' ').trim();
+                };
+
+                // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
+                const cleanExpr = (e: string) => {
+                    let c = e
+                        // Retirer f(x)=, g(x)=, y= etc.
+                        .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                        .replace(/^\s*y\s*=\s*/i, '')
+                        // LaTeX : \frac{a}{b} → (a)/(b)
+                        .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
+                        // LaTeX : \sqrt{expr} → sqrt(expr)
+                        .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
+                        .replace(/\\sqrt\s+(\w+)/g, 'sqrt($1)')
+                        // LaTeX : \left( \right) → ( )
+                        .replace(/\\left\s*[([]/g, '(').replace(/\\right\s*[)\]]/g, ')')
+                        // LaTeX : \cdot \times → *
+                        .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
+                        // LaTeX : \text{...} → contenu
+                        .replace(/\\text\s*\{([^}]*)\}/g, '$1')
+                        // LaTeX : backslashes restants
+                        .replace(/\\[,;:!]\s*/g, ' ')
+                        .replace(/\\quad/g, ' ').replace(/\\qquad/g, ' ')
+                        // Unicode : ², ³
+                        .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                        // Symboles
+                        .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
+                        // Français : racine carrée de → sqrt
+                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
+                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
+                        // Valeur absolue
+                        .replace(/\|([^|]+)\|/g, 'abs($1)')
+                        // ln → log pour mathjs
+                        .replace(/\bln\s*\(/g, 'log(')
+                        // exp(x) → e^(x)
+                        .replace(/\bexp\s*\(/g, 'e^(')
+                        // Ponctuation finale
+                        .replace(/\s+$/g, '').replace(/[.!?]+$/g, '')
+                        .trim();
+                    return c;
+                };
+
+                // Charger l'état précédent du graphe
+                let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
+                try {
+                    const stored = localStorage.getItem('graphState');
+                    if (stored) graphState = JSON.parse(stored);
+                } catch { /* ignore */ }
+
+                // ═══════════════════════════════════════════════════════
+                // CAS 0 : EFFACER LE GRAPHIQUE
+                // ═══════════════════════════════════════════════════════
+                if (wantsEffacerGraph) {
+                    graphState = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
+                    localStorage.setItem('graphState', JSON.stringify(graphState));
+                    const ch = new BroadcastChannel('mimimaths-graph');
+                    ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+                    ch.close();
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `🗑️ Graphique effacé ! Tu peux tracer une nouvelle courbe.`
+                    }]);
+                    return;
+                }
+
+                // ═══════════════════════════════════════════════════════
+                // CAS 1 : RÉSOLUTION GRAPHIQUE (équation / inéquation)
+                // ═══════════════════════════════════════════════════════
+                if (wantsResolve) {
+                    // Chercher le pattern : expr1 OPERATOR expr2
+                    const ops = ['>=', '<=', '≥', '≤', '>', '<', '='] as const;
+                    const opMap: Record<string, string> = { '>=': '≥', '<=': '≤', '≥': '≥', '≤': '≤', '>': '>', '<': '<', '=': '=' };
+                    let lhs = '', rhs = '', operator = '=';
+
+                    // Retirer le préfixe "résous graphiquement" etc.
+                    let mathPart = inputText
+                        .replace(/résou\w*\s*(?:graphiquement\s*)?/i, '')
+                        .replace(/résolution\s*(?:graphique\s*)?(?:de\s*)?/i, '')
+                        .replace(/\s+sur\s+\[.*$/i, '')  // retirer l'intervalle
+                        .replace(/\s+entre\s+.*$/i, '')
+                        .replace(/\s+pour\s+.*$/i, '')
+                        .trim();
+
+                    // Chercher l'opérateur
+                    for (const op of ops) {
+                        const idx = mathPart.indexOf(op);
+                        if (idx > 0) {
+                            lhs = cleanExpr(mathPart.substring(0, idx));
+                            rhs = cleanExpr(mathPart.substring(idx + op.length));
+                            operator = opMap[op] || '=';
+                            break;
+                        }
+                    }
+
+                    if (lhs && lhs.includes('x')) {
+                        // Si rhs pas d'expression, c'est une constante
+                        if (!rhs) rhs = '0';
+
+                        // Construire le graphState avec 2 courbes
+                        const rhsIsConst = !rhs.includes('x');
+                        graphState = {
+                            curves: [
+                                {
+                                    id: 'curve-0',
+                                    expression: lhs,
+                                    name: `f(x) = ${prettifyMath(lhs)}`,
+                                    color: GRAPH_COLORS[0],
+                                    interval: gInterval,
+                                },
+                                {
+                                    id: 'curve-1',
+                                    expression: rhs.includes('x') ? rhs : rhs,
+                                    name: rhsIsConst ? `y = ${rhs}` : `g(x) = ${prettifyMath(rhs)}`,
+                                    color: GRAPH_COLORS[1],
+                                    interval: gInterval,
+                                }
+                            ],
+                            intersections: '__COMPUTE__',  // Signal pour calculer les intersections
+                            positionsRelatives: [],
+                            tangent: null,
+                            title: `Résolution : ${lhs} ${operator} ${rhs}`,
+                        };
+
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `🔍 **Résolution graphique** de \`${lhs} ${operator} ${rhs}\` sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                        }]);
+                    } else {
+                        // Pas d'expression parsable → fallback IA
+                        await startStreamingResponse(newMessages);
+                        return;
+                    }
+                }
+
+                // ═══════════════════════════════════════════════════════
+                // CAS 2 : TANGENTE
+                // ═══════════════════════════════════════════════════════
+                else if (wantsTangente) {
+                    // Extraire le point x0
+                    let x0: number | null = null;
+                    const x0Match = inputText.match(/(?:en\s+)?x\s*=\s*([+-]?\d+(?:\.\d+)?)/i);
+                    if (x0Match) x0 = parseFloat(x0Match[1]);
+                    else {
+                        const x0Match2 = inputText.match(/en\s+([+-]?\d+(?:\.\d+)?)/i);
+                        if (x0Match2) x0 = parseFloat(x0Match2[1]);
+                    }
+
+                    // Extraire l'expression (si fournie)
+                    let tangExpr = '';
+                    const tangEqMatch = inputText.match(/(?:tangente\s+(?:de\s+|à\s+)?)?(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+en\s|$)/i);
+                    if (tangEqMatch) tangExpr = cleanExpr(tangEqMatch[1]);
+                    if (!tangExpr) {
+                        const tangVerbMatch = inputText.match(/tangente\s+(?:de\s+|à\s+)?(.+?)(?:\s+en\s|$)/i);
+                        if (tangVerbMatch) tangExpr = cleanExpr(tangVerbMatch[1]);
+                    }
+
+                    // Si pas d'expression, utiliser la dernière courbe
+                    if (!tangExpr && graphState.curves.length > 0) {
+                        tangExpr = graphState.curves[graphState.curves.length - 1].expression;
+                    }
+
+                    if (!tangExpr || !tangExpr.includes('x')) {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `❓ Quelle fonction ? Dis par exemple : « tangente de x² en x = 2 »`
+                        }]);
+                        return;
+                    }
+
+                    if (x0 === null) {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `❓ En quel point ? Dis par exemple : « tangente en x = 2 »`
+                        }]);
+                        return;
+                    }
+
+                    // Calculer la tangente numériquement (f'(x0) par différence finie)
+                    try {
+                        const { compile } = await import('mathjs');
+                        const sanitize = (e: string) => e.replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log');
+                        const compiled = compile(sanitize(tangExpr));
+                        const evalF = (xv: number) => {
+                            try { const r = compiled.evaluate({ x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
+                        };
+
+                        const y0 = evalF(x0);
+                        const h = 1e-7;
+                        const yPlus = evalF(x0 + h);
+                        const yMinus = evalF(x0 - h);
+
+                        if (y0 !== null && yPlus !== null && yMinus !== null) {
+                            const slope = (yPlus - yMinus) / (2 * h);
+                            const slopeRound = Math.round(slope * 10000) / 10000;
+                            const y0Round = Math.round(y0 * 10000) / 10000;
+                            const interceptRound = Math.round((y0 - slope * x0) * 10000) / 10000;
+
+                            // S'assurer que la courbe est tracée
+                            if (!graphState.curves.some((c: any) => c.expression === tangExpr)) {
+                                graphState = {
+                                    curves: [{
+                                        id: 'curve-0',
+                                        expression: tangExpr,
+                                        name: `f(x) = ${prettifyMath(tangExpr)}`,
+                                        color: GRAPH_COLORS[0],
+                                        interval: gInterval,
+                                    }],
+                                    intersections: [],
+                                    positionsRelatives: [],
+                                    tangent: null,
+                                    title: `f(x) = ${prettifyMath(tangExpr)}`,
+                                };
+                            }
+
+                            graphState.tangent = {
+                                x0,
+                                y0: y0Round,
+                                slope: slopeRound,
+                                equation: `T(x) = ${slopeRound}x + ${interceptRound}`,
+                                interval: gInterval,
+                            };
+                            graphState.title = `Tangente à f(x) = ${tangExpr} en x = ${x0}`;
+
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `📐 **Tangente** à f(x) = ${tangExpr} en x = ${x0} :\n\n- f(${x0}) = ${y0Round}\n- f'(${x0}) ≈ ${slopeRound}\n- **T(x) = ${slopeRound}x + ${interceptRound}**\n\nRegarde la fenêtre graphique !`
+                            }]);
+                        } else {
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `❌ Impossible de calculer la tangente en x = ${x0}. La fonction n'est peut-être pas définie en ce point.`
+                            }]);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('[Tangente] Erreur calcul:', err);
+                        await startStreamingResponse(newMessages);
+                        return;
+                    }
+                }
+
+                // ═══════════════════════════════════════════════════════
+                // CAS 3 : INTERSECTION (courbes déjà tracées)
+                // ═══════════════════════════════════════════════════════
+                else if (wantsIntersection) {
+                    if (graphState.curves.length >= 2) {
+                        graphState.intersections = '__COMPUTE__';
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `📊 Recherche des intersections entre ${graphState.curves.map((c: any) => c.name).join(' et ')}. Regarde la fenêtre graphique !`
+                        }]);
+                    } else {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `❓ Il faut au moins 2 courbes tracées pour chercher une intersection. Trace d'abord une courbe, puis ajoute-en une autre !`
+                        }]);
+                        return;
+                    }
+                }
+
+                // ═══════════════════════════════════════════════════════
+                // CAS 4 : TRACER / AJOUTER UNE COURBE
+                // ═══════════════════════════════════════════════════════
+                else {
+                    // Extraire l'expression
+                    let gExpr = '';
+                    const gEqMatch = inputText.match(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+(?:sur|pour|entre|de\s+-?\d)\s|$)/);
+                    if (gEqMatch) gExpr = gEqMatch[1].trim();
+                    if (!gExpr) {
+                        // Pattern étendu avec tous les verbes/noms BO
+                        const gVerbMatch = inputText.match(
+                            /(?:trace|tracer|dessine|ajoute|rajoute|repr[eé]sente|visualise|affiche|montre)\s+(?:(?:la\s+)?(?:courbe\s+(?:repr[eé]sentative\s+)?|repr[eé]sentation\s+graphique\s+|fonction\s+|graphe\s+|graphique\s+)?(?:de\s+)?)?(.+?)(?:\s+(?:sur|pour|entre|dans)\s|$)/i
+                        );
+                        if (gVerbMatch) {
+                            gExpr = gVerbMatch[1].trim()
+                                .replace(/^(?:de\s+)?(?:[fgh]\s*\(x\)\s*=\s*)/, '')
+                                .replace(/[.!?]+$/, '');
+                        }
+                    }
+                    gExpr = cleanExpr(gExpr);
+
+                    // Extraire le nom de la fonction
+                    const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
+                    const funcName = nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f');
+
+                    if (gExpr && gExpr.includes('x')) {
+                        if (wantsAddCurve && graphState.curves.length > 0) {
+                            // AJOUTER une courbe
+                            const idx = graphState.curves.length;
+                            graphState.curves.push({
+                                id: `curve-${idx}`,
+                                expression: gExpr,
+                                name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
+                                interval: gInterval,
+                            });
+                            graphState.title = 'Graphique multi-courbes';
+                            graphState.intersections = graphState.curves.length >= 2 ? '__COMPUTE__' : [];
+                            graphState.tangent = null;
+                        } else {
+                            // TRACER une nouvelle courbe (efface les précédentes)
+                            graphState = {
+                                curves: [{
+                                    id: 'curve-0',
+                                    expression: gExpr,
+                                    name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                    color: GRAPH_COLORS[0],
+                                    interval: gInterval,
+                                }],
+                                intersections: [],
+                                positionsRelatives: [],
+                                tangent: null,
+                                title: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                            };
+                        }
+
+                        const action = wantsAddCurve ? 'ajoutée' : 'tracée';
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `📊 Courbe ${action} : **${funcName}(x) = ${prettifyMath(gExpr)}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                        }]);
+                    } else {
+                        // Pas d'expression trouvée → laisser l'IA gérer
+                        await startStreamingResponse(newMessages);
+                        return;
+                    }
+                }
+
+                // ═══════════════════════════════════════════════════════
+                // ENVOI AU GRAPHIQUE + IA
+                // ═══════════════════════════════════════════════════════
+                localStorage.setItem('graphState', JSON.stringify(graphState));
+                const graphChannel = new BroadcastChannel('mimimaths-graph');
+                graphChannel.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+                graphChannel.close();
+
+                // Ouvrir la fenêtre si pas déjà ouverte
+                const graphWin = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
+                if (graphWin) {
+                    setTimeout(() => {
+                        const ch = new BroadcastChannel('mimimaths-graph');
+                        ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+                        ch.close();
+                    }, 500);
+                }
+
+                // Demander à l'IA d'expliquer
+                const curvesDesc = graphState.curves.map((c: any) => c.name).join(', ');
+                let aiSystemPrompt = `[SYSTÈME] Un graphique a été ouvert dans une fenêtre séparée avec ${curvesDesc}. Ne génère AUCUN graphique toi-même.`;
+
+                if (wantsResolve) {
+                    aiSystemPrompt += ` Explique la résolution graphique : comment lire les solutions sur le graphique, méthode de résolution, ensemble solution.`;
+                } else if (wantsTangente && graphState.tangent) {
+                    aiSystemPrompt += ` La tangente ${graphState.tangent.equation} a été tracée en x=${graphState.tangent.x0}. Explique le calcul de la tangente : dérivée, coefficient directeur, ordonnée à l'origine.`;
+                } else {
+                    aiSystemPrompt += ` Explique brièvement la/les fonction(s) tracée(s) : domaine, comportement, points remarquables.`;
+                }
+
+                const graphPrompt: ChatMessage[] = [
+                    ...newMessages,
+                    { role: 'user' as const, content: aiSystemPrompt }
+                ];
+                await startStreamingResponse(graphPrompt);
+                return;
+            } catch (err) {
+                console.warn('[Graph] Erreur, fallback IA:', err);
+            }
+        }
+
         // Pas de tableau détecté → flux normal (IA seule)
         await startStreamingResponse(newMessages);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // WRAPPER : appelé par le formulaire (texte tapé par l'élève)
+    // ═══════════════════════════════════════════════════════════════════
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!input.trim() || loading || isScanning) return;
+        const userMessage: ChatMessage = { role: 'user', content: input };
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
+        const savedInput = input;
+        setInput('');
+        await handleSendMessageWithText(savedInput, newMessages);
     };
 
     if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl animate-pulse"></div>;

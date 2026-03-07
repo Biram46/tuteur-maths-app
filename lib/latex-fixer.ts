@@ -1,6 +1,10 @@
 /**
  * 🔧 CORRECTEUR AUTOMATIQUE LaTeX pour mimimaths@i
- * Version 5.0 - Ultra Simplifiée pour éviter les bugs
+ * Version 6.0 — Corrige les délimiteurs LaTeX de l'IA pour KaTeX/ReactMarkdown
+ * 
+ * Problème résolu : l'IA (GPT-4o-mini, DeepSeek, etc.) envoie du LaTeX avec
+ * les délimiteurs \( \) \[ \] mais ReactMarkdown + remark-math n'accepte que $ et $$.
+ * Ce fixer convertit en temps réel pendant le streaming.
  */
 
 export interface LatexFixerResult {
@@ -15,9 +19,10 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // 1. Unification des signes moins et espaces insécables
     fixed = fixed.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
 
-    // 2. Conversion sécurisée des délimiteurs
-    // \[ ... \] -> $$ ... $$
-    // \( ... \) -> $ ... $
+    // 2. Conversion sécurisée des délimiteurs LaTeX
+    // \[ ... \] -> $$ ... $$  (display math)
+    // \( ... \) -> $ ... $    (inline math)
+    // NOTE: En JS, dans .replace(), $$$$ produit $$ (car $$ = un $ littéral)
     fixed = fixed.replace(/\\\[/g, '$$$$').replace(/\\\]/g, '$$$$');
     fixed = fixed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
@@ -28,10 +33,22 @@ export function fixLatexContent(content: string): LatexFixerResult {
     fixed = fixed.replace(/\\overline\s+?([a-zA-Z0-9]{1,2})/g, '\\overline{$1}');
 
     // 4. Protection contre les doubles backslashes excessifs
-    fixed = fixed.replace(/\\\\(text|mathrm|vec|infty|bar|frac|sqrt|Omega|alpha|beta|gamma|delta|sigma|mu|lambda|pi)/g, '\\$1');
+    // \\frac -> \frac, \\sqrt -> \sqrt, etc.
+    fixed = fixed.replace(/\\\\(text|mathrm|vec|infty|bar|frac|sqrt|Omega|alpha|beta|gamma|delta|sigma|mu|lambda|pi|left|right|leq|geq|neq|times|cdot|pm|mp)/g, '\\$1');
 
-    // 5. Harmonisation des symboles de comparaison
-    fixed = fixed.replace(/<=/g, '\\leq ').replace(/>=/g, '\\geq ').replace(/!=/g, '\\neq ');
+    // 5. \begin{aligned} et \begin{array} sans délimiteurs $$ → on les encadre
+    // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour
+    fixed = fixed.replace(/(?<!\$)\s*(\\begin\{(?:aligned|array|cases|pmatrix|bmatrix)\}[\s\S]*?\\end\{(?:aligned|array|cases|pmatrix|bmatrix)\})\s*(?!\$)/g, '\n$$\n$1\n$$\n');
+
+    // 6. Harmonisation des symboles de comparaison UNIQUEMENT DANS les blocs $...$
+    // On ne touche PAS aux <= et >= en dehors des blocs math (sinon \geq en texte brut)
+    fixed = fixed.replace(/\$([^$]+)\$/g, (match, inner) => {
+        const fixedInner = inner
+            .replace(/<=/g, '\\leq ')
+            .replace(/>=/g, '\\geq ')
+            .replace(/!=/g, '\\neq ');
+        return '$' + fixedInner + '$';
+    });
 
     return {
         content: fixed,
@@ -49,3 +66,4 @@ export function fixLatexStreaming(chunk: string, buffer: string): string {
 export function needsLatexFix(content: string): boolean {
     return content.includes('\\(') || content.includes('\\[') || content.includes('begin{array}');
 }
+

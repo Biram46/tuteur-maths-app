@@ -625,6 +625,16 @@ function parseProductFactors(expr: string, role: 'numerator' | 'denominator', do
     const factors: FactorAnalysis[] = [];
     let remaining = expr.trim();
 
+    // ── FAST PATH : si pas de *, pas de parenthèses multiples, pas de fonctions,
+    //    c'est un facteur unique (ex: "x + 3", "2x - 1", "x^2 - 4x + 3") ──
+    const hasMultiplication = remaining.includes('*');
+    const hasFunctionWrapper = /^(sqrt|ln|log|exp)\(/.test(remaining) || /^e\^/.test(remaining);
+    const hasParenProduct = /\)\s*\(/.test(remaining);
+    if (!hasMultiplication && !hasFunctionWrapper && !hasParenProduct) {
+        factors.push(classifyFactor(remaining, remaining, role, domain));
+        return factors;
+    }
+
     // Regex pour tokeniser : sqrt(...), ln(...), log(...), e^(...), (facteur ordinaire), scalaire
     // On traite de gauche à droite en consommant les tokens un par un.
     const tokenRe = /^\s*(?:(sqrt|ln|log|exp)\(([^()]+)\)|e\^\(([^()]+)\)|e\^([a-zA-Z0-9_]+)|\(([^()]+)\)|([^()*\/\s]+))\s*\*?\s*/;

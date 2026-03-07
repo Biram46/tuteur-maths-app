@@ -43,6 +43,9 @@ export function generateGraphData(input: GraphInput): GraphResult {
         const [xMin, xMax] = domain ? [domain[0], domain[1]] : autoDetectDomain(expression);
         let [, , yMin, yMax] = domain ?? [xMin, xMax, -10, 10];
 
+        // Détecter les discontinuités (asymptotes verticales)
+        const discontinuities = findDiscontinuities(expression, xMin, xMax);
+
         // Calculer quelques points clés (zéros, extremums…)
         const zeros = findZeros(expression, xMin, xMax);
         const keyPoints: { x: number; y: number; label: string }[] = [];
@@ -64,20 +67,34 @@ export function generateGraphData(input: GraphInput): GraphResult {
             keyPoints.push({ x: ep.x, y: ep.y, label: ep.label ?? `(${formatForTable(ep.x)} ; ${formatForTable(ep.y)})` });
         }
 
-        // Calculer yMin/yMax si non fournis
+        // Calculer yMin/yMax avec algorithme IQR intelligent (exclut les outliers)
         if (!domain) {
-            let computedYMin = 0, computedYMax = 0;
-            const step = (xMax - xMin) / numPoints;
-            for (let i = 0; i <= numPoints; i++) {
+            const allValues: number[] = [];
+            const smartN = 800;
+            const step = (xMax - xMin) / smartN;
+            for (let i = 0; i <= smartN; i++) {
                 const x = xMin + i * step;
+                // Exclure les points proches des discontinuités
+                if (discontinuities.some(d => Math.abs(x - d) < 0.15)) continue;
                 const y = evalAt(expression, x);
-                if (y !== null && isFinite(y) && Math.abs(y) < 1e4) {
-                    computedYMin = Math.min(computedYMin, y);
-                    computedYMax = Math.max(computedYMax, y);
+                if (y !== null && isFinite(y)) {
+                    allValues.push(y);
                 }
             }
-            yMin = Math.floor(computedYMin * 1.2);
-            yMax = Math.ceil(computedYMax * 1.2);
+
+            if (allValues.length > 0) {
+                allValues.sort((a, b) => a - b);
+                const q1Idx = Math.floor(allValues.length * 0.05);
+                const q3Idx = Math.floor(allValues.length * 0.95);
+                const q1 = allValues[q1Idx];
+                const q3 = allValues[q3Idx];
+                const iqr = q3 - q1;
+                yMin = Math.floor(Math.min(q1 - 1.5 * iqr, -3));
+                yMax = Math.ceil(Math.max(q3 + 1.5 * iqr, 3));
+            } else {
+                yMin = -10;
+                yMax = 10;
+            }
         }
 
         const effectiveDomain: [number, number, number, number] = [xMin, xMax, yMin, yMax];
@@ -86,6 +103,10 @@ export function generateGraphData(input: GraphInput): GraphResult {
         const lines: string[] = ['graph'];
         lines.push(`function: ${expression}`);
         lines.push(`domain: ${effectiveDomain.join(',')}`);
+        // Ajouter les asymptotes verticales
+        if (discontinuities.length > 0) {
+            lines.push(`asymptotes: ${discontinuities.join(',')}`);
+        }
         if (keyPoints.length > 0) {
             keyPoints.forEach(p => lines.push(`${p.x},${p.y}`));
         }
@@ -106,8 +127,18 @@ export function generateGraphData(input: GraphInput): GraphResult {
 /**
  * Détecte automatiquement un domaine de visualisation raisonnable
  * en cherchant les features intéressantes de la fonction.
+ * 🎓 Pour les fonctions trigonométriques, utilise des multiples de π.
  */
 function autoDetectDomain(expression: string): [number, number] {
+    const low = expression.toLowerCase();
+    const isTrig = /\b(cos|sin|tan|cotan|cot)\b/.test(low);
+
+    // Pour les fonctions trigo : domaine en multiples de π
+    if (isTrig) {
+        const PI = Math.PI;
+        return [-2 * PI, 2 * PI]; // [-2π, 2π] = 2 périodes complètes
+    }
+
     // Chercher des discontinuités dans un grand domaine
     const disc = findDiscontinuities(expression, -50, 50);
     const zeros = findZeros(expression, -20, 20);

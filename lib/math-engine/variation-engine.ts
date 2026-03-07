@@ -855,10 +855,6 @@ function buildIntervalBounds(criticalPoints: number[]): [number | '-inf', number
     return bounds;
 }
 
-/**
- * Ligne sign: f'(x)
- * Format: +/-, 0 ou ||, +/-, 0 ou ||, ..., +/-
- */
 function buildDerivSignRow(
     derivExpr: string,
     allCritical: number[],
@@ -870,7 +866,20 @@ function buildDerivSignRow(
 
     for (let i = 0; i < intervalBounds.length; i++) {
         const [from, to] = intervalBounds[i];
-        const sign = signOnInterval(derivExpr, from, to);
+        let sign = signOnInterval(derivExpr, from, to);
+
+        // Fallback: si signOnInterval échoue, évaluer directement en un point central
+        if (sign === null) {
+            const xTest = from === '-inf'
+                ? (typeof to === 'number' ? to - 1 : 0)
+                : to === '+inf'
+                    ? (typeof from === 'number' ? from + 1 : 0)
+                    : ((from as number) + (to as number)) / 2;
+            const v = evalAt(derivExpr, xTest);
+            if (v !== null && Math.abs(v) > 1e-14) {
+                sign = v > 0 ? '+' : '-';
+            }
+        }
         values.push(sign ?? '+');
 
         if (i < allCritical.length) {
@@ -880,7 +889,14 @@ function buildDerivSignRow(
 
             if (isDiscontinuity) values.push('||');
             else if (isDerivZero) values.push('0');
-            else values.push(signOnInterval(derivExpr, cp - 1e-8, cp + 1e-8) ?? '+');
+            else {
+                const cpSign = signOnInterval(derivExpr, cp - 1e-8, cp + 1e-8);
+                if (cpSign !== null) values.push(cpSign);
+                else {
+                    const v = evalAt(derivExpr, cp);
+                    values.push(v !== null && v > 0 ? '+' : v !== null && v < 0 ? '-' : '+');
+                }
+            }
         }
     }
 
