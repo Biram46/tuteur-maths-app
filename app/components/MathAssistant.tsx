@@ -1262,7 +1262,16 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                 const buttons = msgEl.querySelectorAll('button');
                 buttons.forEach(b => { (b as HTMLElement).style.visibility = 'hidden'; });
 
+                // ── Supprimer les erreurs css "lab"/"oklch" de html2canvas ──
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const _origErr = console.error;
+                console.error = (...a: any[]) => {
+                    if (typeof a[0] === 'string' && a[0].includes('unsupported color')) return;
+                    _origErr.apply(console, a);
+                };
+
                 try {
+
                     const canvas = await html2canvas(msgEl as HTMLElement, {
                         backgroundColor: '#ffffff',
                         scale: 2.5,
@@ -1379,41 +1388,88 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                             `;
                             clonedDoc.head.appendChild(styleTag);
 
-                            // 4. Remplacer les éléments KaTeX par du texte brut
-                            //    html2canvas ne peut PAS rendre les polices KaTeX → texte invisible
-                            //    ATTENTION : .katex contient DEUX enfants :
-                            //      - .katex-mathml (MathML caché, pour accessibilité)
-                            //      - .katex-html   (rendu visible)
-                            //    → Extraire UNIQUEMENT le texte de .katex-html sinon double caractères !
+                            // 4. Remplacer les éléments KaTeX par du texte lisible
+                            //    html2canvas ne supporte PAS les polices web KaTeX
+                            //    → extraire le LaTeX source et le convertir en Unicode lisible
                             if (el) {
-                                // Helper : extraire le texte visible d'un élément KaTeX
-                                const getKatexText = (katexEl: HTMLElement): string => {
-                                    // Chercher .katex-html pour le texte visible
-                                    const htmlPart = katexEl.querySelector('.katex-html');
-                                    if (htmlPart) return (htmlPart as HTMLElement).textContent || '';
-                                    // Fallback : supprimer .katex-mathml et prendre le reste
-                                    const mathml = katexEl.querySelector('.katex-mathml');
-                                    if (mathml) mathml.remove();
+                                const latexToReadable = (tex: string): string => {
+                                    let t = tex;
+                                    // Fractions
+                                    for (let pass = 0; pass < 3; pass++) {
+                                        t = t.replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
+                                    }
+                                    // Racines
+                                    t = t.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '$1√($2)');
+                                    t = t.replace(/\\sqrt\s*\{([^}]*)\}/g, '√($1)');
+                                    // Exposants courants
+                                    t = t.replace(/\^{2}/g, '²').replace(/\^2(?![0-9{])/g, '²');
+                                    t = t.replace(/\^{3}/g, '³').replace(/\^3(?![0-9{])/g, '³');
+                                    t = t.replace(/\^{\s*\\prime\s*}/g, "'");
+                                    t = t.replace(/\^{([^}]*)}/g, '^($1)');
+                                    t = t.replace(/_{([^}]*)}/g, '_$1');
+                                    // Fonctions
+                                    const fns = ['ln', 'log', 'exp', 'sin', 'cos', 'tan', 'lim', 'max', 'min', 'sup', 'inf'];
+                                    fns.forEach(f => { t = t.replace(new RegExp('\\\\' + f + '\\b', 'g'), f); });
+                                    // Symboles
+                                    const syms: [RegExp, string][] = [
+                                        [/\\infty/g, '∞'], [/\\pm/g, '±'], [/\\mp/g, '∓'],
+                                        [/\\times/g, '×'], [/\\cdot/g, '·'], [/\\div/g, '÷'],
+                                        [/\\leq?\b/g, '≤'], [/\\geq?\b/g, '≥'], [/\\neq?\b/g, '≠'],
+                                        [/\\approx/g, '≈'], [/\\equiv/g, '≡'],
+                                        [/\\rightarrow/g, '→'], [/\\Rightarrow/g, '⇒'],
+                                        [/\\leftarrow/g, '←'], [/\\Leftarrow/g, '⇐'],
+                                        [/\\forall/g, '∀'], [/\\exists/g, '∃'],
+                                        [/\\in\b/g, '∈'], [/\\notin/g, '∉'],
+                                        [/\\subset/g, '⊂'], [/\\cup/g, '∪'], [/\\cap/g, '∩'],
+                                        [/\\emptyset/g, '∅'],
+                                    ];
+                                    syms.forEach(([rx, rep]) => { t = t.replace(rx, rep); });
+                                    // Lettres grecques
+                                    const greeks: [string, string][] = [
+                                        ['alpha', 'α'], ['beta', 'β'], ['gamma', 'γ'], ['delta', 'δ'],
+                                        ['Delta', 'Δ'], ['epsilon', 'ε'], ['varepsilon', 'ε'], ['pi', 'π'],
+                                        ['sigma', 'σ'], ['theta', 'θ'], ['lambda', 'λ'], ['mu', 'μ'], ['omega', 'ω'],
+                                    ];
+                                    greeks.forEach(([g, u]) => { t = t.replace(new RegExp('\\\\' + g, 'g'), u); });
+                                    // Commandes de texte/style
+                                    t = t.replace(/\\(?:mathbb|mathcal|mathrm|text|textbf|operatorname)\s*\{([^}]*)\}/g, '$1');
+                                    t = t.replace(/\\(?:left|right)\s*([(\[{|)\]}.])/g, '$1');
+                                    t = t.replace(/\\(?:left|right)\s*\./g, '');
+                                    t = t.replace(/\\(?:quad|qquad)/g, '  ');
+                                    t = t.replace(/\\[,;!]\s*/g, ' ');
+                                    t = t.replace(/\\\s/g, ' ');
+                                    t = t.replace(/\\displaystyle/g, '');
+                                    t = t.replace(/\\prime/g, "'");
+                                    // Nettoyer les commandes restantes
+                                    t = t.replace(/\\[a-zA-Z]+\s*\{([^}]*)\}/g, '$1');
+                                    t = t.replace(/[{}]/g, '');
+                                    t = t.replace(/\s+/g, ' ').trim();
+                                    return t;
+                                };
+
+                                const getReadable = (katexEl: HTMLElement): string => {
+                                    const ann = katexEl.querySelector('annotation[encoding="application/x-tex"]');
+                                    if (ann?.textContent) return latexToReadable(ann.textContent);
+                                    const hp = katexEl.querySelector('.katex-html');
+                                    if (hp) return (hp as HTMLElement).textContent || '';
                                     return katexEl.textContent || '';
                                 };
 
-                                // Traiter les KaTeX display (blocs $$...$$)
-                                const katexDisplays = Array.from(el.querySelectorAll('.katex-display'));
-                                katexDisplays.forEach(kd => {
-                                    const text = getKatexText(kd as HTMLElement);
+                                // Display KaTeX
+                                Array.from(el.querySelectorAll('.katex-display')).forEach(kd => {
+                                    const txt = getReadable(kd as HTMLElement);
                                     const div = clonedDoc.createElement('div');
-                                    div.textContent = text;
-                                    div.style.cssText = 'color: #000000; font-size: 16px; font-style: italic; font-family: "Times New Roman", Georgia, serif; text-align: center; margin: 0.5em 0; padding: 8px 0;';
+                                    div.textContent = txt;
+                                    div.style.cssText = 'color:#000;font-size:15px;font-style:italic;font-family:"Times New Roman",Georgia,serif;text-align:center;margin:0.5em 0;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;';
                                     kd.parentNode?.replaceChild(div, kd);
                                 });
 
-                                // Traiter les KaTeX inline ($...$)
-                                const katexSpans = Array.from(el.querySelectorAll('.katex'));
-                                katexSpans.forEach(ks => {
-                                    const text = getKatexText(ks as HTMLElement);
+                                // Inline KaTeX
+                                Array.from(el.querySelectorAll('.katex')).forEach(ks => {
+                                    const txt = getReadable(ks as HTMLElement);
                                     const span = clonedDoc.createElement('span');
-                                    span.textContent = text;
-                                    span.style.cssText = 'color: #000000; font-style: italic; font-family: "Times New Roman", Georgia, serif; font-size: inherit;';
+                                    span.textContent = txt;
+                                    span.style.cssText = 'color:#000;font-style:italic;font-family:"Times New Roman",Georgia,serif;font-size:inherit;';
                                     ks.parentNode?.replaceChild(span, ks);
                                 });
                             }
@@ -1496,7 +1552,12 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
                     yPos += 10; // Espacement entre messages
 
+                    // Restaurer console.error
+                    console.error = _origErr;
+
                 } catch (e) {
+                    // Restaurer console.error en cas d'erreur
+                    try { console.error = _origErr; } catch { /* ignore */ }
                     console.error("Erreur capture message:", e);
                     buttons.forEach(b => { (b as HTMLElement).style.visibility = 'visible'; });
                 }
