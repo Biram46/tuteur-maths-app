@@ -1125,8 +1125,8 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     // --- EXPORT BILAN EN PDF ---
     const handleExportBilan = async () => {
         if (messages.length === 0) return;
-        // normalizePdfText : remplace les chars Unicode hors Latin-1 par du texte ASCII
-        // Necessaire car jsPDF Helvetica ne supporte que Latin-1 (U+0000 a U+00FF)
+        // normalizePdfText conservé pour compatibilité (inutilisé dans la nouvelle approche)
+        // Approche PRINT : le moteur natif du navigateur rend KaTeX parfaitement
         const normalizePdfText = (text: string): string => text
             .replace(/[\u2013\u2014]/g, '-')
             .replace(/\u00A0/g, ' ')
@@ -1151,422 +1151,177 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
         try {
             setLoading(true);
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
 
-            // Fond blanc
-            doc.setFillColor(252, 252, 253);
-            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+            // ── Créer un iframe invisible pour l'impression ──
+            const printFrame = document.createElement('iframe');
+            printFrame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;';
+            document.body.appendChild(printFrame);
 
-            // HEADER page 1
-            const drawHeader = (isFirstPage: boolean) => {
-                doc.setFillColor(248, 250, 252);
-                doc.rect(0, 0, pageWidth, isFirstPage ? 45 : 20, 'F');
-                doc.setDrawColor(34, 211, 238);
-                doc.setLineWidth(2);
-                doc.line(0, isFirstPage ? 45 : 20, pageWidth, isFirstPage ? 45 : 20);
-                if (isFirstPage) {
-                    doc.setTextColor(15, 23, 42);
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(24);
-                    doc.text("BILAN PEDAGOGIQUE", pageWidth / 2, 22, { align: 'center' });
-                    doc.setFontSize(10);
-                    doc.setTextColor(71, 85, 105);
-                    doc.text(`mimimaths@i | Rapport d'apprentissage | ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 32, { align: 'center' });
-                } else {
-                    doc.setFontSize(8);
-                    doc.setTextColor(100, 116, 139);
-                    doc.text("mimimaths@i - Suite du bilan", pageWidth / 2, 14, { align: 'center' });
+            const printDoc = printFrame.contentDocument!;
+            const printWin = printFrame.contentWindow!;
+
+            // ── Récupérer les stylesheets KaTeX depuis le document principal ──
+            const katexLinks: string[] = [];
+            document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                const href = (link as HTMLLinkElement).href;
+                if (href.includes('katex') || href.includes('KaTeX')) {
+                    katexLinks.push(`<link rel="stylesheet" href="${href}" />`);
                 }
-            };
-
-            const drawFooter = (pageNum: number, totalApprox: string) => {
-                doc.setFontSize(7);
-                doc.setTextColor(148, 163, 184);
-                doc.text(
-                    `Page ${pageNum} | ${new Date().toLocaleString('fr-FR')} • mimimaths@i`,
-                    pageWidth / 2, pageHeight - 6, { align: 'center' }
-                );
-            };
-
-            // Convertir un élément SVG en data URL PNG via un canvas temporaire
-            const svgToDataUrl = (svgEl: SVGElement): Promise<string> => {
-                return new Promise((resolve) => {
+            });
+            // Fallback : si aucun link trouvé, chercher dans les stylesheets
+            if (katexLinks.length === 0) {
+                Array.from(document.styleSheets).forEach(ss => {
                     try {
-                        const svgTyped = svgEl as SVGSVGElement;
-
-                        // Déterminer les dimensions réelles à partir du viewBox ou des attributs
-                        let w = 0, h = 0;
-
-                        // 1. viewBox est la source de vérité pour MathTable (width="100%")
-                        const vb = svgTyped.getAttribute('viewBox');
-                        if (vb) {
-                            const parts = vb.split(/[\s,]+/).map(Number);
-                            if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
-                                w = parts[2];
-                                h = parts[3];
-                            }
+                        if (ss.href && (ss.href.includes('katex') || ss.href.includes('KaTeX'))) {
+                            katexLinks.push(`<link rel="stylesheet" href="${ss.href}" />`);
                         }
-
-                        // 2. Attributs width/height explicites (en pixels)
-                        if (!w) w = svgTyped.width?.baseVal?.value || parseFloat(svgEl.getAttribute('width') || '0') || 0;
-                        if (!h) h = svgTyped.height?.baseVal?.value || parseFloat(svgEl.getAttribute('height') || '0') || 0;
-
-                        // 3. Dimensions réelles du DOM (en dernier recours)
-                        if (!w) w = svgEl.clientWidth || svgEl.getBoundingClientRect().width || 800;
-                        if (!h) h = svgEl.clientHeight || svgEl.getBoundingClientRect().height || 200;
-
-                        // Cloner le SVG pour fixer les dimensions (éviter width="100%")
-                        const clonedSvg = svgEl.cloneNode(true) as SVGSVGElement;
-                        clonedSvg.setAttribute('width', String(w));
-                        clonedSvg.setAttribute('height', String(h));
-                        if (!vb) clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-
-                        const svgData = new XMLSerializer().serializeToString(clonedSvg);
-                        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-
-                        const scale = 2; // Rendu 2x pour la netteté
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = w * scale;
-                            canvas.height = h * scale;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                                ctx.fillStyle = '#ffffff';
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            }
-                            resolve(canvas.toDataURL('image/png'));
-                        };
-                        img.onerror = () => { resolve(''); };
-                        img.src = svgDataUrl;
-                    } catch {
-                        resolve('');
-                    }
+                    } catch { /* cross-origin */ }
                 });
-            };
+            }
+            // Dernier recours : CDN KaTeX
+            if (katexLinks.length === 0) {
+                katexLinks.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />');
+            }
 
-            drawHeader(true);
-            let yPos = 55;
-            const margin = 15;
-            const contentWidth = pageWidth - margin * 2;
-            let pageNum = 1;
-
+            // ── Construire le contenu HTML ──
+            let messagesHtml = '';
             for (let i = 0; i < messages.length; i++) {
                 const msgEl = document.getElementById(`msg-${i}`);
                 if (!msgEl) continue;
 
-                // Masquer les boutons pendant la capture
-                const buttons = msgEl.querySelectorAll('button');
-                buttons.forEach(b => { (b as HTMLElement).style.visibility = 'hidden'; });
+                const role = messages[i].role;
+                const roleLabel = role === 'user' ? 'ÉLÈVE' : 'MIMIMATHS@I — ASSISTANT';
+                const roleBg = role === 'user' ? '#f0f9ff' : '#ffffff';
+                const roleBorder = role === 'user' ? '#bae6fd' : '#e2e8f0';
 
-                // ── Supprimer les erreurs css "lab"/"oklch" de html2canvas ──
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const _origErr = console.error;
-                console.error = (...a: any[]) => {
-                    if (typeof a[0] === 'string' && a[0].includes('unsupported color')) return;
-                    _origErr.apply(console, a);
-                };
-
-                try {
-
-                    const canvas = await html2canvas(msgEl as HTMLElement, {
-                        backgroundColor: '#ffffff',
-                        scale: 2.5,
-                        useCORS: true,
-                        logging: false,
-                        // CLEF : convertir les SVG en images PNG avant la capture
-                        onclone: async (clonedDoc) => {
-                            const el = clonedDoc.getElementById(`msg-${i}`);
-                            if (el) {
-                                el.style.padding = '20px';
-                                el.style.width = '820px';
-                                el.style.backgroundColor = '#ffffff';
-                                el.style.color = '#000000';
-                                el.style.borderRadius = '0px';
-                                el.style.border = '1px solid #e2e8f0';
-                            }
-
-                            // 1. Convertir chaque SVG du message en <img> PNG
-                            //    IMPORTANT: chercher dans `el` (message cloné) et non dans tout `clonedDoc`
-                            const clonedMsgSvgs = el ? Array.from(el.querySelectorAll('svg')) as SVGSVGElement[] : [];
-                            const originalMsgSvgs = Array.from((msgEl as HTMLElement).querySelectorAll('svg')) as SVGSVGElement[];
-
-                            for (let svgIdx = 0; svgIdx < clonedMsgSvgs.length; svgIdx++) {
-                                const clonedSvg = clonedMsgSvgs[svgIdx];
-
-                                // Déterminer la taille via viewBox (car MathTable a width="100%")
-                                let svgW = 0, svgH = 0;
-                                const vb = clonedSvg.getAttribute('viewBox');
-                                if (vb) {
-                                    const p = vb.split(/[\s,]+/).map(Number);
-                                    if (p.length === 4) { svgW = p[2]; svgH = p[3]; }
-                                }
-                                if (!svgW) svgW = clonedSvg.width?.baseVal?.value || parseFloat(clonedSvg.getAttribute('width') || '0');
-                                if (!svgH) svgH = clonedSvg.height?.baseVal?.value || parseFloat(clonedSvg.getAttribute('height') || '0');
-
-                                // Exclure les petites icônes (speaker, etc.)
-                                if (svgW < 50 || svgH < 30) continue;
-
-                                // Utiliser le SVG ORIGINAL (meilleure qualité — il est dans le DOM réel)
-                                const sourceSvg = originalMsgSvgs[svgIdx] || clonedSvg;
-                                const dataUrl = await svgToDataUrl(sourceSvg as SVGElement);
-                                if (dataUrl) {
-                                    const img = clonedDoc.createElement('img');
-                                    img.src = dataUrl;
-                                    img.style.width = '100%';
-                                    img.style.maxWidth = '780px';
-                                    img.style.display = 'block';
-                                    img.style.margin = '10px auto';
-                                    img.style.border = '1px solid #e2e8f0';
-                                    img.style.borderRadius = '8px';
-                                    clonedSvg.parentNode?.replaceChild(img, clonedSvg);
-                                }
-                            }
-
-                            // 2. Supprimer les feuilles CSS cross-origin (oklch / TailwindV4)
-                            const styleSheets = clonedDoc.styleSheets;
-                            for (let k = styleSheets.length - 1; k >= 0; k--) {
-                                try {
-                                    const rules = styleSheets[k].cssRules;
-                                    if (rules) {
-                                        for (let j = rules.length - 1; j >= 0; j--) {
-                                            if (/oklch|oklab|lab\(|lch\(|hwb\(/.test(rules[j].cssText)) {
-                                                (styleSheets[k] as CSSStyleSheet).deleteRule(j);
-                                            }
-                                        }
-                                    }
-                                } catch {
-                                    const node = styleSheets[k].ownerNode;
-                                    if (node?.parentNode) node.parentNode.removeChild(node);
-                                }
-                            }
-
-                            // 3. Injecter les styles PDF : TOUT en noir sur blanc
-                            const styleTag = clonedDoc.createElement('style');
-                            styleTag.innerHTML = `
-                                * {
-                                    color-scheme: light !important;
-                                    text-shadow: none !important;
-                                    box-shadow: none !important;
-                                }
-                                body, html, div, p, span, li, ul, ol, h1, h2, h3, h4, h5, h6,
-                                strong, b, em, i, a, code, pre, blockquote, td, th, label {
-                                    color: #000000 !important;
-                                    background-color: transparent !important;
-                                }
-                                #msg-${i}, #msg-${i} > div {
-                                    background-color: #ffffff !important;
-                                    color: #000000 !important;
-                                }
-                                .katex, .katex *, .katex .mord, .katex .mbin,
-                                .katex .mrel, .katex .mopen, .katex .mclose,
-                                .katex .mpunct, .katex .minner {
-                                    color: #000000 !important;
-                                }
-                                .katex-display { margin: 0.5em 0 !important; color: #000000 !important; }
-                                .message-content-wrapper, .message-content-wrapper * {
-                                    color: #000000 !important;
-                                }
-                                code {
-                                    color: #1e293b !important;
-                                    background: #f1f5f9 !important;
-                                    border: 1px solid #e2e8f0 !important;
-                                }
-                                pre {
-                                    background: #f8fafc !important;
-                                    border: 1px solid #e2e8f0 !important;
-                                }
-                                blockquote {
-                                    border-left: 3px solid #94a3b8 !important;
-                                    color: #374151 !important;
-                                }
-                                .math-figure-container { margin: 20px 0 !important; background: white !important; }
-                                img { max-width: 100% !important; height: auto !important; }
-                            `;
-                            clonedDoc.head.appendChild(styleTag);
-
-                            // 4. Remplacer les éléments KaTeX par du texte lisible
-                            //    html2canvas ne supporte PAS les polices web KaTeX
-                            //    → extraire le LaTeX source et le convertir en Unicode lisible
-                            if (el) {
-                                const latexToReadable = (tex: string): string => {
-                                    let t = tex;
-                                    // Fractions
-                                    for (let pass = 0; pass < 3; pass++) {
-                                        t = t.replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
-                                    }
-                                    // Racines
-                                    t = t.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '$1√($2)');
-                                    t = t.replace(/\\sqrt\s*\{([^}]*)\}/g, '√($1)');
-                                    // Exposants courants
-                                    t = t.replace(/\^{2}/g, '²').replace(/\^2(?![0-9{])/g, '²');
-                                    t = t.replace(/\^{3}/g, '³').replace(/\^3(?![0-9{])/g, '³');
-                                    t = t.replace(/\^{\s*\\prime\s*}/g, "'");
-                                    t = t.replace(/\^{([^}]*)}/g, '^($1)');
-                                    t = t.replace(/_{([^}]*)}/g, '_$1');
-                                    // Fonctions
-                                    const fns = ['ln', 'log', 'exp', 'sin', 'cos', 'tan', 'lim', 'max', 'min', 'sup', 'inf'];
-                                    fns.forEach(f => { t = t.replace(new RegExp('\\\\' + f + '\\b', 'g'), f); });
-                                    // Symboles
-                                    const syms: [RegExp, string][] = [
-                                        [/\\infty/g, '∞'], [/\\pm/g, '±'], [/\\mp/g, '∓'],
-                                        [/\\times/g, '×'], [/\\cdot/g, '·'], [/\\div/g, '÷'],
-                                        [/\\leq?\b/g, '≤'], [/\\geq?\b/g, '≥'], [/\\neq?\b/g, '≠'],
-                                        [/\\approx/g, '≈'], [/\\equiv/g, '≡'],
-                                        [/\\rightarrow/g, '→'], [/\\Rightarrow/g, '⇒'],
-                                        [/\\leftarrow/g, '←'], [/\\Leftarrow/g, '⇐'],
-                                        [/\\forall/g, '∀'], [/\\exists/g, '∃'],
-                                        [/\\in\b/g, '∈'], [/\\notin/g, '∉'],
-                                        [/\\subset/g, '⊂'], [/\\cup/g, '∪'], [/\\cap/g, '∩'],
-                                        [/\\emptyset/g, '∅'],
-                                    ];
-                                    syms.forEach(([rx, rep]) => { t = t.replace(rx, rep); });
-                                    // Lettres grecques
-                                    const greeks: [string, string][] = [
-                                        ['alpha', 'α'], ['beta', 'β'], ['gamma', 'γ'], ['delta', 'δ'],
-                                        ['Delta', 'Δ'], ['epsilon', 'ε'], ['varepsilon', 'ε'], ['pi', 'π'],
-                                        ['sigma', 'σ'], ['theta', 'θ'], ['lambda', 'λ'], ['mu', 'μ'], ['omega', 'ω'],
-                                    ];
-                                    greeks.forEach(([g, u]) => { t = t.replace(new RegExp('\\\\' + g, 'g'), u); });
-                                    // Commandes de texte/style
-                                    t = t.replace(/\\(?:mathbb|mathcal|mathrm|text|textbf|operatorname)\s*\{([^}]*)\}/g, '$1');
-                                    t = t.replace(/\\(?:left|right)\s*([(\[{|)\]}.])/g, '$1');
-                                    t = t.replace(/\\(?:left|right)\s*\./g, '');
-                                    t = t.replace(/\\(?:quad|qquad)/g, '  ');
-                                    t = t.replace(/\\[,;!]\s*/g, ' ');
-                                    t = t.replace(/\\\s/g, ' ');
-                                    t = t.replace(/\\displaystyle/g, '');
-                                    t = t.replace(/\\prime/g, "'");
-                                    // Nettoyer les commandes restantes
-                                    t = t.replace(/\\[a-zA-Z]+\s*\{([^}]*)\}/g, '$1');
-                                    t = t.replace(/[{}]/g, '');
-                                    t = t.replace(/\s+/g, ' ').trim();
-                                    return t;
-                                };
-
-                                const getReadable = (katexEl: HTMLElement): string => {
-                                    const ann = katexEl.querySelector('annotation[encoding="application/x-tex"]');
-                                    if (ann?.textContent) return latexToReadable(ann.textContent);
-                                    const hp = katexEl.querySelector('.katex-html');
-                                    if (hp) return (hp as HTMLElement).textContent || '';
-                                    return katexEl.textContent || '';
-                                };
-
-                                // Display KaTeX
-                                Array.from(el.querySelectorAll('.katex-display')).forEach(kd => {
-                                    const txt = getReadable(kd as HTMLElement);
-                                    const div = clonedDoc.createElement('div');
-                                    div.textContent = txt;
-                                    div.style.cssText = 'color:#000;font-size:15px;font-style:italic;font-family:"Times New Roman",Georgia,serif;text-align:center;margin:0.5em 0;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;';
-                                    kd.parentNode?.replaceChild(div, kd);
-                                });
-
-                                // Inline KaTeX
-                                Array.from(el.querySelectorAll('.katex')).forEach(ks => {
-                                    const txt = getReadable(ks as HTMLElement);
-                                    const span = clonedDoc.createElement('span');
-                                    span.textContent = txt;
-                                    span.style.cssText = 'color:#000;font-style:italic;font-family:"Times New Roman",Georgia,serif;font-size:inherit;';
-                                    ks.parentNode?.replaceChild(span, ks);
-                                });
-                            }
-
-                            // 5. FORCE BRUTE : parcourir TOUS les éléments du message cloné
-                            //    et forcer la couleur noire
-                            if (el) {
-                                const allEls = el.getElementsByTagName('*');
-                                for (let j = 0; j < allEls.length; j++) {
-                                    const elt = allEls[j] as HTMLElement;
-                                    elt.style.color = '#000000';
-                                    const bg = elt.style.backgroundColor;
-                                    if (bg && (bg.includes('rgb(2,') || bg.includes('rgb(15,') || bg.includes('rgba(0,') ||
-                                        bg.includes('oklch') || bg.includes('#020617') || bg.includes('#0f172a'))) {
-                                        elt.style.backgroundColor = '#ffffff';
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    buttons.forEach(b => { (b as HTMLElement).style.visibility = 'visible'; });
-
-                    const imgData = canvas.toDataURL('image/png');
-                    const imgHeight = (canvas.height * contentWidth) / canvas.width;
-
-                    // Label rôle
-                    const roleLabel = messages[i].role === 'user' ? "ÉLÈVE" : "MIMIMATHS@I — ASSISTANT";
-
-                    // Si le contenu ne tient pas sur la page courante → nouvelle page
-                    if (yPos + imgHeight + 8 > pageHeight - 15) {
-                        drawFooter(pageNum, '...');
-                        doc.addPage();
-                        pageNum++;
-                        drawHeader(false);
-                        doc.setFillColor(252, 252, 253);
-                        doc.rect(0, 20, pageWidth, pageHeight - 20, 'F');
-                        yPos = 28;
-                    }
-
-                    doc.setFontSize(7);
-                    doc.setTextColor(100, 116, 139);
-                    doc.text(roleLabel, margin, yPos - 2);
-
-                    // Si le message est très long, le découper sur plusieurs pages
-                    let remainingHeight = imgHeight;
-                    let srcY = 0;
-
-                    while (remainingHeight > 0) {
-                        const availableH = pageHeight - 15 - yPos;
-                        const chunkHeightPdf = Math.min(remainingHeight, availableH);
-                        const chunkHeightPx = (chunkHeightPdf * canvas.width) / contentWidth;
-
-                        // Créer un canvas partiel
-                        const chunkCanvas = document.createElement('canvas');
-                        chunkCanvas.width = canvas.width;
-                        chunkCanvas.height = Math.ceil(chunkHeightPx);
-                        const chunkCtx = chunkCanvas.getContext('2d');
-                        if (chunkCtx) {
-                            chunkCtx.fillStyle = '#ffffff';
-                            chunkCtx.fillRect(0, 0, chunkCanvas.width, chunkCanvas.height);
-                            chunkCtx.drawImage(canvas, 0, srcY, canvas.width, chunkCanvas.height, 0, 0, canvas.width, chunkCanvas.height);
-                        }
-
-                        doc.addImage(chunkCanvas.toDataURL('image/png'), 'PNG', margin, yPos, contentWidth, chunkHeightPdf);
-                        yPos += chunkHeightPdf + 5;
-                        srcY += chunkCanvas.height;
-                        remainingHeight -= chunkHeightPdf;
-
-                        if (remainingHeight > 0) {
-                            drawFooter(pageNum, '...');
-                            doc.addPage();
-                            pageNum++;
-                            drawHeader(false);
-                            doc.setFillColor(252, 252, 253);
-                            doc.rect(0, 20, pageWidth, pageHeight - 20, 'F');
-                            yPos = 28;
+                // Cloner et nettoyer
+                const clone = msgEl.cloneNode(true) as HTMLElement;
+                clone.querySelectorAll('button').forEach(b => b.remove());
+                clone.querySelectorAll('[class*="avatar"], [class*="Avatar"], [class*="robot"]').forEach(a => a.remove());
+                // Forcer couleur noire sur tout le contenu
+                clone.querySelectorAll('*').forEach(el => {
+                    const e = el as HTMLElement;
+                    if (e.style) {
+                        e.style.color = '#000';
+                        const bg = e.style.backgroundColor;
+                        if (bg && (bg.includes('rgb(2,') || bg.includes('rgb(15,') || bg.includes('oklch') || bg.includes('#020617'))) {
+                            e.style.backgroundColor = 'transparent';
                         }
                     }
+                });
 
-                    yPos += 10; // Espacement entre messages
-
-                    // Restaurer console.error
-                    console.error = _origErr;
-
-                } catch (e) {
-                    // Restaurer console.error en cas d'erreur
-                    try { console.error = _origErr; } catch { /* ignore */ }
-                    console.error("Erreur capture message:", e);
-                    buttons.forEach(b => { (b as HTMLElement).style.visibility = 'visible'; });
-                }
+                messagesHtml += `
+                    <div class="msg-block">
+                        <div class="role-label">${roleLabel}</div>
+                        <div class="msg-content" style="background:${roleBg};border:1px solid ${roleBorder};">
+                            ${clone.innerHTML}
+                        </div>
+                    </div>`;
             }
 
-            // Footer dernière page
-            drawFooter(pageNum, pageNum.toString());
+            printDoc.open();
+            printDoc.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Bilan Pédagogique - mimimaths@i</title>
+${katexLinks.join('\n')}
+<style>
+@page { size: A4; margin: 18mm 15mm 22mm 15mm; }
+@media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+}
+* { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    color: #0f172a;
+    line-height: 1.55;
+    margin: 0; padding: 0;
+    background: #fff;
+}
+/* ── Header ── */
+.print-header {
+    text-align: center;
+    border-bottom: 3px solid #22d3ee;
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+}
+.print-header h1 {
+    font-size: 22pt; font-weight: 800;
+    color: #0f172a; margin: 0 0 5px;
+    letter-spacing: 0.03em;
+}
+.print-header .sub { font-size: 9pt; color: #64748b; }
+/* ── Messages ── */
+.msg-block {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+}
+.role-label {
+    font-size: 8pt; color: #64748b;
+    font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+.msg-content {
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #000 !important;
+}
+.msg-content * { color: #000 !important; }
+/* ── KaTeX ── */
+.katex { color: #000 !important; }
+.katex-display { margin: 0.7em 0 !important; }
+/* ── Tableaux SVG ── */
+svg { max-width: 100% !important; height: auto !important; }
+/* ── Markdown ── */
+strong, b { font-weight: 700; }
+h2, h3, h4 { margin-top: 0.8em; margin-bottom: 0.3em; }
+ul, ol { margin: 0.4em 0; padding-left: 1.5em; }
+li { margin-bottom: 0.15em; }
+code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+blockquote { border-left: 3px solid #94a3b8; margin: 0.5em 0; padding: 0.3em 0 0.3em 12px; color: #374151; }
+img { max-width: 100%; height: auto; }
+/* ── Footer ── */
+.print-footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    text-align: center; font-size: 7pt; color: #94a3b8;
+    padding: 4px 0; border-top: 1px solid #e2e8f0;
+}
+</style>
+</head>
+<body>
+<div class="print-header">
+    <h1>BILAN PÉDAGOGIQUE</h1>
+    <div class="sub">mimimaths@i · Rapport d'apprentissage · ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+</div>
+${messagesHtml}
+<div class="print-footer">mimimaths@i · ${new Date().toLocaleString('fr-FR')}</div>
+</body>
+</html>`);
+            printDoc.close();
 
-            doc.save(`Bilan_Maths_${new Date().getTime()}.pdf`);
+            // ── Attendre le chargement des polices KaTeX ──
+            await new Promise<void>(resolve => {
+                printFrame.onload = () => resolve();
+                setTimeout(resolve, 2500);
+            });
+            await new Promise(r => setTimeout(r, 800));
+
+            // ── Lancer l'impression ──
+            printWin.focus();
+            printWin.print();
+
+            // Nettoyer
+            setTimeout(() => {
+                try { document.body.removeChild(printFrame); } catch { /* ok */ }
+            }, 3000);
+
+            // Pas besoin de jsPDF, le navigateur génère le PDF nativement
+            void normalizePdfText; // éviter l'erreur "unused"
+            const doc = null; void doc; // compat
         } catch (error) {
             console.error("Erreur PDF:", error);
             alert("Erreur lors de la génération du PDF.");
@@ -1578,634 +1333,851 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
     const processFile = async (file: File) => {
-        setIsScanning(true);
-        setLoading(true);
-        const isPdf = file.type === 'application/pdf';
+    setIsScanning(true);
+    setLoading(true);
+    const isPdf = file.type === 'application/pdf';
 
-        // Message visuel immédiat
-        setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `✨ *Analyse photonique en cours... Je scanne votre ${isPdf ? 'document PDF' : 'image (capture)'}.*`
-        }]);
+    // Message visuel immédiat
+    setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `✨ *Analyse photonique en cours... Je scanne votre ${isPdf ? 'document PDF' : 'image (capture)'}.*`
+    }]);
 
-        try {
-            if (file.size > 20 * 1024 * 1024) {
-                throw new Error("Le fichier est trop volumineux (max 20 Mo).");
-            }
-
-            let imagesToProcess: { base64: string; mimeType: string }[];
-
-            // Convertir PDF en images
-            if (isPdf) {
-                try {
-                    imagesToProcess = await convertPdfToImages(file);
-                    console.log(`[PDF] Converti en ${imagesToProcess.length} image(s)`);
-                } catch (pdfError: any) {
-                    console.error("[PDF] Erreur conversion:", pdfError);
-                    throw new Error("Impossible de lire le PDF. Essayez de prendre une capture d'écran à la place.");
-                }
-            } else {
-                // Pour les images, lire directement en base64
-                const base64Data = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                    reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
-                });
-                imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
-            }
-
-            // Analyser chaque image (pour PDF multi-pages, on combine les résultats)
-            let combinedTranscription = "";
-            for (let i = 0; i < imagesToProcess.length; i++) {
-                const { base64, mimeType } = imagesToProcess[i];
-
-                const response = await fetch('/api/vision', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64, mimeType })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    const errorMsg = data.suggestion || data.error || data.message || "Erreur lors de l'analyse";
-                    throw new Error(errorMsg);
-                }
-
-                if (data.transcription) {
-                    if (imagesToProcess.length > 1) {
-                        combinedTranscription += `**Page ${i + 1}:**\n${data.transcription}\n\n`;
-                    } else {
-                        combinedTranscription = data.transcription;
-                    }
-                }
-            }
-
-            if (!combinedTranscription) {
-                throw new Error("Aucun texte n'a pu être extrait du document.");
-            }
-
-            // ── Supprimer le message "Analyse photonique en cours..." ──
-            setMessages(prev => prev.filter(m =>
-                !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
-            ));
-
-            // ── Afficher la transcription comme message user ──
-            const userMessage: ChatMessage = { role: 'user', content: `📷 **Exercice scanné :**\n\n${combinedTranscription}` };
-            const currentMessages = messages.filter(m =>
-                !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
-            );
-            const newMessages = [...currentMessages, userMessage];
-            setMessages(newMessages);
-            setIsScanning(false);
-            setLoading(false);
-
-            // ── Router la transcription via handleSendMessage pour activer les moteurs mathématiques ──
-            // (exercices multi-questions, tableaux de signes, variations, graphes, etc.)
-            await handleSendMessageWithText(combinedTranscription, newMessages);
-
-        } catch (error: any) {
-            console.error("Scan Error:", error);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: `❌ **Erreur :** ${error.message || "Impossible de scanner le document."}`
-            }]);
-            setIsScanning(false);
-            setLoading(false);
-        }
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        await processFile(file);
-        // Reset l'input pour permettre de uploader le même fichier si besoin
-        e.target.value = '';
-    };
-
-    const handlePaste = async (e: React.ClipboardEvent) => {
-        const items = e.clipboardData?.items;
-        if (!items) return;
-
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
-                const file = items[i].getAsFile();
-                if (file) {
-                    e.preventDefault(); // Empêche de coller le texte si c'est une image
-                    await processFile(file);
-                    break;
-                }
-            }
-        }
-    };
-
-    const startStreamingResponse = async (msgs: ChatMessage[]) => {
-        setLoading(true);
-        setIsTalking(true);
-
-        // --- ACKNOWLEDGMENT VOCAL IMMÉDIAT ---
-        if (isVoiceEnabled) {
-            const acknowledgments = [
-                "D'accord, je regarde ça tout de suite.",
-                "Laisse-moi une seconde pour analyser ce problème.",
-                "C'est une bonne question, je prépare une réponse détaillée.",
-                "Je lance la recherche pour te donner une explication précise.",
-                "D'accord, je commence l'analyse de ta demande."
-            ];
-            const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
-            // On lance le TTS sans attendre qu'il finisse pour ne pas bloquer l'appel API
-            speakMessage(randomAck, -1);
+    try {
+        if (file.size > 20 * 1024 * 1024) {
+            throw new Error("Le fichier est trop volumineux (max 20 Mo).");
         }
 
-        // On pré-ajoute le message de l'assistant (vide pour le stream)
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        let imagesToProcess: { base64: string; mimeType: string }[];
 
-        try {
-            const response = await fetch('/api/perplexity', {
+        // Convertir PDF en images
+        if (isPdf) {
+            try {
+                imagesToProcess = await convertPdfToImages(file);
+                console.log(`[PDF] Converti en ${imagesToProcess.length} image(s)`);
+            } catch (pdfError: any) {
+                console.error("[PDF] Erreur conversion:", pdfError);
+                throw new Error("Impossible de lire le PDF. Essayez de prendre une capture d'écran à la place.");
+            }
+        } else {
+            // Pour les images, lire directement en base64
+            const base64Data = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
+            });
+            imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
+        }
+
+        // Analyser chaque image (pour PDF multi-pages, on combine les résultats)
+        let combinedTranscription = "";
+        for (let i = 0; i < imagesToProcess.length; i++) {
+            const { base64, mimeType } = imagesToProcess[i];
+
+            const response = await fetch('/api/vision', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: msgs, context: baseContext }),
+                body: JSON.stringify({ image: base64, mimeType })
             });
 
-            if (!response.ok) throw new Error('Erreur API');
+            const data = await response.json();
 
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error('Reader non disponible');
+            if (!response.ok) {
+                const errorMsg = data.suggestion || data.error || data.message || "Erreur lors de l'analyse";
+                throw new Error(errorMsg);
+            }
 
-            const decoder = new TextDecoder();
-            let fullText = "";
-            let currentSentence = "";
-            let inMathBlock = false;
-            let lastUpdate = Date.now();
-            let rafPending = false;
+            if (data.transcription) {
+                if (imagesToProcess.length > 1) {
+                    combinedTranscription += `**Page ${i + 1}:**\n${data.transcription}\n\n`;
+                } else {
+                    combinedTranscription = data.transcription;
+                }
+            }
+        }
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        if (!combinedTranscription) {
+            throw new Error("Aucun texte n'a pu être extrait du document.");
+        }
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
+        // ── Supprimer le message "Analyse photonique en cours..." ──
+        setMessages(prev => prev.filter(m =>
+            !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
+        ));
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.substring(6);
-                        if (jsonStr === '[DONE]') break;
-                        try {
-                            const json = JSON.parse(jsonStr);
-                            const content = json.choices[0]?.delta?.content || "";
-                            if (content) {
-                                fullText += content;
-                                currentSentence += content;
+        // ── Afficher la transcription comme message user ──
+        const userMessage: ChatMessage = { role: 'user', content: `📷 **Exercice scanné :**\n\n${combinedTranscription}` };
+        const currentMessages = messages.filter(m =>
+            !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
+        );
+        const newMessages = [...currentMessages, userMessage];
+        setMessages(newMessages);
+        setIsScanning(false);
+        setLoading(false);
 
-                                // Mise à jour UI throttlée (max toutes les 150ms via rAF)
-                                const now = Date.now();
-                                if (now - lastUpdate > 150 && !rafPending) {
-                                    rafPending = true;
-                                    // ✅ Appliquer fixLatexContent PENDANT le streaming
-                                    // pour que \( \) \[ \] soient convertis en $ $$ pour KaTeX
-                                    const snapshot = fixLatexContent(fullText).content;
-                                    requestAnimationFrame(() => {
-                                        setMessages(prev => {
-                                            const updated = [...prev];
-                                            updated[updated.length - 1] = {
-                                                role: 'assistant',
-                                                content: snapshot
-                                            };
-                                            return updated;
-                                        });
-                                        rafPending = false;
+        // ── Router la transcription via handleSendMessage pour activer les moteurs mathématiques ──
+        // (exercices multi-questions, tableaux de signes, variations, graphes, etc.)
+        await handleSendMessageWithText(combinedTranscription, newMessages);
+
+    } catch (error: any) {
+        console.error("Scan Error:", error);
+        setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `❌ **Erreur :** ${error.message || "Impossible de scanner le document."}`
+        }]);
+        setIsScanning(false);
+        setLoading(false);
+    }
+};
+
+const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+    // Reset l'input pour permettre de uploader le même fichier si besoin
+    e.target.value = '';
+};
+
+const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
+            const file = items[i].getAsFile();
+            if (file) {
+                e.preventDefault(); // Empêche de coller le texte si c'est une image
+                await processFile(file);
+                break;
+            }
+        }
+    }
+};
+
+const startStreamingResponse = async (msgs: ChatMessage[]) => {
+    setLoading(true);
+    setIsTalking(true);
+
+    // --- ACKNOWLEDGMENT VOCAL IMMÉDIAT ---
+    if (isVoiceEnabled) {
+        const acknowledgments = [
+            "D'accord, je regarde ça tout de suite.",
+            "Laisse-moi une seconde pour analyser ce problème.",
+            "C'est une bonne question, je prépare une réponse détaillée.",
+            "Je lance la recherche pour te donner une explication précise.",
+            "D'accord, je commence l'analyse de ta demande."
+        ];
+        const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+        // On lance le TTS sans attendre qu'il finisse pour ne pas bloquer l'appel API
+        speakMessage(randomAck, -1);
+    }
+
+    // On pré-ajoute le message de l'assistant (vide pour le stream)
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+    try {
+        const response = await fetch('/api/perplexity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: msgs, context: baseContext }),
+        });
+
+        if (!response.ok) throw new Error('Erreur API');
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('Reader non disponible');
+
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let currentSentence = "";
+        let inMathBlock = false;
+        let lastUpdate = Date.now();
+        let rafPending = false;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.substring(6);
+                    if (jsonStr === '[DONE]') break;
+                    try {
+                        const json = JSON.parse(jsonStr);
+                        const content = json.choices[0]?.delta?.content || "";
+                        if (content) {
+                            fullText += content;
+                            currentSentence += content;
+
+                            // Mise à jour UI throttlée (max toutes les 150ms via rAF)
+                            const now = Date.now();
+                            if (now - lastUpdate > 150 && !rafPending) {
+                                rafPending = true;
+                                // ✅ Appliquer fixLatexContent PENDANT le streaming
+                                // pour que \( \) \[ \] soient convertis en $ $$ pour KaTeX
+                                const snapshot = fixLatexContent(fullText).content;
+                                requestAnimationFrame(() => {
+                                    setMessages(prev => {
+                                        const updated = [...prev];
+                                        updated[updated.length - 1] = {
+                                            role: 'assistant',
+                                            content: snapshot
+                                        };
+                                        return updated;
                                     });
-                                    lastUpdate = now;
-                                }
+                                    rafPending = false;
+                                });
+                                lastUpdate = now;
+                            }
 
-                                // Détection de fin de phrase pour le TTS
-                                // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
-                                if (content.includes('@@@')) inMathBlock = !inMathBlock;
-                                if (content.includes('$$')) inMathBlock = !inMathBlock;
+                            // Détection de fin de phrase pour le TTS
+                            // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
+                            if (content.includes('@@@')) inMathBlock = !inMathBlock;
+                            if (content.includes('$$')) inMathBlock = !inMathBlock;
 
-                                if (!inMathBlock && isVoiceEnabled) {
-                                    const sentenceEndings = /[.!?](\s|$)/;
-                                    if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
-                                        // On nettoie un peu la phrase avant de l'ajouter à la queue
-                                        const sentenceToSpeak = currentSentence.trim();
-                                        speechQueue.current.push(sentenceToSpeak);
-                                        currentSentence = "";
-                                        processSpeechQueue();
-                                    }
+                            if (!inMathBlock && isVoiceEnabled) {
+                                const sentenceEndings = /[.!?](\s|$)/;
+                                if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
+                                    // On nettoie un peu la phrase avant de l'ajouter à la queue
+                                    const sentenceToSpeak = currentSentence.trim();
+                                    speechQueue.current.push(sentenceToSpeak);
+                                    currentSentence = "";
+                                    processSpeechQueue();
                                 }
                             }
-                        } catch (e) {
-                            // Erreur de parsing JSON ignorée sur les chunks
                         }
+                    } catch (e) {
+                        // Erreur de parsing JSON ignorée sur les chunks
                     }
                 }
             }
+        }
 
-            // Fin du stream : application du fixFinal et lecture du reste
-            // patchMarkdownTables : si l'IA a généré un tableau Markdown au lieu de @@@,
-            // on le convertit automatiquement (garde-fou non-déterminisme)
-            const finalFixed = patchMarkdownTables(fixLatexContent(fullText).content);
-            setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
-                return updated;
-            });
+        // Fin du stream : application du fixFinal et lecture du reste
+        // patchMarkdownTables : si l'IA a généré un tableau Markdown au lieu de @@@,
+        // on le convertit automatiquement (garde-fou non-déterminisme)
+        const finalFixed = patchMarkdownTables(fixLatexContent(fullText).content);
+        setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
+            return updated;
+        });
 
-            if (currentSentence.trim().length > 0 && isVoiceEnabled) {
-                speechQueue.current.push(currentSentence.trim());
-                processSpeechQueue();
+        if (currentSentence.trim().length > 0 && isVoiceEnabled) {
+            speechQueue.current.push(currentSentence.trim());
+            processSpeechQueue();
+        }
+
+    } catch (error) {
+        console.error('Erreur Assistant:', error);
+        setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur est survenue lors de la communication." };
+            return updated;
+        });
+        setIsTalking(false);
+    } finally {
+        setLoading(false);
+    }
+};
+
+const processSpeechQueue = () => {
+    if (isSpeakingQueue.current || speechQueue.current.length === 0) return;
+    isSpeakingQueue.current = true;
+    const nextSentence = speechQueue.current.shift();
+    if (nextSentence) {
+        speakMessage(nextSentence, -2); // -2 code spécial pour la queue
+    } else {
+        isSpeakingQueue.current = false;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// MOTEUR DE ROUTAGE : détecte le type de demande et active le bon moteur
+// Appelé par handleSendMessage (texte tapé) ET processFile (capture d'écran)
+// ═══════════════════════════════════════════════════════════════════
+const handleSendMessageWithText = async (inputText: string, newMessages: ChatMessage[]) => {
+    // ── INTERCEPTION TABLEAU DE SIGNES (expression unique) ──
+    const inputLower = inputText.toLowerCase();
+    const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
+    // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
+    const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
+
+    // ═══════════════════════════════════════════════════════════
+    // HANDLER EXERCICE MULTI-QUESTIONS
+    // Flux pédagogique : IA explique → tableau SymPy en conclusion
+    // ═══════════════════════════════════════════════════════════
+    if (isMultiExpr) {
+        try {
+            // ── 1. Extraire l'expression commune du préambule ──
+            let commonExpr = '';
+            // Nettoyer le texte OCR : retirer les $ du LaTeX inline
+            const cleanedInput = inputText.replace(/\$\$/g, '').replace(/\$/g, '');
+            // Extraire tout ce qui suit '=' jusqu'au premier retour à la ligne
+            // ⚠️ Ne PAS utiliser \d\) dans le lookahead car ça matche (2x-1) !
+            // Supporte : "f(x) = ...", "Soit f(x) = ...", "définie par : f(x) = ...", "par : f(x) = ..."
+            const preMatch = cleanedInput.match(/(?:soit|on\s+(?:consid[eè]re|pose|d[eé]finit)|d[eé]finie?\s+(?:sur\s+\S+\s+)?par\s*:?)?\s*(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+)/i);
+            if (preMatch) {
+                // Prendre tout jusqu'au premier \n (l'expression est sur une seule ligne)
+                // ⚠️ Ne PAS utiliser split(/\d+\s*[).]/) car ça coupe "+1." dans l'expression !
+                commonExpr = preMatch[1].split('\n')[0].trim()
+                    .replace(/[.!?]+$/, '')
+                    // ⚠️ Retirer le texte français après l'expression
+                    // Ex: "3/(x²+2x-3), et on note (Cf) sa courbe" → "3/(x²+2x-3)"
+                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
+                    // Retirer aussi tout texte après "; " qui est un séparateur de phrase
+                    .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                    .trim();
+            }
+            if (!commonExpr) {
+                const eqMatch = cleanedInput.match(/=\s*(.+)/);
+                if (eqMatch) commonExpr = eqMatch[1].split('\n')[0].trim()
+                    .replace(/[.!?]+$/, '')
+                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
+                    .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                    .trim();
             }
 
-        } catch (error) {
-            console.error('Erreur Assistant:', error);
-            setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur est survenue lors de la communication." };
-                return updated;
-            });
-            setIsTalking(false);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const processSpeechQueue = () => {
-        if (isSpeakingQueue.current || speechQueue.current.length === 0) return;
-        isSpeakingQueue.current = true;
-        const nextSentence = speechQueue.current.shift();
-        if (nextSentence) {
-            speakMessage(nextSentence, -2); // -2 code spécial pour la queue
-        } else {
-            isSpeakingQueue.current = false;
-        }
-    };
-
-    // ═══════════════════════════════════════════════════════════════════
-    // MOTEUR DE ROUTAGE : détecte le type de demande et active le bon moteur
-    // Appelé par handleSendMessage (texte tapé) ET processFile (capture d'écran)
-    // ═══════════════════════════════════════════════════════════════════
-    const handleSendMessageWithText = async (inputText: string, newMessages: ChatMessage[]) => {
-        // ── INTERCEPTION TABLEAU DE SIGNES (expression unique) ──
-        const inputLower = inputText.toLowerCase();
-        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
-        // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
-        const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
-
-        // ═══════════════════════════════════════════════════════════
-        // HANDLER EXERCICE MULTI-QUESTIONS
-        // Flux pédagogique : IA explique → tableau SymPy en conclusion
-        // ═══════════════════════════════════════════════════════════
-        if (isMultiExpr) {
-            try {
-                // ── 1. Extraire l'expression commune du préambule ──
-                let commonExpr = '';
-                // Nettoyer le texte OCR : retirer les $ du LaTeX inline
-                const cleanedInput = inputText.replace(/\$\$/g, '').replace(/\$/g, '');
-                // Extraire tout ce qui suit '=' jusqu'au premier retour à la ligne
-                // ⚠️ Ne PAS utiliser \d\) dans le lookahead car ça matche (2x-1) !
-                // Supporte : "f(x) = ...", "Soit f(x) = ...", "définie par : f(x) = ...", "par : f(x) = ..."
-                const preMatch = cleanedInput.match(/(?:soit|on\s+(?:consid[eè]re|pose|d[eé]finit)|d[eé]finie?\s+(?:sur\s+\S+\s+)?par\s*:?)?\s*(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+)/i);
-                if (preMatch) {
-                    // Prendre tout jusqu'au premier \n (l'expression est sur une seule ligne)
-                    // ⚠️ Ne PAS utiliser split(/\d+\s*[).]/) car ça coupe "+1." dans l'expression !
-                    commonExpr = preMatch[1].split('\n')[0].trim()
-                        .replace(/[.!?]+$/, '')
-                        // ⚠️ Retirer le texte français après l'expression
-                        // Ex: "3/(x²+2x-3), et on note (Cf) sa courbe" → "3/(x²+2x-3)"
-                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
-                        // Retirer aussi tout texte après "; " qui est un séparateur de phrase
-                        .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                        .trim();
+            const cleanMathExpr = (e: string) => {
+                let t = e;
+                // Retirer f(x) =
+                t = t.replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '');
+                // Retirer $ et \\ (double backslash LaTeX)
+                t = t.replace(/\$/g, '').replace(/\\\\/g, '');
+                // Unicode → ASCII
+                t = t.replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4');
+                t = t.replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/');
+                // LaTeX fractions (plusieurs passes pour les imbriqués)
+                for (let pass = 0; pass < 3; pass++) {
+                    t = t.replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
                 }
-                if (!commonExpr) {
-                    const eqMatch = cleanedInput.match(/=\s*(.+)/);
-                    if (eqMatch) commonExpr = eqMatch[1].split('\n')[0].trim()
-                        .replace(/[.!?]+$/, '')
-                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
-                        .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                        .trim();
-                }
+                // LaTeX racines
+                t = t.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '$1rt($2)');
+                t = t.replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)');
+                // LaTeX commandes courantes
+                t = t.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
+                t = t.replace(/\\left/g, '').replace(/\\right/g, '');
+                t = t.replace(/\\infty/g, 'Infinity');
+                t = t.replace(/\\pi/g, 'pi');
+                // Nettoyer les accolades résiduelles
+                t = t.replace(/\{/g, '(').replace(/\}/g, ')');
+                // ⛔ Supprimer TOUTE commande LaTeX restante (\xxx)
+                t = t.replace(/\\[a-zA-Z]+/g, '');
+                // Traduction française
+                t = t.replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)');
+                t = t.replace(/\bln\s*\(/g, 'log(');
+                // Multiplication implicite
+                t = t.replace(/(\d)([a-zA-Z])/g, '$1*$2');   // 2x → 2*x
+                t = t.replace(/(\d)\(/g, '$1*(');             // 3( → 3*(
+                t = t.replace(/\)(\w)/g, ')*$1');             // )x → )*x
+                t = t.replace(/\)\(/g, ')*(');                // )( → )*(
+                // Filet de sécurité : texte français résiduel
+                t = t.replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '');
+                t = t.replace(/\s+(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\s+.*$/i, '');
+                return t.replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '').trim();
+            };
 
-                const cleanMathExpr = (e: string) => e
-                    .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                    // Retirer résidus LaTeX $, \, etc.
-                    .replace(/\$/g, '').replace(/\\\\/g, '')
-                    .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                    .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
-                    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
-                    .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
-                    .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
-                    .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
-                    .replace(/\bln\s*\(/g, 'log(')
-                    // ⚠️ Multiplication implicite (crucial pour les expressions OCR)
-                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x, 3pi → 3*pi
-                    .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
-                    .replace(/\)(\w)/g, ')*$1')             // )x → )*x
-                    .replace(/\)\(/g, ')*(')                // )( → )*(
-                    // 🛡️ FILET DE SÉCURITÉ : supprimer tout texte non-mathématique résiduel
-                    // après l'expression (virgule + texte français, mots parasites OCR)
-                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
-                    .replace(/\s+(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\s+.*$/i, '')
-                    .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '').trim();
+            const prettifyExpr = (ex: string): string => ex
+                .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                .replace(/\blog\(/g, 'ln(')
+                .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
 
-                const prettifyExpr = (ex: string): string => ex
-                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                    .replace(/\blog\(/g, 'ln(')
-                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+            // ── 2. Parser les questions numérotées ──
+            interface ExQ { num: string; text: string; type: 'sign_table' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
+            const questions: ExQ[] = [];
+            const qRegex = /(\d+)\s*[).]\s*(.+?)(?=\n\s*\d+\s*[).]|\s*$)/g;
+            let qM;
+            while ((qM = qRegex.exec(inputText)) !== null) {
+                const qText = qM[2].trim();
+                const qNorm = qText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-                // ── 2. Parser les questions numérotées ──
-                interface ExQ { num: string; text: string; type: 'sign_table' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
-                const questions: ExQ[] = [];
-                const qRegex = /(\d+)\s*[).]\s*(.+?)(?=\n\s*\d+\s*[).]|\s*$)/g;
-                let qM;
-                while ((qM = qRegex.exec(inputText)) !== null) {
-                    const qText = qM[2].trim();
-                    const qNorm = qText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                // ── Détection des questions COMPOSÉES ──
+                // Ex: "Étudier la fonction (ensemble de définition, limites, signe de la dérivée, tableau de variations)"
+                // → doit générer PLUSIEURS sous-questions : derivative_sign + variation_table
+                const hasDerivSign = /deriv|f'\s*\(|signe.*deriv|deriv.*signe/i.test(qNorm);
+                const hasVariation = /variation|dresser.*variation|tableau.*variation/i.test(qNorm);
+                const hasSignTable = /signe|etudier.*signe|tableau.*signe/i.test(qNorm) && !/deriv|f'/i.test(qNorm);
+                const isStudyQuestion = /etudier|etude complète|etude complete/i.test(qNorm);
+
+                if (isStudyQuestion && (hasDerivSign || hasVariation)) {
+                    // Question composite "Étudier la fonction" → générer tous les tableaux nécessaires
+                    if (hasDerivSign) {
+                        questions.push({ num: qM[1], text: qText, type: 'derivative_sign' });
+                    }
+                    if (hasVariation) {
+                        questions.push({ num: qM[1], text: qText, type: 'variation_table' });
+                    }
+                    // Ajouter aussi la question AI pour l'explication complète
+                    questions.push({ num: qM[1], text: qText, type: 'ai' });
+                } else {
                     let qType: ExQ['type'] = 'ai';
                     // Parité
                     if (/parit|pair|impair/i.test(qNorm)) qType = 'parity';
                     // Limites
                     else if (/limite|borne|comportement.*infini|branche.*infini/i.test(qNorm)) qType = 'limits';
                     // Dérivée + signe de f' → tableau de signes de la dérivée
-                    else if (/deriv|f'\s*\(|calculer.*deriv/i.test(qNorm) && /signe/i.test(qNorm)) qType = 'derivative_sign';
+                    else if (hasDerivSign) qType = 'derivative_sign';
                     // Tableau de signes de f
-                    else if (/signe|etudier.*signe|tableau.*signe/i.test(qNorm) && !/deriv|f'/i.test(qNorm)) qType = 'sign_table';
+                    else if (hasSignTable) qType = 'sign_table';
                     // Tableau de variations
-                    else if (/variation|dresser.*variation|tableau.*variation/i.test(qNorm)) qType = 'variation_table';
+                    else if (hasVariation) qType = 'variation_table';
                     // Courbe
                     else if (/trace|courbe|graphe|graphique|represent|dessine/i.test(qNorm)) qType = 'graph';
                     // Résolution
                     else if (/resou|inequation|equation/i.test(qNorm)) qType = 'solve';
                     questions.push({ num: qM[1], text: qText, type: qType });
                 }
+            }
 
-                const exprClean = cleanMathExpr(commonExpr);
-                console.log('[ExerciceMode]', { commonExpr, exprClean, questions: questions.map(q => `${q.num}) ${q.type}`) });
+            const exprClean = cleanMathExpr(commonExpr);
+            console.log('[ExerciceMode] DEBUG commonExpr:', JSON.stringify(commonExpr), 'chars:', [...commonExpr].slice(0, 15).map(c => c.charCodeAt(0)));
+            console.log('[ExerciceMode] DEBUG exprClean:', JSON.stringify(exprClean));
+            console.log('[ExerciceMode]', { commonExpr, exprClean, questions: questions.map(q => `${q.num}) ${q.type}`) });
 
-                if (questions.length >= 2 && exprClean) {
-                    setLoading(true);
-                    setIsTalking(true);
+            if (questions.length >= 2 && exprClean) {
+                setLoading(true);
+                setIsTalking(true);
 
-                    // ── 3. Pré-calculer tous les résultats déterministes ──
-                    let signTableBlock = '';
-                    let variationTableBlock = '';
-                    let signCtx = '';
-                    let tableOfValues = '';
+                // ── 3. Pré-calculer tous les résultats déterministes ──
+                let signTableBlock = '';
+                let variationTableBlock = '';
+                let signCtx = '';
+                let tableOfValues = '';
 
-                    for (const q of questions) {
-                        if (q.type === 'sign_table') {
+                for (const q of questions) {
+                    if (q.type === 'sign_table') {
+                        try {
+                            const res = await fetch('/api/math-engine', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'sign_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                            });
+                            const data = await res.json();
+                            if (data.success && data.aaaBlock) {
+                                signTableBlock = data.aaaBlock;
+                                signCtx = data.discriminantSteps?.length
+                                    ? '\nInfos SymPy:\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                    : '';
+                            }
+                        } catch { /* AI fallback */ }
+                    }
+                    if (q.type === 'derivative_sign') {
+                        // Calculer la dérivée avec mathjs puis demander le tableau de signes de f'(x)
+                        try {
+                            const { derivative, simplify } = await import('mathjs');
+                            const san = (e2: string) => e2
+                                .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                                .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
+                                .replace(/−/g, '-')
+                                .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x
+                                .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
+                                .replace(/\)(\w)/g, ')*$1')             // )x → )*x
+                                .replace(/\)\(/g, ')*(');               // )( → )*(
+                            const derivNode = derivative(san(exprClean), 'x');
+                            const derivExpr = simplify(derivNode).toString()
+                                .replace(/\s+/g, ' ').trim();  // Nettoyer espaces superflus
+                            console.log(`[ExerciceMode] Dérivée calculée: f'(x) = ${derivExpr}`);
+
+                            // Calculer les racines numériquement pour aider le moteur JS en fallback
+                            let numFactors: { label: string; expr: string }[] | undefined;
                             try {
-                                const res = await fetch('/api/math-engine', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ type: 'sign_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
-                                });
-                                const data = await res.json();
-                                if (data.success && data.aaaBlock) {
-                                    signTableBlock = data.aaaBlock;
-                                    signCtx = data.discriminantSteps?.length
-                                        ? '\nInfos SymPy:\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
-                                        : '';
-                                }
-                            } catch { /* AI fallback */ }
-                        }
-                        if (q.type === 'derivative_sign') {
-                            // Calculer la dérivée avec mathjs puis demander le tableau de signes de f'(x)
-                            try {
-                                const { derivative, simplify } = await import('mathjs');
-                                const san = (e2: string) => e2
-                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
-                                    .replace(/−/g, '-')
-                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x
-                                    .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
-                                    .replace(/\)(\w)/g, ')*$1')             // )x → )*x
-                                    .replace(/\)\(/g, ')*(');               // )( → )*(
-                                const derivNode = derivative(san(exprClean), 'x');
-                                const derivExpr = simplify(derivNode).toString()
-                                    .replace(/\s+/g, ' ').trim();  // Nettoyer espaces superflus
-                                console.log(`[ExerciceMode] Dérivée calculée: f'(x) = ${derivExpr}`);
-
-                                // Calculer les racines numériquement pour aider le moteur JS en fallback
-                                let numFactors: { label: string; expr: string }[] | undefined;
-                                try {
-                                    const { compile: compileM } = await import('mathjs');
-                                    const compiledDeriv = compileM(san(derivExpr));
-                                    // Trouver les racines par balayage (méthode numérique simple)
-                                    const roots: number[] = [];
-                                    for (let xi = -20; xi <= 20; xi += 0.01) {
-                                        const y1 = compiledDeriv.evaluate({ x: xi });
-                                        const y2 = compiledDeriv.evaluate({ x: xi + 0.01 });
-                                        if (typeof y1 === 'number' && typeof y2 === 'number' && isFinite(y1) && isFinite(y2)) {
-                                            if (y1 * y2 <= 0) {
-                                                // Affiner par bisection
-                                                let lo = xi, hi = xi + 0.01;
-                                                for (let bk = 0; bk < 50; bk++) {
-                                                    const mid = (lo + hi) / 2;
-                                                    const ym = compiledDeriv.evaluate({ x: mid });
-                                                    if (ym * compiledDeriv.evaluate({ x: lo }) <= 0) hi = mid; else lo = mid;
-                                                }
-                                                const root = Math.round((lo + hi) / 2 * 1e9) / 1e9;
-                                                if (!roots.some(r => Math.abs(r - root) < 0.001)) roots.push(root);
+                                const { compile: compileM } = await import('mathjs');
+                                const compiledDeriv = compileM(san(derivExpr));
+                                // Trouver les racines par balayage (méthode numérique simple)
+                                const roots: number[] = [];
+                                for (let xi = -20; xi <= 20; xi += 0.01) {
+                                    const y1 = compiledDeriv.evaluate({ x: xi });
+                                    const y2 = compiledDeriv.evaluate({ x: xi + 0.01 });
+                                    if (typeof y1 === 'number' && typeof y2 === 'number' && isFinite(y1) && isFinite(y2)) {
+                                        if (y1 * y2 <= 0) {
+                                            // Affiner par bisection
+                                            let lo = xi, hi = xi + 0.01;
+                                            for (let bk = 0; bk < 50; bk++) {
+                                                const mid = (lo + hi) / 2;
+                                                const ym = compiledDeriv.evaluate({ x: mid });
+                                                if (ym * compiledDeriv.evaluate({ x: lo }) <= 0) hi = mid; else lo = mid;
                                             }
+                                            const root = Math.round((lo + hi) / 2 * 1e9) / 1e9;
+                                            if (!roots.some(r => Math.abs(r - root) < 0.001)) roots.push(root);
                                         }
                                     }
-                                    if (roots.length > 0) {
-                                        numFactors = roots.map(r => {
-                                            const rStr = Math.abs(r) < 1e-9 ? '0' : String(Math.round(r * 1000) / 1000);
-                                            const rNum = parseFloat(rStr);
-                                            if (Math.abs(rNum) < 1e-9) return { label: 'x', expr: 'x' };
-                                            if (rNum > 0) return { label: `x - ${rStr}`, expr: `x - ${rStr}` };
-                                            return { label: `x + ${Math.abs(rNum)}`, expr: `x + ${Math.abs(rNum)}` };
-                                        });
-                                        // Calculer le coefficient constant (ex: -4 dans -4x(x-1)(x+1))
-                                        // Comparer le signe de f'(x_test) avec le produit des facteurs en x_test
-                                        try {
-                                            const testX = roots.length > 0 ? roots[roots.length - 1] + 1 : 5;
-                                            const fPrimeAtTest = compiledDeriv.evaluate({ x: testX });
-                                            const productAtTest = roots.reduce((prod, r) => prod * (testX - r), 1);
-                                            if (typeof fPrimeAtTest === 'number' && isFinite(fPrimeAtTest) && Math.abs(productAtTest) > 1e-9) {
-                                                const coeffSign = Math.sign(fPrimeAtTest) * Math.sign(productAtTest);
-                                                if (coeffSign < 0) {
-                                                    // Le coefficient est négatif → calculer sa valeur
-                                                    const coeffValue = fPrimeAtTest / productAtTest;
-                                                    const coeffRounded = Math.round(coeffValue);
-                                                    const coeffLabel = Math.abs(coeffRounded - coeffValue) < 0.01 ? String(coeffRounded) : String(Math.round(coeffValue * 100) / 100);
-                                                    numFactors.unshift({ label: coeffLabel, expr: coeffLabel });
-                                                    console.log(`[ExerciceMode] Coefficient constant négatif ajouté: ${coeffLabel}`);
-                                                }
-                                            }
-                                        } catch { /* pas grave */ }
-                                        console.log(`[ExerciceMode] Racines f'(x)=0: ${roots.join(', ')} → facteurs: ${numFactors.map(f => f.label).join(', ')}`);
-                                    }
-                                } catch { /* pas grave, SymPy fera le boulot */ }
-
-                                // Demander le tableau de signes de la dérivée au moteur
-                                const res = await fetch('/api/math-engine', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        type: 'sign_table',
-                                        expression: derivExpr,
-                                        niveau: resolveNiveau(inputText),
-                                        options: numFactors ? { numeratorFactors: numFactors } : undefined,
-                                    }),
-                                });
-                                const data = await res.json();
-                                if (data.success && data.aaaBlock) {
-                                    // Remplacer f(x) par f'(x) dans le label du tableau
-                                    signTableBlock = data.aaaBlock
-                                        .replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
-                                    signCtx = `\nInfo : f'(x) = ${derivExpr}` + (data.discriminantSteps?.length
-                                        ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
-                                        : '');
-                                    console.log(`[ExerciceMode] ✅ Tableau de signes f'(x) via ${data.engine || 'moteur'}`);
-                                } else {
-                                    console.warn(`[ExerciceMode] ⚠️ Tableau de signes f'(x) échoué:`, data.error);
                                 }
-                            } catch (derivErr) {
-                                console.warn('[ExerciceMode] Erreur calcul dérivée:', derivErr);
-                                // Fallback : on laisse l'IA gérer
-                            }
-                        }
-                        if (q.type === 'variation_table') {
-                            try {
-                                const res = await fetch('/api/math-engine', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ type: 'variation_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
-                                });
-                                const data = await res.json();
-                                if (data.success && data.aaaBlock) {
-                                    variationTableBlock = data.aaaBlock;
-                                }
-                            } catch { /* AI fallback */ }
-                        }
-                        if (q.type === 'graph') {
-                            console.log(`[ExerciceMode] 📊 Handler GRAPH déclenché, exprClean="${exprClean}"`);
-                            try {
-                                const { compile: compileExpr } = await import('mathjs');
-                                const san = (e2: string) => e2
-                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
-                                    .replace(/−/g, '-')
-                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')
-                                    .replace(/(\d)\(/g, '$1*(')
-                                    .replace(/\)(\w)/g, ')*$1')
-                                    .replace(/\)\(/g, ')*(');
-                                const sanExpr = san(exprClean);
-                                console.log(`[ExerciceMode] 📊 Expression sanitisée: "${sanExpr}"`);
-                                const compiled = compileExpr(sanExpr);
-                                const xVals = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
-                                const rows: string[] = [];
-                                for (const xv of xVals) {
+                                if (roots.length > 0) {
+                                    numFactors = roots.map(r => {
+                                        const rStr = Math.abs(r) < 1e-9 ? '0' : String(Math.round(r * 1000) / 1000);
+                                        const rNum = parseFloat(rStr);
+                                        if (Math.abs(rNum) < 1e-9) return { label: 'x', expr: 'x' };
+                                        if (rNum > 0) return { label: `x - ${rStr}`, expr: `x - ${rStr}` };
+                                        return { label: `x + ${Math.abs(rNum)}`, expr: `x + ${Math.abs(rNum)}` };
+                                    });
+                                    // Calculer le coefficient constant (ex: -4 dans -4x(x-1)(x+1))
+                                    // Comparer le signe de f'(x_test) avec le produit des facteurs en x_test
                                     try {
-                                        const yv = compiled.evaluate({ x: xv });
-                                        if (typeof yv === 'number' && isFinite(yv)) {
-                                            rows.push(`| ${xv} | ${Math.round(yv * 100) / 100} |`);
+                                        const testX = roots.length > 0 ? roots[roots.length - 1] + 1 : 5;
+                                        const fPrimeAtTest = compiledDeriv.evaluate({ x: testX });
+                                        const productAtTest = roots.reduce((prod, r) => prod * (testX - r), 1);
+                                        if (typeof fPrimeAtTest === 'number' && isFinite(fPrimeAtTest) && Math.abs(productAtTest) > 1e-9) {
+                                            const coeffSign = Math.sign(fPrimeAtTest) * Math.sign(productAtTest);
+                                            if (coeffSign < 0) {
+                                                // Le coefficient est négatif → calculer sa valeur
+                                                const coeffValue = fPrimeAtTest / productAtTest;
+                                                const coeffRounded = Math.round(coeffValue);
+                                                const coeffLabel = Math.abs(coeffRounded - coeffValue) < 0.01 ? String(coeffRounded) : String(Math.round(coeffValue * 100) / 100);
+                                                numFactors.unshift({ label: coeffLabel, expr: coeffLabel });
+                                                console.log(`[ExerciceMode] Coefficient constant négatif ajouté: ${coeffLabel}`);
+                                            }
                                         }
-                                    } catch { /* skip */ }
+                                    } catch { /* pas grave */ }
+                                    console.log(`[ExerciceMode] Racines f'(x)=0: ${roots.join(', ')} → facteurs: ${numFactors.map(f => f.label).join(', ')}`);
                                 }
-                                if (rows.length > 0) tableOfValues = `| x | f(x) |\n|---|---|\n${rows.join('\n')}`;
-                                console.log(`[ExerciceMode] 📊 Tableau de valeurs: ${rows.length} points calculés`);
-                            } catch (gErr) {
-                                console.error('[ExerciceMode] 📊 ERREUR compilation expression:', gErr);
-                            }
+                            } catch { /* pas grave, SymPy fera le boulot */ }
 
-                            // Stocker les données du graphe pour ouverture via lien cliquable
+                            // Demander le tableau de signes de la dérivée au moteur
+                            const res = await fetch('/api/math-engine', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    type: 'sign_table',
+                                    expression: derivExpr,
+                                    niveau: resolveNiveau(inputText),
+                                    options: numFactors ? { numeratorFactors: numFactors } : undefined,
+                                }),
+                            });
+                            const data = await res.json();
+                            if (data.success && data.aaaBlock) {
+                                // Remplacer f(x) par f'(x) dans le label du tableau
+                                signTableBlock = data.aaaBlock
+                                    .replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
+                                signCtx = `\nInfo : f'(x) = ${derivExpr}` + (data.discriminantSteps?.length
+                                    ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                    : '');
+                                console.log(`[ExerciceMode] ✅ Tableau de signes f'(x) via ${data.engine || 'moteur'}`);
+                            } else {
+                                console.warn(`[ExerciceMode] ⚠️ Tableau de signes f'(x) échoué:`, data.error);
+                            }
+                        } catch (derivErr) {
+                            console.warn('[ExerciceMode] Erreur calcul dérivée:', derivErr);
+                            // Fallback : on laisse l'IA gérer
+                        }
+                    }
+                    if (q.type === 'variation_table') {
+                        try {
+                            const res = await fetch('/api/math-engine', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'variation_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                            });
+                            const data = await res.json();
+                            if (data.success && data.aaaBlock) {
+                                variationTableBlock = data.aaaBlock;
+                            }
+                        } catch { /* AI fallback */ }
+                    }
+                    if (q.type === 'graph') {
+                        console.log(`[ExerciceMode] 📊 Handler GRAPH déclenché, exprClean="${exprClean}"`);
+                        try {
+                            const { compile: compileExpr } = await import('mathjs');
+                            const san = (e2: string) => e2
+                                .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                                .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
+                                .replace(/−/g, '-')
+                                .replace(/(\d)([a-zA-Z])/g, '$1*$2')
+                                .replace(/(\d)\(/g, '$1*(')
+                                .replace(/\)(\w)/g, ')*$1')
+                                .replace(/\)\(/g, ')*(');
+                            const sanExpr = san(exprClean);
+                            console.log(`[ExerciceMode] 📊 Expression sanitisée: "${sanExpr}"`);
+                            const compiled = compileExpr(sanExpr);
+                            const xVals = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+                            const rows: string[] = [];
+                            for (const xv of xVals) {
+                                try {
+                                    const yv = compiled.evaluate({ x: xv });
+                                    if (typeof yv === 'number' && isFinite(yv)) {
+                                        rows.push(`| ${xv} | ${Math.round(yv * 100) / 100} |`);
+                                    }
+                                } catch { /* skip */ }
+                            }
+                            if (rows.length > 0) tableOfValues = `| x | f(x) |\n|---|---|\n${rows.join('\n')}`;
+                            console.log(`[ExerciceMode] 📊 Tableau de valeurs: ${rows.length} points calculés`);
+                        } catch (gErr) {
+                            console.error('[ExerciceMode] 📊 ERREUR compilation expression:', gErr);
+                        }
+
+                        // Stocker les données du graphe pour ouverture via lien cliquable
+                        try {
+                            const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                            const prettyName = exprClean
+                                .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                                .replace(/\blog\(/g, 'ln(')
+                                .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                                .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                            const gs = {
+                                curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
+                                intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
+                                title: `f(x) = ${prettyName}`,
+                            };
+                            localStorage.setItem('graphState', JSON.stringify(gs));
+                            console.log(`[ExerciceMode] 📊 graphState stocké dans localStorage:`, JSON.stringify(gs).substring(0, 200));
+                            // Envoyer via BroadcastChannel
                             try {
-                                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
-                                const prettyName = exprClean
-                                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                                    .replace(/\blog\(/g, 'ln(')
-                                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
-                                const gs = {
-                                    curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
-                                    intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
-                                    title: `f(x) = ${prettyName}`,
-                                };
-                                localStorage.setItem('graphState', JSON.stringify(gs));
-                                console.log(`[ExerciceMode] 📊 graphState stocké dans localStorage:`, JSON.stringify(gs).substring(0, 200));
-                                // Envoyer via BroadcastChannel
-                                try {
-                                    const bch = new BroadcastChannel('mimimaths-graph');
-                                    bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
-                                    console.log('[ExerciceMode] 📊 BroadcastChannel envoyé');
-                                } catch (bcErr) { console.warn('[ExerciceMode] 📊 BroadcastChannel échoué:', bcErr); }
-                                // Essayer d'ouvrir le popup
-                                try {
-                                    const gw = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
-                                    console.log(`[ExerciceMode] 📊 window.open résultat: ${gw ? 'ouvert' : 'bloqué'}`);
-                                } catch { console.warn('[ExerciceMode] 📊 window.open échoué'); }
-                            } catch (gsErr) {
-                                console.error('[ExerciceMode] 📊 ERREUR stockage graphState:', gsErr);
-                            }
+                                const bch = new BroadcastChannel('mimimaths-graph');
+                                bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
+                                console.log('[ExerciceMode] 📊 BroadcastChannel envoyé');
+                            } catch (bcErr) { console.warn('[ExerciceMode] 📊 BroadcastChannel échoué:', bcErr); }
+                            // Essayer d'ouvrir le popup
+                            try {
+                                const gw = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
+                                console.log(`[ExerciceMode] 📊 window.open résultat: ${gw ? 'ouvert' : 'bloqué'}`);
+                            } catch { console.warn('[ExerciceMode] 📊 window.open échoué'); }
+                        } catch (gsErr) {
+                            console.error('[ExerciceMode] 📊 ERREUR stockage graphState:', gsErr);
                         }
                     }
+                }
 
-                    // ── 4. Prompt IA : expliquer puis [TABLE_SIGNES] / [TABLE_VARIATIONS] ──
-                    const aiParts: string[] = [];
-                    for (const q of questions) {
-                        if (q.type === 'parity') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nÉtudie la parité de f :\n- Précise le domaine de définition Df et vérifie qu'il est symétrique par rapport à 0.\n- Calcule f(-x) en détaillant chaque étape.\n- Compare f(-x) avec f(x) et f(-x) avec -f(x).\n- Conclus : f est paire (si f(-x) = f(x)), impaire (si f(-x) = -f(x)), ou ni paire ni impaire.\n- Si paire/impaire, indique la conséquence sur la courbe (axe de symétrie Oy / centre de symétrie O).`
-                            );
-                        } else if (q.type === 'limits') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nCalcule les limites aux bornes du domaine de définition :\n- Pour chaque borne (±∞ ou points d'annulation du dénominateur), factorise par le terme de plus haut degré.\n- Utilise la notation lim avec flèche (pas de notation d/dx, c'est hors programme).\n- Interprète graphiquement chaque limite : asymptote horizontale, verticale, ou branche parabolique.\n- Rédige comme dans un programme de Terminale de l'Éducation Nationale.`
-                            );
-                        } else if (q.type === 'derivative_sign') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
-                            );
-                        } else if (q.type === 'sign_table') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nExplique la méthode : identifie le type de polynôme, calcule Δ = b² - 4ac, trouve les racines x₁ et x₂, explique le signe en fonction du coefficient de x².${signCtx}\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
-                            );
-                        } else if (q.type === 'solve') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question ${Number(q.num) - 1}), ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
-                            );
-                        } else if (q.type === 'variation_table') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nExplique : calcule f'(x) avec les formules programme Lycée (PAS de notation d/dx), étudie le signe de f'(x), détermine les intervalles de croissance et décroissance, calcule la valeur de l'extremum.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_VARIATIONS]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même)`
-                            );
-                        } else if (q.type === 'graph') {
-                            aiParts.push(
-                                `**${q.num})** ${q.text}\nLa courbe a été tracée automatiquement par le moteur graphique. Clique sur le bouton ci-dessous pour l'ouvrir.`
-                            );
-                        } else {
-                            aiParts.push(`**${q.num})** ${q.text}\nRéponds de manière pédagogique en suivant strictement le programme de Terminale de l'Éducation Nationale (Bulletin Officiel).\nNe PAS utiliser de notation hors programme (comme d/dx, nabla, etc.).`);
+                // ── 4. Prompt IA : expliquer puis [TABLE_SIGNES] / [TABLE_VARIATIONS] ──
+                const aiParts: string[] = [];
+                // Déterminer si la question composite "étudier" est présente
+                const hasStudyDerivSign = questions.some(q => q.type === 'derivative_sign');
+                const hasStudyVarTable = questions.some(q => q.type === 'variation_table');
+
+                for (const q of questions) {
+                    if (q.type === 'parity') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nÉtudie la parité de f :\n- Précise le domaine de définition Df et vérifie qu'il est symétrique par rapport à 0.\n- Calcule f(-x) en détaillant chaque étape.\n- Compare f(-x) avec f(x) et f(-x) avec -f(x).\n- Conclus : f est paire (si f(-x) = f(x)), impaire (si f(-x) = -f(x)), ou ni paire ni impaire.\n- Si paire/impaire, indique la conséquence sur la courbe (axe de symétrie Oy / centre de symétrie O).`
+                        );
+                    } else if (q.type === 'limits') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nCalcule les limites aux bornes du domaine de définition :\n- Pour chaque borne (±∞ ou points d'annulation du dénominateur), factorise par le terme de plus haut degré.\n- Utilise la notation lim avec flèche (pas de notation d/dx, c'est hors programme).\n- Interprète graphiquement chaque limite : asymptote horizontale, verticale, ou branche parabolique.\n- Rédige comme dans un programme de Terminale de l'Éducation Nationale.`
+                        );
+                    } else if (q.type === 'derivative_sign') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`
+                        );
+                    } else if (q.type === 'sign_table') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nExplique la méthode : identifie le type de polynôme, calcule Δ = b² - 4ac, trouve les racines x₁ et x₂, explique le signe en fonction du coefficient de x².${signCtx}\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`
+                        );
+                    } else if (q.type === 'solve') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question ${Number(q.num) - 1}), ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
+                        );
+                    } else if (q.type === 'variation_table') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nExplique : calcule f'(x) avec les formules programme Lycée (PAS de notation d/dx), étudie le signe de f'(x), détermine les intervalles de croissance et décroissance, calcule la valeur de l'extremum.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_VARIATIONS]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`
+                        );
+                    } else if (q.type === 'graph') {
+                        aiParts.push(
+                            `**${q.num})** ${q.text}\nLa courbe a été tracée automatiquement par le moteur graphique. Clique sur le bouton ci-dessous pour l'ouvrir.`
+                        );
+                    } else {
+                        aiParts.push(`**${q.num})** ${q.text}\nRéponds de manière pédagogique en suivant strictement le programme de Terminale de l'Éducation Nationale (Bulletin Officiel).\nNe PAS utiliser de notation hors programme (comme d/dx, nabla, etc.).${hasStudyDerivSign ? '\n⚠️ Le tableau de signes de f\'(x) est DÉJÀ généré automatiquement par le moteur SymPy. NE génère PAS ton propre tableau.' : ''}${hasStudyVarTable ? '\n⚠️ Le tableau de variations est DÉJÀ généré automatiquement par le moteur SymPy. NE génère PAS ton propre tableau.' : ''}`);
+                    }
+                }
+
+                const enrichedMessages: ChatMessage[] = [
+                    ...newMessages,
+                    {
+                        role: 'user' as const,
+                        content: `[SYSTÈME] Exercice complet sur f(x) = ${exprClean}.\nRéponds comme un élève modèle qui traite chaque question de l'exercice.\n\n${aiParts.join('\n\n')}\n\nRÈGLES ABSOLUES :\n- NE GÉNÈRE AUCUN bloc @@@ ni tableau ASCII\n- Écris [TABLE_SIGNES] et [TABLE_VARIATIONS] EXACTEMENT là où indiqué, sur une ligne seule\n- ⛔ NE GÉNÈRE JAMAIS de tableaux LaTeX \\begin{array} pour les signes ou les variations — c'est le moteur SymPy qui les insère\n- Pour chaque question commence par le numéro en gras\n- Détaille TOUTES les étapes de calcul\n- ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔\n- ⛔ JAMAIS écrire d/dx, df/dx, dy/dx, d²f/dx²\n- ⛔ JAMAIS écrire \\\\frac{d}{dx} ou \\\\frac{df}{dx}\n- ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)\n- ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."`
+                    }
+                ];
+
+                // ── 5. Streaming + remplacement des placeholders ──
+                const header = `📝 **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
+                setMessages(prev => [...prev, { role: 'assistant', content: header + '⏳ *Résolution en cours...*' }]);
+
+                try {
+                    const response = await fetch('/api/perplexity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                    });
+                    if (!response.ok) throw new Error('Erreur API');
+                    const reader = response.body?.getReader();
+                    if (!reader) throw new Error('Reader non disponible');
+                    const decoder = new TextDecoder();
+                    let aiText = '';
+                    let lastUpdate = 0;
+                    // ⛔ Fonction pour supprimer la notation d/dx (Leibniz → Lagrange)
+                    // SÉCURISÉE : ne touche PAS au LaTeX normal (\frac{a}{b}, etc.)
+                    const stripDdx = (t: string) => t
+                        // Plaintext exact : d(expr)/dx → (expr)'
+                        .replace(/\bd\(([^)]+)\)\/dx\b/gi, "($1)'")
+                        // Plaintext exact : df/dx → f'(x)
+                        .replace(/\bdf\/dx\b/gi, "f'(x)")
+                        // Plaintext exact : d/dx → (supprimé)
+                        .replace(/\bd\/dx\b/gi, "")
+                        // d²f/dx² → f''(x)
+                        .replace(/\bd[²2]f?\/dx[²2]/gi, "f''(x)");
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        for (const ln of decoder.decode(value).split('\n')) {
+                            if (!ln.startsWith('data: ')) continue;
+                            const js = ln.substring(6);
+                            if (js === '[DONE]') break;
+                            try {
+                                const c = JSON.parse(js).choices?.[0]?.delta?.content || '';
+                                if (c) {
+                                    aiText += c;
+                                    // Throttle : max 1 update / 400ms pour éviter 'Maximum update depth exceeded'
+                                    const now = Date.now();
+                                    if (now - lastUpdate > 400) {
+                                        lastUpdate = now;
+                                        let disp = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                        if (signTableBlock) disp = disp.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
+                                        if (variationTableBlock) disp = disp.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
+                                        const fixedDisp = fixLatexContent(header + disp).content;
+                                        requestAnimationFrame(() => {
+                                            setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
+                                        });
+                                    }
+                                }
+                            } catch { }
                         }
                     }
+                    let finalText = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                    if (signTableBlock) finalText = finalText.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
+                    if (variationTableBlock) finalText = finalText.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
+                    if (tableOfValues && !finalText.includes('| x | f(x) |')) {
+                        finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
+                    }
+                    // Toujours ajouter le graphe pour un exercice sur une fonction
+                    // (même si pas de question 'graph' explicite dans l'OCR)
+                    try {
+                        const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                        const prettyName = exprClean
+                            .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                            .replace(/\blog\(/g, 'ln(')
+                            .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                            .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                        const gs = {
+                            curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
+                            intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
+                            title: `Courbe de f(x) = ${prettyName}`,
+                        };
+                        localStorage.setItem('graphState', JSON.stringify(gs));
+                        try {
+                            const bch = new BroadcastChannel('mimimaths-graph');
+                            bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
+                        } catch { /* ignore */ }
+                        console.log(`[ExerciceMode] 📊 graphState stocké pour ${exprClean}`);
+                    } catch { /* ignore */ }
+                    finalText += '\n\n---\n\n📊 Clique sur le bouton ci-dessous pour voir la courbe.';
+                    finalText = stripDdx(finalText);
+                    const finalContent = patchMarkdownTables(fixLatexContent(header + finalText).content);
+                    setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: finalContent }; return u; });
+                } catch (error) {
+                    console.error('[ExerciceMode] Erreur streaming:', error);
+                } finally {
+                    setLoading(false);
+                    setIsTalking(false);
+                }
+                return;
+            }
+        } catch (err) {
+            console.warn('[ExerciceMode] Erreur, fallback standard:', err);
+        }
+    }
 
+    // ═══════════════════════════════════════════════════════════
+    // HANDLER "ÉTUDIER UNE FONCTION" (auto-génère les sous-questions BO)
+    // Programme Éducation Nationale : domaine → parité → limites → dérivée → variations → courbe
+    // ═══════════════════════════════════════════════════════════
+    const wantsStudyFunction = /(?:étudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
+        || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower);
+
+    if (wantsStudyFunction && !isMultiExpr) {
+        try {
+            // Extraire l'expression
+            let studyExpr = '';
+            const eqMatch = inputText.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
+            if (eqMatch) studyExpr = eqMatch[1].trim()
+                .replace(/[.!?]+$/, '')
+                .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                .trim();
+            if (!studyExpr) {
+                const deMatch = inputText.match(/=\s*(.+)/);
+                if (deMatch) studyExpr = deMatch[1].split('\n')[0].trim()
+                    .replace(/[.!?]+$/, '')
+                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                    .trim();
+            }
+            if (studyExpr && studyExpr.includes('x')) {
+                // Construire l'input avec sous-questions numérotées
+                const niveau = resolveNiveau(inputText);
+                const isTerminale = niveau.startsWith('terminale');
+
+                let generatedInput = `f(x) = ${studyExpr}\n`;
+                let qNum = 1;
+                generatedInput += `${qNum}. Déterminer le domaine de définition de f.\n`; qNum++;
+                generatedInput += `${qNum}. Étudier la parité de f.\n`; qNum++;
+                if (isTerminale) {
+                    generatedInput += `${qNum}. Déterminer les limites de f aux bornes de son domaine de définition.\n`; qNum++;
+                }
+                generatedInput += `${qNum}. Calculer la fonction dérivée de f et étudier son signe.\n`; qNum++;
+                generatedInput += `${qNum}. Dresser le tableau de variations de f.\n`; qNum++;
+                generatedInput += `${qNum}. Tracer la courbe représentative de f.\n`;
+
+                console.log('[ÉtudeFunction] Auto-généré:', generatedInput);
+                // Relancer handleSendMessageWithText avec les sous-questions auto-générées
+                await handleSendMessageWithText(generatedInput, newMessages);
+                return;
+            }
+        } catch (err) {
+            console.warn('[ÉtudeFunction] Erreur, fallback:', err);
+        }
+    }
+
+    if (wantsSignTable && !isMultiExpr) {
+        let expr = '';
+        const eqMatch = inputText.match(/=\s*(.+)/);
+        if (eqMatch) expr = eqMatch[1].trim();
+        if (!expr) {
+            const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+            if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+        }
+        expr = expr
+            .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+            .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
+            // Retirer le texte français résiduel après l'expression
+            .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+            .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+            .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
+        if (expr && expr.includes('x') && expr.length > 1) {
+            console.log(`[MathEngine] 🎯 Tableau de signes pour: "${expr}"`);
+            try {
+                const engineRes = await fetch('/api/math-engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: resolveNiveau(inputText) }),
+                });
+                const engineData = await engineRes.json();
+                if (engineData.success && engineData.aaaBlock) {
+                    const tableBlock = engineData.aaaBlock;
+                    console.log(`[MathEngine] ✅ Injection directe du tableau SymPy`);
                     const enrichedMessages: ChatMessage[] = [
                         ...newMessages,
                         {
                             role: 'user' as const,
-                            content: `[SYSTÈME] Exercice complet sur f(x) = ${exprClean}.\nRéponds comme un élève modèle qui traite chaque question de l'exercice.\n\n${aiParts.join('\n\n')}\n\nRÈGLES ABSOLUES :\n- NE GÉNÈRE AUCUN bloc @@@ ni tableau ASCII\n- Écris [TABLE_SIGNES] et [TABLE_VARIATIONS] EXACTEMENT là où indiqué\n- Pour chaque question commence par le numéro en gras\n- Détaille TOUTES les étapes de calcul\n- ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔\n- ⛔ JAMAIS écrire d/dx, df/dx, dy/dx, d²f/dx²\n- ⛔ JAMAIS écrire \\frac{d}{dx} ou \\frac{df}{dx}\n- ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)\n- ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."`
+                            content: `[SYSTÈME] Tableau de signes calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes : factorisation, valeurs critiques, signe par intervalle, conclusion.'}${engineData.discriminantSteps?.length ? '\nDiscriminant:\n' + engineData.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n') : ''}`
                         }
                     ];
+                    const tablePrefix = tableBlock + '\n\n';
+                    // AJOUTER un nouveau message assistant (pas remplacer !)
+                    setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
 
-                    // ── 5. Streaming + remplacement des placeholders ──
-                    const header = `📝 **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
-                    setMessages(prev => [...prev, { role: 'assistant', content: header + '⏳ *Résolution en cours...*' }]);
-
+                    setLoading(true);
+                    setIsTalking(true);
                     try {
                         const response = await fetch('/api/perplexity', {
                             method: 'POST',
@@ -2217,76 +2189,43 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         if (!reader) throw new Error('Reader non disponible');
                         const decoder = new TextDecoder();
                         let aiText = '';
-                        let lastUpdate = 0;
-                        // ⛔ Fonction pour supprimer la notation d/dx (Leibniz → Lagrange)
-                        // SÉCURISÉE : ne touche PAS au LaTeX normal (\frac{a}{b}, etc.)
-                        const stripDdx = (t: string) => t
-                            // Plaintext exact : d(expr)/dx → (expr)'
-                            .replace(/\bd\(([^)]+)\)\/dx\b/gi, "($1)'")
-                            // Plaintext exact : df/dx → f'(x)
-                            .replace(/\bdf\/dx\b/gi, "f'(x)")
-                            // Plaintext exact : d/dx → (supprimé)
-                            .replace(/\bd\/dx\b/gi, "")
-                            // d²f/dx² → f''(x)
-                            .replace(/\bd[²2]f?\/dx[²2]/gi, "f''(x)");
+                        let lastSignUpdate = 0;
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            for (const ln of decoder.decode(value).split('\n')) {
-                                if (!ln.startsWith('data: ')) continue;
-                                const js = ln.substring(6);
-                                if (js === '[DONE]') break;
+                            for (const line of decoder.decode(value).split('\n')) {
+                                if (!line.startsWith('data: ')) continue;
+                                const jsonStr = line.substring(6);
+                                if (jsonStr === '[DONE]') break;
                                 try {
-                                    const c = JSON.parse(js).choices?.[0]?.delta?.content || '';
+                                    const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
                                     if (c) {
                                         aiText += c;
-                                        // Throttle : max 1 update / 250ms pour éviter 'Maximum update depth exceeded'
+                                        // Throttle : max 1 update / 100ms pour éviter 'Maximum update depth exceeded'
                                         const now = Date.now();
-                                        if (now - lastUpdate > 250) {
-                                            lastUpdate = now;
-                                            let disp = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                            if (signTableBlock) disp = disp.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
-                                            if (variationTableBlock) disp = disp.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
-                                            const fixedDisp = fixLatexContent(header + disp).content;
-                                            setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
+                                        if (now - lastSignUpdate > 100) {
+                                            lastSignUpdate = now;
+                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                            const fixedClean = fixLatexContent(tablePrefix + clean).content;
+                                            setMessages(prev => {
+                                                const u = [...prev];
+                                                u[u.length - 1] = { role: 'assistant', content: fixedClean };
+                                                return u;
+                                            });
                                         }
                                     }
                                 } catch { }
                             }
                         }
-                        let finalText = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                        if (signTableBlock) finalText = finalText.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
-                        if (variationTableBlock) finalText = finalText.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
-                        if (tableOfValues && !finalText.includes('| x | f(x) |')) {
-                            finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
-                        }
-                        // Toujours ajouter le graphe pour un exercice sur une fonction
-                        // (même si pas de question 'graph' explicite dans l'OCR)
-                        try {
-                            const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
-                            const prettyName = exprClean
-                                .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                                .replace(/\blog\(/g, 'ln(')
-                                .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                                .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
-                            const gs = {
-                                curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
-                                intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
-                                title: `Courbe de f(x) = ${prettyName}`,
-                            };
-                            localStorage.setItem('graphState', JSON.stringify(gs));
-                            try {
-                                const bch = new BroadcastChannel('mimimaths-graph');
-                                bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
-                            } catch { /* ignore */ }
-                            console.log(`[ExerciceMode] 📊 graphState stocké pour ${exprClean}`);
-                        } catch { /* ignore */ }
-                        finalText += '\n\n---\n\n📊 Clique sur le bouton ci-dessous pour voir la courbe.';
-                        finalText = stripDdx(finalText);
-                        const finalContent = patchMarkdownTables(fixLatexContent(header + finalText).content);
-                        setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: finalContent }; return u; });
+                        const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                        const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+                        setMessages(prev => {
+                            const u = [...prev];
+                            u[u.length - 1] = { role: 'assistant', content: finalContent };
+                            return u;
+                        });
                     } catch (error) {
-                        console.error('[ExerciceMode] Erreur streaming:', error);
+                        console.error('Erreur streaming:', error);
                     } finally {
                         setLoading(false);
                         setIsTalking(false);
@@ -2294,880 +2233,731 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                     return;
                 }
             } catch (err) {
-                console.warn('[ExerciceMode] Erreur, fallback standard:', err);
+                console.warn('[MathEngine] Erreur, fallback IA:', err);
             }
         }
+    }
 
-        // ═══════════════════════════════════════════════════════════
-        // HANDLER "ÉTUDIER UNE FONCTION" (auto-génère les sous-questions BO)
-        // Programme Éducation Nationale : domaine → parité → limites → dérivée → variations → courbe
-        // ═══════════════════════════════════════════════════════════
-        const wantsStudyFunction = /(?:étudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
-            || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower);
+    // ── INTERCEPTION TABLEAU DE VARIATIONS (expression unique) ──
+    const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
 
-        if (wantsStudyFunction && !isMultiExpr) {
+    if (wantsVariationTable && !isMultiExpr) {
+        let expr = '';
+        const eqMatch = inputText.match(/=\s*(.+)/);
+        if (eqMatch) expr = eqMatch[1].trim();
+        if (!expr) {
+            const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+            if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+        }
+        expr = expr
+            .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+            .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
+            // Retirer le texte français résiduel après l'expression
+            .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+            .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+            .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
+        if (expr && expr.includes('x') && expr.length > 1) {
+            console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
             try {
-                // Extraire l'expression
-                let studyExpr = '';
-                const eqMatch = inputText.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
-                if (eqMatch) studyExpr = eqMatch[1].trim()
-                    .replace(/[.!?]+$/, '')
-                    .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
-                    .trim();
-                if (!studyExpr) {
-                    const deMatch = inputText.match(/=\s*(.+)/);
-                    if (deMatch) studyExpr = deMatch[1].split('\n')[0].trim()
-                        .replace(/[.!?]+$/, '')
-                        .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
-                        .trim();
-                }
-                if (studyExpr && studyExpr.includes('x')) {
-                    // Construire l'input avec sous-questions numérotées
-                    const niveau = resolveNiveau(inputText);
-                    const isTerminale = niveau.startsWith('terminale');
+                const engineRes = await fetch('/api/math-engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(inputText) }),
+                });
+                const engineData = await engineRes.json();
+                if (engineData.success && engineData.aaaBlock) {
+                    const tableBlock = engineData.aaaBlock;
+                    console.log(`[MathEngine] ✅ Injection directe du tableau de variations`);
+                    const enrichedMessages: ChatMessage[] = [
+                        ...newMessages,
+                        {
+                            role: 'user' as const,
+                            content: `[SYSTÈME] Tableau de variations calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes de l\'étude des variations.'}`
+                        }
+                    ];
+                    const tablePrefix = tableBlock + '\n\n';
+                    setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
 
-                    let generatedInput = `f(x) = ${studyExpr}\n`;
-                    let qNum = 1;
-                    generatedInput += `${qNum}. Déterminer le domaine de définition de f.\n`; qNum++;
-                    generatedInput += `${qNum}. Étudier la parité de f.\n`; qNum++;
-                    if (isTerminale) {
-                        generatedInput += `${qNum}. Déterminer les limites de f aux bornes de son domaine de définition.\n`; qNum++;
+                    setLoading(true);
+                    setIsTalking(true);
+                    try {
+                        const response = await fetch('/api/perplexity', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                        });
+                        if (!response.ok) throw new Error('Erreur API');
+                        const reader = response.body?.getReader();
+                        if (!reader) throw new Error('Reader non disponible');
+                        const decoder = new TextDecoder();
+                        let aiText = '';
+                        let lastVarUpdate = 0;
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            for (const line of decoder.decode(value).split('\n')) {
+                                if (!line.startsWith('data: ')) continue;
+                                const jsonStr = line.substring(6);
+                                if (jsonStr === '[DONE]') break;
+                                try {
+                                    const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+                                    if (c) {
+                                        aiText += c;
+                                        // Throttle : max 1 update / 200ms pour éviter 'Maximum update depth exceeded'
+                                        const now = Date.now();
+                                        if (now - lastVarUpdate > 200) {
+                                            lastVarUpdate = now;
+                                            const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                                            const fixedClean = fixLatexContent(tablePrefix + clean).content;
+                                            setMessages(prev => {
+                                                const u = [...prev];
+                                                u[u.length - 1] = { role: 'assistant', content: fixedClean };
+                                                return u;
+                                            });
+                                        }
+                                    }
+                                } catch { }
+                            }
+                        }
+                        const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                        const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+                        setMessages(prev => {
+                            const u = [...prev];
+                            u[u.length - 1] = { role: 'assistant', content: finalContent };
+                            return u;
+                        });
+                    } catch (error) {
+                        console.error('Erreur streaming:', error);
+                    } finally {
+                        setLoading(false);
+                        setIsTalking(false);
                     }
-                    generatedInput += `${qNum}. Calculer la fonction dérivée de f et étudier son signe.\n`; qNum++;
-                    generatedInput += `${qNum}. Dresser le tableau de variations de f.\n`; qNum++;
-                    generatedInput += `${qNum}. Tracer la courbe représentative de f.\n`;
-
-                    console.log('[ÉtudeFunction] Auto-généré:', generatedInput);
-                    // Relancer handleSendMessageWithText avec les sous-questions auto-générées
-                    await handleSendMessageWithText(generatedInput, newMessages);
                     return;
                 }
             } catch (err) {
-                console.warn('[ÉtudeFunction] Erreur, fallback:', err);
+                console.warn('[MathEngine] Erreur variation, fallback IA:', err);
             }
         }
+    }
 
-        if (wantsSignTable && !isMultiExpr) {
-            let expr = '';
-            const eqMatch = inputText.match(/=\s*(.+)/);
-            if (eqMatch) expr = eqMatch[1].trim();
-            if (!expr) {
-                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
-                if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
-            }
-            expr = expr
-                .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
-                // Retirer le texte français résiduel après l'expression
-                .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
-                .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
-
-            if (expr && expr.includes('x') && expr.length > 1) {
-                console.log(`[MathEngine] 🎯 Tableau de signes pour: "${expr}"`);
-                try {
-                    const engineRes = await fetch('/api/math-engine', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'sign_table', expression: expr, niveau: resolveNiveau(inputText) }),
-                    });
-                    const engineData = await engineRes.json();
-                    if (engineData.success && engineData.aaaBlock) {
-                        const tableBlock = engineData.aaaBlock;
-                        console.log(`[MathEngine] ✅ Injection directe du tableau SymPy`);
-                        const enrichedMessages: ChatMessage[] = [
-                            ...newMessages,
-                            {
-                                role: 'user' as const,
-                                content: `[SYSTÈME] Tableau de signes calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes : factorisation, valeurs critiques, signe par intervalle, conclusion.'}${engineData.discriminantSteps?.length ? '\nDiscriminant:\n' + engineData.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n') : ''}`
-                            }
-                        ];
-                        const tablePrefix = tableBlock + '\n\n';
-                        // AJOUTER un nouveau message assistant (pas remplacer !)
-                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
-
-                        setLoading(true);
-                        setIsTalking(true);
-                        try {
-                            const response = await fetch('/api/perplexity', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
-                            });
-                            if (!response.ok) throw new Error('Erreur API');
-                            const reader = response.body?.getReader();
-                            if (!reader) throw new Error('Reader non disponible');
-                            const decoder = new TextDecoder();
-                            let aiText = '';
-                            let lastSignUpdate = 0;
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                for (const line of decoder.decode(value).split('\n')) {
-                                    if (!line.startsWith('data: ')) continue;
-                                    const jsonStr = line.substring(6);
-                                    if (jsonStr === '[DONE]') break;
-                                    try {
-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
-                                        if (c) {
-                                            aiText += c;
-                                            // Throttle : max 1 update / 100ms pour éviter 'Maximum update depth exceeded'
-                                            const now = Date.now();
-                                            if (now - lastSignUpdate > 100) {
-                                                lastSignUpdate = now;
-                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
-                                                setMessages(prev => {
-                                                    const u = [...prev];
-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
-                                                    return u;
-                                                });
-                                            }
-                                        }
-                                    } catch { }
-                                }
-                            }
-                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
-                            setMessages(prev => {
-                                const u = [...prev];
-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
-                                return u;
-                            });
-                        } catch (error) {
-                            console.error('Erreur streaming:', error);
-                        } finally {
-                            setLoading(false);
-                            setIsTalking(false);
-                        }
-                        return;
-                    }
-                } catch (err) {
-                    console.warn('[MathEngine] Erreur, fallback IA:', err);
-                }
-            }
-        }
-
-        // ── INTERCEPTION TABLEAU DE VARIATIONS (expression unique) ──
-        const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
-
-        if (wantsVariationTable && !isMultiExpr) {
-            let expr = '';
-            const eqMatch = inputText.match(/=\s*(.+)/);
-            if (eqMatch) expr = eqMatch[1].trim();
-            if (!expr) {
-                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
-                if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
-            }
-            expr = expr
-                .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
-                // Retirer le texte français résiduel après l'expression
-                .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
-                .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
-
-            if (expr && expr.includes('x') && expr.length > 1) {
-                console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
-                try {
-                    const engineRes = await fetch('/api/math-engine', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(inputText) }),
-                    });
-                    const engineData = await engineRes.json();
-                    if (engineData.success && engineData.aaaBlock) {
-                        const tableBlock = engineData.aaaBlock;
-                        console.log(`[MathEngine] ✅ Injection directe du tableau de variations`);
-                        const enrichedMessages: ChatMessage[] = [
-                            ...newMessages,
-                            {
-                                role: 'user' as const,
-                                content: `[SYSTÈME] Tableau de variations calculé pour f(x) = ${expr}.\n${engineData.aiContext || 'NE GÉNÈRE AUCUN bloc @@@. Explique les étapes de l\'étude des variations.'}`
-                            }
-                        ];
-                        const tablePrefix = tableBlock + '\n\n';
-                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
-
-                        setLoading(true);
-                        setIsTalking(true);
-                        try {
-                            const response = await fetch('/api/perplexity', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
-                            });
-                            if (!response.ok) throw new Error('Erreur API');
-                            const reader = response.body?.getReader();
-                            if (!reader) throw new Error('Reader non disponible');
-                            const decoder = new TextDecoder();
-                            let aiText = '';
-                            let lastVarUpdate = 0;
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                for (const line of decoder.decode(value).split('\n')) {
-                                    if (!line.startsWith('data: ')) continue;
-                                    const jsonStr = line.substring(6);
-                                    if (jsonStr === '[DONE]') break;
-                                    try {
-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
-                                        if (c) {
-                                            aiText += c;
-                                            // Throttle : max 1 update / 200ms pour éviter 'Maximum update depth exceeded'
-                                            const now = Date.now();
-                                            if (now - lastVarUpdate > 200) {
-                                                lastVarUpdate = now;
-                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
-                                                setMessages(prev => {
-                                                    const u = [...prev];
-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
-                                                    return u;
-                                                });
-                                            }
-                                        }
-                                    } catch { }
-                                }
-                            }
-                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
-                            setMessages(prev => {
-                                const u = [...prev];
-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
-                                return u;
-                            });
-                        } catch (error) {
-                            console.error('Erreur streaming:', error);
-                        } finally {
-                            setLoading(false);
-                            setIsTalking(false);
-                        }
-                        return;
-                    }
-                } catch (err) {
-                    console.warn('[MathEngine] Erreur variation, fallback IA:', err);
-                }
-            }
-        }
-
-        // ── INTERCEPTION TRACÉ DE COURBE / GRAPHIQUE ──
-        // Vocabulaire officiel BO Éducation Nationale (Seconde → Terminale)
-        // On normalise l'input pour supprimer les accents (évite les problèmes d'encodage é/è/ê)
-        const inputNorm = inputLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const wantsGraph = (
-            /\btrace\b|\btracer\b|\btrace\b|\bdessine\b|\bdessin\b/i.test(inputNorm)
-            || /\bcourbe\b|\bgraphe\b|\bgraphique\b|\bplot\b/i.test(inputNorm)
-            || /represent/i.test(inputNorm)  // représente, représentation (sans accent)
-            || /visualise|affiche|montre/i.test(inputNorm)
-            || /lecture\s+graphique/i.test(inputNorm)
-        ) && !/signe|variation/i.test(inputNorm);
-        const wantsAddCurve = (
-            // Mots-clés explicites : "ajoute", "rajoute", "superpose"
-            (/ajoute|rajoute|superpose/i.test(inputNorm) && /courbe|fonction|graph|f\s*\(|g\s*\(|h\s*\(/i.test(inputNorm))
-            // "sur ce graphe", "sur le même graphe/graphique", "sur le graphique"
-            || /sur\s+(ce|le\s+meme|le)\s+(graph|graphe|graphique)/i.test(inputNorm)
-            // "aussi", "en plus", "également" + tracé
-            || (/aussi|en\s+plus|egalement/i.test(inputNorm) && /trace|dessine/i.test(inputNorm))
-            // "et trace", "et dessine" (début de phrase ou après virgule)
-            || /(?:,|et)\s+(?:trace|dessine)/i.test(inputNorm)
-            // g(x) ou h(x) mentionné quand il y a déjà une courbe (= probable ajout)
-            || (/[gh]\s*\(\s*x\s*\)/i.test(inputLower) && (() => {
-                try {
-                    const stored = localStorage.getItem('graphState');
-                    if (stored) {
-                        const s = JSON.parse(stored);
-                        return s.curves && s.curves.length > 0;
-                    }
-                } catch { /* ignore */ }
-                return false;
-            })())
-        );
-        const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
-        const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
-            && /graphi|graph|courbe|=|>|<|\bx\b/i.test(inputNorm);
-        const wantsTangente = /tangente|tangent/i.test(inputNorm);
-        const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
-        const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
-
-
-        if (wantsGraphAction) {
+    // ── INTERCEPTION TRACÉ DE COURBE / GRAPHIQUE ──
+    // Vocabulaire officiel BO Éducation Nationale (Seconde → Terminale)
+    // On normalise l'input pour supprimer les accents (évite les problèmes d'encodage é/è/ê)
+    const inputNorm = inputLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const wantsGraph = (
+        /\btrace\b|\btracer\b|\btrace\b|\bdessine\b|\bdessin\b/i.test(inputNorm)
+        || /\bcourbe\b|\bgraphe\b|\bgraphique\b|\bplot\b/i.test(inputNorm)
+        || /represent/i.test(inputNorm)  // représente, représentation (sans accent)
+        || /visualise|affiche|montre/i.test(inputNorm)
+        || /lecture\s+graphique/i.test(inputNorm)
+    ) && !/signe|variation/i.test(inputNorm);
+    const wantsAddCurve = (
+        // Mots-clés explicites : "ajoute", "rajoute", "superpose"
+        (/ajoute|rajoute|superpose/i.test(inputNorm) && /courbe|fonction|graph|f\s*\(|g\s*\(|h\s*\(/i.test(inputNorm))
+        // "sur ce graphe", "sur le même graphe/graphique", "sur le graphique"
+        || /sur\s+(ce|le\s+meme|le)\s+(graph|graphe|graphique)/i.test(inputNorm)
+        // "aussi", "en plus", "également" + tracé
+        || (/aussi|en\s+plus|egalement/i.test(inputNorm) && /trace|dessine/i.test(inputNorm))
+        // "et trace", "et dessine" (début de phrase ou après virgule)
+        || /(?:,|et)\s+(?:trace|dessine)/i.test(inputNorm)
+        // g(x) ou h(x) mentionné quand il y a déjà une courbe (= probable ajout)
+        || (/[gh]\s*\(\s*x\s*\)/i.test(inputLower) && (() => {
             try {
-                // ── Fonctions utilitaires ──
-                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                const stored = localStorage.getItem('graphState');
+                if (stored) {
+                    const s = JSON.parse(stored);
+                    return s.curves && s.curves.length > 0;
+                }
+            } catch { /* ignore */ }
+            return false;
+        })())
+    );
+    const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
+    const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
+        && /graphi|graph|courbe|=|>|<|\bx\b/i.test(inputNorm);
+    const wantsTangente = /tangente|tangent/i.test(inputNorm);
+    const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
+    const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
 
-                // Extraction de l'intervalle
-                let gInterval: [number, number] = [-10, 10];
-                const intMatch = inputText.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
-                if (intMatch) gInterval = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
-                const intMatch2 = inputText.match(/(?:entre|de)\s+([+-]?\d+(?:\.\d+)?)\s+(?:et|à)\s+([+-]?\d+(?:\.\d+)?)/i);
-                if (intMatch2) gInterval = [parseFloat(intMatch2[1]), parseFloat(intMatch2[2])];
 
-                // Formater une expression mathjs en notation lisible (pour affichage)
-                const prettifyMath = (expr: string): string => {
-                    return expr
-                        // sqrt(expr) → √(expr)
-                        .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                        .replace(/\bsqrt\b/g, '√')
-                        // log(x) → ln(x) en notation française
-                        .replace(/\blog\(/g, 'ln(')
-                        // e^(x) → eˣ — on laisse e^(...) pour lisibilité
-                        // Puissances : ^2 → ², ^3 → ³, ^4 → ⁴
-                        .replace(/\^2(?![0-9])/g, '²')
-                        .replace(/\^3(?![0-9])/g, '³')
-                        .replace(/\^4(?![0-9])/g, '⁴')
-                        // Multiplication : * → ×
-                        .replace(/\*/g, '×')
-                        // pi → π
-                        .replace(/\bpi\b/g, 'π')
-                        // Espaces autour des opérateurs
-                        .replace(/([^\s])([+\-])/g, '$1 $2')
-                        .replace(/([+\-])([^\s])/g, '$1 $2')
-                        // Nettoyage doubles espaces
-                        .replace(/\s+/g, ' ').trim();
-                };
+    if (wantsGraphAction) {
+        try {
+            // ── Fonctions utilitaires ──
+            const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
 
-                // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
-                const cleanExpr = (e: string) => {
-                    let c = e
-                        // Retirer f(x)=, g(x)=, y= etc.
-                        .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                        .replace(/^\s*y\s*=\s*/i, '')
-                        // LaTeX : \frac{a}{b} → (a)/(b)
-                        .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
-                        // LaTeX : \sqrt{expr} → sqrt(expr)
-                        .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
-                        .replace(/\\sqrt\s+(\w+)/g, 'sqrt($1)')
-                        // LaTeX : \left( \right) → ( )
-                        .replace(/\\left\s*[([]/g, '(').replace(/\\right\s*[)\]]/g, ')')
-                        // LaTeX : \cdot \times → *
-                        .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
-                        // LaTeX : \text{...} → contenu
-                        .replace(/\\text\s*\{([^}]*)\}/g, '$1')
-                        // LaTeX : backslashes restants
-                        .replace(/\\[,;:!]\s*/g, ' ')
-                        .replace(/\\quad/g, ' ').replace(/\\qquad/g, ' ')
-                        // Unicode : ², ³
-                        .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                        // Symboles
-                        .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
-                        // Français : racine carrée de → sqrt
-                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
-                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
-                        // Valeur absolue
-                        .replace(/\|([^|]+)\|/g, 'abs($1)')
-                        // ln → log pour mathjs
-                        .replace(/\bln\s*\(/g, 'log(')
-                        // exp(x) → e^(x)
-                        .replace(/\bexp\s*\(/g, 'e^(')
-                        // Ponctuation finale
-                        .replace(/\s+$/g, '').replace(/[.!?]+$/g, '')
-                        .trim();
-                    return c;
-                };
+            // Extraction de l'intervalle
+            let gInterval: [number, number] = [-10, 10];
+            const intMatch = inputText.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
+            if (intMatch) gInterval = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
+            const intMatch2 = inputText.match(/(?:entre|de)\s+([+-]?\d+(?:\.\d+)?)\s+(?:et|à)\s+([+-]?\d+(?:\.\d+)?)/i);
+            if (intMatch2) gInterval = [parseFloat(intMatch2[1]), parseFloat(intMatch2[2])];
 
-                // Charger l'état précédent du graphe
-                let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
-                try {
-                    const stored = localStorage.getItem('graphState');
-                    if (stored) graphState = JSON.parse(stored);
-                } catch { /* ignore */ }
+            // Formater une expression mathjs en notation lisible (pour affichage)
+            const prettifyMath = (expr: string): string => {
+                return expr
+                    // sqrt(expr) → √(expr)
+                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                    .replace(/\bsqrt\b/g, '√')
+                    // log(x) → ln(x) en notation française
+                    .replace(/\blog\(/g, 'ln(')
+                    // e^(x) → eˣ — on laisse e^(...) pour lisibilité
+                    // Puissances : ^2 → ², ^3 → ³, ^4 → ⁴
+                    .replace(/\^2(?![0-9])/g, '²')
+                    .replace(/\^3(?![0-9])/g, '³')
+                    .replace(/\^4(?![0-9])/g, '⁴')
+                    // Multiplication : * → ×
+                    .replace(/\*/g, '×')
+                    // pi → π
+                    .replace(/\bpi\b/g, 'π')
+                    // Espaces autour des opérateurs
+                    .replace(/([^\s])([+\-])/g, '$1 $2')
+                    .replace(/([+\-])([^\s])/g, '$1 $2')
+                    // Nettoyage doubles espaces
+                    .replace(/\s+/g, ' ').trim();
+            };
 
-                // ═══════════════════════════════════════════════════════
-                // CAS 0 : EFFACER LE GRAPHIQUE
-                // ═══════════════════════════════════════════════════════
-                if (wantsEffacerGraph) {
-                    graphState = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
-                    localStorage.setItem('graphState', JSON.stringify(graphState));
-                    const ch = new BroadcastChannel('mimimaths-graph');
-                    ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
-                    ch.close();
+            // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
+            const cleanExpr = (e: string) => {
+                let c = e
+                    // Retirer f(x)=, g(x)=, y= etc.
+                    .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                    .replace(/^\s*y\s*=\s*/i, '')
+                    // LaTeX : \frac{a}{b} → (a)/(b)
+                    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
+                    // LaTeX : \sqrt{expr} → sqrt(expr)
+                    .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
+                    .replace(/\\sqrt\s+(\w+)/g, 'sqrt($1)')
+                    // LaTeX : \left( \right) → ( )
+                    .replace(/\\left\s*[([]/g, '(').replace(/\\right\s*[)\]]/g, ')')
+                    // LaTeX : \cdot \times → *
+                    .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
+                    // LaTeX : \text{...} → contenu
+                    .replace(/\\text\s*\{([^}]*)\}/g, '$1')
+                    // LaTeX : backslashes restants
+                    .replace(/\\[,;:!]\s*/g, ' ')
+                    .replace(/\\quad/g, ' ').replace(/\\qquad/g, ' ')
+                    // Unicode : ², ³
+                    .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                    // Symboles
+                    .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
+                    // Français : racine carrée de → sqrt
+                    .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
+                    .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
+                    // Valeur absolue
+                    .replace(/\|([^|]+)\|/g, 'abs($1)')
+                    // ln → log pour mathjs
+                    .replace(/\bln\s*\(/g, 'log(')
+                    // exp(x) → e^(x)
+                    .replace(/\bexp\s*\(/g, 'e^(')
+                    // Ponctuation finale
+                    .replace(/\s+$/g, '').replace(/[.!?]+$/g, '')
+                    .trim();
+                return c;
+            };
+
+            // Charger l'état précédent du graphe
+            let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
+            try {
+                const stored = localStorage.getItem('graphState');
+                if (stored) graphState = JSON.parse(stored);
+            } catch { /* ignore */ }
+
+            // ═══════════════════════════════════════════════════════
+            // CAS 0 : EFFACER LE GRAPHIQUE
+            // ═══════════════════════════════════════════════════════
+            if (wantsEffacerGraph) {
+                graphState = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
+                localStorage.setItem('graphState', JSON.stringify(graphState));
+                const ch = new BroadcastChannel('mimimaths-graph');
+                ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+                ch.close();
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `🗑️ Graphique effacé ! Tu peux tracer une nouvelle courbe.`
+                }]);
+                return;
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // CAS 1 : RÉSOLUTION GRAPHIQUE (équation / inéquation)
+            // ═══════════════════════════════════════════════════════
+            if (wantsResolve) {
+                // Chercher le pattern : expr1 OPERATOR expr2
+                const ops = ['>=', '<=', '≥', '≤', '>', '<', '='] as const;
+                const opMap: Record<string, string> = { '>=': '≥', '<=': '≤', '≥': '≥', '≤': '≤', '>': '>', '<': '<', '=': '=' };
+                let lhs = '', rhs = '', operator = '=';
+
+                // Retirer le préfixe "résous graphiquement" etc.
+                let mathPart = inputText
+                    .replace(/résou\w*\s*(?:graphiquement\s*)?/i, '')
+                    .replace(/résolution\s*(?:graphique\s*)?(?:de\s*)?/i, '')
+                    .replace(/\s+sur\s+\[.*$/i, '')  // retirer l'intervalle
+                    .replace(/\s+entre\s+.*$/i, '')
+                    .replace(/\s+pour\s+.*$/i, '')
+                    .trim();
+
+                // Chercher l'opérateur
+                for (const op of ops) {
+                    const idx = mathPart.indexOf(op);
+                    if (idx > 0) {
+                        lhs = cleanExpr(mathPart.substring(0, idx));
+                        rhs = cleanExpr(mathPart.substring(idx + op.length));
+                        operator = opMap[op] || '=';
+                        break;
+                    }
+                }
+
+                if (lhs && lhs.includes('x')) {
+                    // Si rhs pas d'expression, c'est une constante
+                    if (!rhs) rhs = '0';
+
+                    // Construire le graphState avec 2 courbes
+                    const rhsIsConst = !rhs.includes('x');
+                    graphState = {
+                        curves: [
+                            {
+                                id: 'curve-0',
+                                expression: lhs,
+                                name: `f(x) = ${prettifyMath(lhs)}`,
+                                color: GRAPH_COLORS[0],
+                                interval: gInterval,
+                            },
+                            {
+                                id: 'curve-1',
+                                expression: rhs.includes('x') ? rhs : rhs,
+                                name: rhsIsConst ? `y = ${rhs}` : `g(x) = ${prettifyMath(rhs)}`,
+                                color: GRAPH_COLORS[1],
+                                interval: gInterval,
+                            }
+                        ],
+                        intersections: '__COMPUTE__',  // Signal pour calculer les intersections
+                        positionsRelatives: [],
+                        tangent: null,
+                        title: `Résolution : ${lhs} ${operator} ${rhs}`,
+                    };
+
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: `🗑️ Graphique effacé ! Tu peux tracer une nouvelle courbe.`
+                        content: `🔍 **Résolution graphique** de \`${lhs} ${operator} ${rhs}\` sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                    }]);
+                } else {
+                    // Pas d'expression parsable → fallback IA
+                    await startStreamingResponse(newMessages);
+                    return;
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // CAS 2 : TANGENTE
+            // ═══════════════════════════════════════════════════════
+            else if (wantsTangente) {
+                // Extraire le point x0
+                let x0: number | null = null;
+                const x0Match = inputText.match(/(?:en\s+)?x\s*=\s*([+-]?\d+(?:\.\d+)?)/i);
+                if (x0Match) x0 = parseFloat(x0Match[1]);
+                else {
+                    const x0Match2 = inputText.match(/en\s+([+-]?\d+(?:\.\d+)?)/i);
+                    if (x0Match2) x0 = parseFloat(x0Match2[1]);
+                }
+
+                // Extraire l'expression (si fournie)
+                let tangExpr = '';
+                const tangEqMatch = inputText.match(/(?:tangente\s+(?:de\s+|à\s+)?)?(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+en\s|$)/i);
+                if (tangEqMatch) tangExpr = cleanExpr(tangEqMatch[1]);
+                if (!tangExpr) {
+                    const tangVerbMatch = inputText.match(/tangente\s+(?:de\s+|à\s+)?(.+?)(?:\s+en\s|$)/i);
+                    if (tangVerbMatch) tangExpr = cleanExpr(tangVerbMatch[1]);
+                }
+
+                // Si pas d'expression, utiliser la dernière courbe
+                if (!tangExpr && graphState.curves.length > 0) {
+                    tangExpr = graphState.curves[graphState.curves.length - 1].expression;
+                }
+
+                if (!tangExpr || !tangExpr.includes('x')) {
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `❓ Quelle fonction ? Dis par exemple : « tangente de x² en x = 2 »`
                     }]);
                     return;
                 }
 
-                // ═══════════════════════════════════════════════════════
-                // CAS 1 : RÉSOLUTION GRAPHIQUE (équation / inéquation)
-                // ═══════════════════════════════════════════════════════
-                if (wantsResolve) {
-                    // Chercher le pattern : expr1 OPERATOR expr2
-                    const ops = ['>=', '<=', '≥', '≤', '>', '<', '='] as const;
-                    const opMap: Record<string, string> = { '>=': '≥', '<=': '≤', '≥': '≥', '≤': '≤', '>': '>', '<': '<', '=': '=' };
-                    let lhs = '', rhs = '', operator = '=';
-
-                    // Retirer le préfixe "résous graphiquement" etc.
-                    let mathPart = inputText
-                        .replace(/résou\w*\s*(?:graphiquement\s*)?/i, '')
-                        .replace(/résolution\s*(?:graphique\s*)?(?:de\s*)?/i, '')
-                        .replace(/\s+sur\s+\[.*$/i, '')  // retirer l'intervalle
-                        .replace(/\s+entre\s+.*$/i, '')
-                        .replace(/\s+pour\s+.*$/i, '')
-                        .trim();
-
-                    // Chercher l'opérateur
-                    for (const op of ops) {
-                        const idx = mathPart.indexOf(op);
-                        if (idx > 0) {
-                            lhs = cleanExpr(mathPart.substring(0, idx));
-                            rhs = cleanExpr(mathPart.substring(idx + op.length));
-                            operator = opMap[op] || '=';
-                            break;
-                        }
-                    }
-
-                    if (lhs && lhs.includes('x')) {
-                        // Si rhs pas d'expression, c'est une constante
-                        if (!rhs) rhs = '0';
-
-                        // Construire le graphState avec 2 courbes
-                        const rhsIsConst = !rhs.includes('x');
-                        graphState = {
-                            curves: [
-                                {
-                                    id: 'curve-0',
-                                    expression: lhs,
-                                    name: `f(x) = ${prettifyMath(lhs)}`,
-                                    color: GRAPH_COLORS[0],
-                                    interval: gInterval,
-                                },
-                                {
-                                    id: 'curve-1',
-                                    expression: rhs.includes('x') ? rhs : rhs,
-                                    name: rhsIsConst ? `y = ${rhs}` : `g(x) = ${prettifyMath(rhs)}`,
-                                    color: GRAPH_COLORS[1],
-                                    interval: gInterval,
-                                }
-                            ],
-                            intersections: '__COMPUTE__',  // Signal pour calculer les intersections
-                            positionsRelatives: [],
-                            tangent: null,
-                            title: `Résolution : ${lhs} ${operator} ${rhs}`,
-                        };
-
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `🔍 **Résolution graphique** de \`${lhs} ${operator} ${rhs}\` sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
-                        }]);
-                    } else {
-                        // Pas d'expression parsable → fallback IA
-                        await startStreamingResponse(newMessages);
-                        return;
-                    }
+                if (x0 === null) {
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `❓ En quel point ? Dis par exemple : « tangente en x = 2 »`
+                    }]);
+                    return;
                 }
 
-                // ═══════════════════════════════════════════════════════
-                // CAS 2 : TANGENTE
-                // ═══════════════════════════════════════════════════════
-                else if (wantsTangente) {
-                    // Extraire le point x0
-                    let x0: number | null = null;
-                    const x0Match = inputText.match(/(?:en\s+)?x\s*=\s*([+-]?\d+(?:\.\d+)?)/i);
-                    if (x0Match) x0 = parseFloat(x0Match[1]);
-                    else {
-                        const x0Match2 = inputText.match(/en\s+([+-]?\d+(?:\.\d+)?)/i);
-                        if (x0Match2) x0 = parseFloat(x0Match2[1]);
-                    }
+                // Calculer la tangente numériquement (f'(x0) par différence finie)
+                try {
+                    const { compile } = await import('mathjs');
+                    const sanitize = (e: string) => e.replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log');
+                    const compiled = compile(sanitize(tangExpr));
+                    const evalF = (xv: number) => {
+                        try { const r = compiled.evaluate({ x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
+                    };
 
-                    // Extraire l'expression (si fournie)
-                    let tangExpr = '';
-                    const tangEqMatch = inputText.match(/(?:tangente\s+(?:de\s+|à\s+)?)?(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+en\s|$)/i);
-                    if (tangEqMatch) tangExpr = cleanExpr(tangEqMatch[1]);
-                    if (!tangExpr) {
-                        const tangVerbMatch = inputText.match(/tangente\s+(?:de\s+|à\s+)?(.+?)(?:\s+en\s|$)/i);
-                        if (tangVerbMatch) tangExpr = cleanExpr(tangVerbMatch[1]);
-                    }
+                    const y0 = evalF(x0);
+                    const h = 1e-7;
+                    const yPlus = evalF(x0 + h);
+                    const yMinus = evalF(x0 - h);
 
-                    // Si pas d'expression, utiliser la dernière courbe
-                    if (!tangExpr && graphState.curves.length > 0) {
-                        tangExpr = graphState.curves[graphState.curves.length - 1].expression;
-                    }
+                    if (y0 !== null && yPlus !== null && yMinus !== null) {
+                        const slope = (yPlus - yMinus) / (2 * h);
+                        const slopeRound = Math.round(slope * 10000) / 10000;
+                        const y0Round = Math.round(y0 * 10000) / 10000;
+                        const interceptRound = Math.round((y0 - slope * x0) * 10000) / 10000;
 
-                    if (!tangExpr || !tangExpr.includes('x')) {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `❓ Quelle fonction ? Dis par exemple : « tangente de x² en x = 2 »`
-                        }]);
-                        return;
-                    }
-
-                    if (x0 === null) {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `❓ En quel point ? Dis par exemple : « tangente en x = 2 »`
-                        }]);
-                        return;
-                    }
-
-                    // Calculer la tangente numériquement (f'(x0) par différence finie)
-                    try {
-                        const { compile } = await import('mathjs');
-                        const sanitize = (e: string) => e.replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log');
-                        const compiled = compile(sanitize(tangExpr));
-                        const evalF = (xv: number) => {
-                            try { const r = compiled.evaluate({ x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
-                        };
-
-                        const y0 = evalF(x0);
-                        const h = 1e-7;
-                        const yPlus = evalF(x0 + h);
-                        const yMinus = evalF(x0 - h);
-
-                        if (y0 !== null && yPlus !== null && yMinus !== null) {
-                            const slope = (yPlus - yMinus) / (2 * h);
-                            const slopeRound = Math.round(slope * 10000) / 10000;
-                            const y0Round = Math.round(y0 * 10000) / 10000;
-                            const interceptRound = Math.round((y0 - slope * x0) * 10000) / 10000;
-
-                            // S'assurer que la courbe est tracée
-                            if (!graphState.curves.some((c: any) => c.expression === tangExpr)) {
-                                graphState = {
-                                    curves: [{
-                                        id: 'curve-0',
-                                        expression: tangExpr,
-                                        name: `f(x) = ${prettifyMath(tangExpr)}`,
-                                        color: GRAPH_COLORS[0],
-                                        interval: gInterval,
-                                    }],
-                                    intersections: [],
-                                    positionsRelatives: [],
-                                    tangent: null,
-                                    title: `f(x) = ${prettifyMath(tangExpr)}`,
-                                };
-                            }
-
-                            graphState.tangent = {
-                                x0,
-                                y0: y0Round,
-                                slope: slopeRound,
-                                equation: `T(x) = ${slopeRound}x + ${interceptRound}`,
-                                interval: gInterval,
-                            };
-                            graphState.title = `Tangente à f(x) = ${tangExpr} en x = ${x0}`;
-
-                            setMessages(prev => [...prev, {
-                                role: 'assistant',
-                                content: `📐 **Tangente** à f(x) = ${tangExpr} en x = ${x0} :\n\n- f(${x0}) = ${y0Round}\n- f'(${x0}) ≈ ${slopeRound}\n- **T(x) = ${slopeRound}x + ${interceptRound}**\n\nRegarde la fenêtre graphique !`
-                            }]);
-                        } else {
-                            setMessages(prev => [...prev, {
-                                role: 'assistant',
-                                content: `❌ Impossible de calculer la tangente en x = ${x0}. La fonction n'est peut-être pas définie en ce point.`
-                            }]);
-                            return;
-                        }
-                    } catch (err) {
-                        console.warn('[Tangente] Erreur calcul:', err);
-                        await startStreamingResponse(newMessages);
-                        return;
-                    }
-                }
-
-                // ═══════════════════════════════════════════════════════
-                // CAS 3 : INTERSECTION (courbes déjà tracées)
-                // ═══════════════════════════════════════════════════════
-                else if (wantsIntersection) {
-                    if (graphState.curves.length >= 2) {
-                        graphState.intersections = '__COMPUTE__';
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `📊 Recherche des intersections entre ${graphState.curves.map((c: any) => c.name).join(' et ')}. Regarde la fenêtre graphique !`
-                        }]);
-                    } else {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `❓ Il faut au moins 2 courbes tracées pour chercher une intersection. Trace d'abord une courbe, puis ajoute-en une autre !`
-                        }]);
-                        return;
-                    }
-                }
-
-                // ═══════════════════════════════════════════════════════
-                // CAS 4 : TRACER / AJOUTER UNE COURBE
-                // ═══════════════════════════════════════════════════════
-                else {
-                    // Extraire l'expression
-                    let gExpr = '';
-                    const gEqMatch = inputText.match(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+(?:sur|pour|entre|de\s+-?\d)\s|$)/);
-                    if (gEqMatch) gExpr = gEqMatch[1].trim();
-                    if (!gExpr) {
-                        // Pattern étendu avec tous les verbes/noms BO
-                        const gVerbMatch = inputText.match(
-                            /(?:trace|tracer|dessine|ajoute|rajoute|repr[eé]sente|visualise|affiche|montre)\s+(?:(?:la\s+)?(?:courbe\s+(?:repr[eé]sentative\s+)?|repr[eé]sentation\s+graphique\s+|fonction\s+|graphe\s+|graphique\s+)?(?:de\s+)?)?(.+?)(?:\s+(?:sur|pour|entre|dans)\s|$)/i
-                        );
-                        if (gVerbMatch) {
-                            gExpr = gVerbMatch[1].trim()
-                                .replace(/^(?:de\s+)?(?:[fgh]\s*\(x\)\s*=\s*)/, '')
-                                .replace(/[.!?]+$/, '');
-                        }
-                    }
-                    gExpr = cleanExpr(gExpr);
-
-                    // Extraire le nom de la fonction
-                    const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
-                    const funcName = nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f');
-
-                    if (gExpr && gExpr.includes('x')) {
-                        if (wantsAddCurve && graphState.curves.length > 0) {
-                            // AJOUTER une courbe
-                            const idx = graphState.curves.length;
-                            graphState.curves.push({
-                                id: `curve-${idx}`,
-                                expression: gExpr,
-                                name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
-                                color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
-                                interval: gInterval,
-                            });
-                            graphState.title = 'Graphique multi-courbes';
-                            graphState.intersections = graphState.curves.length >= 2 ? '__COMPUTE__' : [];
-                            graphState.tangent = null;
-                        } else {
-                            // TRACER une nouvelle courbe (efface les précédentes)
+                        // S'assurer que la courbe est tracée
+                        if (!graphState.curves.some((c: any) => c.expression === tangExpr)) {
                             graphState = {
                                 curves: [{
                                     id: 'curve-0',
-                                    expression: gExpr,
-                                    name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                    expression: tangExpr,
+                                    name: `f(x) = ${prettifyMath(tangExpr)}`,
                                     color: GRAPH_COLORS[0],
                                     interval: gInterval,
                                 }],
                                 intersections: [],
                                 positionsRelatives: [],
                                 tangent: null,
-                                title: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                title: `f(x) = ${prettifyMath(tangExpr)}`,
                             };
                         }
 
-                        const action = wantsAddCurve ? 'ajoutée' : 'tracée';
+                        graphState.tangent = {
+                            x0,
+                            y0: y0Round,
+                            slope: slopeRound,
+                            equation: `T(x) = ${slopeRound}x + ${interceptRound}`,
+                            interval: gInterval,
+                        };
+                        graphState.title = `Tangente à f(x) = ${tangExpr} en x = ${x0}`;
+
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `📊 Courbe ${action} : **${funcName}(x) = ${prettifyMath(gExpr)}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                            content: `📐 **Tangente** à f(x) = ${tangExpr} en x = ${x0} :\n\n- f(${x0}) = ${y0Round}\n- f'(${x0}) ≈ ${slopeRound}\n- **T(x) = ${slopeRound}x + ${interceptRound}**\n\nRegarde la fenêtre graphique !`
                         }]);
                     } else {
-                        // Pas d'expression trouvée → laisser l'IA gérer
-                        await startStreamingResponse(newMessages);
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `❌ Impossible de calculer la tangente en x = ${x0}. La fonction n'est peut-être pas définie en ce point.`
+                        }]);
                         return;
                     }
+                } catch (err) {
+                    console.warn('[Tangente] Erreur calcul:', err);
+                    await startStreamingResponse(newMessages);
+                    return;
                 }
-
-                // ═══════════════════════════════════════════════════════
-                // ENVOI AU GRAPHIQUE + IA
-                // ═══════════════════════════════════════════════════════
-                localStorage.setItem('graphState', JSON.stringify(graphState));
-                const graphChannel = new BroadcastChannel('mimimaths-graph');
-                graphChannel.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
-                graphChannel.close();
-
-                // Ouvrir la fenêtre si pas déjà ouverte
-                const graphWin = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
-                if (graphWin) {
-                    setTimeout(() => {
-                        const ch = new BroadcastChannel('mimimaths-graph');
-                        ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
-                        ch.close();
-                    }, 500);
-                }
-
-                // Demander à l'IA d'expliquer
-                const curvesDesc = graphState.curves.map((c: any) => c.name).join(', ');
-                let aiSystemPrompt = `[SYSTÈME] Un graphique a été ouvert dans une fenêtre séparée avec ${curvesDesc}. Ne génère AUCUN graphique toi-même.`;
-
-                if (wantsResolve) {
-                    aiSystemPrompt += ` Explique la résolution graphique : comment lire les solutions sur le graphique, méthode de résolution, ensemble solution.`;
-                } else if (wantsTangente && graphState.tangent) {
-                    aiSystemPrompt += ` La tangente ${graphState.tangent.equation} a été tracée en x=${graphState.tangent.x0}. Explique le calcul de la tangente : dérivée, coefficient directeur, ordonnée à l'origine.`;
-                } else {
-                    aiSystemPrompt += ` Explique brièvement la/les fonction(s) tracée(s) : domaine, comportement, points remarquables.`;
-                }
-
-                const graphPrompt: ChatMessage[] = [
-                    ...newMessages,
-                    { role: 'user' as const, content: aiSystemPrompt }
-                ];
-                await startStreamingResponse(graphPrompt);
-                return;
-            } catch (err) {
-                console.warn('[Graph] Erreur, fallback IA:', err);
             }
+
+            // ═══════════════════════════════════════════════════════
+            // CAS 3 : INTERSECTION (courbes déjà tracées)
+            // ═══════════════════════════════════════════════════════
+            else if (wantsIntersection) {
+                if (graphState.curves.length >= 2) {
+                    graphState.intersections = '__COMPUTE__';
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `📊 Recherche des intersections entre ${graphState.curves.map((c: any) => c.name).join(' et ')}. Regarde la fenêtre graphique !`
+                    }]);
+                } else {
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `❓ Il faut au moins 2 courbes tracées pour chercher une intersection. Trace d'abord une courbe, puis ajoute-en une autre !`
+                    }]);
+                    return;
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // CAS 4 : TRACER / AJOUTER UNE COURBE
+            // ═══════════════════════════════════════════════════════
+            else {
+                // Extraire l'expression
+                let gExpr = '';
+                const gEqMatch = inputText.match(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+(?:sur|pour|entre|de\s+-?\d)\s|$)/);
+                if (gEqMatch) gExpr = gEqMatch[1].trim();
+                if (!gExpr) {
+                    // Pattern étendu avec tous les verbes/noms BO
+                    const gVerbMatch = inputText.match(
+                        /(?:trace|tracer|dessine|ajoute|rajoute|repr[eé]sente|visualise|affiche|montre)\s+(?:(?:la\s+)?(?:courbe\s+(?:repr[eé]sentative\s+)?|repr[eé]sentation\s+graphique\s+|fonction\s+|graphe\s+|graphique\s+)?(?:de\s+)?)?(.+?)(?:\s+(?:sur|pour|entre|dans)\s|$)/i
+                    );
+                    if (gVerbMatch) {
+                        gExpr = gVerbMatch[1].trim()
+                            .replace(/^(?:de\s+)?(?:[fgh]\s*\(x\)\s*=\s*)/, '')
+                            .replace(/[.!?]+$/, '');
+                    }
+                }
+                gExpr = cleanExpr(gExpr);
+
+                // Extraire le nom de la fonction
+                const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
+                const funcName = nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f');
+
+                if (gExpr && gExpr.includes('x')) {
+                    if (wantsAddCurve && graphState.curves.length > 0) {
+                        // AJOUTER une courbe
+                        const idx = graphState.curves.length;
+                        graphState.curves.push({
+                            id: `curve-${idx}`,
+                            expression: gExpr,
+                            name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                            color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
+                            interval: gInterval,
+                        });
+                        graphState.title = 'Graphique multi-courbes';
+                        graphState.intersections = graphState.curves.length >= 2 ? '__COMPUTE__' : [];
+                        graphState.tangent = null;
+                    } else {
+                        // TRACER une nouvelle courbe (efface les précédentes)
+                        graphState = {
+                            curves: [{
+                                id: 'curve-0',
+                                expression: gExpr,
+                                name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                color: GRAPH_COLORS[0],
+                                interval: gInterval,
+                            }],
+                            intersections: [],
+                            positionsRelatives: [],
+                            tangent: null,
+                            title: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                        };
+                    }
+
+                    const action = wantsAddCurve ? 'ajoutée' : 'tracée';
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `📊 Courbe ${action} : **${funcName}(x) = ${prettifyMath(gExpr)}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                    }]);
+                } else {
+                    // Pas d'expression trouvée → laisser l'IA gérer
+                    await startStreamingResponse(newMessages);
+                    return;
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // ENVOI AU GRAPHIQUE + IA
+            // ═══════════════════════════════════════════════════════
+            localStorage.setItem('graphState', JSON.stringify(graphState));
+            const graphChannel = new BroadcastChannel('mimimaths-graph');
+            graphChannel.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+            graphChannel.close();
+
+            // Ouvrir la fenêtre si pas déjà ouverte
+            const graphWin = window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no');
+            if (graphWin) {
+                setTimeout(() => {
+                    const ch = new BroadcastChannel('mimimaths-graph');
+                    ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
+                    ch.close();
+                }, 500);
+            }
+
+            // Demander à l'IA d'expliquer
+            const curvesDesc = graphState.curves.map((c: any) => c.name).join(', ');
+            let aiSystemPrompt = `[SYSTÈME] Un graphique a été ouvert dans une fenêtre séparée avec ${curvesDesc}. Ne génère AUCUN graphique toi-même.`;
+
+            if (wantsResolve) {
+                aiSystemPrompt += ` Explique la résolution graphique : comment lire les solutions sur le graphique, méthode de résolution, ensemble solution.`;
+            } else if (wantsTangente && graphState.tangent) {
+                aiSystemPrompt += ` La tangente ${graphState.tangent.equation} a été tracée en x=${graphState.tangent.x0}. Explique le calcul de la tangente : dérivée, coefficient directeur, ordonnée à l'origine.`;
+            } else {
+                aiSystemPrompt += ` Explique brièvement la/les fonction(s) tracée(s) : domaine, comportement, points remarquables.`;
+            }
+
+            const graphPrompt: ChatMessage[] = [
+                ...newMessages,
+                { role: 'user' as const, content: aiSystemPrompt }
+            ];
+            await startStreamingResponse(graphPrompt);
+            return;
+        } catch (err) {
+            console.warn('[Graph] Erreur, fallback IA:', err);
         }
+    }
 
-        // Pas de tableau détecté → flux normal (IA seule)
-        await startStreamingResponse(newMessages);
-    };
+    // Pas de tableau détecté → flux normal (IA seule)
+    await startStreamingResponse(newMessages);
+};
 
-    // ═══════════════════════════════════════════════════════════════════
-    // WRAPPER : appelé par le formulaire (texte tapé par l'élève)
-    // ═══════════════════════════════════════════════════════════════════
-    const handleSendMessage = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!input.trim() || loading || isScanning) return;
-        const userMessage: ChatMessage = { role: 'user', content: input };
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
-        const savedInput = input;
-        setInput('');
-        await handleSendMessageWithText(savedInput, newMessages);
-    };
+// ═══════════════════════════════════════════════════════════════════
+// WRAPPER : appelé par le formulaire (texte tapé par l'élève)
+// ═══════════════════════════════════════════════════════════════════
+const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || loading || isScanning) return;
+    const userMessage: ChatMessage = { role: 'user', content: input };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    const savedInput = input;
+    setInput('');
+    await handleSendMessageWithText(savedInput, newMessages);
+};
 
-    if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl animate-pulse"></div>;
+if (!mounted) return <div className="w-full h-full bg-slate-950 rounded-3xl animate-pulse"></div>;
 
-    return (
-        <div className="w-full mx-auto bg-[#020617] overflow-hidden flex flex-col h-full font-['Exo_2',_sans-serif] relative shadow-2xl">
-            {/* SECTION 1: ROBOT VIDEO COLUMN (FIXED TOP) */}
-            <div className="shrink-0 h-[160px] bg-slate-900/40 border-b border-white/5 flex flex-col items-center justify-center p-3 relative overflow-hidden">
-                {/* Background effects */}
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent"></div>
-                <div className="absolute top-4 left-6 flex items-center gap-3 z-10">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest font-mono">Live</span>
-                    </div>
-                    <LevelSelector
-                        selectedLevel={selectedNiveau}
-                        onLevelChange={setSelectedNiveau}
-                        compact
-                    />
+return (
+    <div className="w-full mx-auto bg-[#020617] overflow-hidden flex flex-col h-full font-['Exo_2',_sans-serif] relative shadow-2xl">
+        {/* SECTION 1: ROBOT VIDEO COLUMN (FIXED TOP) */}
+        <div className="shrink-0 h-[160px] bg-slate-900/40 border-b border-white/5 flex flex-col items-center justify-center p-3 relative overflow-hidden">
+            {/* Background effects */}
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent"></div>
+            <div className="absolute top-4 left-6 flex items-center gap-3 z-10">
+                <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest font-mono">Live</span>
                 </div>
-
-                <div className="absolute top-4 right-6 z-10">
-                    <button
-                        onClick={handleExportBilan}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-widest transition-all"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                        </svg>
-                        PDF
-                    </button>
-                </div>
-
-                {/* Avatar Video Frame */}
-                <div className="relative group mt-4">
-                    <div className={`absolute -inset-6 rounded-full blur-3xl transition-all duration-1000 ${isTalking ? 'bg-cyan-500/30 scale-110' : 'bg-blue-500/10'}`}></div>
-                    <div className="relative bg-black/60 p-1.5 rounded-full ring-2 ring-slate-800 shadow-[0_0_20px_rgba(6,182,212,0.1)] overflow-hidden">
-                        <RobotAvatar isTalking={isTalking} volume={speechVolume} width={85} height={85} />
-                    </div>
-                    {isTalking && (
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                            <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite]"></div>
-                            <div className="w-1 h-6 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
-                            <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-2 text-center z-10">
-                    <h3 className="text-[9px] font-black text-white uppercase tracking-[0.4em] font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">mimimaths@i</h3>
-                    <div className="flex items-center justify-center gap-4 mt-0.5">
-                        <label className="relative inline-flex items-center cursor-pointer pointer-events-auto">
-                            <input
-                                type="checkbox"
-                                checked={isVoiceEnabled}
-                                onChange={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-600"></div>
-                            <span className="ms-2 text-[9px] font-bold uppercase tracking-widest text-cyan-400/80">
-                                {isVoiceEnabled ? 'Audio On' : 'Muet'}
-                            </span>
-                        </label>
-                    </div>
-                </div>
+                <LevelSelector
+                    selectedLevel={selectedNiveau}
+                    onLevelChange={setSelectedNiveau}
+                    compact
+                />
             </div>
 
-            {/* SECTION 2: CHAT AREA (FLEX-1) */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative bg-[#020617]">
-                {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full opacity-[0.1] select-none text-center">
-                        <div className="text-6xl mb-4">📐</div>
-                        <p className="text-[10px] font-mono uppercase tracking-[0.8em] text-cyan-400">Intelligence Active</p>
+            <div className="absolute top-4 right-6 z-10">
+                <button
+                    onClick={handleExportBilan}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-widest transition-all"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    PDF
+                </button>
+            </div>
+
+            {/* Avatar Video Frame */}
+            <div className="relative group mt-4">
+                <div className={`absolute -inset-6 rounded-full blur-3xl transition-all duration-1000 ${isTalking ? 'bg-cyan-500/30 scale-110' : 'bg-blue-500/10'}`}></div>
+                <div className="relative bg-black/60 p-1.5 rounded-full ring-2 ring-slate-800 shadow-[0_0_20px_rgba(6,182,212,0.1)] overflow-hidden">
+                    <RobotAvatar isTalking={isTalking} volume={speechVolume} width={85} height={85} />
+                </div>
+                {isTalking && (
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite]"></div>
+                        <div className="w-1 h-6 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
+                        <div className="w-1 h-4 bg-cyan-400 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
                     </div>
                 )}
-
-                {messages.map((msg, index) => (
-                    <div key={index} id={`msg-${index}`} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
-                        <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed relative group ${msg.role === 'user'
-                            ? 'bg-blue-600/10 border border-blue-500/20 rounded-tr-none'
-                            : 'bg-slate-900/50 border border-slate-800/50 rounded-tl-none'}`}
-                            style={{ color: msg.role === 'user' ? '#eff6ff' : '#e2e8f0' }}>
-
-                            {msg.role === 'assistant' && msg.content !== '...' && (
-                                <button
-                                    onClick={() => speakMessage(msg.content, index, msg.audio)}
-                                    className={`absolute -right-10 top-0 p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 ${speakingIndex === index ? 'text-cyan-400 opacity-100' : ''}`}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-                                    </svg>
-                                </button>
-                            )}
-
-                            <div className="max-w-none w-full overflow-hidden text-[15px] leading-relaxed" style={{ color: '#e2e8f0' }}>
-                                {msg.role === 'assistant' && (msg.content === '' || msg.content === '...') && loading ? (
-                                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-[10px] animate-pulse py-4">
-                                        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
-                                        <span className="uppercase tracking-widest font-bold">Réflexion photonique...</span>
-                                    </div>
-                                ) : (
-                                    <div className="message-content-wrapper space-y-4">
-                                        {renderMessageContent(msg.content)}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-                <div ref={messagesEndRef} className="h-4" />
             </div>
 
-            {/* SECTION 3: INPUT BAR (BOTTOM) */}
-            <div className="shrink-0 p-4 bg-slate-950 border-t border-white/5">
-                <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
-                    <div className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center pr-2 focus-within:ring-1 focus-within:ring-cyan-500/30">
-                        <textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                            onPaste={handlePaste}
-                            placeholder="Écrivez ici ou collez une capture d'écran..."
-                            className="flex-1 bg-transparent border-none text-slate-100 px-4 py-3 resize-none text-[15px] min-h-[44px] max-h-[120px] focus:ring-0 placeholder:text-slate-600"
-                            disabled={loading || isScanning}
+            <div className="mt-2 text-center z-10">
+                <h3 className="text-[9px] font-black text-white uppercase tracking-[0.4em] font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">mimimaths@i</h3>
+                <div className="flex items-center justify-center gap-4 mt-0.5">
+                    <label className="relative inline-flex items-center cursor-pointer pointer-events-auto">
+                        <input
+                            type="checkbox"
+                            checked={isVoiceEnabled}
+                            onChange={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                            className="sr-only peer"
                         />
-                        <div className="flex items-center shrink-0">
-                            <button
-                                type="button"
-                                onClick={toggleRecording}
-                                className={`p-2 transition-all rounded-full ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-500 hover:text-cyan-400'}`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                                </svg>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-                                className="p-2 text-slate-500 hover:text-cyan-400 transition-all"
-                                title="Scanner un exercice (Image ou PDF)"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <button type="submit" disabled={loading || !input.trim() || isScanning} className="bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl h-[44px] w-[44px] flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0">
-                        {loading && !isScanning ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
-                        )}
-                    </button>
-                </form>
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" className="hidden" aria-hidden="true" />
+                        <div className="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-600"></div>
+                        <span className="ms-2 text-[9px] font-bold uppercase tracking-widest text-cyan-400/80">
+                            {isVoiceEnabled ? 'Audio On' : 'Muet'}
+                        </span>
+                    </label>
+                </div>
             </div>
         </div>
-    );
+
+        {/* SECTION 2: CHAT AREA (FLEX-1) */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative bg-[#020617]">
+            {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full opacity-[0.1] select-none text-center">
+                    <div className="text-6xl mb-4">📐</div>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.8em] text-cyan-400">Intelligence Active</p>
+                </div>
+            )}
+
+            {messages.map((msg, index) => (
+                <div key={index} id={`msg-${index}`} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
+                    <div className={`max-w-[90%] px-5 py-4 text-[15px] rounded-2xl leading-relaxed relative group ${msg.role === 'user'
+                        ? 'bg-blue-600/10 border border-blue-500/20 rounded-tr-none'
+                        : 'bg-slate-900/50 border border-slate-800/50 rounded-tl-none'}`}
+                        style={{ color: msg.role === 'user' ? '#eff6ff' : '#e2e8f0' }}>
+
+                        {msg.role === 'assistant' && msg.content !== '...' && (
+                            <button
+                                onClick={() => speakMessage(msg.content, index, msg.audio)}
+                                className={`absolute -right-10 top-0 p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 ${speakingIndex === index ? 'text-cyan-400 opacity-100' : ''}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                                </svg>
+                            </button>
+                        )}
+
+                        <div className="max-w-none w-full overflow-hidden text-[15px] leading-relaxed" style={{ color: '#e2e8f0' }}>
+                            {msg.role === 'assistant' && (msg.content === '' || msg.content === '...') && loading ? (
+                                <div className="flex items-center gap-2 text-cyan-400 font-mono text-[10px] animate-pulse py-4">
+                                    <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
+                                    <span className="uppercase tracking-widest font-bold">Réflexion photonique...</span>
+                                </div>
+                            ) : (
+                                <div className="message-content-wrapper space-y-4">
+                                    {renderMessageContent(msg.content)}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
+            <div ref={messagesEndRef} className="h-4" />
+        </div>
+
+        {/* SECTION 3: INPUT BAR (BOTTOM) */}
+        <div className="shrink-0 p-4 bg-slate-950 border-t border-white/5">
+            <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+                <div className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center pr-2 focus-within:ring-1 focus-within:ring-cyan-500/30">
+                    <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                        onPaste={handlePaste}
+                        placeholder="Écrivez ici ou collez une capture d'écran..."
+                        className="flex-1 bg-transparent border-none text-slate-100 px-4 py-3 resize-none text-[15px] min-h-[44px] max-h-[120px] focus:ring-0 placeholder:text-slate-600"
+                        disabled={loading || isScanning}
+                    />
+                    <div className="flex items-center shrink-0">
+                        <button
+                            type="button"
+                            onClick={toggleRecording}
+                            className={`p-2 transition-all rounded-full ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-500 hover:text-cyan-400'}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+                            className="p-2 text-slate-500 hover:text-cyan-400 transition-all"
+                            title="Scanner un exercice (Image ou PDF)"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" disabled={loading || !input.trim() || isScanning} className="bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl h-[44px] w-[44px] flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0">
+                    {loading && !isScanning ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
+                    )}
+                </button>
+            </form>
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" className="hidden" aria-hidden="true" />
+        </div>
+    </div>
+);
 }
