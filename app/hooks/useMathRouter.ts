@@ -722,10 +722,19 @@ export function useMathRouter({
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                 .replace(/\bln\s*\(/g, 'log(')
+                // Retirer les domaines de définition (sur ℝ, sur R, pour tout x, x∈...)
+                .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
+                .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
+                .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
+                .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
+                .replace(/\s+x\s*[∈∊]\s*ℝ\s*\.?\s*$/i, '')
                 // Retirer le texte français résiduel après l'expression
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                // Retirer instructions en langage naturel après point/virgule
+                .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
 
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de signes pour: "${expr}"`);
