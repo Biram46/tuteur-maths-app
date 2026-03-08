@@ -721,6 +721,14 @@ export function useMathRouter({
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                // Exposants Unicode superscript → notation ^
+                .replace(/⁰/g, '^0').replace(/¹/g, '^1').replace(/⁵/g, '^5')
+                .replace(/⁶/g, '^6').replace(/⁷/g, '^7').replace(/⁸/g, '^8').replace(/⁹/g, '^9')
+                // Exponentielle : eˣ, e^x, e**x → exp(x) pour SymPy
+                .replace(/e\s*ˣ/g, 'exp(x)')           // eˣ (U+02E3 superscript x)
+                .replace(/e\s*\*\*\s*x/gi, 'exp(x)')   // e**x
+                .replace(/e\s*\^\s*x/gi, 'exp(x)')     // e^x
+                .replace(/e\s*\^\s*\(([^)]+)\)/gi, 'exp($1)')  // e^(u) → exp(u)
                 .replace(/\bln\s*\(/g, 'log(')
                 // Retirer les domaines de définition (sur ℝ, sur R, pour tout x, x∈...)
                 .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
@@ -734,6 +742,8 @@ export function useMathRouter({
                 // Retirer instructions en langage naturel après point/virgule
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
+
 
 
             if (expr && expr.includes('x') && expr.length > 1) {
