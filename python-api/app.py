@@ -143,7 +143,7 @@ def extract_transcendental_factors(expr_sym, role):
 # ─────────────────────────────────────────────────────────────
 
 def prettify_label(label):
-    """Convertit x**2 → x², x**3 → x³, etc. pour l'affichage."""
+    """Convertit x**2 → x², sqrt(...) → √(...), etc. pour l'affichage."""
     import re
     superscripts = {'2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'}
     def replace_power(m):
@@ -152,6 +152,13 @@ def prettify_label(label):
             return superscripts[exp]
         return '^' + exp
     result = re.sub(r'\*\*(\d+)', replace_power, str(label))
+    # sqrt(...) → √(...)
+    result = re.sub(r'\bsqrt\(([^)]+)\)', r'√(\1)', result)
+    # exp(x) → eˣ, exp(u) → e^(u)
+    result = re.sub(r'\bexp\(x\)', 'eˣ', result)
+    result = re.sub(r'\bexp\(([^)]+)\)', r'e^(\1)', result)
+    # log(...) → ln(...)
+    result = re.sub(r'\blog\(([^)]+)\)', r'ln(\1)', result)
     result = result.replace('*', '·')
     return result
 
@@ -407,10 +414,10 @@ def compute_sign_table(expression, niveau='terminale_spe'):
         pass
 
     # Si on a une borne de domaine :
-    # - Filtrer les points critiques hors domaine
+    # GARDER les zéros à la borne (ex: sqrt(x+3) s'annule en x=-3)
     if domain_left is not None:
-        num_zeros_f = [z for z in num_zeros_f if z > domain_left + 1e-9]
-        den_zeros_f = [z for z in den_zeros_f if z > domain_left + 1e-9]
+        num_zeros_f = [z for z in num_zeros_f if z >= domain_left - 1e-9]
+        den_zeros_f = [z for z in den_zeros_f if z >= domain_left - 1e-9]
         critical = sorted(set(num_zeros_f + den_zeros_f))
 
     # Construire le label de la borne gauche
@@ -505,7 +512,11 @@ def compute_sign_table(expression, niveau='terminale_spe'):
 
     # Construire le bloc @@@
     # left_label est déjà construit plus haut (avec ] si borne stricte)
-    x_str = ', '.join([left_label] + [fmt(c) for c in critical] + ['+inf'])
+    # Dédupliquer : si domain_left == critical[0], ne pas répéter la borne
+    critical_display = critical
+    if domain_left is not None and critical and abs(critical[0] - domain_left) < 1e-9:
+        critical_display = critical[1:]  # domain_left déjà dans left_label
+    x_str = ', '.join([left_label] + [fmt(c) for c in critical_display] + ['+inf'])
     lines = ['table |', f'x: {x_str} |']
 
     for row in rows:
@@ -532,6 +543,167 @@ def compute_sign_table(expression, niveau='terminale_spe'):
         'fxValues': fx_vals,
         'effectiveConst': effective_const,
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# CALCULS GÉOMÉTRIQUES EXACTS (SymPy)
+# ─────────────────────────────────────────────────────────────
+
+def geo_exact_latex(val):
+    """Convertit une valeur SymPy en LaTeX exact lisible."""
+    try:
+        simplified = sp.nsimplify(val, rational=False)
+        return sp.latex(simplified)
+    except:
+        return str(val)
+
+def geo_approx(val, decimals=3):
+    """Valeur approchée arrondie."""
+    try:
+        f = float(val.evalf())
+        return f"{f:.{decimals}f}"
+    except:
+        return ""
+
+def compute_geo(points_data, commands):
+    """
+    points_data : [{"id": "A", "x": 0, "y": 0}, ...]
+    commands    : ["distance AB", "distance BC", "aire ABC", "perimetre ABC",
+                   "milieu AB", "angle ABC", "vecteur AB"]
+    Retourne    : [{"label": "AB =", "latex": "\\sqrt{2}", "approx": "1.414"}, ...]
+    """
+    # Construire le dict de points avec coordonnées exactes SymPy
+    pts = {}
+    for p in points_data:
+        px = sp.Rational(str(p['x'])) if '.' not in str(p['x']) else sp.nsimplify(p['x'])
+        py = sp.Rational(str(p['y'])) if '.' not in str(p['y']) else sp.nsimplify(p['y'])
+        pts[p['id']] = (px, py)
+
+    results = []
+
+    for cmd in commands:
+        cmd = cmd.strip()
+        parts = cmd.split()
+        if not parts:
+            continue
+
+        op = parts[0].lower()
+
+        try:
+            if op == 'distance' and len(parts) == 2:
+                # distance AB → √((xB-xA)²+(yB-yA)²)
+                seg = parts[1]
+                if len(seg) == 2 and seg[0] in pts and seg[1] in pts:
+                    A, B = pts[seg[0]], pts[seg[1]]
+                    d2 = (B[0]-A[0])**2 + (B[1]-A[1])**2
+                    dist = sp.sqrt(d2)
+                    dist_s = sp.simplify(dist)
+                    results.append({
+                        'label': f'{seg[0]}{seg[1]} =',
+                        'latex': geo_exact_latex(dist_s),
+                        'approx': geo_approx(dist_s),
+                    })
+
+            elif op in ('aire', 'area') and len(parts) == 2:
+                # aire ABC → ||(AB × AC)|| / 2
+                tri = parts[1]
+                if len(tri) == 3 and tri[0] in pts and tri[1] in pts and tri[2] in pts:
+                    A, B, C = pts[tri[0]], pts[tri[1]], pts[tri[2]]
+                    cross = (B[0]-A[0])*(C[1]-A[1]) - (B[1]-A[1])*(C[0]-A[0])
+                    area = sp.Abs(cross) / 2
+                    area_s = sp.simplify(area)
+                    results.append({
+                        'label': f'Aire {tri} =',
+                        'latex': geo_exact_latex(area_s) + r'\text{ u}^2',
+                        'approx': geo_approx(area_s),
+                    })
+
+            elif op in ('perimetre', 'perimeter') and len(parts) == 2:
+                # perimetre ABC → AB + BC + CA
+                poly = parts[1]
+                total = sp.Integer(0)
+                n = len(poly)
+                labels = []
+                for i in range(n):
+                    a_id, b_id = poly[i], poly[(i+1) % n]
+                    if a_id not in pts or b_id not in pts:
+                        break
+                    A, B = pts[a_id], pts[b_id]
+                    d = sp.sqrt((B[0]-A[0])**2 + (B[1]-A[1])**2)
+                    total += d
+                    labels.append(f'{a_id}{b_id}')
+                total_s = sp.simplify(total)
+                results.append({
+                    'label': f'Périmètre {poly} =',
+                    'latex': geo_exact_latex(total_s) + r'\text{ u}',
+                    'approx': geo_approx(total_s),
+                })
+
+            elif op == 'milieu' and len(parts) == 2:
+                # milieu AB → ((xA+xB)/2 ; (yA+yB)/2)
+                seg = parts[1]
+                if len(seg) == 2 and seg[0] in pts and seg[1] in pts:
+                    A, B = pts[seg[0]], pts[seg[1]]
+                    mx = sp.Rational(A[0]+B[0], 2)
+                    my = sp.Rational(A[1]+B[1], 2)
+                    mx_s = sp.nsimplify(mx)
+                    my_s = sp.nsimplify(my)
+                    results.append({
+                        'label': f'Milieu {seg[0]}{seg[1]} =',
+                        'latex': f'\\left({geo_exact_latex(mx_s)}\\ ;\\ {geo_exact_latex(my_s)}\\right)',
+                        'approx': f'({geo_approx(mx_s, 2)} ; {geo_approx(my_s, 2)})',
+                    })
+
+            elif op == 'angle' and len(parts) == 2:
+                # angle ABC → angle en B (vecteurs BA et BC)
+                tri = parts[1]
+                if len(tri) == 3 and tri[0] in pts and tri[1] in pts and tri[2] in pts:
+                    A, B, C = pts[tri[0]], pts[tri[1]], pts[tri[2]]
+                    BAx, BAy = A[0]-B[0], A[1]-B[1]
+                    BCx, BCy = C[0]-B[0], C[1]-B[1]
+                    dot  = BAx*BCx + BAy*BCy
+                    lenA = sp.sqrt(BAx**2 + BAy**2)
+                    lenC = sp.sqrt(BCx**2 + BCy**2)
+                    cos_angle = sp.simplify(dot / (lenA * lenC))
+                    angle_rad = sp.acos(cos_angle)
+                    angle_deg = sp.simplify(sp.deg(angle_rad))
+                    results.append({
+                        'label': f'\\widehat{{{tri[0]}{tri[1]}{tri[2]}}} =',
+                        'latex': geo_exact_latex(sp.simplify(angle_rad)) + r'\text{ rad}',
+                        'approx': geo_approx(angle_deg) + '°',
+                    })
+
+            elif op == 'vecteur' and len(parts) == 2:
+                # vecteur AB → (xB-xA ; yB-yA)
+                seg = parts[1]
+                if len(seg) == 2 and seg[0] in pts and seg[1] in pts:
+                    A, B = pts[seg[0]], pts[seg[1]]
+                    vx = sp.nsimplify(B[0]-A[0])
+                    vy = sp.nsimplify(B[1]-A[1])
+                    results.append({
+                        'label': f'\\vec{{{seg[0]}{seg[1]}}} =',
+                        'latex': f'\\begin{{pmatrix}} {geo_exact_latex(vx)} \\\\\\\\ {geo_exact_latex(vy)} \\end{{pmatrix}}',
+                        'approx': f'({geo_approx(vx, 2)} ; {geo_approx(vy, 2)})',
+                    })
+
+            elif op == 'rayon' and len(parts) == 2:
+                # rayon OA → distance du centre O au point A
+                seg = parts[1]
+                if len(seg) == 2 and seg[0] in pts and seg[1] in pts:
+                    A, B = pts[seg[0]], pts[seg[1]]
+                    d2 = (B[0]-A[0])**2 + (B[1]-A[1])**2
+                    r = sp.sqrt(d2)
+                    r_s = sp.simplify(r)
+                    results.append({
+                        'label': 'r =',
+                        'latex': geo_exact_latex(r_s),
+                        'approx': geo_approx(r_s),
+                    })
+
+        except Exception as e:
+            results.append({'label': cmd, 'latex': '?', 'approx': str(e)[:40]})
+
+    return results
 
 
 # ─────────────────────────────────────────────────────────────
@@ -563,10 +735,36 @@ def sign_table():
             'trace': traceback.format_exc()[:1200],
         }), 500
 
+@app.route('/geo-compute', methods=['POST'])
+def geo_compute():
+    """
+    Calcule des mesures géométriques exactes via SymPy.
+    Body: {
+      "points": [{"id": "A", "x": 0, "y": 0}, ...],
+      "commands": ["distance AB", "distance BC", "aire ABC", "milieu AB", ...]
+    }
+    """
+    try:
+        data = request.get_json()
+        points_data = data.get('points', [])
+        commands    = data.get('commands', [])
 
-# ─────────────────────────────────────────────────────────────
-# DÉMARRAGE
-# ─────────────────────────────────────────────────────────────
+        if not points_data:
+            return jsonify({'success': False, 'error': 'points manquants'}), 400
+        if not commands:
+            return jsonify({'success': True, 'results': []})
+
+        results = compute_geo(points_data, commands)
+        return jsonify({'success': True, 'results': results})
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc()[:800],
+        }), 500
+
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
