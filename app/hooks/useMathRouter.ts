@@ -917,10 +917,32 @@ export function useMathRouter({
             expr = expr
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
-                // Retirer le texte français résiduel après l'expression
+                .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+                // Exposants Unicode superscript → notation ^
+                .replace(/⁰/g, '^0').replace(/¹/g, '^1').replace(/⁵/g, '^5')
+                .replace(/⁶/g, '^6').replace(/⁷/g, '^7').replace(/⁸/g, '^8').replace(/⁹/g, '^9')
+                // Exponentielle : eˣ, e^x → exp(x) pour le moteur
+                .replace(/e\s*ˣ/g, 'exp(x)')
+                .replace(/e\s*\*\*\s*x/gi, 'exp(x)')
+                .replace(/e\s*\^\s*x/gi, 'exp(x)')
+                .replace(/e\s*\^\s*\(([^)]+)\)/gi, 'exp($1)')
+                // Racines
+                .replace(/√\s*\(([^)]+)\)/g, 'sqrt($1)')
+                .replace(/√\s*([a-zA-Z0-9]+)/g, 'sqrt($1)')
+                // Logarithme
+                .replace(/\bLn\s*\(/g, 'log(').replace(/\bLog\s*\(/g, 'log(').replace(/\bln\s*\(/g, 'log(')
+                // Retirer les domaines de définition (sur ℝ, pour tout x, etc.)
+                .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
+                .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
+                .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
+                .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
+                // Retirer le texte français résiduel (virgule + mot courant, point + phrase)
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                // Retirer instructions en langage naturel après point/virgule ("3. On est en Première")
+                .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
 
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
