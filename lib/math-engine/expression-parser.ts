@@ -108,6 +108,8 @@ export function sanitizeExpression(expr: string): string {
     // ── PASSE 2 : Fonctions ──
     s = s
         .replace(/\bln\(/g, 'log(')    // mathjs : log = ln
+        // eˣ (superscript Unicode U+02E3) → e^(x)
+        .replace(/e\s*ˣ/g, 'e^(x)')
         .replace(/\bexp\(/g, 'e^(')    // exp(u) → e^(u)
         // e^x → e^(x) — variable simple sans parenthèses
         .replace(/\be\^([a-zA-Z_][a-zA-Z0-9_]*)/g, 'e^($1)');

@@ -1039,7 +1039,19 @@ function buildVariationRow(
                 }
             } else {
                 // Extremum : f(cp)
-                const yCP = evalAt(expression, cp);
+                let yCP = evalAt(expression, cp);
+                // Fallback : si evalAt(échec), essayer des points légèrement décalés
+                if (yCP === null) yCP = evalAt(expression, cp + 1e-7);
+                if (yCP === null) yCP = evalAt(expression, cp - 1e-7);
+                // Dernier recours : essayer avec l'expression normalisée manuellement
+                if (yCP === null) {
+                    const normExpr = expression
+                        .replace(/e\s*ˣ/g, 'e^(x)')  // eˣ → e^(x)
+                        .replace(/·/g, '*')
+                        .replace(/×/g, '*')
+                        .replace(/−/g, '-');
+                    yCP = evalAt(normExpr, cp);
+                }
                 if (yCP !== null) {
                     const yStr = formatForTable(round4(yCP));
                     values.push(yStr);
