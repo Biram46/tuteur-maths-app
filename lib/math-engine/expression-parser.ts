@@ -172,7 +172,12 @@ export function sanitizeExpression(expr: string): string {
  */
 export function computeDerivative(expr: string): string {
     try {
-        const sanitized = sanitizeExpression(expr);
+        let sanitized = sanitizeExpression(expr);
+        // ── CRITIQUE : mathjs dérive exp(u) correctement mais peut bloquer sur e^(u) ──
+        // On reconvertit e^(u) → exp(u) POUR LA DÉRIVATION UNIQUEMENT
+        sanitized = sanitized
+            .replace(/e\^\(([^)]+)\)/g, 'exp($1)')   // e^(u) → exp(u)
+            .replace(/e\^([a-zA-Z])\b/g, 'exp($1)'); // e^x → exp(x)
         const parsed = parse(sanitized);
         const derived = derivative(parsed, 'x');
         return simplify(derived).toString();
@@ -181,6 +186,7 @@ export function computeDerivative(expr: string): string {
         return '';
     }
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // DÉTECTION DES ZÉROS PAR MÉTHODE DE BISECTION
