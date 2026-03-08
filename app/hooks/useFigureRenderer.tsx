@@ -319,17 +319,25 @@ export function useFigureRenderer() {
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         const rawContent = sec.substring(colonIndex + 1);
 
-                        // ── Garde 1 : ignorer les lignes en langage naturel ────────────────────
-                        // Une ligne valide DOIT commencer par 'sign', 'var', ou être une expr math
+                        // ── Extraire le label réel (après 'sign:' ou 'var:' si présent) ──────
                         const prefixLow = prefixAndLabel.toLowerCase();
                         const isExplicitSignOrVar = prefixLow.startsWith('sign') || prefixLow.startsWith('var');
-                        // Heuristique : trop de mots = langage naturel (ex: "Décompose bien chaque...")
-                        const wordCount = prefixAndLabel.trim().split(/\s+/).length;
-                        const looksLikeNaturalLanguage = !isExplicitSignOrVar && wordCount > 5;
-                        // Mots français courants en début de phrase = instruction élève parasite
-                        const frenchInstructionWords = /^(décompose|donne|calcule|trouve|sur\s+ℝ|sur\s+r\b|note|donc|pour|sachant|puisque|comme|avec|en déduire|en\s+déduit)/i;
-                        if (looksLikeNaturalLanguage || frenchInstructionWords.test(prefixAndLabel.trim())) {
-                            console.warn('[Table] Ligne ignorée (langage naturel détecté):', prefixAndLabel.slice(0, 50));
+                        let actualLabel = prefixAndLabel;
+                        if (isExplicitSignOrVar) {
+                            const colonPos = prefixAndLabel.indexOf(':');
+                            if (colonPos !== -1) actualLabel = prefixAndLabel.substring(colonPos + 1).trim();
+                        }
+
+                        // ── Garde 1 : ignorer les labels en langage naturel ──────────────────
+                        // Heuristique : trop de mots → phrase naturelle (ex: "Décompose bien chaque...")
+                        const wordCount = actualLabel.trim().split(/\s+/).length;
+                        const looksLikeNaturalLanguage = wordCount > 4;
+                        // Exception : si le label contient des symboles mathématiques → toujours garder
+                        const hasMathSymbols = /[()²³√∛+\-*/^=<>≤≥\[\]{}|∞πℝ]|f\(|g\(|h\(|f'|ln\(|log\(|sin\(|cos\(|tan\(|exp\(/.test(actualLabel);
+                        // Mots français courants en début de label = instruction parasite
+                        const frenchInstructionStart = /^(décompose|donne|calcule|trouve|note|donc|pour\s+|sachant|puisque|comme|avec|en\s+déduire|en\s+déduit|bien|chaque|les\s+|des\s+|sur\s+ℝ|sur\s+r\b)/i;
+                        if ((looksLikeNaturalLanguage && !hasMathSymbols) || frenchInstructionStart.test(actualLabel.trim())) {
+                            console.warn('[Table] Ligne ignorée (label naturel):', actualLabel.slice(0, 60));
                             return;
                         }
 
