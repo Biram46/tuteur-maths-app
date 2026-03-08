@@ -740,9 +740,10 @@ export function useMathRouter({
                 .replace(/\bLog\s*\(/g, 'log(')
                 .replace(/\bln\s*\(/g, 'log(')
 
-                // Retirer les domaines de définition (sur ℝ, sur R, pour tout x, x∈...)
+                // Retirer les domaines de définition (sur ℝ, sur R, sur ]a;b[, etc.)
                 .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
                 .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
+                .replace(/\s+sur\s+[\[\]].+$/i, '')    // sur ]0 ; +∞[, sur [a ; b], etc.
                 .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
                 .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
                 .replace(/\s+x\s*[∈∊]\s*ℝ\s*\.?\s*$/i, '')
@@ -931,9 +932,10 @@ export function useMathRouter({
                 .replace(/√\s*([a-zA-Z0-9]+)/g, 'sqrt($1)')
                 // Logarithme
                 .replace(/\bLn\s*\(/g, 'log(').replace(/\bLog\s*\(/g, 'log(').replace(/\bln\s*\(/g, 'log(')
-                // Retirer les domaines de définition (sur ℝ, pour tout x, etc.)
+                // Retirer les domaines de définition (sur ℝ, sur R, sur ]a;b[, etc.)
                 .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
                 .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
+                .replace(/\s+sur\s+[\[\]].+$/i, '')    // sur ]0 ; +∞[, sur [a ; b], etc.
                 .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
                 .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
                 // Retirer le texte français résiduel (virgule + mot courant, point + phrase)
