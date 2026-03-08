@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import { useEffect, useRef, useMemo } from 'react';
 
 export interface TreeNode {
     id: string;
@@ -15,163 +14,266 @@ export interface MathTreeProps {
     title?: string;
 }
 
+// ─── Couleurs par profondeur ────────────────────────────────────────────────
+const DEPTH_COLORS = [
+    '#94a3b8', // 0 = racine (gris)
+    '#818cf8', // 1 = niveau 1 (indigo)
+    '#34d399', // 2 = niveau 2 (émeraude)
+    '#fb923c', // 3 = niveau 3 (orange)
+    '#f472b6', // 4 = niveau 4 (rose)
+];
+
+const BRANCH_COLORS = [
+    'rgba(148, 163, 184, 0.4)',
+    'rgba(129, 140, 248, 0.5)',
+    'rgba(52, 211, 153, 0.5)',
+    'rgba(251, 146, 60, 0.5)',
+    'rgba(244, 114, 182, 0.5)',
+];
+
+// ─── Construction récursive de la hiérarchie ────────────────────────────────
+interface HNode {
+    data: TreeNode;
+    children: HNode[];
+    depth: number;
+    x: number;  // position Y (verticale dans le layout)
+    y: number;  // position X (horizontale dans le layout)
+}
+
+function buildHierarchy(nodes: TreeNode[]): HNode | null {
+    const map = new Map<string, HNode>();
+    let root: HNode | null = null;
+
+    for (const n of nodes) {
+        map.set(n.id, { data: n, children: [], depth: 0, x: 0, y: 0 });
+    }
+    for (const n of nodes) {
+        const hNode = map.get(n.id)!;
+        if (!n.parent) {
+            root = hNode;
+        } else {
+            const parent = map.get(n.parent);
+            if (parent) parent.children.push(hNode);
+        }
+    }
+
+    // Calculer les profondeurs
+    function setDepth(node: HNode, d: number) {
+        node.depth = d;
+        for (const c of node.children) setDepth(c, d + 1);
+    }
+    if (root) setDepth(root, 0);
+
+    return root;
+}
+
+// ─── Calcul du layout horizontal (racine à gauche) ─────────────────────────
+function layoutTree(root: HNode, width: number, height: number) {
+    // Compter le max de profondeur
+    let maxDepth = 0;
+    function getMaxDepth(n: HNode) {
+        if (n.depth > maxDepth) maxDepth = n.depth;
+        for (const c of n.children) getMaxDepth(c);
+    }
+    getMaxDepth(root);
+
+    const levelSpacing = maxDepth > 0 ? width / maxDepth : width;
+
+    // Compter les feuilles pour la hauteur
+    let leafCount = 0;
+    function countLeaves(n: HNode): number {
+        if (n.children.length === 0) { leafCount++; return 1; }
+        let sum = 0;
+        for (const c of n.children) sum += countLeaves(c);
+        return sum;
+    }
+    const totalLeaves = countLeaves(root);
+
+    const leafSpacing = height / (totalLeaves + 1);
+
+    // Positionner les feuilles puis remonter
+    let leafIndex = 0;
+    function position(n: HNode) {
+        n.y = n.depth * levelSpacing;
+        if (n.children.length === 0) {
+            leafIndex++;
+            n.x = leafIndex * leafSpacing;
+        } else {
+            for (const c of n.children) position(c);
+            // Parent au centre de ses enfants
+            const first = n.children[0];
+            const last = n.children[n.children.length - 1];
+            n.x = (first.x + last.x) / 2;
+        }
+    }
+    position(root);
+}
+
 export default function MathTree({ data, title }: MathTreeProps) {
-    const svgRef = useRef<SVGSVGElement>(null);
+    const canvasRef = useRef<SVGSVGElement>(null);
+
+    // Dimensions adaptatives selon la profondeur
+    const hierarchy = useMemo(() => buildHierarchy(data), [data]);
+
+    const dims = useMemo(() => {
+        if (!hierarchy) return { w: 600, h: 350, margin: { t: 50, r: 60, b: 30, l: 60 } };
+        let maxDepth = 0, leafCount = 0;
+        function scan(n: HNode) {
+            if (n.depth > maxDepth) maxDepth = n.depth;
+            if (n.children.length === 0) leafCount++;
+            for (const c of n.children) scan(c);
+        }
+        scan(hierarchy);
+        const h = Math.max(350, leafCount * 70 + 100);
+        const w = Math.max(550, maxDepth * 220 + 180);
+        return { w, h, margin: { t: 50, r: 60, b: 30, l: 60 } };
+    }, [hierarchy]);
 
     useEffect(() => {
-        if (!svgRef.current || data.length === 0) return;
+        if (!canvasRef.current || !hierarchy) return;
 
-        const margin = { top: 40, right: 120, bottom: 40, left: 80 };
-        const width = 700 - margin.left - margin.right;
-        const height = 450 - margin.top - margin.bottom;
+        const { w, h, margin } = dims;
+        const plotW = w - margin.l - margin.r;
+        const plotH = h - margin.t - margin.b;
 
-        const svg = d3.select(svgRef.current);
-        svg.selectAll('*').remove();
+        layoutTree(hierarchy, plotW, plotH);
 
-        // Fond subtil pour l'arbre
-        svg.append('rect')
-            .attr('width', 700)
-            .attr('height', 450)
-            .attr('fill', 'rgba(2, 6, 23, 0.5)')
-            .attr('rx', 32);
+        // On ne dessine plus via D3 — on utilise le SVG déclaratif
+        // Mais pour une gestion dynamique des enfants, D3 est plus simple ici
+        const svg = canvasRef.current;
 
-        const g = svg.append('g')
-            .attr('transform', `translate(${margin.left},${margin.top})`);
+        // Nettoyage
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        try {
-            const stratify = d3.stratify<TreeNode>()
-                .id(d => d.id)
-                .parentId(d => d.parent);
+        // Fond
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('width', String(w));
+        bg.setAttribute('height', String(h));
+        bg.setAttribute('fill', 'rgba(2, 6, 23, 0.6)');
+        bg.setAttribute('rx', '24');
+        svg.appendChild(bg);
 
-            const hierarchyRoot = stratify(data);
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('transform', `translate(${margin.l},${margin.t})`);
+        svg.appendChild(g);
 
-            // Layout : Utilisation de Cluster pour aligner toutes les feuilles à droite
-            const treeLayout = d3.cluster<TreeNode>().size([height, width]);
-            treeLayout(hierarchyRoot);
-
-            // 1. Les Branches (Segments rigoureux)
-            g.selectAll('.link')
-                .data(hierarchyRoot.links())
-                .enter().append('line')
-                .attr('class', 'link')
-                .attr('stroke', 'rgba(148, 163, 184, 0.3)')
-                .attr('stroke-width', 2)
-                .attr('stroke-linecap', 'round')
-                .attr('x1', d => d.source.y ?? 0)
-                .attr('y1', d => d.source.x ?? 0)
-                .attr('x2', d => d.target.y ?? 0)
-                .attr('y2', d => d.target.x ?? 0);
-
-            // 2. Probabilités (Nouveau système de placement centré)
-            const labels = g.selectAll('.branch-label-group')
-                .data(hierarchyRoot.links())
-                .enter().append('g')
-                .attr('class', 'branch-label-group');
-
-            labels.each(function (d) {
-                const group = d3.select(this);
-                const prob = (d.target.data as TreeNode).value;
-                if (!prob) return;
-
-                // Calcul du point à 45% (pour éviter le texte du nœud final)
-                const px = (d.source.y ?? 0) + ((d.target.y ?? 0) - (d.source.y ?? 0)) * 0.45;
-                const py = (d.source.x ?? 0) + ((d.target.x ?? 0) - (d.source.x ?? 0)) * 0.45;
-
-                // Fond pour le texte (lisibilité maximale)
-                const labelWidth = prob.length * 8 + 10;
-                group.append('rect')
-                    .attr('x', px - labelWidth / 2)
-                    .attr('y', py - 12)
-                    .attr('width', labelWidth)
-                    .attr('height', 18)
-                    .attr('fill', '#020617')
-                    .attr('rx', 6)
-                    .attr('stroke', 'rgba(52, 211, 153, 0.2)')
-                    .attr('stroke-width', 1);
-
-                group.append('text')
-                    .attr('x', px)
-                    .attr('y', py + 1)
-                    .attr('text-anchor', 'middle')
-                    .attr('fill', '#34d399')
-                    .attr('font-size', '12px')
-                    .attr('font-weight', 'bold')
-                    .attr('dy', '0.3em')
-                    .text(prob);
-            });
-
-            // 3. Nœuds et Événements
-            const nodes = g.selectAll('.node')
-                .data(hierarchyRoot.descendants())
-                .enter().append('g')
-                .attr('class', 'node')
-                .attr('transform', d => `translate(${d.y ?? 0},${d.x ?? 0})`);
-
-            nodes.append('circle')
-                .attr('r', 5)
-                .attr('fill', d => d.depth === 0 ? '#94a3b8' : '#3b82f6')
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 2)
-                .style('filter', 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))');
-
-            nodes.append('text')
-                .attr('dy', '0.35em')
-                .attr('x', d => d.children ? -18 : 18)
-                .attr('text-anchor', d => d.children ? 'end' : 'start')
-                .attr('fill', '#fff')
-                .attr('font-weight', d => d.depth === 0 ? 'normal' : 'bold')
-                .attr('font-size', '16px')
-                .style('text-shadow', '0 2px 4px rgba(0,0,0,0.8)')
-                .text(d => d.data.label);
-
-            // 4. Titre dynamique
-            if (title) {
-                svg.append('text')
-                    .attr('x', 30)
-                    .attr('y', 35)
-                    .attr('fill', '#94a3b8')
-                    .attr('font-size', '12px')
-                    .attr('font-weight', 'bold')
-                    .attr('text-transform', 'uppercase')
-                    .attr('letter-spacing', '0.15em')
-                    .text(title);
-            }
-        } catch (e) {
-            console.error("MathTree Layout Error:", e);
-            g.append('text')
-                .attr('x', width / 2).attr('y', height / 2)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#ef4444')
-                .attr('font-weight', 'bold')
-                .text("⚠️ Structure de l'arbre invalide");
-
-            g.append('text')
-                .attr('x', width / 2).attr('y', height / 2 + 25)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#64748b')
-                .attr('font-size', '12px')
-                .text("Vérifiez les connexions entre les événements.");
+        // Titre
+        if (title) {
+            const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            titleEl.setAttribute('x', String(w / 2));
+            titleEl.setAttribute('y', '28');
+            titleEl.setAttribute('text-anchor', 'middle');
+            titleEl.setAttribute('fill', '#e2e8f0');
+            titleEl.setAttribute('font-size', '15');
+            titleEl.setAttribute('font-weight', 'bold');
+            titleEl.setAttribute('font-family', 'Inter, sans-serif');
+            titleEl.textContent = title;
+            svg.appendChild(titleEl);
         }
 
-    }, [data, title]);
+        // Parcours récursif pour dessiner
+        function drawNode(node: HNode) {
+            const color = DEPTH_COLORS[Math.min(node.depth, DEPTH_COLORS.length - 1)];
+
+            // Dessiner les branches vers les enfants
+            for (const child of node.children) {
+                const branchColor = BRANCH_COLORS[Math.min(child.depth, BRANCH_COLORS.length - 1)];
+
+                // Ligne de la branche
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', String(node.y));
+                line.setAttribute('y1', String(node.x));
+                line.setAttribute('x2', String(child.y));
+                line.setAttribute('y2', String(child.x));
+                line.setAttribute('stroke', branchColor);
+                line.setAttribute('stroke-width', '2.5');
+                line.setAttribute('stroke-linecap', 'round');
+                g.appendChild(line);
+
+                // Probabilité sur la branche (au-dessus, à 40%)
+                const prob = child.data.value;
+                if (prob) {
+                    const px = node.y + (child.y - node.y) * 0.42;
+                    const py = node.x + (child.x - node.x) * 0.42;
+
+                    // Fond rectangle arrondi
+                    const probW = prob.length * 8.5 + 14;
+                    const rectBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rectBg.setAttribute('x', String(px - probW / 2));
+                    rectBg.setAttribute('y', String(py - 12));
+                    rectBg.setAttribute('width', String(probW));
+                    rectBg.setAttribute('height', '20');
+                    rectBg.setAttribute('fill', 'rgba(2, 6, 23, 0.9)');
+                    rectBg.setAttribute('rx', '8');
+                    rectBg.setAttribute('stroke', branchColor);
+                    rectBg.setAttribute('stroke-width', '1');
+                    g.appendChild(rectBg);
+
+                    const probText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    probText.setAttribute('x', String(px));
+                    probText.setAttribute('y', String(py + 2));
+                    probText.setAttribute('text-anchor', 'middle');
+                    probText.setAttribute('fill', DEPTH_COLORS[Math.min(child.depth, DEPTH_COLORS.length - 1)]);
+                    probText.setAttribute('font-size', '13');
+                    probText.setAttribute('font-weight', 'bold');
+                    probText.setAttribute('font-style', 'italic');
+                    probText.setAttribute('font-family', 'Inter, sans-serif');
+                    // Convertir les points en virgules pour la notation française
+                    probText.textContent = prob.replace(/\./g, ',');
+                    g.appendChild(probText);
+                }
+
+                drawNode(child);
+            }
+
+            // Nœud : rectangle arrondi avec label
+            const label = node.data.label;
+            const isRoot = node.depth === 0;
+            const isLeaf = node.children.length === 0;
+            const labelW = label.length * 10 + 24;
+            const labelH = 28;
+
+            // Rectangle du nœud
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', String(node.y - labelW / 2));
+            rect.setAttribute('y', String(node.x - labelH / 2));
+            rect.setAttribute('width', String(labelW));
+            rect.setAttribute('height', String(labelH));
+            rect.setAttribute('rx', '10');
+            rect.setAttribute('fill', isRoot ? 'rgba(148, 163, 184, 0.15)' : 'rgba(2, 6, 23, 0.85)');
+            rect.setAttribute('stroke', color);
+            rect.setAttribute('stroke-width', isRoot ? '2' : '1.5');
+            g.appendChild(rect);
+
+            // Texte du label
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', String(node.y));
+            text.setAttribute('y', String(node.x + 1));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('fill', color);
+            text.setAttribute('font-size', isRoot ? '15' : '16');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.textContent = label;
+            g.appendChild(text);
+        }
+
+        drawNode(hierarchy);
+
+    }, [hierarchy, title, dims]);
 
     return (
-        <div className="my-10 w-full flex flex-col items-center animate-in zoom-in duration-500">
-            <div className="relative p-2 bg-slate-950/80 border border-white/5 rounded-[2.5rem] shadow-2xl backdrop-blur-xl group overflow-hidden">
+        <div className="my-8 w-full flex flex-col items-center">
+            <div className="relative p-2 bg-slate-950/80 border border-white/5 rounded-3xl shadow-2xl backdrop-blur-xl overflow-hidden">
                 <svg
-                    ref={svgRef}
-                    width="700"
-                    height="450"
+                    ref={canvasRef}
+                    width={dims.w}
+                    height={dims.h}
                     className="overflow-visible"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                 />
-                <div className="absolute bottom-4 right-8 flex items-center gap-2">
-                    <span className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse"></span>
-                    <span className="text-[8px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Neural Tree Renderer v2</span>
-                </div>
             </div>
-            <p className="mt-4 text-[9px] text-slate-600 font-bold tracking-[0.2em] uppercase">
-                Probabilités Conditionnelles • Lycée Français
-            </p>
         </div>
     );
 }

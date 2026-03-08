@@ -1,7 +1,5 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { fixLatexContent } from '@/lib/latex-fixer';
-import { injectMissingGraphs } from '@/lib/graph-enhancer';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 
 /**
@@ -66,6 +64,17 @@ EXEMPLE DE RÉDACTION INTERDITE ❌ :
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 
 ⚠️ TOUTE QUESTION DE GÉOMÉTRIE DOIT OBLIGATOIREMENT GÉNÉRER UNE FIGURE !
+
+⛔⛔⛔ **EXCEPTION CRITIQUE — PROBABILITÉS :**
+Les problèmes de probabilités utilisent souvent des lettres A, B, C pour des ÉVÉNEMENTS.
+Ces lettres NE SONT PAS des points géométriques.
+- ❌ JAMAIS générer un @@@figure pour un arbre de probabilités
+- ❌ JAMAIS placer A(0,0), B(1,0)... pour représenter des événements probabilistes
+- ✅ Un arbre de probabilités = toujours @@@tree (voir section ARBRES DE PROBABILITÉS)
+Exemples de questions qui UTILISENT @@@tree (PAS @@@figure) :
+- "Représente par un arbre de probabilités..."
+- "On lance un dé, selon le résultat on tire dans une urne..."
+- "P(A)=0,3, calculer P(B|A)..."
 
 ⚠️ **COMMENT CRÉER UNE FIGURE :**
 
@@ -515,6 +524,138 @@ domain: -1,5,-2,6
 points: (1,0), (3,0), (2,-1)
 title: Courbe de f
 @@@
+
+=== ARBRES DE PROBABILITÉS ===
+
+⚠️ **RÈGLE ABSOLUE : Toute question sur un arbre de probabilités DOIT générer un bloc @@@tree !**
+
+⛔⛔⛔ **INTERDICTION ABSOLUE — NE JAMAIS CONFONDRE :**
+- ❌ JAMAIS utiliser @@@figure pour un arbre de probabilités
+- ❌ JAMAIS créer des points géométriques A, B, C... pour représenter un arbre
+- ❌ JAMAIS utiliser des segments géométriques pour représenter des branches
+- Un arbre de probabilités N'EST PAS une figure géométrique
+- @@@figure = géométrie (triangles, cercles, vecteurs)
+- @@@tree = arbre de probabilités (événements, probabilités, branches)
+
+**FORMAT OBLIGATOIRE :**
+- Chaque branche = une ligne : chemin → nœud, probabilité
+- Les flèches peuvent être : → ou -> ou ➜
+- La probabilité est séparée du chemin par une virgule
+- Chaque niveau supplémentaire s'écrit en chaînant les flèches
+- ⛔ JAMAIS utiliser | (pipe) dans les lignes de l'arbre (réservé à P(B|A))
+- ✅ Utiliser → (Unicode) ou -> (ASCII) comme séparateur de niveaux
+
+**EXEMPLE 1 — Arbre simple à 2 niveaux (tirage avec/sans remise) :**
+
+Expérience : un sac contient 3 boules rouges (R) et 2 boules bleues (B). On tire 2 boules successivement.
+
+@@@
+tree: Tirage de 2 boules
+R, 3/5
+B, 2/5
+R → R, 3/5
+R → B, 2/5
+B → R, 3/4
+B → B, 1/4
+@@@
+
+**EXEMPLE 2 — Arbre de probabilités conditionnelles (événements A et B) :**
+
+Expérience : 60% des étudiants ont le permis (A). Parmi ceux qui ont le permis, 80% possèdent une voiture (V). Parmi ceux qui n'ont pas le permis, 10% possèdent une voiture.
+
+@@@
+tree: Permis et voiture
+A, 0,6
+Ā, 0,4
+A → V, 0,8
+A → V̄, 0,2
+Ā → V, 0,1
+Ā → V̄, 0,9
+@@@
+
+**EXEMPLE 3 — Arbre à 3 niveaux de probabilités conditionnelles :**
+
+⛔⛔ **RÈGLE ABSOLUE : TOUJOURS écrire le chemin COMPLET depuis l'origine !**
+- ❌ INTERDIT : "B -> C, 0,8"  ← B est ambigu : enfant de A ou de Ā ?
+- ✅ CORRECT : "A -> B -> C, 0,8"  ← chemin complet : racine→A→B→C
+- ✅ CORRECT : "Ā -> B -> C, 0,8"  ← chemin complet : racine→Ā→B→C
+
+Le parseur utilise le chemin COMPLET comme identifiant de nœud.
+Si tu écris "B -> C", le parseur crée B comme enfant DIRECT de la racine (FAUX).
+Tu DOIS répéter le chemin entier pour chaque branche du niveau 3.
+
+@@@
+tree: Probabilités conditionnelles A puis B puis C
+A, 0,3
+Ā, 0,7
+A -> B, 0,6
+A -> B̄, 0,4
+Ā -> B, 0,2
+Ā -> B̄, 0,8
+A -> B -> C, 0,8
+A -> B -> C̄, 0,2
+A -> B̄ -> C, 0,4
+A -> B̄ -> C̄, 0,6
+Ā -> B -> C, 0,8
+Ā -> B -> C̄, 0,2
+Ā -> B̄ -> C, 0,4
+Ā -> B̄ -> C̄, 0,6
+@@@
+
+⚠️ Remarque : même si A->B->C et Ā->B->C ont la même probabilité (0,8),
+il faut quand même écrire les DEUX lignes séparément avec le chemin complet.
+
+**RÈGLES CLÉS :**
+- ✅ Notation française OBLIGATOIRE pour les probabilités : virgule décimale (0,3 et NON 0.3)
+- ✅ Fractions autorisées : 1/2, 3/5, etc.
+- ✅ Le complémentaire de A s'écrit Ā (A avec barre), jamais Ac ou A^c
+- ✅ Le titre après "tree:" est obligatoire
+- ⛔ Ne jamais mettre "Ω" comme première ligne (il est ajouté automatiquement comme racine)
+- ⛔ Ne jamais mettre de nœud sur la même ligne que son parent (respecter une ligne par branche)
+
+⛔⛔⛔ **RÈGLE CRITIQUE — LABELS OBLIGATOIRES APRÈS CHAQUE FLÈCHE ⛔⛔⛔**
+
+Chaque ligne DOIT avoir un label APRÈS la dernière flèche.
+- ❌ INTERDIT : "R -> R ->, 1/3"  ← flèche pendante sans label = ERREUR FATALE
+- ❌ INTERDIT : "A -> B ->, 0,5"  ← idem
+- ✅ CORRECT : "R -> R -> R, 1/3" ← label après chaque flèche
+- ✅ CORRECT : "R -> R -> B, 2/3" ← chaque segment a un label
+
+**CHECKLIST AVANT DE GÉNÉRER UN ARBRE :**
+1. Chaque ligne contient exactement un nœud terminal (après la dernière flèche)
+2. Les probabilités sur chaque nœud parent somment à 1
+3. Pour tirage SANS remise : recalculer à chaque étape l'urne restante
+4. ⛔ Arbre à 3+ niveaux : chaque ligne de niveau 3 commence par un nœud de niveau 1 (chemin COMPLET)
+
+**EXEMPLE COMPLET — Tirage SANS remise (3 rouges, 2 bleues) :**
+
+Calcul étape par étape :
+- Tirage 1 : 3R + 2B = 5 → P(R)=3/5, P(B)=2/5
+- Tirage 2 après R : 2R + 2B = 4 → P(R|R)=2/4=1/2, P(B|R)=2/4=1/2
+- Tirage 2 après B : 3R + 1B = 4 → P(R|B)=3/4, P(B|B)=1/4
+- Tirage 3 après RR : 1R + 2B = 3 → P(R|RR)=1/3, P(B|RR)=2/3
+- Tirage 3 après RB : 2R + 1B = 3 → P(R|RB)=2/3, P(B|RB)=1/3
+- Tirage 3 après BR : 2R + 1B = 3 → P(R|BR)=2/3, P(B|BR)=1/3
+- Tirage 3 après BB : 3R + 0B = 3 → P(R|BB)=1, P(B|BB)=0 (impossible, ne pas lister)
+
+@@@
+tree: Tirage sans remise (3R, 2B)
+R, 3/5
+B, 2/5
+R -> R, 1/2
+R -> B, 1/2
+B -> R, 3/4
+B -> B, 1/4
+R -> R -> R, 1/3
+R -> R -> B, 2/3
+R -> B -> R, 2/3
+R -> B -> B, 1/3
+B -> R -> R, 2/3
+B -> R -> B, 1/3
+B -> B -> R, 1
+@@@
+
+
 
 Contexte programme : Programme scolaire français (Seconde, Première, Terminale).`;
 
