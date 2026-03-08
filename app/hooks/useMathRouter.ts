@@ -729,7 +729,17 @@ export function useMathRouter({
                 .replace(/e\s*\*\*\s*x/gi, 'exp(x)')   // e**x
                 .replace(/e\s*\^\s*x/gi, 'exp(x)')     // e^x
                 .replace(/e\s*\^\s*\(([^)]+)\)/gi, 'exp($1)')  // e^(u) → exp(u)
+                // Racines : √, ∛, ∜ → sqrt, cbrt pour SymPy
+                .replace(/√\s*\(([^)]+)\)/g, 'sqrt($1)')     // √(expr) → sqrt(expr)
+                .replace(/√\s*([a-zA-Z0-9]+)/g, 'sqrt($1)')  // √x → sqrt(x)
+                .replace(/∛\s*\(([^)]+)\)/g, 'cbrt($1)')     // ∛(expr) → cbrt(expr)
+                .replace(/∛\s*([a-zA-Z0-9]+)/g, 'cbrt($1)')  // ∛x → cbrt(x)
+                .replace(/∜\s*\(([^)]+)\)/g, '($1)^(1/4)')   // ∜(expr)
+                // Logarithme : ln, Ln, Log → log (SymPy: log = logarithme naturel)
+                .replace(/\bLn\s*\(/g, 'log(')
+                .replace(/\bLog\s*\(/g, 'log(')
                 .replace(/\bln\s*\(/g, 'log(')
+
                 // Retirer les domaines de définition (sur ℝ, sur R, pour tout x, x∈...)
                 .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
                 .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
