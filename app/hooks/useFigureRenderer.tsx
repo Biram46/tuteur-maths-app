@@ -319,6 +319,20 @@ export function useFigureRenderer() {
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();
                         const rawContent = sec.substring(colonIndex + 1);
 
+                        // ── Garde 1 : ignorer les lignes en langage naturel ────────────────────
+                        // Une ligne valide DOIT commencer par 'sign', 'var', ou être une expr math
+                        const prefixLow = prefixAndLabel.toLowerCase();
+                        const isExplicitSignOrVar = prefixLow.startsWith('sign') || prefixLow.startsWith('var');
+                        // Heuristique : trop de mots = langage naturel (ex: "Décompose bien chaque...")
+                        const wordCount = prefixAndLabel.trim().split(/\s+/).length;
+                        const looksLikeNaturalLanguage = !isExplicitSignOrVar && wordCount > 5;
+                        // Mots français courants en début de phrase = instruction élève parasite
+                        const frenchInstructionWords = /^(décompose|donne|calcule|trouve|sur\s+ℝ|sur\s+r\b|note|donc|pour|sachant|puisque|comme|avec|en déduire|en\s+déduit)/i;
+                        if (looksLikeNaturalLanguage || frenchInstructionWords.test(prefixAndLabel.trim())) {
+                            console.warn('[Table] Ligne ignorée (langage naturel détecté):', prefixAndLabel.slice(0, 50));
+                            return;
+                        }
+
                         // Parsing robuste : séparer par virgules, mais préserver || comme élément unique
                         const rawValues = rawContent.includes(',')
                             ? rawContent.split(',').map(v => v.trim()).filter(v => v.length > 0)
@@ -328,7 +342,6 @@ export function useFigureRenderer() {
                         // Chaque valeur correspond à une colonne précise du tableau (2N-3 éléments).
                         // Supprimer les doublons casse l'alignement des signes avec les x-values.
                         const content = rawValues;
-
 
                         let type: 'sign' | 'variation' = 'sign';
                         let label = prefixAndLabel;
@@ -342,6 +355,15 @@ export function useFigureRenderer() {
                             label = labelColon !== -1 ? prefixAndLabel.substring(labelColon + 1).trim() : prefixAndLabel.substring(3).trim();
                             type = 'variation';
                         }
+
+                        // ── Garde 2 : nettoyer le label des suffixes de domaine ────────────────
+                        // Ex: "(2x-4)(x+3) sur ℝ" → "(2x-4)(x+3)"
+                        label = label
+                            .replace(/\s+sur\s+ℝ\s*$/i, '')
+                            .replace(/\s+sur\s+R\s*$/i, '')
+                            .replace(/\s+pour\s+tout\s+x\s*$/i, '')
+                            .replace(/\s+∀x\s*$/i, '')
+                            .trim();
 
                         if (content.length > 0) {
                             currentRows.push({ label: label || prefixAndLabel, type, content });

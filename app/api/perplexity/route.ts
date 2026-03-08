@@ -136,6 +136,16 @@ RÔLE ET DOMAINE
 
 ⚠️ TOUJOURS utiliser le format @@@ table pour TOUS les tableaux (signes ET variations) !
 
+⛔⛔ **RÈGLE ABSOLUE SUR LES LABELS sign: et var: :**
+Le label après "sign:" ou "var:" doit être UNIQUEMENT l'expression mathématique.
+- ❌ INTERDIT : "sign: (2x-4)(x+3) sur ℝ" ← "sur ℝ" ne fait PAS partie du label
+- ❌ INTERDIT : "sign: Décompose bien chaque facteur" ← jamais du texte de l'élève
+- ❌ INTERDIT : "sign: f(x) définie sur [-3, +∞[" ← le domaine ne fait pas partie du label
+- ✅ CORRECT : "sign: 2x - 4" ← uniquement l'expression
+- ✅ CORRECT : "sign: x + 3" ← uniquement l'expression
+- ✅ CORRECT : "sign: f(x)" ← uniquement le nom de la fonction
+Ne jamais copier dans un label sign: des mots provenant de la question de l'élève !
+
 ⚠️ **RÈGLE OBLIGATOIRE POUR LES TABLEAUX DE VARIATIONS :**
 - Si tu utilises la DÉRIVÉE pour étudier les variations, tu DOIS inclure une ligne sign: f'(x)
 - ⛔ INTERDIT de faire un tableau de variations sans la ligne du signe de f'(x) quand on dérive
