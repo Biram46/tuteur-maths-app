@@ -703,6 +703,12 @@ export default function MathGraph({
         // ── TITRE ──
         if (title) {
             const titleSize = isMobile ? '13px' : '16px';
+            // Convertir la notation mathjs vers la notation française pour l'affichage
+            const displayTitle = title
+                .replace(/\blog\(/g, 'ln(')
+                .replace(/\bsqrt\(/g, '√(')
+                .replace(/\*/g, '×')
+                .replace(/\bpi\b/g, 'π');
             svg.append('text')
                 .attr('x', dimensions.width / 2)
                 .attr('y', isMobile ? 18 : 25)
@@ -710,7 +716,7 @@ export default function MathGraph({
                 .attr('fill', 'white')
                 .attr('font-weight', 'bold')
                 .style('font-size', titleSize)
-                .text(title);
+                .text(displayTitle);
         }
     }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions]);
 

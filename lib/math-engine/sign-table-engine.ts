@@ -384,7 +384,31 @@ function extractFactors(input: SignTableInput): FactorAnalysis[] {
     }
 
     // Auto-détection depuis l'expression brute
-    return autoExtractFactors(expression, searchDomain);
+    const factors = autoExtractFactors(expression, searchDomain);
+
+    // ── GARDE-FOU : limiter le nombre de facteurs pour éviter un freeze ──
+    // Si l'auto-détection a produit trop de facteurs (bug findZeros),
+    // on retombe sur un facteur unique générique avec peu de zéros.
+    const MAX_FACTORS = 20;
+    if (factors.length > MAX_FACTORS) {
+        console.warn(`[SIGN-ENGINE] ⚠️ ${factors.length} facteurs détectés (max ${MAX_FACTORS}) — fallback facteur unique`);
+        const zeros = findZeros(expression, searchDomain[0], searchDomain[1], 500)
+            .filter((z, i, arr) => i === 0 || Math.abs(z - arr[i - 1]) > 0.5)
+            .slice(0, 10);
+        const discontinuities = findDiscontinuities(expression, searchDomain[0], searchDomain[1], 500)
+            .filter((d, i, arr) => i === 0 || Math.abs(d - arr[i - 1]) > 0.5)
+            .slice(0, 10);
+        return [{
+            label: expression,
+            expr: expression,
+            type: 'numerator',
+            factorType: 'generic',
+            zeros,
+            discontinuities,
+        } as FactorAnalysis];
+    }
+
+    return factors;
 }
 
 /**

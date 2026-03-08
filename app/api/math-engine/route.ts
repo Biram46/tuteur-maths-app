@@ -75,22 +75,21 @@ export async function POST(req: NextRequest) {
                 const sympyResult = await callSignTableSympy(expression, niveau);
                 if (sympyResult.success) {
                     console.log(`[MathEngine] ✅ MOTEUR SYMPY utilisé pour "${expression}"`);
-                    // Générer l'aiContext via le moteur JS (même si le tableau vient de SymPy)
-                    const jsForContext = generateSignTable({
-                        expression,
-                        numeratorFactors: options.numeratorFactors,
-                        denominatorFactors: options.denominatorFactors,
-                        searchDomain: options.searchDomain,
-                        niveau: niveau as any,
-                    });
+                    // ⚠️ NE PAS appeler generateSignTable côté JS juste pour aiContext
+                    // car ça peut générer des milliers de facteurs et freezer le serveur.
+                    // On construit un aiContext léger directement.
+                    const aiContext = `Tableau de signes de f(x) = ${expression} calculé par SymPy (résultat exact). Niveau: ${niveau}.`;
                     return NextResponse.json({
                         success: true,
                         aaaBlock: sympyResult.aaaBlock,
                         rawData: sympyResult,
                         criticalPoints: sympyResult.criticalPoints,
-                        // Étapes Δ pour les trinômes (injectées dans le contexte IA)
                         discriminantSteps: sympyResult.discriminantSteps ?? [],
-                        aiContext: jsForContext.aiContext,
+                        factors: sympyResult.factors ?? [],
+                        numZeros: sympyResult.numZeros ?? [],
+                        denZeros: sympyResult.denZeros ?? [],
+                        effectiveConst: sympyResult.effectiveConst ?? 1,
+                        aiContext,
                         engine: 'sympy',
                     });
                 }

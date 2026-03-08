@@ -17,6 +17,7 @@ import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sympy as sp
+from sympy.calculus.util import continuous_domain
 
 app = Flask(__name__)
 CORS(app)  # Autoriser les appels cross-origin depuis l'app Next.js
@@ -48,17 +49,47 @@ def sign_at(expr_sym, pt):
 
 
 def fmt(v):
-    """Formate un nombre pour l'affichage."""
+    """Formate un nombre pour l'affichage, avec détection de e et π."""
     try:
         f = float(v.evalf()) if hasattr(v, 'evalf') else float(v)
     except:
         return str(v)
+
+    # Vérifier les constantes mathématiques exactes
+    E_VAL = float(sp.E.evalf())
+    PI_VAL = float(sp.pi.evalf())
+
+    # Vérifier si c'est un multiple simple de e
+    for mult in [1, 2, 3, -1, -2, -3]:
+        if abs(f - mult * E_VAL) < 1e-9:
+            if mult == 1: return 'e'
+            if mult == -1: return '-e'
+            return f'{mult}e'
+
+    # Vérifier si c'est un multiple ou fraction simple de π
+    for num in [1, 2, 3, 4, -1, -2, -3, -4]:
+        for den in [1, 2, 3, 4, 6]:
+            val = num * PI_VAL / den
+            if abs(f - val) < 1e-9:
+                if den == 1:
+                    if num == 1: return 'π'
+                    if num == -1: return '-π'
+                    return f'{num}π'
+                else:
+                    if num == 1: return f'π/{den}'
+                    if num == -1: return f'-π/{den}'
+                    return f'{num}π/{den}'
+
+    # Entier ?
     if abs(f - round(f)) < 1e-9:
         return str(int(round(f)))
+
+    # Fraction simple ?
     for d in range(2, 13):
         n = round(f * d)
         if abs(n / d - f) < 1e-9:
             return f'{int(n)}/{d}' if n > 0 else f'-{abs(int(n))}/{d}'
+
     return str(round(f, 4))
 
 
@@ -107,13 +138,39 @@ def extract_transcendental_factors(expr_sym, role):
             pass
     return factors
 
+# ─────────────────────────────────────────────────────────────
+# PRETTIFICATION DES LABELS
+# ─────────────────────────────────────────────────────────────
+
+def prettify_label(label):
+    """Convertit x**2 → x², x**3 → x³, etc. pour l'affichage."""
+    import re
+    superscripts = {'2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'}
+    def replace_power(m):
+        exp = m.group(1)
+        if exp in superscripts:
+            return superscripts[exp]
+        return '^' + exp
+    result = re.sub(r'\*\*(\d+)', replace_power, str(label))
+    result = result.replace('*', '·')
+    return result
+
 
 # ─────────────────────────────────────────────────────────────
 # EXTRACTION DES FACTEURS POLYNOMIAUX
 # ─────────────────────────────────────────────────────────────
 
 def get_polynomial_factors(poly_expr, role):
-    """Factorise un polynôme et retourne les facteurs + coefficient constant."""
+    """
+    Factorise un polynôme en produit de facteurs de degré ≤ 2.
+    
+    Approche pédagogique lycée français :
+    - On extrait les racines UNE PAR UNE en divisant par (x - r)
+    - On S'ARRÊTE dès que le quotient est de degré ≤ 2 (trinôme → discriminant Δ)
+    - Exemple : x³ - x = x·(x² - 1) avec Δ calculé pour x² - 1
+    - On NE factorise PAS complètement en (x)(x-1)(x+1) car ça saute l'étape Δ
+    """
+    # Retirer les facteurs transcendants (exp, ln, sqrt) déjà traités séparément
     poly_simplified = poly_expr
     for atom in poly_expr.atoms(sp.exp, sp.log, sp.sqrt):
         try:
@@ -128,67 +185,129 @@ def get_polynomial_factors(poly_expr, role):
     except:
         return [], 1.0
 
-    if p.degree() == 0:
+    deg = p.degree()
+    if deg == 0:
         const_val = float(poly_simplified.evalf()) if hasattr(poly_simplified, 'evalf') else float(poly_simplified)
         return [], const_val
 
-    fl = sp.factor_list(sp.expand(poly_simplified))
-    const_coeff = float(fl[0].evalf()) if hasattr(fl[0], 'evalf') else float(fl[0])
+    # ── Extraire le coefficient dominant ──
+    all_coeffs = p.all_coeffs()
+    leading = all_coeffs[0]
+    const_coeff = float(leading.evalf()) if hasattr(leading, 'evalf') else float(leading)
+
+    # Rendre le polynôme unitaire : P(x) = leading × P_monic(x)
+    monic = sp.expand(poly_simplified / leading)
+
     factors = []
+    remaining = monic
 
-    for (fac, mult) in fl[1]:
+    # ── Boucle : diviser par des racines jusqu'à obtenir un quotient de degré ≤ 2 ──
+    safety = 0
+    while safety < 20:
+        safety += 1
         try:
-            deg = sp.degree(fac, x)
+            rem_deg = sp.degree(remaining, x)
         except:
-            continue
-        if deg == 0:
-            continue
+            break
 
-        if deg == 1:
-            z = sp.solve(fac, x)
-            z = z[0] if z else None
+        if rem_deg <= 0:
+            # Constante restante → absorber dans const_coeff
+            try:
+                cv = float(remaining.evalf())
+                if abs(cv - 1.0) > 1e-9:
+                    const_coeff *= cv
+            except:
+                pass
+            break
+
+        elif rem_deg == 1:
+            # ── Facteur linéaire (degré 1) ──
+            z = sp.solve(remaining, x)
             factors.append({
-                'label': str(sp.expand(fac)), 'degree': 1,
-                'zeros': [z] if z is not None else [],
-                'role': role, 'delta_steps': None,
+                'label': str(sp.expand(remaining)), 'degree': 1,
+                'zeros': [z[0]] if z else [], 'role': role, 'delta_steps': None,
             })
-        elif deg == 2:
-            coeffs = sp.Poly(fac, x).all_coeffs()
-            a_c = coeffs[0]
-            b_c = coeffs[1] if len(coeffs) > 1 else sp.Integer(0)
-            c_c = coeffs[2] if len(coeffs) > 2 else sp.Integer(0)
-            delta = sp.expand(b_c**2 - 4 * a_c * c_c)
-            ds = sp.nsimplify(delta, rational=True)
-            df = float(delta.evalf())
+            break
 
-            if df > 1e-10:
-                sd = sp.sqrt(delta)
-                z1 = sp.nsimplify((-b_c - sd) / (2 * a_c))
-                z2 = sp.nsimplify((-b_c + sd) / (2 * a_c))
-                zeros = sorted([z1, z2], key=lambda z: float(z.evalf()))
-                steps = [
-                    f'$\\Delta = ({sp.latex(b_c)})^2 - 4\\times({sp.latex(a_c)})\\times({sp.latex(c_c)}) = {sp.latex(ds)}$',
-                    f'$\\Delta > 0$ : $x_1={sp.latex(zeros[0])}$, $x_2={sp.latex(zeros[1])}$',
-                    f'Signe de $a={sp.latex(a_c)}$ : trinôme {"négatif" if float(a_c.evalf()) > 0 else "positif"} entre les racines.',
+        elif rem_deg == 2:
+            # ── Trinôme (degré 2) → analyse par discriminant Δ ──
+            coeffs_q = sp.Poly(remaining, x).all_coeffs()
+            a_q = coeffs_q[0]
+            b_q = coeffs_q[1] if len(coeffs_q) > 1 else sp.Integer(0)
+            c_q = coeffs_q[2] if len(coeffs_q) > 2 else sp.Integer(0)
+            delta_q = sp.expand(b_q**2 - 4 * a_q * c_q)
+            ds_q = sp.nsimplify(delta_q, rational=True)
+            df_q = float(delta_q.evalf())
+
+            if df_q > 1e-10:
+                sd_q = sp.sqrt(delta_q)
+                z1_q = sp.nsimplify((-b_q - sd_q) / (2 * a_q))
+                z2_q = sp.nsimplify((-b_q + sd_q) / (2 * a_q))
+                zeros_q = sorted([z1_q, z2_q], key=lambda z: float(z.evalf()))
+                steps_q = [
+                    f'$\\Delta = ({sp.latex(b_q)})^2 - 4\\times({sp.latex(a_q)})\\times({sp.latex(c_q)}) = {sp.latex(ds_q)}$',
+                    f'$\\Delta > 0$ : $x_1={sp.latex(zeros_q[0])}$, $x_2={sp.latex(zeros_q[1])}$',
+                    f'Signe de $a={sp.latex(a_q)}$ : trinôme {"négatif" if float(a_q.evalf()) > 0 else "positif"} entre les racines.',
                 ]
-            elif abs(df) < 1e-10:
-                x0 = sp.nsimplify(-b_c / (2 * a_c))
-                zeros = [x0, x0]
-                steps = [f'$\\Delta=0$, racine double $x_0={sp.latex(x0)}$']
+            elif abs(df_q) < 1e-10:
+                x0_q = sp.nsimplify(-b_q / (2 * a_q))
+                zeros_q = [x0_q, x0_q]
+                steps_q = [f'$\\Delta=0$, racine double $x_0={sp.latex(x0_q)}$']
             else:
-                zeros = []
-                steps = [f'$\\Delta={sp.latex(ds)}<0$ : pas de racine réelle.']
+                zeros_q = []
+                steps_q = [f'$\\Delta={sp.latex(ds_q)}<0$ : pas de racine réelle.']
 
             factors.append({
-                'label': str(sp.expand(fac)), 'degree': 2,
-                'zeros': zeros, 'role': role, 'delta_steps': steps,
+                'label': str(sp.expand(remaining)), 'degree': 2,
+                'zeros': zeros_q, 'role': role, 'delta_steps': steps_q,
             })
+            break
+
         else:
-            rz = sorted([s for s in sp.solve(fac, x) if s.is_real], key=float)
+            # ── Degré ≥ 3 : extraire UNE racine réelle, diviser ──
+            # Trier par "simplicité" : 0 d'abord, puis petits entiers, puis fractions
+            # Cela donne x·(x²-1) au lieu de (x+1)·(x²-x) pour x³-x
+            def root_simplicity(r):
+                rv = float(r.evalf())
+                if abs(rv) < 1e-12: return (0, 0)            # 0 en premier
+                if abs(rv - round(rv)) < 1e-9: return (1, abs(rv))  # Entiers ensuite
+                return (2, abs(rv))                               # Le reste
+
+            roots = sorted(
+                [s for s in sp.solve(remaining, x) if s.is_real],
+                key=root_simplicity
+            )
+
+            if not roots:
+                # Pas de racine réelle → garder comme facteur générique
+                factors.append({
+                    'label': str(sp.expand(remaining)), 'degree': int(rem_deg),
+                    'zeros': [], 'role': role, 'delta_steps': None,
+                })
+                break
+
+            # Prendre la racine la plus simple et diviser
+            r_val = roots[0]
+            lin_factor = x - r_val
+            quotient, remainder_div = sp.div(sp.expand(remaining), lin_factor, x)
+
+            if sp.simplify(remainder_div) != 0:
+                # Division échouée → garder comme facteur générique
+                rz_all = roots
+                factors.append({
+                    'label': str(sp.expand(remaining)), 'degree': int(rem_deg),
+                    'zeros': rz_all, 'role': role, 'delta_steps': None,
+                })
+                break
+
+            # Ajouter le facteur linéaire (x - r)
             factors.append({
-                'label': str(fac), 'degree': int(deg),
-                'zeros': rz, 'role': role, 'delta_steps': None,
+                'label': str(sp.expand(lin_factor)), 'degree': 1,
+                'zeros': [r_val], 'role': role, 'delta_steps': None,
             })
+            remaining = sp.expand(quotient)
+            # On reboucle → le quotient sera traité au prochain tour
+            # Si degré 2 → trinôme avec Δ 🎯
 
     return factors, const_coeff
 
@@ -201,6 +320,9 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     """Calcule le tableau de signes complet d'une expression."""
     # Nettoyer l'expression
     raw = expression.replace('^', '**').replace(',', '.')
+    # Convertir les exposants Unicode et symboles
+    raw = raw.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
+    raw = raw.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
     expr_full = sp.sympify(raw, locals=LOCALS)
     num, den = sp.fraction(expr_full)
 
@@ -258,22 +380,46 @@ def compute_sign_table(expression, niveau='terminale_spe'):
 
     critical = sorted(set(num_zeros_f + den_zeros_f))
 
-    # Domaine (pour ln, sqrt)
+    # Domaine — utilisation de continuous_domain() de SymPy
+    # Détecte automatiquement l'ensemble de définition (ln, sqrt, 1/x, tan, etc.)
     domain_left = None
-    for f in (num_factors_all + den_factors_all):
-        if f.get('type') == 'ln':
-            inner = f['expr'].args[0]
-            for b in sp.solve(inner, x):
-                if b.is_real:
-                    bv = float(b.evalf())
-                    if domain_left is None or bv > domain_left:
-                        domain_left = bv
-        elif f.get('type') == 'sqrt':
-            pz = [z for z in f['zeros'] if float(z.evalf()) >= -1e-9]
-            if pz:
-                bv = float(pz[0].evalf())
-                if domain_left is None or bv > domain_left:
-                    domain_left = bv
+    domain_strict = False
+    left_label = '-inf'
+
+    try:
+        dom = continuous_domain(expr_full, x, sp.S.Reals)
+        # Extraire la borne gauche du domaine
+        # Pour un Interval : dom.inf = borne gauche, dom.left_open = borne ouverte
+        # Pour une Union : prendre le premier Interval
+        if hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
+            domain_left = float(dom.inf.evalf())
+            # left_open = True → borne exclue (ex: ]0 pour ln)
+            # left_open = False → borne incluse (ex: [0 pour sqrt)
+            domain_strict = getattr(dom, 'left_open', False)
+            # Pour une Union, chercher le premier intervalle
+            if hasattr(dom, 'args'):
+                for arg in dom.args:
+                    if isinstance(arg, sp.Interval):
+                        domain_left = float(arg.inf.evalf())
+                        domain_strict = arg.left_open
+                        break
+    except Exception:
+        pass
+
+    # Si on a une borne de domaine :
+    # - Filtrer les points critiques hors domaine
+    if domain_left is not None:
+        num_zeros_f = [z for z in num_zeros_f if z > domain_left + 1e-9]
+        den_zeros_f = [z for z in den_zeros_f if z > domain_left + 1e-9]
+        critical = sorted(set(num_zeros_f + den_zeros_f))
+
+    # Construire le label de la borne gauche
+    # Convention : ] devant la valeur = borne stricte (exclue), ex: ]0
+    # Pas de préfixe = borne incluse, ex: 0
+    if domain_left is not None:
+        left_label = (']' if domain_strict else '') + fmt(domain_left)
+    else:
+        left_label = '-inf'
 
     # Points de test
     def test_pts_for(crit, dl):
@@ -336,11 +482,11 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     for fi in num_factors_all:
         rows.append({'label': fi['label'], 'values': build_row(fi), 'type': 'numerator'})
         if fi.get('delta_steps'):
-            all_delta_steps.append({'factor': fi['label'], 'steps': fi['delta_steps']})
+            all_delta_steps.append({'factor': prettify_label(fi['label']), 'steps': fi['delta_steps']})
     for fi in den_factors_all:
         rows.append({'label': fi['label'], 'values': build_row(fi), 'type': 'denominator'})
         if fi.get('delta_steps'):
-            all_delta_steps.append({'factor': fi['label'], 'steps': fi['delta_steps']})
+            all_delta_steps.append({'factor': prettify_label(fi['label']), 'steps': fi['delta_steps']})
 
     # Ligne f(x)
     fx_vals = []
@@ -358,19 +504,29 @@ def compute_sign_table(expression, niveau='terminale_spe'):
                 fx_vals.append(s2 or '+')
 
     # Construire le bloc @@@
-    left_label = '-inf' if domain_left is None else fmt(domain_left)
+    # left_label est déjà construit plus haut (avec ] si borne stricte)
     x_str = ', '.join([left_label] + [fmt(c) for c in critical] + ['+inf'])
     lines = ['table |', f'x: {x_str} |']
+
     for row in rows:
-        lines.append(f"sign: {row['label']} : {', '.join(row['values'])} |")
+        lines.append(f"sign: {prettify_label(row['label'])} : {', '.join(row['values'])} |")
     lines.append(f"sign: f(x) : {', '.join(fx_vals)} |")
     aaa_block = '@@@\n' + '\n'.join(lines) + '\n@@@'
+
+    # Construire la liste des facteurs pour le contexte IA
+    factors_info = []
+    for row in rows:
+        factors_info.append({
+            'label': prettify_label(row['label']),
+            'type': row.get('type', 'numerator'),
+        })
 
     return {
         'success': True,
         'aaaBlock': aaa_block,
         'criticalPoints': critical,
         'discriminantSteps': all_delta_steps,
+        'factors': factors_info,
         'numZeros': num_zeros_f,
         'denZeros': den_zeros_f,
         'fxValues': fx_vals,

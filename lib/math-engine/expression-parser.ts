@@ -194,6 +194,7 @@ export function findZeros(
     xMax: number = 20,
     steps: number = 2000
 ): number[] {
+    const MAX_ZEROS = 20; // Garde-fou : au-delà, c'est du bruit numérique
     const zeros: number[] = [];
     const step = (xMax - xMin) / steps;
 
@@ -205,27 +206,35 @@ export function findZeros(
         zeros.push(round4(xMin));
     }
 
-    for (let i = 1; i <= steps; i++) {
+    for (let i = 1; i <= steps && zeros.length < MAX_ZEROS; i++) {
         const x = xMin + i * step;
         const y = evalAt(expr, x);
 
         if (y === null) { prevX = x; prevY = null; continue; }
         if (prevY === null) { prevX = x; prevY = y; continue; }
 
-        // Changement de signe → zéro entre prevX et x
+        // Changement de signe STRICT → zéro entre prevX et x
         if (prevY * y < 0) {
             const zero = bisect(expr, prevX, x);
-            if (zero !== null && !zeros.some(z => Math.abs(z - zero) < 1e-6)) {
+            if (zero !== null && !zeros.some(z => Math.abs(z - zero) < 0.05)) {
                 zeros.push(round4(zero));
             }
         }
         // Valeur proche de zéro (touche l'axe sans changer de signe)
-        if (Math.abs(y) < 1e-8 && !zeros.some(z => Math.abs(z - x) < 1e-6)) {
+        // ⚠️ Seuil plus strict + vérifier que les voisins ne sont PAS aussi proches de 0
+        // (sinon c'est f(x) ≈ 0 partout, pas un vrai zéro isolé)
+        else if (Math.abs(y) < 1e-8 && (Math.abs(prevY) > 1e-6) && !zeros.some(z => Math.abs(z - x) < 0.05)) {
             zeros.push(round4(x));
         }
 
         prevX = x;
         prevY = y;
+    }
+
+    // Sanity check : si on a atteint MAX_ZEROS, c'est du bruit numérique
+    if (zeros.length >= MAX_ZEROS) {
+        console.warn(`[findZeros] ⚠️ ${zeros.length} zéros trouvés (cap atteint) pour "${expr}" → bruit numérique, retour tableau vide`);
+        return [];
     }
 
     return zeros.sort((a, b) => a - b);
@@ -405,6 +414,37 @@ export function round4(x: number): number {
  * Ex: -0.5 → "-1/2", 1.5 → "3/2", 3 → "3"
  */
 export function formatForTable(x: number): string {
+    // Vérifier les constantes mathématiques exactes
+    const E_VAL = Math.E;
+    const PI_VAL = Math.PI;
+
+    // Multiples simples de e
+    for (const mult of [1, 2, 3, -1, -2, -3]) {
+        if (Math.abs(x - mult * E_VAL) < 1e-6) {
+            if (mult === 1) return 'e';
+            if (mult === -1) return '-e';
+            return `${mult}e`;
+        }
+    }
+
+    // Multiples et fractions simples de π
+    for (const num of [1, 2, 3, 4, -1, -2, -3, -4]) {
+        for (const den of [1, 2, 3, 4, 6]) {
+            const val = num * PI_VAL / den;
+            if (Math.abs(x - val) < 1e-6) {
+                if (den === 1) {
+                    if (num === 1) return 'π';
+                    if (num === -1) return '-π';
+                    return `${num}π`;
+                } else {
+                    if (num === 1) return `π/${den}`;
+                    if (num === -1) return `-π/${den}`;
+                    return `${num}π/${den}`;
+                }
+            }
+        }
+    }
+
     if (Number.isInteger(x)) return String(x);
 
     // Essayer fraction simple (dénominateur ≤ 12)

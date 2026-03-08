@@ -257,7 +257,12 @@ function buildAIContext(
     const lines: string[] = [];
 
     lines.push(`Niveau : ${niveauLabel}.`);
-    lines.push(`NE GÉNÈRE AUCUN bloc @@@.`);
+    lines.push(`⛔ INTERDICTIONS ABSOLUES :`);
+    lines.push(`- NE GÉNÈRE AUCUN bloc @@@.`);
+    lines.push(`- NE DESSINE AUCUN tableau de variations (ni en texte, ni en markdown, ni en ASCII, ni avec des barres |, ni avec des flèches ↗↘).`);
+    lines.push(`- Le tableau est DÉJÀ affiché au-dessus par le moteur de calcul. Tu ne dois PAS le reproduire.`);
+    lines.push(`- Fais UNIQUEMENT les explications pédagogiques des étapes (dérivée, signe, conclusion).`);
+    lines.push(`- Ton rôle est d'expliquer la méthode, pas de refaire le tableau.`);
 
     // ── Interdictions globales par niveau ──
     if (!rules.allowDerivativeCalc) {
@@ -751,25 +756,94 @@ function handleGeneral(
 
     // ── 4. Tous les points critiques triés ──
     const allCritical = [...new Set([...cleanDerivZeros, ...discontinuities])].sort((a, b) => a - b);
-    const xValues = buildXValues(allCritical);
 
-    // ── 5. Intervalles ──
-    const intervalBounds = buildIntervalBounds(allCritical);
+    // ── 4b. Détection du domaine de définition ──
+    // Pour ln(x), sqrt(x), etc. le domaine commence à une borne finie
+    let domainLeft: number | null = null;
+    let domainStrict = false;
+
+    // Détection textuelle : ln/log → stricte, sqrt → inclusive
+    const exprLower = expression.toLowerCase();
+    const hasLn = /\b(ln|log)\s*\(/.test(exprLower);
+    const hasSqrt = /\b(sqrt|racine)\s*\(|√/.test(exprLower);
+
+    if (hasLn || hasSqrt) {
+        // Trouver la borne par évaluation numérique
+        // Tester si la fonction est définie en -10, -1, -0.1, 0, 0.1, 1...
+        const testPts = [-10, -5, -2, -1, -0.5, -0.1, -0.01, 0, 0.01, 0.1, 0.5, 1, 2, 5];
+        let firstDefined: number | null = null;
+        for (const t of testPts) {
+            const v = evalAt(expression, t);
+            if (v !== null) {
+                firstDefined = t;
+                break;
+            }
+        }
+
+        if (firstDefined !== null && firstDefined >= -0.01) {
+            // La fonction n'est pas définie pour les x très négatifs → domaine borné
+            // Affiner la borne par bisection
+            let lo = -10, hi = firstDefined;
+            for (let iter = 0; iter < 50; iter++) {
+                const mid = (lo + hi) / 2;
+                const v = evalAt(expression, mid);
+                if (v !== null) hi = mid;
+                else lo = mid;
+            }
+            // La borne est environ hi
+            const boundary = Math.round(hi * 1000) / 1000;
+            // Vérifier si c'est un nombre rond
+            if (Math.abs(boundary - Math.round(boundary)) < 0.01) {
+                domainLeft = Math.round(boundary);
+            } else {
+                domainLeft = boundary;
+            }
+            domainStrict = hasLn; // ln → strict, sqrt → inclusif
+        }
+    }
+
+    // Filtrer les points critiques hors domaine et construire xValues
+    let filteredCritical = allCritical;
+    let xValues: string[];
+    if (domainLeft !== null) {
+        filteredCritical = allCritical.filter(c => c > domainLeft! + 0.1);
+        const prefix = domainStrict ? ']' : '';
+        xValues = [prefix + formatForTable(domainLeft), ...filteredCritical.map(formatForTable), '+inf'];
+    } else {
+        xValues = buildXValues(allCritical);
+    }
+    // Recalculer allCritical filtré pour les lignes
+    const finalCritical = domainLeft !== null ? filteredCritical : allCritical;
+
+    // ── 5. Intervalles (utiliser finalCritical = filtré par domaine) ──
+    // Si on a un domaine borné, utiliser domainLeft comme borne gauche au lieu de -inf
+    const intervalBounds = domainLeft !== null
+        ? buildIntervalBoundsWithDomain(finalCritical, domainLeft)
+        : buildIntervalBounds(finalCritical);
+
+    // Filtrer aussi les derivZeros et discontinuités par domaine
+    // Seuil 0.1 : les artefacts numériques (bisection imprécise) près de la borne sont éliminés
+    const finalDerivZeros = domainLeft !== null
+        ? cleanDerivZeros.filter(z => z > domainLeft! + 0.1)
+        : cleanDerivZeros;
+    const finalDiscontinuities = domainLeft !== null
+        ? discontinuities.filter(d => d > domainLeft! + 0.1)
+        : discontinuities;
 
     // ── 6. Construire les lignes ──
     const rows: TableRow[] = [];
 
     // Ligne sign: f'(x) — selon le niveau
     if (rules.includeDerivativeLine) {
-        const derivRow = buildDerivSignRow(derivExpr, allCritical, intervalBounds, cleanDerivZeros, discontinuities);
+        const derivRow = buildDerivSignRow(derivExpr, finalCritical, intervalBounds, finalDerivZeros, finalDiscontinuities);
         rows.push(derivRow);
     }
 
     // Ligne variation: f(x)
     const extrema: { x: number; y: number; type: 'max' | 'min' }[] = [];
     const varRow = buildVariationRow(
-        expression, derivExpr, allCritical, intervalBounds,
-        cleanDerivZeros, discontinuities, rules, extrema
+        expression, derivExpr, finalCritical, intervalBounds,
+        finalDerivZeros, finalDiscontinuities, rules, extrema
     );
     rows.push(varRow);
 
@@ -848,6 +922,22 @@ function buildIntervalBounds(criticalPoints: number[]): [number | '-inf', number
     if (criticalPoints.length === 0) return [['-inf', '+inf']];
 
     bounds.push(['-inf', criticalPoints[0]]);
+    for (let i = 0; i < criticalPoints.length - 1; i++) {
+        bounds.push([criticalPoints[i], criticalPoints[i + 1]]);
+    }
+    bounds.push([criticalPoints[criticalPoints.length - 1], '+inf']);
+    return bounds;
+}
+
+/** Variante avec borne de domaine finie à gauche (pour ln, sqrt, etc.) */
+function buildIntervalBoundsWithDomain(
+    criticalPoints: number[],
+    domainLeft: number
+): [number | '-inf', number | '+inf'][] {
+    const bounds: [number | '-inf', number | '+inf'][] = [];
+    if (criticalPoints.length === 0) return [[domainLeft, '+inf']];
+
+    bounds.push([domainLeft, criticalPoints[0]]);
     for (let i = 0; i < criticalPoints.length - 1; i++) {
         bounds.push([criticalPoints[i], criticalPoints[i + 1]]);
     }

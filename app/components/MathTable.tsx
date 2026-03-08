@@ -212,6 +212,16 @@ export default function MathTable({ data, title }: MathTableProps) {
     const lastSignRowIdx = rows.reduce<number>((last, r, i) => r.type === 'sign' ? i : last, -1);
     const hasVariation = rows.some(r => r.type === 'variation');
 
+    // Détection de la borne stricte du domaine :
+    // Convention API : le premier xValue commence par ']' si la borne est exclue (ex: ]0 pour ln)
+    // Sans ']' = borne incluse (ex: 0 pour sqrt) → pas de ||
+    // IMPORTANT : ne pas muter xValues (prop) sinon React strict mode casse au 2ème rendu
+    const firstXRaw = xValues[0] || '';
+    const isDomainBounded = firstXRaw.startsWith(']');
+    const displayXValues = isDomainBounded
+        ? [firstXRaw.substring(1), ...xValues.slice(1)]
+        : xValues;
+
     // halfIdx pairs des valeurs critiques intérieures : 2k pour k=1..N-2
     // Ces positions reçoivent une ligne pointillée
     const criticalHalfIdxs: number[] = [];
@@ -280,6 +290,20 @@ export default function MathTable({ data, title }: MathTableProps) {
                 }
             }
         });
+
+        // Si la borne du domaine est finie, dessiner || sur la première colonne (halfIdx=0)
+        if (isDomainBounded && isFxRow) {
+            const xPos = xCenter(0);
+            cells.push(
+                <g key="domain-boundary">
+                    <rect x={xPos - 12} y={yTop + 4} width={24} height={ROW_H - 8} fill="white" />
+                    <line x1={xPos - 5} y1={yTop + 4} x2={xPos - 5} y2={yTop + ROW_H - 4}
+                        stroke="#1e293b" strokeWidth="1.5" />
+                    <line x1={xPos + 5} y1={yTop + 4} x2={xPos + 5} y2={yTop + ROW_H - 4}
+                        stroke="#1e293b" strokeWidth="1.5" />
+                </g>
+            );
+        }
 
         return (
             <g key={`row-${rowIdx}`}>
@@ -553,7 +577,7 @@ export default function MathTable({ data, title }: MathTableProps) {
                     </text>
 
                     {/* ── Valeurs x dans l'en-tête ── */}
-                    {xValues.map((xVal, i) => {
+                    {displayXValues.map((xVal, i) => {
                         const cx = xCenter(i * 2);
                         const cleaned = clean(xVal);
                         // Détecter les fractions pour les rendre en notation mathématique
@@ -607,6 +631,13 @@ export default function MathTable({ data, title }: MathTableProps) {
                         );
                     })}
 
+                    {/* ── Ligne pointillée pour la borne du domaine (si existante) ── */}
+                    {isDomainBounded && (
+                        <line key="domain-crit"
+                            x1={xCenter(0)} y1={HEADER_H}
+                            x2={xCenter(0)} y2={firstVariationRowIdx >= 0 ? HEADER_H + firstVariationRowIdx * ROW_H : totalHeight}
+                            stroke="#374151" strokeWidth="1" strokeDasharray="5,4" />
+                    )}
                     {/* ── Lignes de données ── */}
                     {rows.map((row, rowIdx) => {
                         const yTop = HEADER_H + rowIdx * ROW_H;
