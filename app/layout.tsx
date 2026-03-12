@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Orbitron, Inter, Exo_2 } from "next/font/google";
 import "./globals.css";
+import 'katex/dist/katex.min.css'; // ← GLOBAL : garantit le rendu KaTeX sur toutes les pages
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
