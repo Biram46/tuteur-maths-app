@@ -1491,7 +1491,8 @@ export function useMathRouter({
             /\b(triangle|rectangle|carr[eé]|polygone|cercle|droite|segment|demi-droite|vecteur|angle)\b/i.test(inputLower)
             || /\b(constru|trac[eé]|repr[eé]sente|dessine|place)\b.*\b(point|figure|géo|geo)\b/i.test(inputLower)
             || /\b(figure géo|figure géométrique|construction géométrique|médiatrice|bissectrice|hauteur|médiane)\b/i.test(inputLower)
-            || /\b(A\s*\(\s*\d|B\s*\(\s*\d|C\s*\(\s*\d)\b/.test(inputText) // Coordonnées de points A(x,y)
+            || /\b[A-Z]\s*\(\s*-?\d/.test(inputText) // Coordonnées A(x,y) ou A(x; y)
+
         ) && !/\bfonction\b|\btableau?\b|\bsigne\b|\bvariation\b|\bdérivée?\b/i.test(inputLower);
 
         if (wantsGeometry) {
@@ -1553,6 +1554,22 @@ Puis explique la figure pédagogiquement.
 ⛔ RÈGLE ABSOLUE : Tu DOIS TOUJOURS déclarer chaque point avec ses coordonnées (point: X, x, y) AVANT de l'utiliser dans un segment, triangle, etc. 
 ⛔ Si l'élève ne donne PAS les coordonnées, TU choisis des coordonnées adaptées pour que la figure soit lisible.
 ⛔ Exemple : "trace un triangle ABC" → TU calcules des coordonnées : A(0,0), B(4,0), C(2,3)
+
+⚠️ NOTATION FRANÇAISE DES COORDONNÉES :
+- L'élève écrit souvent A(4; 5) avec un POINT-VIRGULE — interprète-le comme x=4, y=5.
+- Dans ton bloc geo, utilise TOUJOURS la virgule : point: A, 4, 5  (jamais de ; dans le bloc).
+
+⚠️ CERCLE CIRCONSCRIT d'un triangle ABC :
+- Le circumcentre O est l'intersection des médiatrices — ce n'est PAS le barycentre !
+- Formule (si A=(ax,ay), B=(bx,by), C=(cx,cy)) :
+  D = 2[ax(by-cy) + bx(cy-ay) + cx(ay-by)]
+  Ox = [(ax²+ay²)(by-cy) + (bx²+by²)(cy-ay) + (cx²+cy²)(ay-by)] / D
+  Oy = [(ax²+ay²)(cx-bx) + (bx²+by²)(ax-cx) + (cx²+cy²)(bx-ax)] / D
+  R = distance(O, A)
+- TU dois calculer O et R NUMÉRIQUEMENT :
+  point: O, [Ox], [Oy]
+  cercle: O, [R]
+- ⛔ JAMAIS cercle: A ou cercle: C pour le cercle circonscrit — O n'est pas un sommet !
 
 RÈGLES STRICTES :
 - ✅ TOUJOURS mettre "repere: orthonormal" si l'élève donne des coordonnées explicites (ex: A(2;3), B(5;1)...) ou demande de placer des points dans un repère.

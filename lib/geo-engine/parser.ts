@@ -75,7 +75,9 @@ export function parseGeoScene(raw: string): GeoScene {
         if (colonIdx === -1) continue;
         const cmd = section.slice(0, colonIdx).trim().toLowerCase();
         const rest = section.slice(colonIdx + 1).trim();
-        const parts = rest.split(',').map(s => s.trim());
+        // Accepter ',' et ';' comme séparateurs (notation française A(4; 5))
+        const parts = rest.split(/[,;]/).map(s => s.trim());
+
 
         switch (cmd) {
             case 'geo': // ligne d'en-tête, skip
