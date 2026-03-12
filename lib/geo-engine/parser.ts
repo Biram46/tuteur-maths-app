@@ -309,8 +309,7 @@ export function parseGeoScene(raw: string): GeoScene {
             }
 
             case 'angle_droit':
-            case 'right_angle':
-            case 'perpendicular': {
+            case 'right_angle': {
                 // right_angle: A, B, C → angle droit en B
                 if (parts.length < 3) break;
                 const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase().trim());
