@@ -18,7 +18,9 @@ let _idCounter = 0;
 const uid = (prefix: string) => `${prefix}_${++_idCounter}`;
 
 function parseNumber(s: string): number {
-    s = s.trim().replace(',', '.');
+    // Strip caractères parasites : parenthèses, crochets, espaces insécables
+    s = s.trim().replace(/[()[\]]/g, '').replace(/\u00A0/g, ' ').trim();
+    s = s.replace(',', '.');
     // Supporte: -3, 1/2, √2, pi
     if (s.includes('/')) {
         const [n, d] = s.split('/').map(Number);
@@ -28,7 +30,8 @@ function parseNumber(s: string): number {
         const inner = s.replace(/√|sqrt\(|\)/g, '').trim();
         return Math.sqrt(Number(inner));
     }
-    return Number(s);
+    const n = Number(s);
+    return isNaN(n) ? 0 : n; // Fallback 0 au lieu de NaN pour éviter les points invisibles
 }
 
 function parseFrac(s: string): Frac {
@@ -114,13 +117,34 @@ export function parseGeoScene(raw: string): GeoScene {
                 break;
 
             case 'point': {
-                // point: A, x, y [, label, color]
+                // Formats acceptés :
+                //   point: A, 1, 2        (standard)
+                //   point: A(1, 2)        (IA utilise parfois les parenthèses)
+                //   point: A(1; 2)        (notation française)
                 if (parts.length < 1) break;
-                const name = parts[0].toUpperCase().trim();
-                const x = parts.length > 1 ? parseNumber(parts[1]) : 0;
-                const y = parts.length > 2 ? parseNumber(parts[2]) : 0;
-                const label = parts[3] || undefined;
-                const color = parts[4] || undefined;
+
+                // Détecter format compacte : "A(1.5" → extraire nom + coords
+                const raw0 = parts[0];
+                const compactMatch = raw0.match(/^([A-Z][A-Z0-9']?)\(\s*(-?[\d./]+)\s*$/i);
+                let name: string, x: number, y: number, label: string | undefined, color: string | undefined;
+
+                if (compactMatch && parts.length >= 2) {
+                    // Format compact : "A(1" split avec "2)" dans parts[1]
+                    name = compactMatch[1].toUpperCase();
+                    x = parseNumber(compactMatch[2]);
+                    y = parseNumber(parts[1]);
+                    label = parts[2] || undefined;
+                    color = parts[3] || undefined;
+                } else {
+                    // Format standard : "A", "1", "2"
+                    name = raw0.replace(/\(.*/, '').toUpperCase().trim(); // strip toute parenthèse résiduelle
+                    x = parts.length > 1 ? parseNumber(parts[1]) : 0;
+                    y = parts.length > 2 ? parseNumber(parts[2]) : 0;
+                    label = parts[3] || undefined;
+                    color = parts[4] || undefined;
+                }
+
+                if (!name || name.length === 0) break; // ID invalide → ignorer
                 pointMap.set(name, { x, y });
                 objects.push({ kind: 'point', id: name, x, y, label, color, style: 'cross' });
                 break;
