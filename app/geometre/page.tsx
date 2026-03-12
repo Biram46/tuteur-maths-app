@@ -33,34 +33,50 @@ const WAITING_SCENE: GeoScene = {
     computed: [],
 };
 
+// ─── Heuristique repère ───────────────────────────────────────────────────────
+// Même logique que dans useFigureRenderer :
+// Si repere === 'none' mais qu'au moins un point a des coordonnées non-triviales
+// (x≠0 ou y≠0, hors points auxiliaires), on force orthonormal + grille.
+function applyRepereHeuristic(scene: GeoScene): GeoScene {
+    if (scene.repere !== 'none') return scene; // l'IA a décidé → respecter
+    const hasNonTrivialCoords = scene.objects.some(o => {
+        if (o.kind !== 'point') return false;
+        const p = o as import('@/lib/geo-engine/types').GeoPoint;
+        return (Math.abs(p.x) > 0.01 || Math.abs(p.y) > 0.01) && !p.id.startsWith('_');
+    });
+    if (!hasNonTrivialCoords) return scene;
+    return { ...scene, repere: 'orthonormal', showGrid: true };
+}
+
 // ─── Parser la payload reçue depuis le BroadcastChannel ──────────────────────
 // Accepte 3 sources (par priorité) :
 //  1. raw: string  — texte brut geo à parser
 //  2. scene: string — GeoScene JSON sérialisé (envoyé par la carte inline)
-//  3. key: string   — clé sessionStorage (fallback)
+//  3. key: string   — clé localStorage (fallback)
 function parsePayload(payload: { raw?: string; scene?: string; key?: string }): GeoScene | null {
     try {
         // Priorité 1 : texte brut geo
         if (payload.raw) {
-            return parseGeoScene(payload.raw);
+            return applyRepereHeuristic(parseGeoScene(payload.raw));
         }
-        // Priorité 2 : scène JSON complète (plus fiable que sessionStorage)
+        // Priorité 2 : scène JSON complète (plus fiable que localStorage)
         if (payload.scene) {
             try {
                 const parsed = JSON.parse(payload.scene);
-                if (parsed.raw) return parseGeoScene(parsed.raw);
-                if (parsed.objects) return parsed as GeoScene;
+                if (parsed.raw) return applyRepereHeuristic(parseGeoScene(parsed.raw));
+                if (parsed.objects) return applyRepereHeuristic(parsed as GeoScene);
             } catch { /* JSON invalide, continuer */ }
         }
-        // Priorité 3 : clé sessionStorage (fallback)
+        // Priorité 3 : clé localStorage (partagé entre fenêtres, contrairement à sessionStorage)
         if (payload.key) {
-            const stored = sessionStorage.getItem(payload.key);
+            const stored = localStorage.getItem(payload.key);
             if (stored) {
-                const parsed = JSON.parse(stored);
-                sessionStorage.removeItem(payload.key);
-                // Si le stockage contient un raw, le reparser
-                if (parsed.raw) return parseGeoScene(parsed.raw);
-                return parsed as GeoScene;
+                try {
+                    const parsed = JSON.parse(stored);
+                    localStorage.removeItem(payload.key); // nettoyage après lecture
+                    if (parsed.raw) return applyRepereHeuristic(parseGeoScene(parsed.raw));
+                    return applyRepereHeuristic(parsed as GeoScene);
+                } catch { /* JSON invalide */ }
             }
         }
     } catch (e) {
@@ -113,12 +129,12 @@ export default function GeometrePage() {
         return () => { try { channel?.close(); } catch { } };
     }, []);
 
-    // ── 2. Chargement initial via ?key= + purge anciennes scènes ──────────────
+    // ── 2. Chargement initial via ?key= + purge anciennes clés localStorage ──
     useEffect(() => {
+        setLoading(false); // déverrouiller immédiatement — le BC prend le relai
         const params = new URLSearchParams(window.location.search);
         const key = params.get('key');
 
-        // ⚠️ LIRE la clé AVANT de purger sessionStorage !
         if (key) {
             const newScene = parsePayload({ key });
             if (newScene) {
@@ -126,18 +142,16 @@ export default function GeometrePage() {
                 setIsLive(true);
                 setStatus('Figure chargée depuis le chat');
             } else {
-                setStatus('Clé introuvable — en attente d\'une figure');
+                setStatus('En attente de la figure depuis le chat...');
             }
         }
 
-        // Purger les anciennes clés geo_scene_ APRÈS la lecture
+        // Purger les anciennes clés geo_scene_ (localStorage, ne pas laisser croître)
         try {
-            const keysToRemove = Object.keys(sessionStorage)
+            const keysToRemove = Object.keys(localStorage)
                 .filter(k => k.startsWith('geo_scene_') && k !== key);
-            keysToRemove.forEach(k => sessionStorage.removeItem(k));
+            keysToRemove.forEach(k => localStorage.removeItem(k));
         } catch { /* ignore */ }
-
-        setLoading(false);
     }, []);
 
     // ── 3. Taille fenêtre responsive ──────────────────────────────────────────
@@ -209,7 +223,7 @@ export default function GeometrePage() {
                     )}
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono"
                         style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#a5b4fc' }}>
-                        {scene.objects.filter(o => o.kind === 'point').length} pts
+                    {scene.objects.filter(o => o.kind === 'point' && !(o as any).id?.startsWith('_')).length} pts
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono"
                         style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#a5b4fc' }}>
@@ -310,7 +324,9 @@ export default function GeometrePage() {
                                     Aucun objet
                                 </p>
                             )}
-                            {scene.objects.map((obj, i) => {
+                            {scene.objects
+                                .filter(o => !(o.kind === 'point' && (o as any).id?.startsWith('_')))
+                                .map((obj, i) => {
                                 const cfg: Record<string, { bg: string; border: string; text: string; label: string }> = {
                                     point: { bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.25)', text: '#a5b4fc', label: 'Pt' },
                                     segment: { bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.25)', text: '#fda4af', label: 'Seg' },

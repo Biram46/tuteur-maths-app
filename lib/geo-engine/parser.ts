@@ -180,7 +180,7 @@ export function parseGeoScene(raw: string): GeoScene {
                 objects.push({
                     kind: 'vector', id: uid('vec'),
                     from: a, to: b,
-                    label: label || `${a}${b}`,
+                    label: label || `\\vec{${a}${b}}`,
                     color,
                 });
                 break;
@@ -231,9 +231,14 @@ export function parseGeoScene(raw: string): GeoScene {
                 const center = parts[0].toUpperCase().trim();
                 const second = (parts[1] || '').trim();
                 const color = parts[2] || undefined;
+                // Créer le point centre implicitement si absent (ex: "circle: O, 4" sans "point: O, 0, 0")
+                if (!pointMap.has(center)) {
+                    pointMap.set(center, { x: 0, y: 0 });
+                    objects.push({ kind: 'point', id: center, x: 0, y: 0, style: 'cross' });
+                }
                 const radiusNum = parseNumber(second);
                 if (isNaN(radiusNum) || /^[A-Z]$/.test(second)) {
-                    // Point
+                    // Point sur le cercle (rayon = distance centre→point)
                     objects.push({ kind: 'circle', id: uid('circ'), center, radiusPoint: second.toUpperCase(), color });
                 } else {
                     objects.push({ kind: 'circle', id: uid('circ'), center, radiusValue: radiusNum, color });
@@ -265,19 +270,7 @@ export function parseGeoScene(raw: string): GeoScene {
                 break;
             }
 
-            case 'vecteur':
-            case 'vector':
-            case 'vec': {
-                // vec: AB [, label, color]
-                let a: string, b: string;
-                const namePart = parts[0].toUpperCase().trim();
-                if (/^[A-Z]{2}$/.test(namePart)) { a = namePart[0]; b = namePart[1]; }
-                else { a = namePart; b = (parts[1] || '').toUpperCase().trim(); }
-                const label = parts[2] || `\\vec{${a}${b}}`;
-                const color = parts[3] || '#f43f5e';
-                objects.push({ kind: 'vector', id: uid('vec'), from: a, to: b, label, color });
-                break;
-            }
+            // Note: case 'vecteur'/'vector'/'vec' traité plus haut (lignes ~165-187)
 
             case 'angle': {
                 // angle: A, B, C [, label]  →  angle ABC de sommet B
@@ -443,12 +436,38 @@ export function parseGeoScene(raw: string): GeoScene {
     if (!domain && pointMap.size > 0) {
         const xs = Array.from(pointMap.values()).map(p => p.x);
         const ys = Array.from(pointMap.values()).map(p => p.y);
+
+        // Étendre les bornes avec les cercles : centre ± rayon
+        for (const obj of objects) {
+            if (obj.kind === 'circle') {
+                const circ = obj as import('./types').GeoCircle;
+                const center = pointMap.get(circ.center);
+                if (center) {
+                    let r = 0;
+                    if (circ.radiusValue !== undefined) {
+                        r = circ.radiusValue;
+                    } else if (circ.radiusPoint) {
+                        const rpt = pointMap.get(circ.radiusPoint);
+                        if (rpt) {
+                            const dx = rpt.x - center.x;
+                            const dy = rpt.y - center.y;
+                            r = Math.sqrt(dx * dx + dy * dy);
+                        }
+                    }
+                    if (r > 0) {
+                        xs.push(center.x - r, center.x + r);
+                        ys.push(center.y - r, center.y + r);
+                    }
+                }
+            }
+        }
+
         const xMin = Math.min(...xs, 0);
         const xMax = Math.max(...xs, 0);
         const yMin = Math.min(...ys, 0);
         const yMax = Math.max(...ys, 0);
-        const pad = Math.max((xMax - xMin) * 0.4, 2);
-        const padY = Math.max((yMax - yMin) * 0.4, 2);
+        const pad = Math.max((xMax - xMin) * 0.25, 1.5);
+        const padY = Math.max((yMax - yMin) * 0.25, 1.5);
         domain = {
             x: [Math.floor(xMin - pad), Math.ceil(xMax + pad)],
             y: [Math.floor(yMin - padY), Math.ceil(yMax + padY)],

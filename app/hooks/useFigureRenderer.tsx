@@ -23,6 +23,13 @@ export function useFigureRenderer() {
 
     // renderFigure : pas de dépendance externe → créée une seule fois
     const renderFigure = useCallback((rawBlock: string) => {
+        const _firstTok = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ').split(/[|\n]/)[0].trim().toLowerCase();
+        console.log('[renderFigure] called, firstToken=', _firstTok, ', cached=', figureCache.current.has(rawBlock), ', len=', rawBlock.length);
+        // Vider le cache pour les blocs geo (forcer re-calcul après chaque mise à jour du code)
+        if ((_firstTok === 'geo' || _firstTok.startsWith('geo ')) && figureCache.current.has(rawBlock)) {
+            figureCache.current.delete(rawBlock);
+            console.log('[renderFigure] geo cache invalidated');
+        }
         // ── Cache hit : retourner le résultat déjà calculé ──
         if (figureCache.current.has(rawBlock)) {
             return figureCache.current.get(rawBlock);
@@ -39,31 +46,73 @@ export function useFigureRenderer() {
             // Format : "geo | title: ... | point: A, 0, 0 | segment: AB | ..."
             const firstToken = raw.split(/[|\n]/)[0].trim().toLowerCase();
             if (firstToken === 'geo' || firstToken.startsWith('geo ')) {
-                // Les blocs geo sont affichés dans la fenêtre /geometre séparée.
-                // Ici on affiche seulement un petit placeholder de confirmation.
                 try {
-                    const geoScene = parseGeoScene(raw);
-                    const title = geoScene.title || 'Figure géométrique';
-                    const objCount = geoScene.objects.length;
-                    return (
-                        <div key={`geo-${raw.slice(0, 30)}`}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono"
-                            style={{
-                                background: 'rgba(99,102,241,0.08)',
-                                border: '1px solid rgba(99,102,241,0.2)',
-                                color: '#a5b4fc',
-                            }}>
-                            <span className="text-base">📐</span>
-                            <span>{title} — {objCount} objet(s)</span>
-                            <span style={{ color: 'rgba(148,163,184,0.5)' }}>→ fenêtre Géomètre</span>
+                    // ── Parser la scène + heuristique repère ──────────────────────────
+                    const parsedScene = parseGeoScene(raw); // ← déclaration requise ici
+                    // Si l'IA a mis repere: → on respecte.
+                    // Sinon : forcer orthonormal si au moins 1 point a des coords non-nulles.
+                    // Cela couvre A(1,1), B(4,3) mais ignore point: O, 0, 0 (centre cercle).
+                    let sceneForRender = parsedScene;
+
+                    if (parsedScene.repere === 'none') {
+                        const hasNonTrivialCoords = parsedScene.objects.some(o => {
+                            if (o.kind !== 'point') return false;
+                            const p = o as import('@/lib/geo-engine/types').GeoPoint;
+                            return (Math.abs(p.x) > 0.01 || Math.abs(p.y) > 0.01)
+                                && !p.id.startsWith('_'); // ignorer les points auxiliaires
+                        });
+                        if (hasNonTrivialCoords) {
+                            sceneForRender = { ...parsedScene, repere: 'orthonormal' as const, showGrid: true };
+                        }
+                    }
+                    console.log('[Geo] repere:', sceneForRender.repere, 'objects:', parsedScene.objects.map(o => o.kind + ':' + (o as any).id).join(','));
+
+
+
+                    // Les calculs (périmètre, distance, etc.) sont déjà dans parsedScene.computed
+                    // via la commande "compute:" traitée par parseGeoScene() → exact.ts
+                    // Pas de calcul auto flottant ici pour ne pas doubler avec le moteur exact.
+                    console.log('[Geo] computed:', parsedScene.computed?.map(r => r.label));
+
+                    // Afficher les résultats exacts du moteur (compute: dans le bloc geo)
+                    const geoComputed = parsedScene.computed ?? [];
+                    return _cacheAndReturn(
+                        <div className="flex flex-col gap-3 w-full items-center my-4">
+                            <GeometryFigure key={rawBlock} scene={sceneForRender} />
+                            {geoComputed.length > 0 && (
+                                <div className="px-4 py-3 rounded-2xl w-full max-w-lg"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
+                                        border: '1px solid rgba(139,92,246,0.3)',
+                                        boxShadow: '0 4px 20px rgba(99,102,241,0.15)'
+                                    }}>
+                                    <div className="flex items-center gap-2 mb-2 pb-2"
+                                        style={{ borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
+                                        <span className="text-base">&#128208;</span>
+                                        <span className="text-xs font-semibold uppercase tracking-widest"
+                                            style={{ color: 'rgba(167,139,250,0.8)' }}>Calculs exacts</span>
+                                    </div>
+                                    {geoComputed.map((r, i) => (
+                                        <div key={i} className={`py-1 ${i === 0 ? 'text-base' : 'text-sm opacity-80'}`}
+                                            style={{ borderBottom: i === 0 && geoComputed.length > 1 ? '1px dashed rgba(139,92,246,0.2)' : 'none', paddingBottom: i === 0 ? '6px' : '2px', marginBottom: i === 0 ? '4px' : '0' }}>
+                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                                                components={{ p: ({ ...props }) => <p className="text-violet-200 m-0 text-center" {...props} /> }}>
+                                                {`$$${r.label}\\; ${r.latex}${r.approx ? `\\approx ${r.approx}` : ''}$$`}
+                                            </ReactMarkdown>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     );
-                } catch {
+                } catch (err) {
+                    console.error('[Geo] error:', err);
                     return null;
                 }
             }
 
-            // Pour les tableaux, on normalise d'abord en remplaçant les retours à la ligne par des espaces
+            // Pour les tableaux, on normalise dabord en remplacant les retours a la ligne par des espaces
+
             // Puis on divise par | uniquement
             const isTableBlock = raw.toLowerCase().includes('table') ||
                 raw.toLowerCase().includes('x:') ||
@@ -136,48 +185,310 @@ export function useFigureRenderer() {
                 }
             }
 
-            // --- CAS 0.6 : FIGURE GÉOMÉTRIQUE ANIMÉE (ancien format "figure|...") ---
-            // ⛔ Exclure explicitement les blocs arbre — l'IA peut écrire "figure" même pour un arbre
+            // --- CAS 0.7 : GRAPHIQUE EXPLICITE (@@@graph) ---
+            if (firstToken === 'graph' || firstToken.startsWith('graph ') || firstToken.startsWith('graph:')) {
+                const graphFnColors = ['#3b82f6', '#f43f5e', '#34d399', '#fbbf24', '#a855f7', '#06b6d4'];
+                const graphFns: { fn: string; color: string }[] = [];
+                const graphPoints: { x: number; y: number }[] = [];
+                let graphDomain = { x: [-6, 6] as [number, number], y: [-4, 4] as [number, number] };
+                let graphAsym: number[] = [];
+                let graphTitle = sections[0].includes(':') ? sections[0].split(':').slice(1).join(':').trim() : '';
+
+                sections.slice(1).forEach(sec => {
+                    const low = sec.toLowerCase().trim();
+                    if (low.startsWith('function:')) {
+                        const fn = sec.substring(sec.indexOf(':') + 1).trim();
+                        if (fn) graphFns.push({ fn, color: graphFnColors[graphFns.length % graphFnColors.length] });
+                    } else if (low.startsWith('domain:')) {
+                        const d = low.replace('domain:', '').trim().split(',').map(Number);
+                        if (d.length >= 4) graphDomain = { x: [d[0], d[1]], y: [d[2], d[3]] };
+                    } else if (low.startsWith('title:')) {
+                        graphTitle = sec.substring(sec.indexOf(':') + 1).trim();
+                    } else if (low.startsWith('asymptotes:')) {
+                        graphAsym = sec.substring(sec.indexOf(':') + 1).trim().split(',').map(Number).filter(n => !isNaN(n));
+                    } else if (low.startsWith('points:')) {
+                        const ptsStr = sec.substring(sec.indexOf(':') + 1);
+                        const ptMatches = ptsStr.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g);
+                        ptMatches?.forEach(pt => {
+                            const m = pt.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+                            if (m) graphPoints.push({ x: parseFloat(m[1]), y: parseFloat(m[2]) });
+                        });
+                    }
+                });
+
+                if (graphFns.length > 0) {
+                    return _cacheAndReturn(
+                        <div key={rawBlock} className="w-full math-figure-container my-6">
+                            <div className="animate-in zoom-in duration-700">
+                                <MathGraph
+                                    points={graphPoints}
+                                    functions={graphFns}
+                                    domain={graphDomain}
+                                    title={graphTitle || undefined}
+                                    asymptotes={graphAsym}
+                                />
+                            </div>
+                        </div>
+                    );
+                }
+            }
+
+            // --- CAS 0.6 : FIGURE GÉOMÉTRIQUE (format "figure|...") ---
+            // ⛔ Exclure explicitement les blocs arbre
             const isArbreBlock = raw.toLowerCase().includes('arbre') || raw.toLowerCase().includes('tree');
             if (sections[0].toLowerCase().includes('figure') && !isArbreBlock) {
                 const objects: GeoObject[] = [];
                 let figureTitle = '';
+                // Détecter dès le début si c'est un bloc avec coordonnées explicites
+                // (robuste aux problèmes CRLF qui peuvent empêcher startsWith('type:'))
+                const rawLower = raw.toLowerCase();
+                let figureType = (rawLower.includes('type: coordinates') || rawLower.includes('type:coordinates'))
+                    ? 'coordinates'
+                    : 'geometry';
+                const computedResults: string[] = [];
+
+                // Construire une map id -> point pour les cercles et segments
+                const pointMap: Record<string, { x: number; y: number }> = {};
 
                 sections.forEach(sec => {
                     const low = sec.toLowerCase().trim();
                     if (low.startsWith('title:')) {
                         figureTitle = sec.substring(sec.indexOf(':') + 1).trim();
+                    } else if (low.startsWith('type:')) {
+                        figureType = sec.substring(sec.indexOf(':') + 1).trim().toLowerCase();
                     } else if (low.startsWith('points:')) {
                         const pts = sec.substring(sec.indexOf(':') + 1)
-                            .match(/([A-Z])\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g);
+                            .match(/([A-Z][A-Z0-9]?)\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g);
                         pts?.forEach(pt => {
-                            const m = pt.match(/([A-Z])\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
-                            if (m) objects.push({ kind: 'point', id: m[1], x: parseFloat(m[2]), y: parseFloat(m[3]) });
+                            const m = pt.match(/([A-Z][A-Z0-9]?)\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+                            if (m) {
+                                const id = m[1];
+                                const x = parseFloat(m[2]);
+                                const y = parseFloat(m[3]);
+                                objects.push({ kind: 'point', id, x, y });
+                                pointMap[id] = { x, y };
+                            }
                         });
                     } else if (low.startsWith('segments:')) {
-                        const segs = sec.substring(sec.indexOf(':') + 1).match(/\[([A-Z])([A-Z])\]/g);
+                        const segs = sec.substring(sec.indexOf(':') + 1).match(/\[([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\]/g);
                         segs?.forEach((s, i) => {
-                            const m = s.match(/\[([A-Z])([A-Z])\]/);
+                            const m = s.match(/\[([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\]/);
                             if (m) objects.push({ kind: 'segment', id: `seg${i}`, from: m[1], to: m[2] });
                         });
                     } else if (low.startsWith('lines:')) {
                         sec.substring(sec.indexOf(':') + 1).split(',').forEach((l, i) => {
-                            const m = l.trim().match(/\(([A-Z])([A-Z])\)/);
+                            const m = l.trim().match(/\(([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\)/);
                             if (m) objects.push({ kind: 'line', id: `line${i}`, type: 'line', through: [m[1], m[2]] as [string, string] });
                         });
+                    } else if (low.startsWith('circle:')) {
+                        // Format: circle: O, 3  ou  circle: O,3
+                        const circlePart = sec.substring(sec.indexOf(':') + 1).trim();
+                        const parts = circlePart.split(',').map(p => p.trim());
+                        if (parts.length >= 2) {
+                            const centerId = parts[0];
+                            const radius = parseFloat(parts[1]);
+                            if (!isNaN(radius)) {
+                                objects.push({
+                                    kind: 'circle',
+                                    id: `circle_${centerId}`,
+                                    center: centerId,
+                                    radiusValue: radius
+                                });
+                            }
+                        }
                     } else if (low.startsWith('circles:')) {
+                        // Ancien format: cercle(O,3)
                         const circs = sec.substring(sec.indexOf(':') + 1)
-                            .match(/cercle\s*\(\s*([A-Z])\s*,\s*([\d.]+)\s*\)/g);
+                            .match(/cercle\s*\(\s*([A-Z][A-Z0-9]?)\s*,\s*([\d.]+)\s*\)/g);
                         circs?.forEach((c, i) => {
-                            const m = c.match(/cercle\s*\(\s*([A-Z])\s*,\s*([\d.]+)\s*\)/);
+                            const m = c.match(/cercle\s*\(\s*([A-Z][A-Z0-9]?)\s*,\s*([\d.]+)\s*\)/);
                             if (m) objects.push({ kind: 'circle', id: `circ${i}`, center: m[1], radiusValue: parseFloat(m[2]) });
                         });
+                    } else if (low.startsWith('compute:')) {
+                        // Calcule le périmètre ou une distance
+                        const expr = sec.substring(sec.indexOf(':') + 1).trim();
+                        const perimMatch = expr.match(/^périmètre\s+([A-Z]+)|^perimetre\s+([A-Z]+)|^perimètre\s+([A-Z]+)/i);
+                        const distMatch = expr.match(/^distance\s+([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)/i);
+
+                        if (perimMatch) {
+                            const ptIds = (perimMatch[1] || perimMatch[2] || perimMatch[3]).split('');
+                            // Calculer le périmètre du polygone défini par les points dans l'ordre
+                            let total = 0;
+                            // Deux séries : les labels des côtés (AB, BC...) et les racines exactes (\sqrt{26}, 5...)
+                            const sideNames: string[] = [];    // "AB", "BC", ...
+                            const sideExact: string[] = [];    // "\sqrt{26}", "5", ...
+                            let allValid = true;
+
+                            for (let k = 0; k < ptIds.length; k++) {
+                                const p1Id = ptIds[k];
+                                const p2Id = ptIds[(k + 1) % ptIds.length];
+                                const p1 = pointMap[p1Id];
+                                const p2 = pointMap[p2Id];
+                                if (!p1 || !p2) { allValid = false; continue; }
+
+                                const dx = p2.x - p1.x;
+                                const dy = p2.y - p1.y;
+                                const d2 = dx * dx + dy * dy;
+                                const d = Math.sqrt(d2);
+                                total += d;
+
+                                sideNames.push(`${p1Id}${p2Id}`);
+                                const isPerf = Number.isInteger(d) && d === Math.round(d);
+                                sideExact.push(isPerf ? String(Math.round(d)) : `\\sqrt{${d2}}`);
+                            }
+
+                            if (allValid && sideNames.length > 0) {
+                                const polyName = ptIds.join('');
+                                const approx = total.toFixed(3).replace('.', '{,}');
+                                // Ex: P_{ABC} = AB + BC + CA = \sqrt{26} + \sqrt{20} + \sqrt{29} \approx 13{,}919
+                                computedResults.push(
+                                    `P_{${polyName}} = ${sideNames.join(' + ')} = ${sideExact.join(' + ')} \\approx ${approx}`
+                                );
+                                // Aussi afficher chaque côté séparément
+                                sideNames.forEach((name, i) => {
+                                    computedResults.push(`${name} = ${sideExact[i]}`);
+                                });
+                            }
+                        } else if (distMatch) {
+                            const p1Id = distMatch[1];
+                            const p2Id = distMatch[2];
+                            const p1 = pointMap[p1Id];
+                            const p2 = pointMap[p2Id];
+                            if (p1 && p2) {
+                                const dx = p2.x - p1.x;
+                                const dy = p2.y - p1.y;
+                                const d2 = dx * dx + dy * dy;
+                                const isPerf = Number.isInteger(Math.sqrt(d2));
+                                const dist = isPerf
+                                    ? String(Math.round(Math.sqrt(d2)))
+                                    : `\\sqrt{${d2}}`;
+                                computedResults.push(`${p1Id}${p2Id} = ${dist}`);
+                            }
+                        }
                     }
                 });
 
-                if (objects.some(o => o.kind === 'point')) {
-                    const geoScene: GeoScene = { objects, title: figureTitle, repere: 'none', showGrid: false };
-                    return <GeometryFigure key={rawBlock} scene={geoScene} />;
+                // ── AUTO-PÉRIMÈTRE : calcule le périmètre automatiquement
+                // Fonctionne depuis les segments (circuit fermé) OU depuis les points (type: coordinates)
+                if (computedResults.length === 0) {
+                    // Stratégie 1: détecter un circuit fermé dans les segments
+                    const segsForPerim = objects.filter(o => o.kind === 'segment') as Array<{ from: string; to: string; kind: string; id: string }>;
+                    let polyVertices: string[] = [];
+
+                    if (segsForPerim.length >= 3) {
+                        const adjMap: Record<string, string[]> = {};
+                        for (const seg of segsForPerim) {
+                            if (!adjMap[seg.from]) adjMap[seg.from] = [];
+                            if (!adjMap[seg.to])   adjMap[seg.to]   = [];
+                            if (!adjMap[seg.from].includes(seg.to)) adjMap[seg.from].push(seg.to);
+                            if (!adjMap[seg.to].includes(seg.from)) adjMap[seg.to].push(seg.from);
+                        }
+                        const nodes = Object.keys(adjMap);
+                        if (nodes.every(n => adjMap[n].length === 2) && nodes.length >= 3) {
+                            const ord: string[] = [nodes[0]];
+                            let prv = ''; let cr = nodes[0];
+                            while (ord.length < nodes.length) {
+                                const nx = adjMap[cr].find(n => n !== prv);
+                                if (!nx) break;
+                                prv = cr; cr = nx; ord.push(cr);
+                            }
+                            if (ord.length === nodes.length) polyVertices = ord;
+                        }
+                    }
+
+                    // Stratégie 2: utiliser les points dans leur ordre d'insertion (fallback)
+                    // Activé si type:coordinates OU si des coordonnées numériques explicites sont présentes
+                    if (polyVertices.length < 3) {
+                        const ptIds = objects
+                            .filter(o => o.kind === 'point')
+                            .map(o => (o as any).id as string)
+                            .filter(id => id in pointMap);
+                        const hasExplicitCoords = ptIds.length >= 3;
+                        if (hasExplicitCoords && (figureType === 'coordinates' || rawLower.includes('coordinates'))) {
+                            polyVertices = ptIds;
+                        }
+                    }
+
+                    // Calculer le périmètre
+                    if (polyVertices.length >= 3) {
+                        let total = 0;
+                        const sideNms: string[] = [];
+                        const sideEx: string[] = [];
+                        let allOk = true;
+                        for (let k = 0; k < polyVertices.length; k++) {
+                            const aId = polyVertices[k];
+                            const bId = polyVertices[(k + 1) % polyVertices.length];
+                            const pa = pointMap[aId];
+                            const pb = pointMap[bId];
+                            if (!pa || !pb) { allOk = false; break; }
+                            const ddx = pb.x - pa.x;
+                            const ddy = pb.y - pa.y;
+                            const d2 = ddx * ddx + ddy * ddy;
+                            const d = Math.sqrt(d2);
+                            total += d;
+                            sideNms.push(`${aId}${bId}`);
+                            const perf = Math.abs(d - Math.round(d)) < 1e-9 && d > 0;
+                            sideEx.push(perf ? String(Math.round(d)) : `\\sqrt{${d2}}`);
+                        }
+                        if (allOk && sideNms.length >= 3) {
+                            const polyNm = polyVertices.join('');
+                            const apx = total.toFixed(3).replace('.', '{,}');
+                            computedResults.push(`P_{${polyNm}} = ${sideNms.join(' + ')} = ${sideEx.join(' + ')} \\approx ${apx}`);
+                            sideNms.forEach((nm, i) => computedResults.push(`${nm} = ${sideEx[i]}`));
+                        }
+                    }
+                }
+                // ── Centres de cercles implicites ──────────────────────────────────────────
+                // Si un cercle référence un centre absent de pointMap → créer un point (0,0)
+                const circObjs = objects.filter(o => o.kind === 'circle') as any[];
+                for (const c of circObjs) {
+                    if (c.center && !pointMap[c.center]) {
+                        objects.unshift({ kind: 'point', id: c.center, x: 0, y: 0 });
+                        pointMap[c.center] = { x: 0, y: 0 };
+                    }
+                }
+
+                if (objects.some(o => o.kind === 'point') || objects.some(o => o.kind === 'circle')) {
+                    // Activer le repère si type: coordinates
+                    const repere = figureType === 'coordinates' ? 'orthonormal' : 'none';
+                    const geoScene: GeoScene = {
+                        objects,
+                        title: figureTitle,
+                        repere: repere as any,
+                        showGrid: figureType === 'coordinates',
+                    };
+                    return (
+                        <div className="flex flex-col gap-3 w-full items-center">
+                            <GeometryFigure key={rawBlock} scene={geoScene} />
+                            {computedResults.length > 0 && (
+                                <div className="px-4 py-3 rounded-2xl w-full max-w-lg"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
+                                        border: '1px solid rgba(139,92,246,0.3)',
+                                        boxShadow: '0 4px 20px rgba(99,102,241,0.15)'
+                                    }}>
+                                    <div className="flex items-center gap-2 mb-2 pb-2"
+                                        style={{ borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
+                                        <span className="text-base">📐</span>
+                                        <span className="text-xs font-semibold uppercase tracking-widest"
+                                            style={{ color: 'rgba(167,139,250,0.8)' }}>Calculs</span>
+                                    </div>
+                                    {computedResults.map((r, i) => (
+                                        <div key={i} className={`py-1 ${i === 0 ? 'text-base' : 'text-sm opacity-80'}`}
+                                            style={{ borderBottom: i === 0 && computedResults.length > 1 ? '1px dashed rgba(139,92,246,0.2)' : 'none', paddingBottom: i === 0 ? '6px' : '2px', marginBottom: i === 0 ? '4px' : '0' }}>
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkMath]}
+                                                rehypePlugins={[rehypeKatex]}
+                                                components={{ p: ({ ...props }) => <p className="text-violet-200 m-0 text-center" {...props} /> }}
+                                            >
+                                                {`$$${r}$$`}
+                                            </ReactMarkdown>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
                 }
             }
 
@@ -537,16 +848,15 @@ export function useFigureRenderer() {
         const contentLower = content.toLowerCase();
         const isProbabilityContext =
             contentLower.includes('arbre de probabilit') ||
-            contentLower.includes('probabilit') && (
+            (contentLower.includes('probabilit') && (
                 contentLower.includes('urne') ||
                 contentLower.includes('tirage') ||
                 contentLower.includes('boule') ||
-                contentLower.includes('dé') ||
                 contentLower.includes('issue') ||
                 contentLower.includes('événement') ||
-                contentLower.includes('p(a') ||
-                contentLower.includes('p(b')
-            );
+                contentLower.includes('p(a|') ||   // ← probabilité conditionnelle P(A|B) ≠ périmètre P(ABC)
+                contentLower.includes('p(b|')
+            ));
 
         // ── Détecteur : un @@@figure ou @@@geo est-il une tentative d'arbre probabiliste ? ──
         const isFakeProbabilityFigure = (rawBlock: string): boolean => {
@@ -562,13 +872,6 @@ export function useFigureRenderer() {
             // Titre contient explicitement arbre/probabilit → toujours fausse figure
             if (low.includes('arbre') || low.includes('probabilit')) {
                 console.warn('[Figure] ⚠️ Bloc supprimé (titre probabiliste):', firstToken);
-                return true;
-            }
-
-            // Pour les blocs geo : si en contexte probabilité → toujours supprimer
-            // (le format geo est réservé à la géométrie pure, JAMAIS aux arbres)
-            if (isGeoBlock && isProbabilityContext) {
-                console.warn('[Figure] ⚠️ @@@geo supprimé : contexte probabilité détecté');
                 return true;
             }
 
@@ -588,10 +891,10 @@ export function useFigureRenderer() {
         return sections.map((section, idx) => {
             // Bloc @@@
             if (section.startsWith('@@@') && section.endsWith('@@@')) {
-                const rawBlock = section.substring(3, section.length - 3);
+                const rawBlock = section.substring(3, section.length - 3).trim(); // .trim() CRITIQUE : le bloc commence souvent par \n
 
                 // ── Intercepter les faux @@@figure (arbre probabiliste déguisé) ──
-                if (isFakeProbabilityFigure(rawBlock.trim())) {
+                if (isFakeProbabilityFigure(rawBlock)) {
                     console.warn('[Figure] ⚠️ @@@figure supprimé : contexte probabilité détecté — utiliser @@@tree', rawBlock.slice(0, 80));
                     return null;
                 }

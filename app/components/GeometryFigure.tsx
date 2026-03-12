@@ -11,7 +11,7 @@
  * ══════════════════════════════════════════════════════════════════
  */
 
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState, useMemo } from 'react';
 import type {
     GeoScene, GeoObject, GeoPoint, GeoSegment, GeoLine,
     GeoCircle, GeoAngle, GeoVector, GeoLabel, GeoPolygon,
@@ -65,40 +65,75 @@ function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min
 // ════════════════════════════════════════════════════════════════════════════
 export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanvasProps) {
 
-    // ── Domaine ──────────────────────────────────────────────────────────────
+    // ── ID unique par instance (évite collision clipPath entre miniature et pop-up) ──
+    const instanceId = useId().replace(/:/g, '_');
+    const clipId = `plot-clip-${instanceId}`;
+    const markerArrowId = `arrow-${instanceId}`;
+
+    // ── PAD défini tôt (nécessaire pour le calcul des scales dans defaultDomain) ──
+    const PAD = { top: 20, right: 20, bottom: 30, left: 40 };
+    const plotW = width - PAD.left - PAD.right;
+    const plotH = height - PAD.top - PAD.bottom;
+
+    // ── Domaine avec scales égales (comme GeoGebra) ───────────────────────────
     const defaultDomain = useMemo(() => {
-        if (scene.domain) return scene.domain;
-        // Auto-fit depuis les points ET les cercles
-        const pts = scene.objects.filter(o => o.kind === 'point') as GeoPoint[];
-        const circles = scene.objects.filter(o => o.kind === 'circle') as GeoCircle[];
+        // Étape 1 : bornes brutes depuis les objets
+        let xMin: number, xMax: number, yMin: number, yMax: number;
 
-        if (pts.length === 0 && circles.length === 0) {
-            return { x: [-8, 8] as [number, number], y: [-6, 6] as [number, number] };
-        }
+        if (scene.domain) {
+            [xMin, xMax] = scene.domain.x;
+            [yMin, yMax] = scene.domain.y;
+        } else {
+            const pts = scene.objects.filter(o => o.kind === 'point') as GeoPoint[];
+            const circles = scene.objects.filter(o => o.kind === 'circle') as GeoCircle[];
 
-        const xs = pts.map(p => p.x);
-        const ys = pts.map(p => p.y);
-
-        // Étendre les bounds avec les cercles (centre ± rayon)
-        for (const circ of circles) {
-            const center = pts.find(p => p.id === circ.center);
-            if (center) {
-                const r = circ.radiusValue ?? 0;
-                if (r > 0) {
-                    xs.push(center.x - r, center.x + r);
-                    ys.push(center.y - r, center.y + r);
+            if (pts.length === 0 && circles.length === 0) {
+                xMin = -8; xMax = 8; yMin = -6; yMax = 6;
+            } else {
+                const xs = pts.map(p => p.x);
+                const ys = pts.map(p => p.y);
+                for (const circ of circles) {
+                    const c = pts.find(p => p.id === circ.center);
+                    if (c) { const r = circ.radiusValue ?? 0; if (r > 0) { xs.push(c.x - r, c.x + r); ys.push(c.y - r, c.y + r); } }
+                }
+                if (xs.length === 0) { xMin = -8; xMax = 8; yMin = -6; yMax = 6; }
+                else {
+                    const margin = 2;
+                    xMin = Math.floor(Math.min(...xs)) - margin;
+                    xMax = Math.ceil(Math.max(...xs)) + margin;
+                    yMin = Math.floor(Math.min(...ys)) - margin;
+                    yMax = Math.ceil(Math.max(...ys)) + margin;
                 }
             }
         }
 
-        if (xs.length === 0) return { x: [-8, 8] as [number, number], y: [-6, 6] as [number, number] };
+        // Étape 2 : forcer xScale = yScale pour que les cercles soient ronds
+        // On étend le domaine le plus serré pour que plotW/xRange = plotH/yRange
+        const xRange = xMax - xMin;
+        const yRange = yMax - yMin;
+        const xScaleNow = plotW / xRange;
+        const yScaleNow = plotH / yRange;
 
-        const margin = 2;
+        if (xScaleNow < yScaleNow) {
+            // x est la contrainte → étendre y
+            const newYRange = yRange * (yScaleNow / xScaleNow);
+            const yCenter = (yMax + yMin) / 2;
+            yMin = yCenter - newYRange / 2;
+            yMax = yCenter + newYRange / 2;
+        } else if (yScaleNow < xScaleNow) {
+            // y est la contrainte → étendre x
+            const newXRange = xRange * (xScaleNow / yScaleNow);
+            const xCenter = (xMax + xMin) / 2;
+            xMin = xCenter - newXRange / 2;
+            xMax = xCenter + newXRange / 2;
+        }
+
         return {
-            x: [Math.floor(Math.min(...xs)) - margin, Math.ceil(Math.max(...xs)) + margin] as [number, number],
-            y: [Math.floor(Math.min(...ys)) - margin, Math.ceil(Math.max(...ys)) + margin] as [number, number],
+            x: [xMin, xMax] as [number, number],
+            y: [yMin, yMax] as [number, number],
         };
-    }, [scene]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scene, plotW, plotH]);
 
     // ── Viewport (zoom / pan) ─────────────────────────────────────────────
     const [viewport, setViewport] = useState({
@@ -108,16 +143,10 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         yMax: defaultDomain.y[1],
     });
 
-    // Met à jour le viewport quand la scène ou le domaine par défaut change
+    // Resynchronise le viewport quand la scène ou le domaine change
     useEffect(() => {
-        const d = scene.domain ?? defaultDomain;
-        setViewport({ xMin: d.x[0], xMax: d.x[1], yMin: d.y[0], yMax: d.y[1] });
-    }, [scene, defaultDomain]);
-
-    // ── Transformations math → SVG ────────────────────────────────────────
-    const PAD = { top: 20, right: 20, bottom: 30, left: 40 };
-    const plotW = width - PAD.left - PAD.right;
-    const plotH = height - PAD.top - PAD.bottom;
+        setViewport({ xMin: defaultDomain.x[0], xMax: defaultDomain.x[1], yMin: defaultDomain.y[0], yMax: defaultDomain.y[1] });
+    }, [defaultDomain]);
 
     const toSvgX = useCallback((mx: number) =>
         PAD.left + (mx - viewport.xMin) / (viewport.xMax - viewport.xMin) * plotW,
@@ -200,8 +229,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         const xStep = niceStep(xRange);
         const yStep = niceStep(yRange);
 
-        // Lignes de grille (seulement si showGrid est activé)
-        if (scene.showGrid !== false) {
+        // Lignes de grille (seulement si showGrid est explicitement activé)
+        if (scene.showGrid === true) {
             for (let x = Math.ceil(viewport.xMin / xStep) * xStep; x <= viewport.xMax; x += xStep) {
                 const sx = toSvgX(x);
                 gridLines.push(<line key={`gx${x}`} x1={sx} y1={PAD.top} x2={sx} y2={PAD.top + plotH} stroke={PALETTE.grid} strokeWidth={1} />);
@@ -395,8 +424,13 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         // Label au milieu, décalé au-dessus du segment (perpendiculairement)
         const mx = (x1 + x2) / 2;
         const my = (y1 + y2) / 2;
-        const labelText = obj.label || `${obj.from}${obj.to}`;
+        // Normaliser le label : extraire le contenu de \vec{AB} ou \overrightarrow{AB}
+        // SVG ne peut pas rendre du LaTeX → on affiche juste "AB", la flèche est dessinée en SVG
+        const rawLabel = obj.label || `${obj.from}${obj.to}`;
+        const vecMatch = rawLabel.match(/\\(?:vec|overrightarrow)\{([^}]+)\}/);
+        const labelText = vecMatch ? vecMatch[1] : rawLabel.replace(/\\/g, '').replace(/\{|\}/g, '');
         const textWidth = labelText.length * 8; // estimation largeur texte
+
 
         // Décalage perpendiculaire au vecteur (toujours au-dessus)
         const perpX = -uy; // perpendiculaire normalisée
@@ -440,15 +474,15 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         if (!center) return null;
         const color = obj.color || PALETTE.circle;
 
+        // xScale = yScale grâce à defaultDomain (scales égales) → <circle> standard
+        const xScale = plotW / (viewport.xMax - viewport.xMin);
         let rSvg = 0;
         if (obj.radiusValue !== undefined) {
-            rSvg = obj.radiusValue * plotW / (viewport.xMax - viewport.xMin);
+            rSvg = obj.radiusValue * xScale;
         } else if (obj.radiusPoint) {
             const rpt = pointMap.get(obj.radiusPoint);
             if (rpt) {
-                const ddx = toSvgX(rpt.x) - toSvgX(center.x);
-                const ddy = toSvgY(rpt.y) - toSvgY(center.y);
-                rSvg = Math.sqrt(ddx * ddx + ddy * ddy);
+                rSvg = Math.sqrt((rpt.x - center.x) ** 2 + (rpt.y - center.y) ** 2) * xScale;
             }
         }
 
@@ -469,6 +503,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         );
     };
 
+
+
     // ── Rendu d'un angle ─────────────────────────────────────────────────
     const renderAngle = (obj: GeoAngle, i: number) => {
         const V = pointMap.get(obj.vertex);
@@ -479,21 +515,31 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         const sx = toSvgX(V.x), sy = toSvgY(V.y);
 
         if (obj.square) {
-            // Marque d'angle droit (carré)
+            // Marque d'angle droit (petit carré ⊾) — convention française
             const px = toSvgX(P1.x) - sx, py = toSvgY(P1.y) - sy;
             const qx = toSvgX(P2.x) - sx, qy = toSvgY(P2.y) - sy;
             const plen = Math.sqrt(px * px + py * py) || 1;
             const qlen = Math.sqrt(qx * qx + qy * qy) || 1;
-            const S = 10;
-            const ux = px / plen * S, uy = py / plen * S;
-            const vx = qx / qlen * S, vy = qy / qlen * S;
+            const S = 12; // taille du carré en pixels
+            const ux = px / plen * S, uy = py / plen * S; // vers P1
+            const vx = qx / qlen * S, vy = qy / qlen * S; // vers P2
+            // Les 4 coins du carré : sommet → P1 → coin → P2 → sommet
+            const corners = [
+                [sx, sy],
+                [sx + ux, sy + uy],
+                [sx + ux + vx, sy + uy + vy],
+                [sx + vx, sy + vy],
+            ];
+            const polyPts = corners.map(([x, y]) => `${x},${y}`).join(' ');
             return (
                 <g key={`ang${i}`}>
-                    <path d={`M ${sx + ux},${sy + uy} L ${sx + ux + vx},${sy + uy + vy} L ${sx + vx},${sy + vy}`}
-                        fill="none" stroke={color} strokeWidth={1.5} />
+                    {/* Fond semi-transparent du carré */}
+                    <polygon points={polyPts}
+                        fill={`${color}22`} stroke={color} strokeWidth={1.5} />
                 </g>
             );
         }
+
 
         // Arc d'angle
         const a1 = Math.atan2(toSvgY(P1.y) - sy, toSvgX(P1.x) - sx);
@@ -597,11 +643,11 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                 {/* Fond */}
                 <rect width={width} height={height} fill={PALETTE.bg} />
                 {/* Zone de tracé */}
-                <clipPath id="plot-clip">
+                <clipPath id={clipId}>
                     <rect x={PAD.left} y={PAD.top} width={plotW} height={plotH} />
                 </clipPath>
                 {/* Grille */}
-                <g clipPath="url(#plot-clip)">
+                <g clipPath={`url(#${clipId})`}>
                     {renderGrid()}
                     {sorted.map((obj, i) => renderObject(obj, i))}
                 </g>
@@ -660,8 +706,8 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
         const key = `geo_scene_${Date.now()}`;
         const sceneJson = JSON.stringify(scene);
         try {
-            // Stocker la scène pour la page /geometre (fallback sessionStorage)
-            sessionStorage.setItem(key, sceneJson);
+            // Stocker la scène pour la page /geometre (localStorage, partagé entre fenêtres)
+            localStorage.setItem(key, sceneJson);
             // Émettre sur le BroadcastChannel si fenêtre déjà ouverte
             // Envoie la scène complète pour ne pas dépendre du sessionStorage
             try {
@@ -745,7 +791,7 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                 </button>
             </div>
 
-            {/* Mesures exacts */}
+            {/* Mesures exactes */}
             {scene.computed && scene.computed.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {scene.computed.map((r, i) => (
@@ -754,8 +800,7 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                             background: 'rgba(16,64,48,0.4)', border: '1px solid rgba(52,211,153,0.25)',
                             color: '#34d399', fontSize: 12, fontFamily: 'monospace',
                         }}>
-                            {r.label} <strong>{r.latex}</strong>
-                            {r.approx && <span style={{ color: 'rgba(100,116,139,0.8)', marginLeft: 6 }}>≈ {r.approx}</span>}
+                            {r.label} = {r.latex}{r.approx && <span style={{ color: 'rgba(100,116,139,0.7)', marginLeft: 4 }}>≈ {r.approx}</span>}
                         </span>
                     ))}
                 </div>

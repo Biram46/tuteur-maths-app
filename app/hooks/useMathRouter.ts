@@ -747,13 +747,15 @@ export function useMathRouter({
                 .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
                 .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
                 .replace(/\s+x\s*[∈∊]\s*ℝ\s*\.?\s*$/i, '')
-                // Retirer le texte français résiduel après l'expression
+                // Retirer les contraintes de domaine : "pour x ≠ 0", "(x ≠ 0)", ", x ≠ 0", "x ≠ k"
+                // ⚠️ Ordre : la règle large "pour x ..." d'abord, ensuite le symbole seul
+                .replace(/\s+pour\s+x\s*[^=].{0,20}$/i, '')            // "pour x ≠ 0", "pour x > 0"
+                .replace(/\s*,?\s*\(?\s*x\s*≠\s*\d*\s*\)?\s*$/g, '')    // ", x ≠ 0" résiduel
+                .replace(/\s+pour\s*$/i, '')                            // "pour" résiduel seul
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                // Retirer instructions en langage naturel après point/virgule
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
-
 
 
 
@@ -938,10 +940,15 @@ export function useMathRouter({
                 .replace(/\s+sur\s+[\[\]].+$/i, '')    // sur ]0 ; +∞[, sur [a ; b], etc.
                 .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
                 .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
+                // Retirer les contraintes de domaine : "pour x ≠ 0", "(x ≠ 0)", ", x ≠ 0"
+                // ⚠️ Ordre : la règle large "pour x ..." d'abord, ensuite le symbole seul
+                .replace(/\s+pour\s+x\s*[^=].{0,20}$/i, '')            // "pour x ≠ 0", "pour x > 0"
+                .replace(/\s*,?\s*\(?\s*x\s*≠\s*\d*\s*\)?\s*$/g, '')    // ", x ≠ 0" résiduel
+                .replace(/\s+pour\s*$/i, '')                            // "pour" résiduel seul
                 // Retirer le texte français résiduel (virgule + mot courant, point + phrase)
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                // Retirer instructions en langage naturel après point/virgule ("3. On est en Première")
+                // Retirer instructions en langage naturel après point/virgule
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
@@ -1499,18 +1506,18 @@ export function useMathRouter({
                 let previousGeoBlock = '';
                 if (isFollowUp) {
                     try {
-                        const keys = Object.keys(sessionStorage).filter(k => k.startsWith('geo_scene_')).sort();
+                        const keys = Object.keys(localStorage).filter(k => k.startsWith('geo_scene_')).sort();
                         if (keys.length > 0) {
-                            const lastScene = JSON.parse(sessionStorage.getItem(keys[keys.length - 1]) || '{}');
+                            const lastScene = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || '{}');
                             if (lastScene.raw) previousGeoBlock = lastScene.raw;
                         }
                     } catch { /* ignore */ }
                 } else {
                     // Nouvelle figure → purger les anciennes scènes
                     try {
-                        Object.keys(sessionStorage)
+                        Object.keys(localStorage)
                             .filter(k => k.startsWith('geo_scene_'))
-                            .forEach(k => sessionStorage.removeItem(k));
+                            .forEach(k => localStorage.removeItem(k));
                     } catch { /* ignore */ }
                 }
 
@@ -1548,7 +1555,9 @@ Puis explique la figure pédagogiquement.
 ⛔ Exemple : "trace un triangle ABC" → TU calcules des coordonnées : A(0,0), B(4,0), C(2,3)
 
 RÈGLES STRICTES :
-- NE mets "repère: orthonormal" QUE si l'élève demande explicitement un repère, un plan muni d'un repère, des coordonnées précises, ou des calculs de distance/equation. Par défaut, NE PAS mettre de repère.
+- ✅ TOUJOURS mettre "repere: orthonormal" si l'élève donne des coordonnées explicites (ex: A(2;3), B(5;1)...) ou demande de placer des points dans un repère.
+- ✅ TOUJOURS mettre "repere: orthonormal" si la demande implique un calcul de distance, périmètre, ou coordonnées de milieu.
+- ❌ NE PAS mettre repere si l'élève demande une figure purement géométrique SANS coordonnées (ex: "trace un triangle isoèle", "trace un cercle de rayon 3").
 - Utilise UNIQUEMENT des coordonnées entières ou demi-entières (ex: 0, 1, 2, 0.5)
 - Le bloc @@@ DOIT commencer par "geo" sur la première ligne
 - Respecte les conventions EN France : [AB] pour segments, (d) pour droites, [AB) pour demi-droites
@@ -1584,6 +1593,23 @@ perpendiculaire: C, d, (T)
 ⛔ Tu NE dois JAMAIS calculer toi-même un 2e point pour tracer une parallèle ou perpendiculaire !
 ⛔ Utilise TOUJOURS les commandes parallele: / perpendiculaire: — le moteur calcule les directions exactes.
 ⛔ Si tu utilises "droite:" pour une parallèle ou perpendiculaire, la figure sera FAUSSE !
+
+⚠️ CERCLE INSCRIT dans un triangle ABC :
+- L'incentre I ≠ un sommet ! I = barycentre pondéré : I = (a·Ax+b·Bx+c·Cx)/(a+b+c) pour x (idem pour y)
+  où a=BC, b=CA, c=AB (longueurs des côtés OPPOSÉS au sommet)
+- Rayon inscrit : r = Aire / s  où s = (a+b+c)/2 (demi-périmètre)
+- TU dois calculer I et r NUMÉRIQUEMENT et les écrire :
+  point: I, [Ix], [Iy]
+  cercle: I, [r]
+- ⛔ JAMAIS cercle: A, r ou cercle: C, r — le centre du cercle inscrit n'est PAS un sommet !
+
+
+⚠️ ANGLES DROITS :
+- Pour marquer un angle droit (90°), utilise OBLIGATOIREMENT : angle_droit: P1, Sommet, P2
+  ex : angle_droit: A, B, C  → marque l'angle droit en B entre BA et BC
+- ⛔ N'utilise PAS "angle: A, B, C" pour un angle droit — ça afficherait un arc, pas un carré !
+- Le rendu affiche le symbole ⊾ (petit carré) à l'angle droit, comme en géométrie classique.
+- Utilise angle_droit: chaque fois que tu traces une perpendiculaire, une hauteur ou un triangle rectangle.
 
 ⚠️ NOMMAGE DES DROITES :
 - Pour nommer une droite, utilise le 3e argument : parallele: N, BC, (d) ou perpendiculaire: C, d, (Δ)
@@ -1650,12 +1676,18 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                 const now = Date.now();
                                 if (now - lastGeoUpdate > 200) {
                                     lastGeoUpdate = now;
-                                    // Supprimer les blocs @@@ du chat (la figure est dans /geometre)
-                                    const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                    const fixed = fixLatexContent(clean).content;
+                                    // Garder le bloc @@@ dans le message → renderFigure le rend inline
+                                    // On sépare le bloc @@@ du texte explicatif pour l'affichage
+                                    const geoMatchStream = aiText.match(/@@@[\s\S]*?@@@/);
+                                    const textAfterBlock = aiText.replace(/@@@[\s\S]*?@@@/g, '').trim();
+                                    const fixedText = fixLatexContent(textAfterBlock).content;
+                                    // Si le bloc est complet, le mettre en premier; sinon afficher le texte
+                                    const streamContent = geoMatchStream
+                                        ? `${geoMatchStream[0]}\n\n${fixedText}`.trim()
+                                        : fixedText;
                                     setMessages(prev => {
                                         const u = [...prev];
-                                        u[u.length - 1] = { role: 'assistant', content: fixed };
+                                        u[u.length - 1] = { role: 'assistant', content: streamContent };
                                         return u;
                                     });
                                 }
@@ -1734,8 +1766,8 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                             } catch { /* ignore post-processing errors */ }
 
                                             try {
-                                                // Stocker dans sessionStorage
-                                                sessionStorage.setItem(sceneKey, JSON.stringify({ raw: block }));
+                                                // Stocker dans localStorage (partagé entre fenêtres)
+                                                localStorage.setItem(sceneKey, JSON.stringify({ raw: block }));
                                                 // Envoyer via BroadcastChannel
                                                 const ch = new BroadcastChannel(GEO_CHANNEL);
                                                 ch.postMessage({ type: 'UPDATE_GEO', raw: block, key: sceneKey });
@@ -1758,15 +1790,33 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         } catch { }
                     }
                 }
+                console.log('[Router-Geo] while loop ended, aiText length:', aiText.length, 'contains @@@:', aiText.includes('@@@'));
 
-                // Supprimer tous les blocs @@@ du texte final (figure, geo, graph...)
-                const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                const finalFixed = fixLatexContent(patchMarkdownTables(cleanFinal)).content;
-                setMessages(prev => {
-                    const u = [...prev];
-                    u[u.length - 1] = { role: 'assistant', content: finalFixed };
-                    return u;
-                });
+                try {
+                    // Garder le bloc @@@geo dans le message final → rendu inline par renderFigure
+                    const geoBlockMatch = aiText.match(/@@@[\s\S]*?@@@/);
+                    const cleanFinalText = aiText.replace(/@@@[\s\S]*?@@@/g, '').trim();
+                    const finalFixed = fixLatexContent(patchMarkdownTables(cleanFinalText)).content;
+                    const finalContent = geoBlockMatch
+                        ? `${geoBlockMatch[0]}\n\n${finalFixed}`.trim()
+                        : finalFixed;
+                    console.log('[Router-Geo] geoBlockMatch:', !!geoBlockMatch, 'finalContent starts:', finalContent.slice(0, 60));
+                    setMessages(prev => {
+                        const u = [...prev];
+                        u[u.length - 1] = { role: 'assistant', content: finalContent };
+                        return u;
+                    });
+                } catch (finalErr) {
+                    console.error('[Router-Geo] FINAL BLOCK ERROR:', finalErr);
+                    // Fallback: show clean text without geo block
+                    const cleanFallback = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+                    const fixedFallback = fixLatexContent(patchMarkdownTables(cleanFallback)).content;
+                    setMessages(prev => {
+                        const u = [...prev];
+                        u[u.length - 1] = { role: 'assistant', content: fixedFallback };
+                        return u;
+                    });
+                }
                 setLoading(false);
                 setIsTalking(false);
                 return;

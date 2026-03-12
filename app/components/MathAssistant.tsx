@@ -22,6 +22,7 @@ interface MathAssistantProps {
 
 export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -95,6 +96,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     }, []);
 
     useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
+
 
     useEffect(() => {
         // ⚠️ Ne pas modifier isTalking pendant le streaming (évite "Maximum update depth exceeded")
@@ -207,6 +209,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
                         renderContent={renderMessageContent}
                     />
                 ))}
+
                 <div ref={messagesEndRef} className="h-4" />
             </div>
 
