@@ -2,6 +2,9 @@
 
 import React, { memo, useCallback } from 'react';
 import { ChatMessage } from '@/lib/perplexity';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 interface MessageItemProps {
     msg: ChatMessage;
@@ -72,7 +75,21 @@ const MessageItem = memo(function MessageItem({
                             <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" />
                             <span className="uppercase tracking-widest font-bold">Réflexion photonique...</span>
                         </div>
+                    ) : isUser ? (
+                        /* ── Messages utilisateur : rendu LaTeX simple ── */
+                        <div className="message-content-wrapper">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                    p: ({ ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
+                                }}
+                            >
+                                {msg.content}
+                            </ReactMarkdown>
+                        </div>
                     ) : (
+                        /* ── Messages assistant : pipeline complet avec @@@, figures, etc. ── */
                         <div className="message-content-wrapper space-y-4">
                             {renderContent(msg.content)}
                         </div>

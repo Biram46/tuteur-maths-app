@@ -214,8 +214,33 @@ export function useMathRouter({
     // Appelé par handleSendMessage (texte tapé) ET processFile (capture d'écran)
     // ═══════════════════════════════════════════════════════════════════
     const handleSendMessageWithText = async (inputText: string, newMessages: ChatMessage[]) => {
-        // ── INTERCEPTION TABLEAU DE SIGNES (expression unique) ──
-        const inputLower = inputText.toLowerCase();
+        // ── Pré-traitement LaTeX : convertir les notations LaTeX de l'élève ──
+        // pour que les extracteurs d'expression fonctionnent correctement
+        const deLatexInput = (s: string): string => s
+            // Supprimer les délimiteurs LaTeX $...$, $$...$$, \(...\), \[...\]
+            .replace(/\\\[|\\\]/g, '')
+            .replace(/\\\(|\\\)/g, '')
+            .replace(/\$\$/g, '').replace(/\$/g, '')
+            // \frac{a}{b} → (a)/(b)
+            .replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+            .replace(/\\dfrac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+            .replace(/\\tfrac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+            // \sqrt{a} → sqrt(a)
+            .replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)')
+            .replace(/\\sqrt\s*([a-zA-Z0-9])/g, 'sqrt($1)')
+            // Accolades LaTeX → parenthèses
+            .replace(/\{/g, '(').replace(/\}/g, ')')
+            // \cdot, \times → *
+            .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
+            // \left, \right → supprimé
+            .replace(/\\left/g, '').replace(/\\right/g, '')
+            // Commandes résiduelles → supprimées
+            .replace(/\\[a-zA-Z]+/g, '')
+            .trim();
+
+        const inputCleaned = deLatexInput(inputText);
+        // Utiliser inputCleaned pour les détections et extractions, inputText pour l'affichage/IA
+        const inputLower = inputCleaned.toLowerCase();
         const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
         // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
         const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
@@ -671,13 +696,13 @@ export function useMathRouter({
             try {
                 // Extraire l'expression
                 let studyExpr = '';
-                const eqMatch = inputText.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
+                const eqMatch = inputCleaned.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
                 if (eqMatch) studyExpr = eqMatch[1].trim()
                     .replace(/[.!?]+$/, '')
                     .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                     .trim();
                 if (!studyExpr) {
-                    const deMatch = inputText.match(/=\s*(.+)/);
+                    const deMatch = inputCleaned.match(/=\s*(.+)/);
                     if (deMatch) studyExpr = deMatch[1].split('\n')[0].trim()
                         .replace(/[.!?]+$/, '')
                         .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
@@ -711,10 +736,10 @@ export function useMathRouter({
 
         if (wantsSignTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = inputText.match(/=\s*(.+)/);
+            const eqMatch = inputCleaned.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                const deMatch = inputCleaned.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
             }
             expr = expr
@@ -911,10 +936,10 @@ export function useMathRouter({
 
         if (wantsVariationTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = inputText.match(/=\s*(.+)/);
+            const eqMatch = inputCleaned.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = inputText.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                const deMatch = inputCleaned.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
             }
             expr = expr
