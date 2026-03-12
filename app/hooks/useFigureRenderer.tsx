@@ -15,7 +15,40 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 
+// ─── Sanitiseur LaTeX — corrige les erreurs courantes de l'IA ─────────────────
+/**
+ * Corrige les erreurs LaTeX fréquentes avant le rendu remark-math / rehype-katex :
+ *  1. `\` parasite en fin de bloc $...$ : "$f(x)>0\$" → "$f(x)>0$"
+ *  2. `\` en fin de ligne hors math (markdown line-break ambigu) → espace simple
+ *  3. `$ ` en début de token suivi de rien → supprimé ($ orphelin)
+ *  4. Double dollars mal fermés $$ sur la même ligne → laisser tel quel
+ */
+function sanitizeLatex(text: string): string {
+    // 1. Trailing backslash INSIDE inline math before closing $
+    //    e.g. "$f(x)>0\$" → "$f(x)>0$"
+    //    Regex: match $...\ $ where \ is directly before $
+    text = text.replace(/\\(\s*\$)/g, '$1');
+
+    // 2. Trailing backslash at end of line (remark-gfm line break artifact)
+    //    Converts  "...0\⏎" → "...0⏎"
+    text = text.replace(/\\\s*\n/g, '\n');
+
+    // 3. Backslash followed by space OUTSIDE math mode → plain space
+    //    e.g. "sur ]-∞; -2[\ et ]2; +∞[" → "sur ]-∞; -2[ et ]2; +∞["
+    //    We do a rough pass: replace \<space> not preceded by another \ (not \\)
+    text = text.replace(/(?<!\\)\\ (?![a-zA-Z{])/g, ' ');
+
+    // 4. Orphan $ at end of a token (caused by incomplete LaTeX from IA)
+    //    e.g. "f(x>0 $." → add a space before the $ so remark-math doesn't pair it wrongly
+    // (Leave $...$ intact, only fix trailing standalone $)
+    text = text.replace(/\s\$\./g, '.');
+    text = text.replace(/\s\$\s/g, ' ');
+
+    return text;
+}
+
 // ─── Hook de rendu des figures mathématiques et messages ─────────────────────
+
 
 export function useFigureRenderer() {
     // Cache des blocs déjà parsés : évite de re-parser + re-dessiner D3 à chaque tick de streaming
@@ -942,6 +975,7 @@ export function useFigureRenderer() {
 
             // Rendu Markdown pour le reste
             if (!section.trim()) return null;
+            const cleanSection = sanitizeLatex(section);
 
             return (
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
@@ -969,8 +1003,9 @@ export function useFigureRenderer() {
                             },
                         }}
                     >
-                        {section}
+                        {cleanSection}
                     </ReactMarkdown>
+
                     {/* Bouton graphe visible si le contenu mentionne la courbe */}
                     {section.includes('bouton ci-dessous') && (
                         <div className="mt-3 mb-1">
