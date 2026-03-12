@@ -387,7 +387,43 @@ export function parseGeoScene(raw: string): GeoScene {
                 break;
             }
 
+            case 'mediatrice':
+            case 'médiatrice':
+            case 'perpendicular_bisector': {
+                // mediatrice: A, B [, label]
+                // → calcule M = milieu(A,B), trace la droite perpendiculaire à (AB) par M
+                if (parts.length < 2) break;
+                const mA = parts[0].toUpperCase().trim();
+                const mB = parts[1].toUpperCase().trim();
+                const pA = pointMap.get(mA);
+                const pB = pointMap.get(mB);
+                if (!pA || !pB) { console.warn('[geo] mediatrice: points manquants', mA, mB); break; }
+                // Milieu M
+                const Mx = (pA.x + pB.x) / 2;
+                const My = (pA.y + pB.y) / 2;
+                const midId = `_M_${mA}${mB}`;
+                if (!pointMap.has(midId)) {
+                    pointMap.set(midId, { x: Mx, y: My });
+                    objects.push({ kind: 'point', id: midId, x: Mx, y: My, label: 'M', style: 'cross', color: '#a78bfa' });
+                }
+                // Direction de AB → direction perpendiculaire = (-dy, dx)
+                const dx = pB.x - pA.x, dy = pB.y - pA.y;
+                const perpLen = Math.sqrt(dx*dx + dy*dy) || 1;
+                // Second point de la médiatrice (dans la direction perpendiculaire)
+                const med2Id = `_M2_${mA}${mB}`;
+                const med2x = Mx + (-dy / perpLen);
+                const med2y = My + (dx / perpLen);
+                if (!pointMap.has(med2Id)) {
+                    pointMap.set(med2Id, { x: med2x, y: med2y });
+                    objects.push({ kind: 'point', id: med2Id, x: med2x, y: med2y, style: 'none' });
+                }
+                const lineLabel = parts[2] || undefined;
+                objects.push({ kind: 'line', id: uid('line'), type: 'line', through: [midId, med2Id], label: lineLabel, color: '#a78bfa' });
+                break;
+            }
+
             case 'parallele':
+
             case 'parallèle':
             case 'parallel':
             case 'perpendiculaire':

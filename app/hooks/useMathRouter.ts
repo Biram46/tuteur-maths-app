@@ -1559,6 +1559,11 @@ Puis explique la figure pédagogiquement.
 - L'élève écrit souvent A(4; 5) avec un POINT-VIRGULE — interprète-le comme x=4, y=5.
 - Dans ton bloc geo, utilise TOUJOURS la virgule : point: A, 4, 5  (jamais de ; dans le bloc).
 
+⚠️ MÉDIATRICE d'un segment [AB] :
+  mediatrice: A, B [, label]
+  (le moteur calcule le milieu M et la droite perpendiculaire automatiquement)
+  ⛔ N'utilise PAS perpendiculaire: + point: M séparément — utilise mediatrice:.
+
 ⚠️ CERCLES SPÉCIAUX — Utilise TOUJOURS les commandes déterministes (le moteur calcule tout) :
 
 🔵 CERCLE INSCRIT dans un triangle ABC :
