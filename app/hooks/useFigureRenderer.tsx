@@ -17,14 +17,22 @@ import rehypeKatex from 'rehype-katex';
 
 // ─── Sanitiseur LaTeX — corrections minimales et sûres ───────────────────────
 /**
- * Corrige UNIQUEMENT les erreurs LaTeX sûres à corriger automatiquement.
- * Règle conservée : backslash en fin de ligne hors math (markdown line-break)
- * ÉVITER : toute règle qui touche aux délimiteurs $...$ (risque de casser le rendu)
+ * Corrige les erreurs LaTeX generees par l'IA avant remark-math / rehype-katex.
+ * RÈGLES SAFE UNIQUEMENT — ne pas toucher au contenu dans $...$
  */
 function sanitizeLatex(text: string): string {
-    // Trailing backslash at end of line → simple newline
-    // "...$f(x)>0$\⏎ Suite" → "...$f(x)>0$⏎ Suite"
+    // 1. Trailing backslash at end of line → simple newline
     text = text.replace(/\\\n/g, '\n');
+
+    // 2. Espace apres $ ouvrant : "$ f(x)" → "$f(x)"
+    //    remark-math refuse $<espace> comme ouverture de bloc math
+    //    Safe : seulement si suivi d'une lettre, \, { ( – pas de $5, $10
+    text = text.replace(/\$\s+([a-zA-Z\\{(])/g, '\$$1');
+
+    // 3. Espace avant $ fermant : "f(x) $" → "f(x)$"
+    //    Attention : eviter les faux positifs, seulement avant . , ; ) ou fin de ligne
+    text = text.replace(/\s+\$([.,;)\n])/g, '\$$1');
+
     return text;
 }
 

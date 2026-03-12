@@ -802,8 +802,11 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                         model: provider.model,
                         messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
                         stream: true,
-                        temperature: provider.temperature
+                        temperature: provider.temperature,
+                        // seed pour la reproductibilité (OpenAI seulement)
+                        ...(provider.name === 'OpenAI' ? { seed: 42 } : {}),
                     }),
+
                     signal: connectController.signal,
                 });
 
