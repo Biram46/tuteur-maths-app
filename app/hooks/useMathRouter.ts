@@ -1561,8 +1561,11 @@ Puis explique la figure pédagogiquement.
 
 ⚠️ MÉDIATRICE d'un segment [AB] :
   mediatrice: A, B [, label]
-  (le moteur calcule le milieu M et la droite perpendiculaire automatiquement)
+  (le moteur calcule le milieu M, la droite perpendiculaire ET le ⊾ automatiquement)
   ⛔ N'utilise PAS perpendiculaire: + point: M séparément — utilise mediatrice:.
+  ⚠️ IMPORTANT : Si l'élève demande les médiatrices d'un triangle, TU dois aussi déclarer le triangle (triangle: A, B, C).
+    Les médiatrices seules ne tracent pas les côtés !
+
 
 ⚠️ CERCLES SPÉCIAUX — Utilise TOUJOURS les commandes déterministes (le moteur calcule tout) :
 

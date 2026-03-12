@@ -443,8 +443,12 @@ export function parseGeoScene(raw: string): GeoScene {
                 }
                 const lineLabel = parts[2] || undefined;
                 objects.push({ kind: 'line', id: uid('line'), type: 'line', through: [midId, med2Id], label: lineLabel, color: '#a78bfa' });
+                // ⊾ Angle droit automatique en M :
+                // from=A (direction du segment), vertex=M, to=med2 (direction médiatrice)
+                objects.push({ kind: 'angle', id: uid('ang'), vertex: midId, from: mA, to: med2Id, label: '90°', value: 90, square: true, color: '#34d399' });
                 break;
             }
+
 
             case 'parallele':
 
