@@ -15,26 +15,6 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 
-// ─── Sanitiseur LaTeX — corrections minimales et sûres ───────────────────────
-/**
- * Corrige les erreurs LaTeX generees par l'IA avant remark-math / rehype-katex.
- * RÈGLES SAFE UNIQUEMENT — ne pas toucher au contenu dans $...$
- */
-function sanitizeLatex(text: string): string {
-    // 1. Trailing backslash at end of line → simple newline
-    text = text.replace(/\\\n/g, '\n');
-
-    // 2. Espace apres $ ouvrant : "$ f(x)" → "$f(x)"
-    //    remark-math refuse $<espace> comme ouverture de bloc math
-    //    Safe : seulement si suivi d'une lettre, \, { ( – pas de $5, $10
-    text = text.replace(/\$\s+([a-zA-Z\\{(])/g, '\$$1');
-
-    // 3. Espace avant $ fermant : "f(x) $" → "f(x)$"
-    //    Attention : eviter les faux positifs, seulement avant . , ; ) ou fin de ligne
-    text = text.replace(/\s+\$([.,;)\n])/g, '\$$1');
-
-    return text;
-}
 
 // ─── Hook de rendu des figures mathématiques et messages ─────────────────────
 
