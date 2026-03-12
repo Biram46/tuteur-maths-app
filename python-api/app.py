@@ -167,7 +167,7 @@ def prettify_label(label):
 # EXTRACTION DES FACTEURS POLYNOMIAUX
 # ─────────────────────────────────────────────────────────────
 
-def get_polynomial_factors(poly_expr, role):
+def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
     """
     Factorise un polynôme en produit de facteurs de degré ≤ 2.
     
@@ -208,6 +208,8 @@ def get_polynomial_factors(poly_expr, role):
     factors = []
     remaining = monic
 
+    seconde_full_factor = (niveau == "seconde")  # Seconde: no Delta for deg-2
+
     # ── Boucle : diviser par des racines jusqu'à obtenir un quotient de degré ≤ 2 ──
     safety = 0
     while safety < 20:
@@ -236,7 +238,7 @@ def get_polynomial_factors(poly_expr, role):
             })
             break
 
-        elif rem_deg == 2:
+        elif rem_deg == 2 and not seconde_full_factor:
             # ── Trinôme (degré 2) → analyse par discriminant Δ ──
             coeffs_q = sp.Poly(remaining, x).all_coeffs()
             a_q = coeffs_q[0]
@@ -336,8 +338,8 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     # Extraire tous les facteurs
     num_trans = extract_transcendental_factors(num, 'numerator')
     den_trans = extract_transcendental_factors(den, 'denominator')
-    num_poly, num_const = get_polynomial_factors(num, 'numerator')
-    den_poly, den_const = get_polynomial_factors(den, 'denominator')
+    num_poly, num_const = get_polynomial_factors(num, 'numerator', niveau)
+    den_poly, den_const = get_polynomial_factors(den, 'denominator', niveau)
 
     num_factors_all = num_trans + num_poly
     den_factors_all = den_trans + den_poly
@@ -387,23 +389,42 @@ def compute_sign_table(expression, niveau='terminale_spe'):
 
     critical = sorted(set(num_zeros_f + den_zeros_f))
 
-    # Domaine — utilisation de continuous_domain() de SymPy
-    # Détecte automatiquement l'ensemble de définition (ln, sqrt, 1/x, tan, etc.)
+    # Domaine --- continuous_domain() de SymPy
     domain_left = None
     domain_strict = False
     left_label = '-inf'
+    forbidden_domain_pts = []  # internal gap points (ex: +-2 for ln(x^2-4))
 
     try:
         dom = continuous_domain(expr_full, x, sp.S.Reals)
-        # Extraire la borne gauche du domaine
-        # Pour un Interval : dom.inf = borne gauche, dom.left_open = borne ouverte
-        # Pour une Union : prendre le premier Interval
-        if hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
+
+        if isinstance(dom, sp.Union):
+            # Union domain, e.g. ln(x^2-4) -> ]-inf,-2[ U ]2,+inf[
+            intervals = sorted(
+                [arg for arg in dom.args if isinstance(arg, sp.Interval)],
+                key=lambda iv: float(iv.inf.evalf()) if iv.inf != sp.S.NegativeInfinity else -1e18
+            )
+            if intervals:
+                first_iv = intervals[0]
+                if first_iv.inf != sp.S.NegativeInfinity:
+                    domain_left = float(first_iv.inf.evalf())
+                    domain_strict = first_iv.left_open
+                seen_pts = set()
+                for iv in intervals:
+                    if iv.sup != sp.S.Infinity:
+                        v = float(iv.sup.evalf())
+                        if v not in seen_pts:
+                            forbidden_domain_pts.append(v)
+                            seen_pts.add(v)
+                    if iv.inf != sp.S.NegativeInfinity:
+                        v = float(iv.inf.evalf())
+                        if v not in seen_pts:
+                            forbidden_domain_pts.append(v)
+                            seen_pts.add(v)
+                forbidden_domain_pts.sort()
+        elif hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
             domain_left = float(dom.inf.evalf())
-            # left_open = True → borne exclue (ex: ]0 pour ln)
-            # left_open = False → borne incluse (ex: [0 pour sqrt)
             domain_strict = getattr(dom, 'left_open', False)
-            # Pour une Union, chercher le premier intervalle
             if hasattr(dom, 'args'):
                 for arg in dom.args:
                     if isinstance(arg, sp.Interval):
@@ -412,6 +433,13 @@ def compute_sign_table(expression, niveau='terminale_spe'):
                         break
     except Exception:
         pass
+
+    # Add forbidden domain pts as denominator zeros -> || in sign table
+    for pt in forbidden_domain_pts:
+        if not any(abs(pt - dz) < 1e-9 for dz in den_zeros_f):
+            den_zeros_f.append(pt)
+    if forbidden_domain_pts:
+        den_zeros_f = sorted(den_zeros_f)
 
     # Si on a une borne de domaine :
     # GARDER les zéros à la borne (ex: sqrt(x+3) s'annule en x=-3)
@@ -432,7 +460,12 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     def test_pts_for(crit, dl):
         if not crit:
             return [dl + 1.0 if dl is not None else 0.0]
-        first = (dl + crit[0]) / 2.0 + 1e-6 if dl is not None else crit[0] - 1.0
+        if dl is not None and abs(dl - crit[0]) < 1e-9:
+            first = dl - 1.0  # before domain -> || slot
+        elif dl is not None:
+            first = (dl + crit[0]) / 2.0 + 1e-6
+        else:
+            first = crit[0] - 1.0
         pts = [first]
         for i in range(len(crit) - 1):
             pts.append((crit[i] + crit[i + 1]) / 2.0)
@@ -442,6 +475,17 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     test_pts = test_pts_for(critical, domain_left)
 
     # Construire les lignes du tableau
+    def is_before_domain(pt):
+        return domain_left is not None and pt < domain_left - 1e-9
+
+    def is_in_forbidden_zone(pt):
+        if not forbidden_domain_pts: return False
+        fps = sorted(forbidden_domain_pts)
+        for j in range(0, len(fps) - 1, 2):
+            lo, hi = fps[j], fps[j + 1]
+            if lo < pt < hi: return True
+        return False
+
     def build_row(f):
         ftype = f.get('type', 'poly')
         zeros_f = []
@@ -459,14 +503,24 @@ def compute_sign_table(expression, niveau='terminale_spe'):
                 sym = None
         vals = []
         for i, tp in enumerate(test_pts):
-            s = '+' if ftype == 'exp' else (sign_at(sym, tp) if sym else '+')
+            if is_before_domain(tp) or is_in_forbidden_zone(tp):
+                s = '||'
+            elif ftype == 'exp':
+                s = '+'
+            else:
+                s = sign_at(sym, tp) if sym else '+'
             vals.append(s or '+')
             if i < len(critical):
                 cp = critical[i]
-                if any(abs(cp - z) < 1e-9 for z in own_zero_set):
+                if any(abs(cp - dz) < 1e-9 for dz in den_zeros_f):
+                    vals.append('||')
+                elif any(abs(cp - z) < 1e-9 for z in own_zero_set):
                     vals.append('0')
+                elif is_before_domain(cp) or is_in_forbidden_zone(cp):
+                    vals.append('||')
                 else:
-                    s2 = '+' if ftype == 'exp' else (sign_at(sym, cp) if sym else '+')
+                    if ftype == 'exp': s2 = '+'
+                    else: s2 = sign_at(sym, cp) if sym else '+'
                     vals.append(s2 or '+')
         return vals
 
@@ -498,14 +552,19 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     # Ligne f(x)
     fx_vals = []
     for i, tp in enumerate(test_pts):
-        s = sign_at(expr_full, tp)
-        fx_vals.append(s or '+')
+        if is_before_domain(tp) or is_in_forbidden_zone(tp):
+            fx_vals.append('||')
+        else:
+            s = sign_at(expr_full, tp)
+            fx_vals.append(s or '+')
         if i < len(critical):
             cp = critical[i]
             if any(abs(cp - d) < 1e-9 for d in den_zeros_f):
                 fx_vals.append('||')
             elif any(abs(cp - z) < 1e-9 for z in num_zeros_f):
                 fx_vals.append('0')
+            elif is_before_domain(cp) or is_in_forbidden_zone(cp):
+                fx_vals.append('||')
             else:
                 s2 = sign_at(expr_full, cp + 1e-6)
                 fx_vals.append(s2 or '+')
@@ -515,7 +574,13 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     # Dédupliquer : si domain_left == critical[0], ne pas répéter la borne
     critical_display = critical
     if domain_left is not None and critical and abs(critical[0] - domain_left) < 1e-9:
-        critical_display = critical[1:]  # domain_left déjà dans left_label
+        critical_display = critical[1:]
+        left_label = ']' + fmt(domain_left)  # MathTable: domain boundary, no phantom slot
+        for row in rows:
+            if len(row['values']) >= 2:
+                row['values'] = row['values'][2:]
+        if len(fx_vals) >= 2:
+            fx_vals = fx_vals[2:]
     x_str = ', '.join([left_label] + [fmt(c) for c in critical_display] + ['+inf'])
     lines = ['table |', f'x: {x_str} |']
 

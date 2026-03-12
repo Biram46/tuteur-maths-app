@@ -377,26 +377,44 @@ export function findDiscontinuities(
  *    (±100) plutôt que ±1e6, car pour les fractions rationnelles la dérivée
  *    tend vers 0 à l'infini et le signe devient indétectable.
  */
-export function signOnInterval(expr: string, a: number | '-inf', b: number | '+inf'): '+' | '-' | '0' | null {
+export function signOnInterval(
+    expr: string,
+    a: number | '-inf',
+    b: number | '+inf',
+    knownDiscontinuities: number[] = []
+): '+' | '-' | '0' | null {
     // Bornes effectives : utiliser ±100 au lieu de ±1e6 pour les infinis
-    // Cela donne des valeurs plus significatives pour les quotients
-    const xFrom = a === '-inf' ? -100 : (a as number) + 1e-6;
-    const xTo = b === '+inf' ? 100 : (b as number) - 1e-6;
+    const xFrom = a === '-inf' ? -100 : (a as number) + 1e-4;
+    const xTo   = b === '+inf' ? 100  : (b as number) - 1e-4;
     if (xFrom >= xTo) return null;
 
     const mid = (xFrom + xTo) / 2;
-    // Points de test variés : milieu, quartiles, et points proches des bornes finies
     const testPoints = [
         mid,
         xFrom + (xTo - xFrom) * 0.25,
         xFrom + (xTo - xFrom) * 0.75,
     ];
 
-    // Si une borne est finie, ajouter un point très proche (signal plus fort pour les quotients)
-    if (a !== '-inf') testPoints.push((a as number) + 0.01);
-    if (b !== '+inf') testPoints.push((b as number) - 0.01);
+    // Points proches des bornes FINIES — mais seulement si elles ne sont PAS
+    // des discontinuités connues (pour éviter de tester juste après un pôle
+    // où la dérivée aurait encore un signe induit par le pôle).
+    const aNum = a !== '-inf' ? (a as number) : null;
+    const bNum = b !== '+inf' ? (b as number) : null;
+    const isADisc = aNum !== null && knownDiscontinuities.some(d => Math.abs(d - aNum) < 0.01);
+    const isBDisc = bNum !== null && knownDiscontinuities.some(d => Math.abs(d - bNum) < 0.01);
 
-    // Ajouter des points encore plus proches de l'origine si les bornes sont infinies
+    // Pour la borne gauche : tester à 10% de l'intervalle (pas à 0.01 fixe)
+    // sauf si c'est une discontinuité → utiliser 20% pour s'éloigner davantage
+    if (a !== '-inf') {
+        const offset = isADisc ? (xTo - xFrom) * 0.20 : (xTo - xFrom) * 0.05;
+        testPoints.push(xFrom + offset);
+    }
+    if (b !== '+inf') {
+        const offset = isBDisc ? (xTo - xFrom) * 0.20 : (xTo - xFrom) * 0.05;
+        testPoints.push(xTo - offset);
+    }
+
+    // Points supplémentaires pour intervalles infinis
     if (a === '-inf' && b !== '+inf') testPoints.push((b as number) - 1);
     if (b === '+inf' && a !== '-inf') testPoints.push((a as number) + 1);
 
@@ -425,6 +443,18 @@ export function formatForTable(x: number): string {
     // Vérifier les constantes mathématiques exactes
     const E_VAL = Math.E;
     const PI_VAL = Math.PI;
+
+    // Fractions de e : 1/e, -1/e, -e, e
+    // ⚠️ Tolérance 5e-4 : round4(-1/e) = -0.3679 diffère de -1/e de ~2e-5, plus grand que 1e-5
+    const fractionsOfE: Array<[number, string]> = [
+        [1 / E_VAL,   '1/e'],
+        [-1 / E_VAL, '-1/e'],
+        [1 / (E_VAL * E_VAL),   '1/e²'],
+        [-1 / (E_VAL * E_VAL), '-1/e²'],
+    ];
+    for (const [val, label] of fractionsOfE) {
+        if (Math.abs(x - val) < 5e-4) return label;
+    }
 
     // Multiples simples de e
     for (const mult of [1, 2, 3, -1, -2, -3]) {

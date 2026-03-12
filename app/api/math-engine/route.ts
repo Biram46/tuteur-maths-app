@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateSignTable } from '@/lib/math-engine/sign-table-engine';
 import { generateVariationTable } from '@/lib/math-engine/variation-engine';
 import { generateGraphData } from '@/lib/math-engine/graph-engine';
+import { buildPedagogicalContext } from '@/lib/math-orchestrator';
 import type { NiveauLycee } from '@/lib/niveaux';
 import type { MathOutputType } from '@/lib/math-spec-types';
 
@@ -75,10 +76,10 @@ export async function POST(req: NextRequest) {
                 const sympyResult = await callSignTableSympy(expression, niveau);
                 if (sympyResult.success) {
                     console.log(`[MathEngine] ✅ MOTEUR SYMPY utilisé pour "${expression}"`);
-                    // ⚠️ NE PAS appeler generateSignTable côté JS juste pour aiContext
-                    // car ça peut générer des milliers de facteurs et freezer le serveur.
-                    // On construit un aiContext léger directement.
-                    const aiContext = `Tableau de signes de f(x) = ${expression} calculé par SymPy (résultat exact). Niveau: ${niveau}.`;
+                    // ── Enrichissement pédagogique via l'orchestrateur ──
+                    const pedagogical = buildPedagogicalContext(expression, niveau, sympyResult);
+                    const aiContext = pedagogical.promptInjection;
+                    console.log(`[MathEngine] 📚 Classe: ${pedagogical.analysis.classe} | Méthode: ${pedagogical.analysis.method}`);
                     return NextResponse.json({
                         success: true,
                         aaaBlock: sympyResult.aaaBlock,
@@ -89,6 +90,13 @@ export async function POST(req: NextRequest) {
                         numZeros: sympyResult.numZeros ?? [],
                         denZeros: sympyResult.denZeros ?? [],
                         effectiveConst: sympyResult.effectiveConst ?? 1,
+                        // ── Nouvelles données de l'orchestrateur ──
+                        canonicalForm: sympyResult.canonicalForm ?? null,
+                        limits: sympyResult.limits ?? null,
+                        functionClass: pedagogical.analysis.classe,
+                        pedagogicalMethod: pedagogical.analysis.method,
+                        isBlocked: pedagogical.analysis.blocked,
+                        blockReason: pedagogical.analysis.blockReason,
                         aiContext,
                         engine: 'sympy',
                     });

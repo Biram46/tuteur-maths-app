@@ -956,7 +956,7 @@ function buildDerivSignRow(
 
     for (let i = 0; i < intervalBounds.length; i++) {
         const [from, to] = intervalBounds[i];
-        let sign = signOnInterval(derivExpr, from, to);
+        let sign = signOnInterval(derivExpr, from, to, discontinuities);
 
         // Fallback: si signOnInterval échoue, évaluer directement en un point central
         if (sign === null) {
@@ -1020,8 +1020,9 @@ function buildVariationRow(
     for (let i = 0; i < intervalBounds.length; i++) {
         const [from, to] = intervalBounds[i];
 
-        // Flèche (direction de la variation)
-        const signDeriv = signOnInterval(derivExpr, from, to);
+        // Flèche (direction de la variation) — passer les discontinuités pour
+        // éviter de tester juste après un pôle (ex: ]0;+∞[ pour 1/x)
+        const signDeriv = signOnInterval(derivExpr, from, to, discontinuities);
         values.push(signDeriv === '+' ? 'nearrow' : signDeriv === '-' ? 'searrow' : 'nearrow');
 
         if (i < allCritical.length) {
