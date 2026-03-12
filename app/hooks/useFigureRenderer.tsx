@@ -944,7 +944,6 @@ export function useFigureRenderer() {
 
             // Rendu Markdown pour le reste
             if (!section.trim()) return null;
-            const cleanSection = sanitizeLatex(section);
 
             return (
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
@@ -972,7 +971,7 @@ export function useFigureRenderer() {
                             },
                         }}
                     >
-                        {cleanSection}
+                        {section}
                     </ReactMarkdown>
 
                     {/* Bouton graphe visible si le contenu mentionne la courbe */}
