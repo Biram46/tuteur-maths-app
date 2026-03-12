@@ -294,6 +294,66 @@ export function parseGeoScene(raw: string): GeoScene {
                 break;
             }
 
+            case 'cercle_circonscrit':
+            case 'circumscribed_circle':
+            case 'circumcircle': {
+                // cercle_circonscrit: A, B, C → calcule le circumcentre O et tracer le cercle circonscrit
+                if (parts.length < 3) break;
+                const [va, vb, vc] = parts.slice(0, 3).map(p => p.toUpperCase().trim());
+                const pA = pointMap.get(va), pB = pointMap.get(vb), pC = pointMap.get(vc);
+                if (!pA || !pB || !pC) { console.warn('[geo] cercle_circonscrit: points manquants', va, vb, vc); break; }
+                // Formule du circumcentre par determinant
+                const ax = pA.x, ay = pA.y;
+                const bx = pB.x, by = pB.y;
+                const cx = pC.x, cy = pC.y;
+                const D = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+                if (Math.abs(D) < 1e-10) { console.warn('[geo] cercle_circonscrit: points collinéaires'); break; }
+                const a2 = ax*ax + ay*ay, b2 = bx*bx + by*by, c2 = cx*cx + cy*cy;
+                const Ox = (a2*(by-cy) + b2*(cy-ay) + c2*(ay-by)) / D;
+                const Oy = (a2*(cx-bx) + b2*(ax-cx) + c2*(bx-ax)) / D;
+                const R = Math.sqrt((Ox-ax)**2 + (Oy-ay)**2);
+                // Ajouter le circumcentre O (point auxiliaire) + le cercle
+                const circumId = '_O_circ';
+                if (!pointMap.has(circumId)) {
+                    pointMap.set(circumId, { x: Ox, y: Oy });
+                    objects.push({ kind: 'point', id: circumId, x: Ox, y: Oy, label: 'O', style: 'cross', color: '#f59e0b' });
+                }
+                objects.push({ kind: 'circle', id: uid('circ'), center: circumId, radiusValue: R, color: '#f59e0b' });
+                break;
+            }
+
+            case 'cercle_inscrit':
+            case 'inscribed_circle':
+            case 'incircle': {
+                // cercle_inscrit: A, B, C → calcule l'incentre I et le rayon inscrit
+                if (parts.length < 3) break;
+                const [va2, vb2, vc2] = parts.slice(0, 3).map(p => p.toUpperCase().trim());
+                const pA2 = pointMap.get(va2), pB2 = pointMap.get(vb2), pC2 = pointMap.get(vc2);
+                if (!pA2 || !pB2 || !pC2) { console.warn('[geo] cercle_inscrit: points manquants'); break; }
+                // Longueurs des côtés opposés à chaque sommet
+                const a_side = Math.sqrt((pB2.x-pC2.x)**2 + (pB2.y-pC2.y)**2); // BC
+                const b_side = Math.sqrt((pA2.x-pC2.x)**2 + (pA2.y-pC2.y)**2); // CA
+                const c_side = Math.sqrt((pA2.x-pB2.x)**2 + (pA2.y-pB2.y)**2); // AB
+                const perim = a_side + b_side + c_side;
+                if (perim < 1e-10) break;
+                // Incentre = barycentre pondéré par les longueurs opposées
+                const Ix = (a_side*pA2.x + b_side*pB2.x + c_side*pC2.x) / perim;
+                const Iy = (a_side*pA2.y + b_side*pB2.y + c_side*pC2.y) / perim;
+                // Rayon = Aire / demi-périmètre
+                const s = perim / 2;
+                const area = Math.abs((pB2.x-pA2.x)*(pC2.y-pA2.y) - (pC2.x-pA2.x)*(pB2.y-pA2.y)) / 2;
+                const r = area / s;
+                const incircleId = '_I_insc';
+                if (!pointMap.has(incircleId)) {
+                    pointMap.set(incircleId, { x: Ix, y: Iy });
+                    objects.push({ kind: 'point', id: incircleId, x: Ix, y: Iy, label: 'I', style: 'cross', color: '#34d399' });
+                }
+                objects.push({ kind: 'circle', id: uid('circ'), center: incircleId, radiusValue: r, color: '#34d399' });
+                break;
+            }
+
+
+
             case 'label':
             case 'text': {
                 const text = parts[0] || '';
