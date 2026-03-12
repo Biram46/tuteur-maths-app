@@ -15,35 +15,16 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 
-// ─── Sanitiseur LaTeX — corrige les erreurs courantes de l'IA ─────────────────
+// ─── Sanitiseur LaTeX — corrections minimales et sûres ───────────────────────
 /**
- * Corrige les erreurs LaTeX fréquentes avant le rendu remark-math / rehype-katex :
- *  1. `\` parasite en fin de bloc $...$ : "$f(x)>0\$" → "$f(x)>0$"
- *  2. `\` en fin de ligne hors math (markdown line-break ambigu) → espace simple
- *  3. `$ ` en début de token suivi de rien → supprimé ($ orphelin)
- *  4. Double dollars mal fermés $$ sur la même ligne → laisser tel quel
+ * Corrige UNIQUEMENT les erreurs LaTeX sûres à corriger automatiquement.
+ * Règle conservée : backslash en fin de ligne hors math (markdown line-break)
+ * ÉVITER : toute règle qui touche aux délimiteurs $...$ (risque de casser le rendu)
  */
 function sanitizeLatex(text: string): string {
-    // 1. Trailing backslash INSIDE inline math before closing $
-    //    e.g. "$f(x)>0\$" → "$f(x)>0$"
-    //    Regex: match $...\ $ where \ is directly before $
-    text = text.replace(/\\(\s*\$)/g, '$1');
-
-    // 2. Trailing backslash at end of line (remark-gfm line break artifact)
-    //    Converts  "...0\⏎" → "...0⏎"
-    text = text.replace(/\\\s*\n/g, '\n');
-
-    // 3. Backslash followed by space OUTSIDE math mode → plain space
-    //    e.g. "sur ]-∞; -2[\ et ]2; +∞[" → "sur ]-∞; -2[ et ]2; +∞["
-    //    We do a rough pass: replace \<space> not preceded by another \ (not \\)
-    text = text.replace(/(?<!\\)\\ (?![a-zA-Z{])/g, ' ');
-
-    // 4. Orphan $ at end of a token (caused by incomplete LaTeX from IA)
-    //    e.g. "f(x>0 $." → add a space before the $ so remark-math doesn't pair it wrongly
-    // (Leave $...$ intact, only fix trailing standalone $)
-    text = text.replace(/\s\$\./g, '.');
-    text = text.replace(/\s\$\s/g, ' ');
-
+    // Trailing backslash at end of line → simple newline
+    // "...$f(x)>0$\⏎ Suite" → "...$f(x)>0$⏎ Suite"
+    text = text.replace(/\\\n/g, '\n');
     return text;
 }
 
