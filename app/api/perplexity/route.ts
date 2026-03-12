@@ -153,31 +153,13 @@ circle: O, 3
 - ❌ "AB = 5" → ✅ "$AB = 5$"
 - ❌ "racine carrée de 2" → ✅ "$\sqrt{2}$"
 - ❌ "hauteur AH" → ✅ "la hauteur $AH$"
+- ❌ "Δ = b²-4ac" → ✅ "$\Delta = b^2 - 4ac$"
+- ❌ "pour x < -2" → ✅ "pour $x < -2$"
+- ❌ "f(x) = x²-4" → ✅ "$f(x) = x^2 - 4$"
 
-⛔ EN DEHORS DES DÉLIMITEURS $...$ LES COMMANDES LATEX SONT CASSÉES :
-- ❌ "Δ=0²-4\times1×4=16" → le "\times" hors de $ devient "times" (bug d'affichage !)
-- ❌ "f(x)=x²-4" → le "²" hors de $ s'affiche verticalement (bug !)
-- ✅ CORRECT : "$\Delta = 0^2 - 4 \times 1 \times 4 = 16$"
-- ✅ CORRECT : "$f(x) = x^2 - 4$"
-
-⛔ EXEMPLES INTERDITS dans les explications de tableau de signes :
-- ❌ "le discriminant Δ=0²-4×1×4=16" → écris : "le discriminant $\Delta = (-4)^2 - 4 \times 1 \times (-5) = 36$"
-- ❌ "f(x)=(x-2)(x+2) sur ℝ" → écris : "$f(x) = (x-2)(x+2)$"
-- ❌ "pour x<−2, f(x)>0" → écris : "pour $x < -2$, $f(x) > 0$"
-
-✅ FORMAT CORRECT pour l'explication d'un tableau de signes :
-"**Étape 1 : Factorisation**
-On a $f(x) = x^2 - 4 = (x-2)(x+2)$.
-
-**Étape 2 : Zéros**
-- $x - 2 = 0 \Rightarrow x = 2$
-- $x + 2 = 0 \Rightarrow x = -2$
-
-**Étape 3 : Conclusion**
-- Pour $x < -2$ : $f(x) > 0$
-- Pour $-2 < x < 2$ : $f(x) < 0$
-- Pour $x > 2$ : $f(x) > 0$"
-
+⚠️ RÈGLE STRICTE : PAS D'ESPACE après le $ ouvrant ni avant le $ fermant :
+- ❌ "$ f(x) $" → ✅ "$f(x)$"
+- ❌ "$ \Delta $" → ✅ "$\Delta$"
 
 ⛔ SI TU NE GÉNÈRES PAS DE FIGURE POUR UNE QUESTION DE GÉOMÉTRIE, C'EST UNE ERREUR !
 ⛔ TU DOIS TOUJOURS FOURNIR LES COORDONNÉES DES POINTS DANS LE FORMAT points: A(x,y), B(x,y) !
