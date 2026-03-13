@@ -831,6 +831,79 @@ def geo_compute():
 
 
 
+@app.route('/domain', methods=['POST'])
+def domain():
+    """
+    Retourne le domaine de définition d'une expression via SymPy continuous_domain().
+    Body: { "expression": "sqrt(x+2)" }
+    Retourne: { "success": true, "domainLeft": -2, "domainStrict": false,
+                "domainLatex": "[-2 ; +inf[", "forbiddenPoints": [] }
+    """
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '')
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        raw = expression.replace('^', '**').replace(',', '.')
+        raw = raw.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
+        raw = raw.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
+        expr_sym = sp.sympify(raw, locals=LOCALS)
+
+        domain_left = None
+        domain_strict = False
+        forbidden_points = []
+
+        dom = continuous_domain(expr_sym, x, sp.S.Reals)
+
+        if isinstance(dom, sp.Union):
+            intervals = sorted(
+                [arg for arg in dom.args if isinstance(arg, sp.Interval)],
+                key=lambda iv: float(iv.inf.evalf()) if iv.inf != sp.S.NegativeInfinity else -1e18
+            )
+            if intervals:
+                first_iv = intervals[0]
+                if first_iv.inf != sp.S.NegativeInfinity:
+                    domain_left = float(first_iv.inf.evalf())
+                    domain_strict = first_iv.left_open
+                seen_pts = set()
+                for iv in intervals:
+                    for bound in [iv.sup, iv.inf]:
+                        if bound not in (sp.S.Infinity, sp.S.NegativeInfinity):
+                            v = float(bound.evalf())
+                            if v not in seen_pts:
+                                forbidden_points.append(v)
+                                seen_pts.add(v)
+                forbidden_points.sort()
+        elif hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
+            domain_left = float(dom.inf.evalf())
+            domain_strict = getattr(dom, 'left_open', False)
+
+        # Label LaTeX du domaine
+        if domain_left is not None:
+            lb = ']' if domain_strict else '['
+            lv = str(int(round(domain_left))) if abs(domain_left - round(domain_left)) < 0.01 else str(round(domain_left, 4))
+            domain_latex = f'{lb}{lv} ; +\\infty['
+        else:
+            domain_latex = '\\mathbb{R}'
+
+        return jsonify({
+            'success': True,
+            'domainLeft': domain_left,
+            'domainStrict': domain_strict,
+            'domainLatex': domain_latex,
+            'forbiddenPoints': forbidden_points,
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc()[:800],
+        }), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', '0') == '1')
+

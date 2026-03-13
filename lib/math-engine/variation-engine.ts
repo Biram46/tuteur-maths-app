@@ -780,25 +780,27 @@ function handleGeneral(
             }
         }
 
-        if (firstDefined !== null && firstDefined >= -0.01) {
-            // La fonction n'est pas définie pour les x très négatifs → domaine borné
-            // Affiner la borne par bisection
-            let lo = -10, hi = firstDefined;
-            for (let iter = 0; iter < 50; iter++) {
-                const mid = (lo + hi) / 2;
-                const v = evalAt(expression, mid);
-                if (v !== null) hi = mid;
-                else lo = mid;
+        if (firstDefined !== null) {
+            // Vérifier que la fonction N'EST PAS définie juste avant firstDefined
+            // → c'est bien une borne de domaine (ex: sqrt(x+2) non définie avant x=-2)
+            // Si evalAt(firstDefined - 0.5) est défini, la fonction est définie partout → pas de borne
+            const justBefore = evalAt(expression, firstDefined - 0.5);
+            if (justBefore === null) {
+                // La borne est quelque part entre firstDefined-5 et firstDefined → bisection
+                let lo = Math.max(firstDefined - 10, -20);
+                let hi = firstDefined;
+                for (let iter = 0; iter < 50; iter++) {
+                    const mid = (lo + hi) / 2;
+                    const v = evalAt(expression, mid);
+                    if (v !== null) hi = mid;
+                    else lo = mid;
+                }
+                const boundary = Math.round(hi * 1000) / 1000;
+                domainLeft = Math.abs(boundary - Math.round(boundary)) < 0.01
+                    ? Math.round(boundary)
+                    : boundary;
             }
-            // La borne est environ hi
-            const boundary = Math.round(hi * 1000) / 1000;
-            // Vérifier si c'est un nombre rond
-            if (Math.abs(boundary - Math.round(boundary)) < 0.01) {
-                domainLeft = Math.round(boundary);
-            } else {
-                domainLeft = boundary;
-            }
-            domainStrict = hasLn; // ln → strict, sqrt → inclusif
+            domainStrict = hasLn; // ln → domaine ouvert ], sqrt → domaine fermé [
         }
     }
 
