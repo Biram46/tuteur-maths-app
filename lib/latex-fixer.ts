@@ -40,22 +40,19 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour
     fixed = fixed.replace(/(?<!\$)\s*(\\begin\{(?:aligned|array|cases|pmatrix|bmatrix)\}[\s\S]*?\\end\{(?:aligned|array|cases|pmatrix|bmatrix)\})\s*(?!\$)/g, '\n$$\n$1\n$$\n');
 
-    // 6. Normalisation des espaces dans les délimiteurs $ inline
-    // remark-math exige $expr$ sans espace : "$ expr $" → "$expr$"
-    // ⚠️ On ne touche PAS aux $$ (display math)
-    fixed = fixed.replace(/(?<!\$)\$(?!\$)\s+([^$\n]{1,300}?)\s*\$(?!\$)/g,
-        (_m, inner) => `$${inner.trim()}$`);
+    // 6. Fix espace parasite juste après le $ ouvrant
+    // remark-math refuse "$ expr" → on retire l'espace seulement après un $ OUVRANT
+    // Un $ ouvrant est précédé d'un espace, d'un saut de ligne ou d'un début de chaîne
+    // (pas d'un caractère alphanumérique comme dans "expr$")
+    fixed = fixed.replace(/((?:^|[\s([{,;]))\$ (?=[^\s$])/gm, '$1$');
 
-    // 7. Harmonisation des symboles UNIQUEMENT DANS les blocs $...$
-    fixed = fixed.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (_match, inner) => {
+    // 7. Harmonisation des symboles DANS les blocs $...$ (inline uniquement)
+    // Utilise [^$\n]+ pour ne pas traverser les fins de ligne ni d'autres blocs
+    fixed = fixed.replace(/\$([^$\n]+)\$/g, (_match, inner) => {
         const fixedInner = inner
-            .trim()
             .replace(/<=/g, '\\leq ')
             .replace(/>=/g, '\\geq ')
-            .replace(/!=/g, '\\neq ')
-            // > et < seuls → \gt et \lt (évite que HTML/markdown les supprime)
-            .replace(/(?<![<>\\])>(?!=)/g, '\\gt ')
-            .replace(/(?<![<>\\])<(?!=)/g, '\\lt ');
+            .replace(/!=/g, '\\neq ');
         return '$' + fixedInner + '$';
     });
 
