@@ -34,17 +34,27 @@ export function fixLatexContent(content: string): LatexFixerResult {
 
     // 4. Protection contre les doubles backslashes excessifs
     // \\frac -> \frac, \\sqrt -> \sqrt, etc.
-    fixed = fixed.replace(/\\\\(text|mathrm|vec|infty|bar|frac|sqrt|Omega|alpha|beta|gamma|delta|sigma|mu|lambda|pi|left|right|leq|geq|neq|times|cdot|pm|mp)/g, '\\$1');
+    // Liste étendue à toutes les commandes LaTeX mathématiques du niveau lycée
+    fixed = fixed.replace(/\\\\(text|mathrm|vec|infty|bar|frac|sqrt|Omega|omega|Alpha|alpha|beta|Beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|phi|Phi|chi|psi|Psi|left|right|leq|geq|neq|times|cdot|pm|mp|div|circ|cap|cup|subset|supset|subseteq|supseteq|in|notin|forall|exists|to|Rightarrow|Leftrightarrow|rightarrow|leftarrow|mapsto|equiv|approx|sim|simeq|perp|parallel|angle|triangle|int|sum|prod|lim|log|ln|sin|cos|tan|arcsin|arccos|arctan|exp|max|min|sup|inf|det|gcd|deg|ker|dim|binom|pmatrix|bmatrix|vmatrix|mathbb|mathcal|mathbf|mathrm|text|operatorname|overrightarrow|overline|underline|widehat|widetilde|hat|tilde|dot|ddot|underbrace|overbrace|sqrt|frac|dfrac|tfrac|not|neg|land|lor|lnot|iff|implies|emptyset|varnothing|nabla|partial|hbar|ell|Re|Im|wp|infty)/g, '\\$1');
 
     // 5. \begin{aligned} et \begin{array} sans délimiteurs $$ → on les encadre
     // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour
-    fixed = fixed.replace(/(?<!\$)\s*(\\begin\{(?:aligned|array|cases|pmatrix|bmatrix)\}[\s\S]*?\\end\{(?:aligned|array|cases|pmatrix|bmatrix)\})\s*(?!\$)/g, '\n$$\n$1\n$$\n');
+    // ⚠️ Idempotent : callback vérifie que l'environnement n'est PAS déjà dans un $$
+    fixed = fixed.replace(/(\\begin\{(?:aligned|array|cases|pmatrix|bmatrix)\}[\s\S]*?\\end\{(?:aligned|array|cases|pmatrix|bmatrix)\})/g, (matchEnv, _g1, offset, str) => {
+        const ctxBefore = str.substring(Math.max(0, offset - 15), offset).replace(/\s+/g, '');
+        const ctxAfter = str.substring(offset + matchEnv.length, offset + matchEnv.length + 15).replace(/\s+/g, '');
+        if (ctxBefore.endsWith('$$') || ctxAfter.startsWith('$$')) return matchEnv;
+        return '\n$$\n' + matchEnv + '\n$$\n';
+    });
 
     // 6. Fix espace parasite juste après le $ ouvrant
     // remark-math refuse "$ expr" → on retire l'espace seulement après un $ OUVRANT
     // Un $ ouvrant est précédé d'un espace, d'un saut de ligne ou d'un début de chaîne
     // (pas d'un caractère alphanumérique comme dans "expr$")
-    fixed = fixed.replace(/((?:^|[\s([{,;]))\$ (?=[^\s$])/gm, '$1$');
+    // ⚠️ On utilise un simple remplacement non-destructif : on cherche UNIQUEMENT
+    // un $ précédé d'un non-alphanumérique ET suivi d'un espace PUIS d'un non-espace.
+    // Cela évite de couper du texte comme "100$ de budget" ou "f$ =...".
+    fixed = fixed.replace(/((?:^|[\s([{,;:]))\$\s(?=[^\s$\n])/gm, '$1$');
 
     // 7. Harmonisation des symboles DANS les blocs $...$ (inline uniquement)
     // Utilise [^$\n]+ pour ne pas traverser les fins de ligne ni d'autres blocs
@@ -61,13 +71,14 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // On ajoute les espaces manquants en entourant chaque $...$ trouvé
     // sans toucher au contenu interne du bloc.
     // ⚠️ Ne traite que les $ inline (pas $$) grâce au lookbehind/ahead (?<!\$)/(?!\$)
+    // ⚠️ CONSERVATION : on ne retire JAMAIS de caractères, on en AJOUTE uniquement
     fixed = fixed.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (match, _inner, offset, str) => {
         const before = offset > 0 ? str[offset - 1] : '';
         const after = str[offset + match.length] ?? '';
         let result = match;
-        // Espace avant le $ ouvrant si précédé d'une lettre/chiffre/)
+        // Espace avant le $ ouvrant si précédé d'une lettre/chiffre/) sans espace
         if (/[a-zA-ZÀ-ÿ0-9)]/.test(before)) result = ' ' + result;
-        // Espace après le $ fermant si suivi d'une lettre/chiffre/(
+        // Espace après le $ fermant si suivi d'une lettre/chiffre/( sans espace
         if (/[a-zA-ZÀ-ÿ0-9(]/.test(after)) result = result + ' ';
         return result;
     });

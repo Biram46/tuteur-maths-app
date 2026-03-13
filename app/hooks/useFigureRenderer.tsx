@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import { fixLatexContent } from '@/lib/latex-fixer';
 
 
 // ─── Hook de rendu des figures mathématiques et messages ─────────────────────
@@ -945,6 +946,12 @@ export function useFigureRenderer() {
             // Rendu Markdown pour le reste
             if (!section.trim()) return null;
 
+            // ✅ Appliquer fixLatexContent sur chaque section de texte brut
+            // pour convertir \( \) \[ \] → $ $$ AVANT que ReactMarkdown + remark-math
+            // ne les traite. Sans ça, les formules mathématiques de l'IA restent en
+            // notation brute et ne sont pas rendues par KaTeX.
+            const fixedSection = fixLatexContent(section).content;
+
             return (
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
                     <ReactMarkdown
@@ -971,7 +978,7 @@ export function useFigureRenderer() {
                             },
                         }}
                     >
-                        {section}
+                        {fixedSection}
                     </ReactMarkdown>
 
                     {/* Bouton graphe visible si le contenu mentionne la courbe */}
