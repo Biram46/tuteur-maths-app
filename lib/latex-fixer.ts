@@ -37,6 +37,26 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // Liste étendue à toutes les commandes LaTeX mathématiques du niveau lycée
     fixed = fixed.replace(/\\\\(text|mathrm|vec|infty|bar|frac|sqrt|Omega|omega|Alpha|alpha|beta|Beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|phi|Phi|chi|psi|Psi|left|right|leq|geq|neq|times|cdot|pm|mp|div|circ|cap|cup|subset|supset|subseteq|supseteq|in|notin|forall|exists|to|Rightarrow|Leftrightarrow|rightarrow|leftarrow|mapsto|equiv|approx|sim|simeq|perp|parallel|angle|triangle|int|sum|prod|lim|log|ln|sin|cos|tan|arcsin|arccos|arctan|exp|max|min|sup|inf|det|gcd|deg|ker|dim|binom|pmatrix|bmatrix|vmatrix|mathbb|mathcal|mathbf|mathrm|text|operatorname|overrightarrow|overline|underline|widehat|widetilde|hat|tilde|dot|ddot|underbrace|overbrace|sqrt|frac|dfrac|tfrac|not|neg|land|lor|lnot|iff|implies|emptyset|varnothing|nabla|partial|hbar|ell|Re|Im|wp|infty)/g, '\\$1');
 
+    // 4.5 Auto-encapsulation des commandes LaTeX nues (sans délimiteurs $)
+    // L'IA écrit souvent \Delta, \frac{a}{b}, \sqrt{x} directement dans le texte
+    // sans les entourer de $ ... $. Ce step les détecte et les encadre.
+    // ⚠️ Ne s'applique QU'aux commandes qui ne sont PAS déjà dans un bloc $...$
+    // Stratégie: remplacer ligne par ligne pour éviter les faux positifs inter-lignes.
+    fixed = fixed.split('\n').map(line => {
+        // Si la ligne contient déjà des $, on ne touche pas (déjà balisée)
+        if (line.includes('$')) return line;
+        // Encapsuler \frac{...}{...} et \dfrac{...}{...}
+        line = line.replace(/\\d?frac\{[^}]*\}\{[^}]*\}/g, m => `$${m}$`);
+        // Encapsuler \sqrt{...} ou \sqrt[n]{...}
+        line = line.replace(/\\sqrt(?:\[[^\]]*\])?\{[^}]*\}/g, m => `$${m}$`);
+        // Encapsuler les lettres grecques majuscules isolées (\Delta, \Sigma, \Omega, etc.)
+        // suivies d'un espace ou ponctuation
+        line = line.replace(/\\(Delta|Sigma|Omega|Gamma|Lambda|Theta|Pi|Phi|Psi|Xi|Upsilon)(?=[\s,;.!?)]|$)/g, m => `$${m}$`);
+        // Encapsuler \infty isolé
+        line = line.replace(/\\infty(?=[\s,;.!?)]|$)/g, m => `$${m}$`);
+        return line;
+    }).join('\n');
+
     // 5. \begin{aligned} et \begin{array} sans délimiteurs $$ → on les encadre
     // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour
     // ⚠️ Idempotent : callback vérifie que l'environnement n'est PAS déjà dans un $$
