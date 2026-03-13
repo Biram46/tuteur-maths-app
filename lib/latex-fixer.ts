@@ -56,6 +56,22 @@ export function fixLatexContent(content: string): LatexFixerResult {
         return '$' + fixedInner + '$';
     });
 
+    // 8. Espaces manquants aux frontières TEXTE ↔ BLOC MATH inline
+    // L'IA génère souvent "$f(x)$est" (pas d'espace après $) ou "texte$expr$" (pas avant)
+    // On ajoute les espaces manquants en entourant chaque $...$ trouvé
+    // sans toucher au contenu interne du bloc.
+    // ⚠️ Ne traite que les $ inline (pas $$) grâce au lookbehind/ahead (?<!\$)/(?!\$)
+    fixed = fixed.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (match, _inner, offset, str) => {
+        const before = offset > 0 ? str[offset - 1] : '';
+        const after = str[offset + match.length] ?? '';
+        let result = match;
+        // Espace avant le $ ouvrant si précédé d'une lettre/chiffre/)
+        if (/[a-zA-ZÀ-ÿ0-9)]/.test(before)) result = ' ' + result;
+        // Espace après le $ fermant si suivi d'une lettre/chiffre/(
+        if (/[a-zA-ZÀ-ÿ0-9(]/.test(after)) result = result + ' ';
+        return result;
+    });
+
     return {
         content: fixed,
         fixes
