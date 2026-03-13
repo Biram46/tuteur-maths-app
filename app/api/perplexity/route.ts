@@ -149,6 +149,18 @@ circle: O, 3
 
 ⚠️ **RÈGLE ABSOLUE : TOUTES LES NOTATIONS MATHÉMATIQUES DOIVENT ÊTRE EN LaTeX !**
 
+⛔⛔⛔ **RÈGLE CRITIQUE — DÉLIMITEURS LATEX OBLIGATOIRES :** ⛔⛔⛔
+
+**UTILISER UNIQUEMENT dollar-dollar (inline) et double-dollar-double-dollar (bloc centré)**
+
+❌❌❌ INTERDITS ABSOLUS — NE JAMAIS UTILISER :
+- "\\(" et "\\)" → STRICTEMENT INTERDIT (ne s'affiche pas sur le site)
+- "\\[" et "\\]" → STRICTEMENT INTERDIT (ne s'affiche pas sur le site)
+
+✅ SEULS FORMATS ACCEPTÉS :
+- Inline : "$\\Delta = b^2 - 4ac$" (un seul dollar de chaque côté)
+- Bloc centré : "$$\\Delta = b^2 - 4ac$$" (deux dollars de chaque côté)
+
 ⛔ INTERDIT d'écrire des maths sans LaTeX :
 - ❌ "AB = 5" → ✅ "$AB = 5$"
 - ❌ "racine carrée de 2" → ✅ "$\sqrt{2}$"
@@ -156,6 +168,8 @@ circle: O, 3
 - ❌ "Δ = b²-4ac" → ✅ "$\Delta = b^2 - 4ac$"
 - ❌ "pour x < -2" → ✅ "pour $x < -2$"
 - ❌ "f(x) = x²-4" → ✅ "$f(x) = x^2 - 4$"
+- ❌ "\(f(x)\)" → ✅ "$f(x)$"
+- ❌ "\[\Delta = b^2-4ac\]" → ✅ "$$\Delta = b^2-4ac$$"
 
 ⚠️ RÈGLE STRICTE : PAS D'ESPACE après le $ ouvrant ni avant le $ fermant :
 - ❌ "$ f(x) $" → ✅ "$f(x)$"
