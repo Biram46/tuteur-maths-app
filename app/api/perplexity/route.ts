@@ -816,6 +816,22 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
         }
 
         // Essayer chaque provider en cascade
+        // ⚠️ Pré-traitement : si l'élève demande de "résoudre" une équation, ajouter instruction explicite
+        const processedMessages = messages.map(msg => {
+            if (msg.role === 'user' && msg.content) {
+                const content = msg.content.toLowerCase();
+                // Détecter "résous" ou "résoudre" + équation avec "="
+                if ((content.includes('résous') || content.includes('résoudre') || content.includes('resous') || content.includes('resoudre')) && content.includes('=')) {
+                    // Ajouter instruction pour résolution algébrique
+                    return {
+                        ...msg,
+                        content: `[INSTRUCTION: Résoudre algébriquement avec le discriminant. JAMAIS de graphique. JAMAIS de "résolution graphique".] ${msg.content}`
+                    };
+                }
+            }
+            return msg;
+        });
+
         let lastError = null;
         for (const provider of providers) {
             try {
@@ -831,7 +847,7 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                     headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: provider.model,
-                        messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
+                        messages: [{ role: 'system', content: reasoningPrompt }, ...processedMessages],
                         stream: true,
                         temperature: provider.temperature,
                         // seed pour la reproductibilité (OpenAI seulement)
