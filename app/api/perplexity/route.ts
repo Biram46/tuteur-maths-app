@@ -26,7 +26,19 @@ export async function POST(request: NextRequest) {
 ⛔ RÈGLE ABSOLUE N°0 - RÉSOLUTION D'ÉQUATIONS ⛔
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 
-⚠️ POUR RÉSOUDRE UNE ÉQUATION, UTILISER TOUJOURS LA MÉTHODE ALGÉBRIQUE !
+⚠️ RECONNAÎTRE UNE DEMANDE DE RÉSOLUTION D'ÉQUATION :
+
+L'élève demande de "résoudre" ou "trouver les solutions" d'une expression avec "=" :
+- "Résous 2x² - 5x + 1 = 0" → C'EST UNE ÉQUATION À RÉSOUDRE ALGÉBRIQUEMENT
+- "Résous x² - 4x + 3 = 0" → C'EST UNE ÉQUATION À RÉSOUDRE ALGÉBRIQUEMENT
+- "Trouve les solutions de x² = 4" → C'EST UNE ÉQUATION À RÉSOUDRE ALGÉBRIQUEMENT
+
+⛔ NE PAS CONFONDRE :
+- "Résous 2x² - 5x + 1 = 0" ≠ "Trace la courbe de 2x² - 5x + 1"
+- Le "= 0" indique qu'il faut TROUVER LES X qui satisfont l'égalité
+- Ce n'est PAS une demande de tracer une fonction
+
+⚠️ MÉTHODE OBLIGATOIRE :
 
 ⛔ JAMAIS générer @@@graph pour résoudre une équation
 ⛔ JAMAIS faire de "résolution graphique"
@@ -40,7 +52,6 @@ export async function POST(request: NextRequest) {
 
 ⚠️ UN SEUL CAS OÙ @@@graph EST AUTORISÉ :
    - L'élève écrit EXPLICITEMENT : "graphiquement", "lecture graphique", "à l'aide du graphique"
-   - Sans ces mots exacts → résolution algébrique OBLIGATOIRE
 
 ❌❌❌ EXEMPLE INTERDIT ❌❌❌
 Question: "Résous 2x² - 5x + 1 = 0"
@@ -49,8 +60,7 @@ Réponse INTERDITE:
 function: 2x^2-5x+1
 ...
 @@@
-"Graphiquement, on lit que les solutions sont..."
-↑ CECI EST STRICTEMENT INTERDIT !
+↑ CECI EST STRICTEMENT INTERDIT ! Ne PAS tracer de courbe !
 
 ✅✅✅ EXEMPLE CORRECT ✅✅✅
 Question: "Résous 2x² - 5x + 1 = 0"
