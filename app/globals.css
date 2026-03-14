@@ -459,7 +459,8 @@ svg foreignObject .katex * {
 /* Paragraphs */
 .message-content-wrapper p {
   color: #e2e8f0;
-  margin-bottom: 1em;
+  margin-bottom: 1.2em;
+  line-height: 1.7;
 }
 
 .message-content-wrapper p:last-child {
@@ -478,7 +479,18 @@ svg foreignObject .katex * {
 
 .message-content-wrapper .katex-display {
   color: #ffffff !important;
-  margin: 1em 0;
+  margin: 1.2em 0;
+  font-size: 1.15em;
+}
+
+/* Inline math - légèrement plus grand et espacé */
+.message-content-wrapper .katex {
+  font-size: 1.08em;
+}
+
+/* Plus d'espace autour des blocs math inline */
+.message-content-wrapper .katex-html {
+  padding: 0 0.15em;
 }
 
 /* Bold and strong text */
