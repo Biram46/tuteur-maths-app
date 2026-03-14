@@ -817,7 +817,7 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
 
         // Essayer chaque provider en cascade
         // ⚠️ Pré-traitement : si l'élève demande de "résoudre" une équation, ajouter instruction explicite
-        const processedMessages = messages.map(msg => {
+        const processedMessages = messages.map((msg: { role: string; content: string }) => {
             if (msg.role === 'user' && msg.content) {
                 const content = msg.content.toLowerCase();
                 // Détecter "résous" ou "résoudre" + équation avec "="
