@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const PYTHON_API = process.env.PYTHON_API_URL || 'http://localhost:5000';
+const PYTHON_API = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 /**
  * Convertit une équation format utilisateur vers format SymPy
