@@ -67,6 +67,79 @@ function clean(text: string): string {
     return t;
 }
 
+/**
+ * Vrai si la valeur contient des notations LaTeX mathématiques
+ * OU des constantes exactes générées par SymPy (e, π, fractions…)
+ * Ces valeurs DOIVENT être rendues via KaTeX, pas via clean().
+ */
+function isLatexValue(val: string): boolean {
+    if (!val) return false;
+    const t = val.trim();
+    return (
+        // LaTeX brut (fractions, racines, exposants…)
+        t.includes('\\frac') ||
+        t.includes('\\dfrac') ||
+        t.includes('\\sqrt') ||
+        t.includes('\\pi') ||
+        t.includes('\\infty') ||
+        t.includes('\\cdot') ||
+        t.includes('\\ln') ||
+        t.includes('^{') ||
+        // Constantes exactes SymPy texte
+        /^-?\d*π(\/\d+)?$/.test(t) ||   // π, 2π, π/3, 3π/4…
+        /^-?\d*e(²|³)?$/.test(t) ||      // e, 2e, -e, e², -e²
+        /^-?(\d+\/)?e(²|³)?$/.test(t) ||  // 1/e, 1/e², -1/e, -1/e²
+        // Fractions simples non-LaTeX (ex: "3/2") → aussi via KaTeX
+        /^-?\d+\/\d+$/.test(t)
+    );
+}
+
+/** Convertit une valeur en LaTeX pour l'affichage dans variation row */
+function valToLatex(val: string): string {
+    if (!val) return '';
+    const t = val.trim();
+    // Infinis
+    if (t === '-inf' || t === '-infty') return '-\\infty';
+    if (t === '+inf' || t === '+infty' || t === 'inf') return '+\\infty';
+    // Fraction simple non-LaTeX : 3/2 → \dfrac{3}{2}
+    const frac = t.match(/^(-?\d+)\/(\d+)$/);
+    if (frac) return `\\dfrac{${frac[1]}}{${frac[2]}}`;
+    // Constantes π texte → LaTeX  (π, 2π, -π, π/3, 2π/3…)
+    const piMatch = t.match(/^(-?)(\d*)π(?:\/(\d+))?$/);
+    if (piMatch) {
+        const sign = piMatch[1];
+        const coeff = piMatch[2];   // ex: "2" pour 2π, "" pour π
+        const denom = piMatch[3];   // ex: "3" pour π/3, undefined sinon
+        let num = (coeff ? coeff : '1') + '\\pi';
+        if (sign === '-') num = '-' + num;
+        return denom ? `\\dfrac{${num}}{${denom}}` : num;
+    }
+    // Constante e (nombre d'Euler) : e, 2e, -e, e/2, e², 1/e, 1/e²…
+    const eMatch = t.match(/^(-?)(\d*)e([²³])?$/);
+    if (eMatch) {
+        const s = eMatch[1]; const c = eMatch[2]; const sup = eMatch[3];
+        const supLatex = sup === '²' ? '^2' : sup === '³' ? '^3' : '';
+        const base = `${c}e${supLatex}`;
+        return s === '-' ? `-${base}` : base;
+    }
+    const eFracMatch = t.match(/^(-?)(\d*)\/(e)([²³]?)$/);
+    if (eFracMatch) {
+        const s = eFracMatch[1]; const n = eFracMatch[2] || '1';
+        const sup = eFracMatch[4];
+        const supLatex = sup === '²' ? '^2' : sup === '³' ? '^3' : '';
+        return `${s}\\dfrac{${n}}{e${supLatex}}`;
+    }
+    const eFrac2Match = t.match(/^(-?)e([²³]?)\/?(\d+)?$/);
+    if (eFrac2Match && eFrac2Match[3]) {
+        // e/n ou e²/n
+        const s = eFrac2Match[1]; const sup = eFrac2Match[2]; const d = eFrac2Match[3];
+        const supLatex = sup === '²' ? '^2' : sup === '³' ? '^3' : '';
+        return `${s}\\dfrac{e${supLatex}}{${d}}`;
+    }
+    // Déjà du LaTeX → retourner tel quel
+    return t;
+}
+
 /** Vrai si la chaîne représente une valeur interdite (double barre) */
 function isForbidden(v: string): boolean {
     if (!v) return false;
@@ -465,12 +538,26 @@ export default function MathTable({ data, title }: MathTableProps) {
                     </g>
                 );
             } else if (val) {
-                elements.push(
-                    <text key={`v-${k}`} x={xPos} y={yAtX[k]} dy="0.35em"
-                        textAnchor="middle" fontSize="13" fill="#1e293b">
-                        {clean(val)}
-                    </text>
-                );
+                // ── Valeurs exactes SymPy (fractions, racines…) → KaTeX ──
+                // ── Valeurs simples (entiers, ±∞) → texte SVG natif ──
+                if (isLatexValue(val)) {
+                    elements.push(
+                        <MathSvgText
+                            key={`v-${k}`}
+                            latex={valToLatex(val)}
+                            x={xPos}
+                            y={yAtX[k]}
+                            fontSize={12}
+                        />
+                    );
+                } else {
+                    elements.push(
+                        <text key={`v-${k}`} x={xPos} y={yAtX[k]} dy="0.35em"
+                            textAnchor="middle" fontSize="13" fill="#1e293b">
+                            {clean(val)}
+                        </text>
+                    );
+                }
             }
         }
 
@@ -579,11 +666,20 @@ export default function MathTable({ data, title }: MathTableProps) {
                     {/* ── Valeurs x dans l'en-tête ── */}
                     {displayXValues.map((xVal, i) => {
                         const cx = xCenter(i * 2);
+                        // Valeurs exactes SymPy (fractions, π, e…) → KaTeX
+                        if (isLatexValue(xVal)) {
+                            return (
+                                <MathSvgText key={`xc-${i}`}
+                                    latex={valToLatex(xVal)}
+                                    x={cx} y={HEADER_H / 2}
+                                    fontSize={13}
+                                />
+                            );
+                        }
                         const cleaned = clean(xVal);
-                        // Détecter les fractions pour les rendre en notation mathématique
+                        // Fraction simple (après stripping backslash) → KaTeX
                         const fracMatch = cleaned.match(/^(-?\d+)\/(\d+)$/);
                         if (fracMatch) {
-                            // Fraction → rendu KaTeX avec barre horizontale
                             return (
                                 <MathSvgText key={`xc-${i}`}
                                     latex={`\\dfrac{${fracMatch[1]}}{${fracMatch[2]}}`}

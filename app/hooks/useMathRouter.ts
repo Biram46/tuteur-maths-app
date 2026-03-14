@@ -1130,11 +1130,88 @@ export function useMathRouter({
         );
         const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
         const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
-            && /graphi|graph|courbe|=|>|<|\bx\b/i.test(inputNorm);
+            && /graphi|graphement|graphique|graphiquement|courbe/i.test(inputNorm);
         const wantsTangente = /tangente|tangent/i.test(inputNorm);
         const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
         const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
 
+        // ── INTERCEPTION RÉSOLUTION D'ÉQUATION (SymPy direct) ──
+        // Détecte "résous ax² + bx + c = 0" et utilise /api/solve (sans graphe)
+        // ⚠️ Ne PAS confondre avec "résous graphiquement" → géré par wantsResolve ci-dessus
+        const wantsSolveEquation = (
+            /resou|calculer?.*equation|trouv.*racine|trouv.*solution|antecedent.*0/i.test(inputNorm)
+            && !wantsGraphAction  // Ne pas capturer les demandes graphiques
+            && !wantsSignTable
+            && !wantsVariationTable
+            && !isMultiExpr
+        );
+
+        if (wantsSolveEquation) {
+            // NOTE: on matche sur inputNorm (sans accents) pour gerer 'Résous' -> 'resous'.
+            // On extrait ensuite depuis inputText pour garder les ²/³/⁴.
+            let rawEq = '';
+
+            // Pattern 1 : "resous 2x² = 8x - 6"
+            const m1 = inputNorm.match(/resou\w*\s+(.+?)\s*$/im);
+            if (m1 && m1[1]) {
+                const normIdx = inputNorm.indexOf(m1[1]);
+                if (normIdx >= 0) {
+                    const eqFromText = inputText.slice(normIdx, normIdx + m1[1].length).trim();
+                    if (eqFromText.includes('=')) rawEq = eqFromText;
+                }
+                if (!rawEq && m1[1].includes('=')) rawEq = m1[1].trim();
+            }
+
+            // Pattern 2 : "trouve les solutions de ..."
+            if (!rawEq) {
+                const m2 = inputNorm.match(/(?:solution|racine|resou)[^:]*?(?:de|pour|:)\s*(.+?)\s*$/im);
+                if (m2 && m2[1]) {
+                    const normIdx = inputNorm.indexOf(m2[1]);
+                    if (normIdx >= 0) {
+                        const eqFromText = inputText.slice(normIdx, normIdx + m2[1].length).trim();
+                        if (eqFromText.includes('=')) rawEq = eqFromText;
+                    }
+                    if (!rawEq && m2[1].includes('=')) rawEq = m2[1].trim();
+                }
+            }
+
+            // Pattern 3 : toute expression avec "=" dans inputText (garde les ²/³)
+            if (!rawEq) {
+                const m3 = inputText.match(/([\w²³⁴][\w\s²³⁴^+\-*/(),.]*=[\w\s²³⁴^+\-*/(),.]+)/);
+                if (m3 && m3[1] && m3[1].includes('=')) rawEq = m3[1].trim();
+            }
+
+            // Fallback final
+            if (!rawEq) {
+                const mFb = inputText.match(/([\w²³⁴][\w\s²³⁴^+\-*/().]*=[\w\s²³⁴^+\-*/().]+)/);
+                if (mFb) rawEq = mFb[1].trim();
+            }
+
+            // Nettoyer l'équation pour l'API SymPy
+            const sympifyEq = rawEq
+                .replace(/²/g, '**2').replace(/³/g, '**3').replace(/⁴/g, '**4')
+                .replace(/\^/g, '**')
+                .replace(/(\d),(\d)/g, '$1.$2')   // virgule decimale francaise : 0,5 → 0.5
+                .replace(/(\d)([xX])/g, '$1*$2')
+                .replace(/[fghk]\s*\(x\)\s*=\s*/gi, '')
+                .replace(/\s+/g, '')
+                .replace(/[−]/g, '-')
+                .trim();
+
+
+            if (sympifyEq && sympifyEq.includes('=') && sympifyEq.includes('x')) {
+                console.log(`[Solve] 🔢 Résolution équation: "${sympifyEq}"`);
+
+                // Injecter un bloc @@@ solve directement dans le message affiché
+                const solveBlock = `@@@\nsolve\nequation: ${sympifyEq}\n@@@`;
+                const introText = `Je résous cette équation via le moteur SymPy.\n\n`;
+                setMessages(prev => [...prev, { role: 'assistant', content: introText + solveBlock }]);
+
+                setLoading(false);
+                setIsTalking(false);
+                return;
+            }
+        }
 
         if (wantsGraphAction) {
             try {

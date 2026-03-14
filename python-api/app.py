@@ -11,6 +11,7 @@ Endpoints:
 """
 
 import os
+import re
 import json
 import math
 import traceback
@@ -780,6 +781,61 @@ def health():
     return jsonify({'status': 'ok', 'sympy_version': sp.__version__})
 
 
+def _sign_of(expr):
+    """Retourne (num_value, sign_int) d'une expression SymPy.
+    sign_int : +1 (positif), 0 (nul), -1 (negatif).
+    Robuste meme si evalf() retourne un complexe comme 25.0+0.0*I.
+    """
+    def _to_real_float(e):
+        """Convertit n'importe quelle expression SymPy en float (partie reelle)."""
+        ev = e.evalf()
+        # Cas complexe: 25.0 + 0.0*I → prendre la partie reelle
+        if hasattr(ev, 'as_real_imag'):
+            re_part, _ = ev.as_real_imag()
+            return float(re_part)
+        return float(ev)
+
+    # Tentative 1 : evalf direct
+    try:
+        v = _to_real_float(expr)
+        if v > 1e-9:   return v,  1
+        if v < -1e-9:  return v, -1
+        return 0.0, 0
+    except (TypeError, ValueError, AttributeError):
+        pass
+
+    # Tentative 2 : N() avec 50 chiffres
+    try:
+        v = _to_real_float(sp.N(expr, 50))
+        if v > 1e-9:   return v,  1
+        if v < -1e-9:  return v, -1
+        return 0.0, 0
+    except (TypeError, ValueError, AttributeError):
+        pass
+
+    # Tentative 3 : proprietes symboliques SymPy (calcul symbolique pur)
+    if expr.is_positive:  return  1.0,  1
+    if expr.is_negative:  return -1.0, -1
+    if expr.is_zero:      return  0.0,  0
+
+    # Indetermine : pas de solution reelle annoncee
+    return 0.0, 0
+
+
+def _safe_approx(expr):
+    """Retourne une approximation float d'une expression SymPy sous forme de string.
+    Ne leve jamais d'exception.
+    """
+    try:
+        ev = expr.evalf()
+        if hasattr(ev, 'as_real_imag'):
+            re_part, _ = ev.as_real_imag()
+            return str(round(float(re_part), 4))
+        return str(round(float(ev), 4))
+    except Exception:
+        return sp.latex(expr)
+
+
 @app.route('/solve', methods=['POST'])
 def solve_equation():
     """
@@ -810,8 +866,11 @@ def solve_equation():
 
         # Nettoyer l'expression
         eq_str = eq_str.strip()
-        eq_str = eq_str.replace('²', '**2').replace('³', '**3')
+        eq_str = eq_str.replace('\u00b2', '**2').replace('\u00b3', '**3')
         eq_str = eq_str.replace('^', '**')
+        # Virgule decimale francaise : 0,5 → 0.5 (ne touche que chiffre,chiffre)
+        eq_str = re.sub(r'(\d),(\d)', r'\1.\2', eq_str)
+
 
         # Séparer gauche et droite du =
         if '=' not in eq_str:
@@ -846,118 +905,290 @@ def solve_equation():
                 'error': f'Cannot parse equation: {str(e)}'
             }), 400
 
-        # Développer et simplifier
-        eq_expr = sp.expand(eq_expr)
-        eq_expr = sp.simplify(eq_expr)
+        # ── Nettoyage supplementaire ──────────────────────────────────
+        eq_str_clean = eq_str.strip()
+        eq_str_clean = eq_str_clean.replace('\u00d7', '*').replace('\u00b7', '*')
+        eq_str_clean = eq_str_clean.replace('\u2212', '-').replace('\u00f7', '/')
 
-        # Vérifier si c'est un polynôme du second degré
-        # Forme: ax² + bx + c = 0
-        coeffs = sp.Poly(eq_expr, x).all_coeffs() if eq_expr.as_poly(x) else None
+        if '=' not in eq_str_clean:
+            return jsonify({'success': False, 'error': 'Equation must contain ='}), 400
 
-        if coeffs and len(coeffs) == 3:
-            a, b, c = coeffs
+        parts_raw = eq_str_clean.split('=', 1)
+        lhs_str = parts_raw[0].strip()
+        rhs_str = parts_raw[1].strip()
 
-            # Calculer le discriminant
-            delta = b**2 - 4*a*c
+        try:
+            lhs_sym = sp.sympify(lhs_str, locals=LOCALS)
+            rhs_sym = sp.sympify(rhs_str, locals=LOCALS)
+        except Exception as pe:
+            return jsonify({'success': False, 'error': 'Cannot parse: ' + str(pe)}), 400
 
-            steps = []
-            steps.append(f"Identification des coefficients: a = {a}, b = {b}, c = {c}")
-            steps.append(f"Calcul du discriminant: $\\Delta = b^2 - 4ac = {b}^2 - 4 \\times {a} \\times {c} = {delta}$")
+        f_sym = sp.expand(lhs_sym - rhs_sym)
+        steps = []
 
-            if delta > 0:
-                # Deux solutions
-                sqrt_delta = sp.sqrt(delta)
-                x1 = (-b - sqrt_delta) / (2*a)
-                x2 = (-b + sqrt_delta) / (2*a)
+        # ── Etape 1 : Domaine de definition ──────────────────────────
+        domain_latex = '\\mathbb{R}'
+        forbidden_pts = []
+        domain_set = sp.S.Reals
 
-                # Formater en LaTeX
-                x1_latex = sp.latex(x1)
-                x2_latex = sp.latex(x2)
+        def _fmt_b(b):
+            if b == sp.oo:  return '+\\infty'
+            if b == -sp.oo: return '-\\infty'
+            return sp.latex(b)
 
-                steps.append(f"$\\Delta = {delta} > 0$, donc l'équation admet deux solutions distinctes:")
-                steps.append(f"$x_1 = {x1_latex}$")
-                steps.append(f"$x_2 = {x2_latex}$")
+        def _str_iv(iv):
+            lb = ']' if iv.left_open  else '['
+            rb = '[' if iv.right_open else ']'
+            return lb + _fmt_b(iv.inf) + ' ; ' + _fmt_b(iv.sup) + rb
 
-                return jsonify({
-                    'success': True,
-                    'type': 'quadratic',
-                    'discriminant': float(delta),
-                    'discriminant_type': 'positive',
-                    'a': float(a),
-                    'b': float(b),
-                    'c': float(c),
-                    'solutions': [str(x1), str(x2)],
-                    'latex_solutions': [str(x1_latex), str(x2_latex)],
-                    'steps': steps
+        try:
+            dom_l = continuous_domain(lhs_sym, x, sp.S.Reals)
+            dom_r = continuous_domain(rhs_sym, x, sp.S.Reals) if rhs_str != '0' else sp.S.Reals
+            dom   = dom_l.intersect(dom_r)
+            domain_set = dom
+            if dom != sp.S.Reals:
+                if isinstance(dom, sp.Interval):
+                    domain_latex = _str_iv(dom)
+                elif isinstance(dom, sp.Union):
+                    ivs = sorted([a for a in dom.args if isinstance(a, sp.Interval)],
+                                 key=lambda iv: float(iv.inf.evalf()) if iv.inf != sp.S.NegativeInfinity else -1e18)
+                    domain_latex = ' \\cup '.join(_str_iv(iv) for iv in ivs) or '\\mathbb{R}'
+                    compl = sp.S.Reals - dom
+                    if isinstance(compl, sp.FiniteSet):
+                        forbidden_pts = sorted([float(p.evalf()) for p in compl])
+                    elif isinstance(compl, sp.Union):
+                        for arg in compl.args:
+                            if isinstance(arg, sp.FiniteSet):
+                                forbidden_pts += [float(p.evalf()) for p in arg]
+                        forbidden_pts.sort()
+            steps.append('**Etape 1 - Domaine de definition**\n\n$D_f = ' + domain_latex + '$')
+        except Exception:
+            steps.append('**Etape 1 - Domaine de definition**\n\n$D_f = \\mathbb{R}$')
+
+        # ── Etape 2 : Mise sous forme f(x) = 0 ───────────────────────
+        eq_disp  = sp.latex(lhs_sym) + ' = ' + sp.latex(rhs_sym)
+        f_latex  = sp.latex(f_sym)
+        if rhs_str != '0':
+            steps.append(
+                '**Etape 2 - Mise sous forme f(x) = 0**\n\n'
+                '$' + eq_disp + '$\n\n'
+                '$\\Leftrightarrow ' + f_latex + ' = 0$'
+            )
+        else:
+            steps.append(
+                '**Etape 2 - Forme f(x) = 0**\n\n'
+                "L'equation est deja sous la forme $f(x) = 0$ :\n\n"
+                '$f(x) = ' + f_latex + '$'
+            )
+
+        # ── Analyse du degre ──────────────────────────────────────────
+        poly_obj    = f_sym.as_poly(x)
+        poly_degree = poly_obj.degree() if poly_obj is not None else None
+        factored    = sp.factor(f_sym)
+        fact_latex  = sp.latex(factored)
+        factor_details = []
+        all_solutions  = []
+
+        # ══════════════════════════════════════════════════════════════
+        # REGLE PEDAGOGIQUE BO : degre 2 -> DELTA OBLIGATOIRE
+        # La factorisation n'est montree qu'en consequence
+        # ══════════════════════════════════════════════════════════════
+        if poly_degree == 2:
+            cf = poly_obj.all_coeffs()
+            av, bv, cv = cf[0], cf[1], cf[2]
+            al, bl, cl = sp.latex(av), sp.latex(bv), sp.latex(cv)
+
+            steps.append(
+                '**Etape 3 - Identification des coefficients**\n\n'
+                "L'equation est de la forme $ax^2 + bx + c = 0$ avec :\n\n"
+                '$a = ' + al + '$,  $b = ' + bl + '$,  $c = ' + cl + '$'
+            )
+
+            delta  = bv**2 - 4*av*cv
+            delta_s = sp.simplify(delta)
+            dl = sp.latex(delta_s)
+
+            steps.append(
+                '**Etape 4 - Calcul du discriminant**\n\n'
+                '$\\Delta = b^2 - 4ac = (' + bl + ')^2 - 4 \\times (' + al + ') \\times (' + cl + ')$\n\n'
+                '$\\Delta = ' + dl + '$'
+            )
+
+            delta_val, delta_sign = _sign_of(delta_s)
+
+            if delta_sign > 0:
+                sqd  = sp.sqrt(delta_s)
+                sqd_l = sp.latex(sqd)
+                x1s  = sp.simplify((-bv - sqd) / (2*av))
+                x2s  = sp.simplify((-bv + sqd) / (2*av))
+                all_solutions.extend([x1s, x2s])
+                x1l, x2l = sp.latex(x1s), sp.latex(x2s)
+                steps.append(
+                    '**Etape 5 - Resolution** ($\\Delta > 0$)\n\n'
+                    '$\\Delta = ' + dl + ' > 0$ : deux solutions reelles distinctes :\n\n'
+                    '$$x_1 = \\dfrac{-b - \\sqrt{\\Delta}}{2a} = '
+                    '\\dfrac{-(' + bl + ') - ' + sqd_l + '}{2 \\times (' + al + ')} = ' + x1l + '$$\n\n'
+                    '$$x_2 = \\dfrac{-b + \\sqrt{\\Delta}}{2a} = '
+                    '\\dfrac{-(' + bl + ') + ' + sqd_l + '}{2 \\times (' + al + ')} = ' + x2l + '$$'
+                )
+                factor_details.append({
+                    'type': 'quadratic_2roots',
+                    'delta': str(delta_val),
+                    'roots': [x1l, x2l]
                 })
 
-            elif delta == 0:
-                # Une solution double
-                x0 = -b / (2*a)
-                x0_latex = sp.latex(x0)
-
-                steps.append(f"$\\Delta = {delta} = 0$, donc l'équation admet une solution double:")
-                steps.append(f"$x_0 = {str(x0_latex)}$")
-
-                return jsonify({
-                    'success': True,
-                    'type': 'quadratic',
-                    'discriminant': 0,
-                    'discriminant_type': 'zero',
-                    'a': float(a),
-                    'b': float(b),
-                    'c': float(c),
-                    'solutions': [str(x0)],
-                    'latex_solutions': [str(x0_latex)],
-                    'steps': steps
-                })
+            elif delta_sign == 0:
+                x0s  = sp.simplify(-bv / (2*av))
+                all_solutions.append(x0s)
+                x0l  = sp.latex(x0s)
+                steps.append(
+                    '**Etape 5 - Resolution** ($\\Delta = 0$)\n\n'
+                    '$\\Delta = 0$ : solution double :\n\n'
+                    '$$x_0 = \\dfrac{-b}{2a} = \\dfrac{-(' + bl + ')}{2 \\times (' + al + ')} = ' + x0l + '$$'
+                )
+                factor_details.append({'type': 'quadratic_double', 'delta': '0', 'roots': [x0l]})
 
             else:
-                # Pas de solution réelle
-                steps.append(f"$\\Delta = {delta} < 0$, donc l'équation n'admet pas de solution réelle.")
-
-                return jsonify({
-                    'success': True,
-                    'type': 'quadratic',
-                    'discriminant': float(delta),
-                    'discriminant_type': 'negative',
-                    'a': float(a),
-                    'b': float(b),
-                    'c': float(c),
-                    'solutions': [],
-                    'latex_solutions': [],
-                    'steps': steps
-                })
+                steps.append(
+                    '**Etape 5 - Resolution** ($\\Delta < 0$)\n\n'
+                    '$\\Delta = ' + dl + ' < 0$ : **aucune solution reelle.**'
+                )
+                factor_details.append({'type': 'quadratic_no_real', 'delta': str(delta_val), 'roots': []})
 
         else:
-            # Essayer de factoriser
+            # ── Degre != 2 : factorisation puis Delta sur facteurs deg 2 ──
+            if factored != f_sym:
+                steps.append('**Etape 3 - Factorisation**\n\n$f(x) = ' + fact_latex + '$')
+            else:
+                steps.append('**Etape 3 - Expression**\n\n$f(x) = ' + fact_latex + '$')
+
+            poly_factors = []
+            if factored.is_Mul:
+                for arg in factored.args:
+                    if arg.is_number: continue
+                    elif (arg.is_Pow and arg.args[1].is_integer and int(arg.args[1]) > 0
+                          and arg.args[0].as_poly(x) is not None):
+                        poly_factors.append((arg.args[0], int(arg.args[1])))
+                    elif arg.as_poly(x) is not None:
+                        poly_factors.append((arg, 1))
+            elif factored.as_poly(x) is not None:
+                poly_factors.append((factored, 1))
+
+            sol_details = []
+            if poly_factors:
+                for fac, mult in poly_factors:
+                    fp = fac.as_poly(x)
+                    if fp is None: continue
+                    deg = fp.degree()
+                    fl  = sp.latex(fac)
+                    ms  = ' (ordre ' + str(mult) + ')' if mult > 1 else ''
+
+                    if deg == 1:
+                        c1 = fp.all_coeffs()
+                        av2, bv2 = c1[0], c1[1]
+                        sol = sp.Rational(-bv2, av2)
+                        all_solutions.append(sol)
+                        sol_details.append(
+                            '**Facteur** $(' + fl + ') = 0$' + ms + '\n\n'
+                            '$x = \\dfrac{' + sp.latex(-bv2) + '}{' + sp.latex(av2) + '} = ' + sp.latex(sol) + '$'
+                        )
+                        factor_details.append({'label': fl, 'type': 'linear', 'roots': [sp.latex(sol)]})
+
+                    elif deg == 2:
+                        c2 = fp.all_coeffs()
+                        av2, bv2, cv2 = c2[0], c2[1], c2[2]
+                        d2 = bv2**2 - 4*av2*cv2
+                        d2s = sp.simplify(d2)
+                        al2, bl2, cl2, dl2 = sp.latex(av2), sp.latex(bv2), sp.latex(cv2), sp.latex(d2s)
+                        det = (
+                            '**Facteur** $(' + fl + ') = 0$' + ms + '\n\n'
+                            '$a=' + al2 + '$, $b=' + bl2 + '$, $c=' + cl2 + '$\n\n'
+                            '$\\Delta = (' + bl2 + ')^2 - 4(' + al2 + ')(' + cl2 + ') = ' + dl2 + '$'
+                        )
+                        d2_val, d2_sign = _sign_of(d2s)
+
+                        if d2_sign > 0:
+                            sq2 = sp.sqrt(d2s)
+                            r1 = sp.simplify((-bv2 - sq2)/(2*av2))
+                            r2 = sp.simplify((-bv2 + sq2)/(2*av2))
+                            all_solutions.extend([r1, r2])
+                            det += '\n\n$\\Delta > 0$ : $x_1=' + sp.latex(r1) + '$, $x_2=' + sp.latex(r2) + '$'
+                            factor_details.append({'label': fl, 'type': 'quadratic_2roots',
+                                                   'delta': str(d2_val), 'roots': [sp.latex(r1), sp.latex(r2)]})
+                        elif d2_sign == 0:
+                            r0 = sp.simplify(-bv2/(2*av2))
+                            all_solutions.append(r0)
+                            det += '\n\n$\\Delta = 0$ : $x_0=' + sp.latex(r0) + '$'
+                            factor_details.append({'label': fl, 'type': 'quadratic_double', 'delta': '0', 'roots': [sp.latex(r0)]})
+                        else:
+                            det += '\n\n$\\Delta < 0$ : aucune solution reelle'
+                            factor_details.append({'label': fl, 'type': 'quadratic_no_real',
+                                                   'delta': str(d2_val), 'roots': []})
+                        sol_details.append(det)
+
+                    elif deg >= 3:
+                        try:
+                            ss = [s for s in sp.solve(fac, x) if s.is_real]
+                            all_solutions.extend(ss)
+                            sl = ', '.join('$x=' + sp.latex(s) + '$' for s in ss) or 'aucune solution reelle'
+                            sol_details.append('**Facteur degre ' + str(deg) + '** $(' + fl + ') = 0$\n\n' + sl)
+                            factor_details.append({'label': fl, 'type': 'degree_' + str(deg), 'roots': [sp.latex(s) for s in ss]})
+                        except Exception:
+                            pass
+            else:
+                try:
+                    ss = [s for s in sp.solve(f_sym, x) if s.is_real]
+                    all_solutions = ss
+                    sl = ', '.join(sp.latex(s) for s in ss) if ss else 'aucune solution reelle'
+                    sol_details.append('Resolution directe : ' + sl)
+                except Exception:
+                    pass
+
+            if sol_details:
+                steps.append('**Etape 4 - Resolution de chaque facteur**\n\n' + '\n\n---\n\n'.join(sol_details))
+
+        # ── Conclusion ────────────────────────────────────────────────
+        seen_k = set()
+        unique_sols = []
+        for s in all_solutions:
+            k = str(sp.simplify(s))
+            if k not in seen_k:
+                seen_k.add(k)
+                unique_sols.append(s)
+
+        valid_sols = []
+        forbidden_set = {round(p, 8) for p in forbidden_pts}
+        for s in unique_sols:
             try:
-                factors = sp.factor(eq_expr)
-                zeros = sp.solve(eq_expr, x)
+                sv = round(float(s.evalf()), 8)
+                if sv in forbidden_set: continue
+                if domain_set != sp.S.Reals and not domain_set.contains(s): continue
+            except Exception:
+                pass
+            valid_sols.append(s)
 
-                if zeros:
-                    steps = []
-                    steps.append(f"Factorisation: {sp.latex(factors)}")
-                    steps.append(f"Solutions: {zeros}")
+        if valid_sols:
+            sll = [sp.latex(s) for s in valid_sols]
+            sol_set = ('x = ' + sll[0]) if len(sll) == 1 else \
+                      'S = \\left\\{ ' + ' \\; ; \\; '.join(sll) + ' \\right\\}'
+            steps.append('**Conclusion**\n\n$\\boxed{' + sol_set + '}$')
+        else:
+            sol_set = 'S = \\emptyset'
+            steps.append('**Conclusion**\n\n$\\boxed{S = \\emptyset}$ - Aucune solution reelle dans $D_f$.')
 
-                    return jsonify({
-                        'success': True,
-                        'type': 'factorizable',
-                        'solutions': [str(z) for z in zeros],
-                        'latex_solutions': [sp.latex(z) for z in zeros],
-                        'steps': steps
-                    })
-                else:
-                    return jsonify({
-                        'success': False,
-                        'error': 'Could not solve equation'
-                    }), 400
-
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'error': f'Not a polynomial equation: {str(e)}'
-                }), 400
+        return jsonify({
+            'success': True,
+            'domain_latex': domain_latex,
+            'forbidden_points': [fmt(p) for p in forbidden_pts],
+            'equation_latex': eq_disp,
+            'f_expr_latex': f_latex,
+            'factored_latex': fact_latex,
+            'factor_details': factor_details,
+            'solution_set_latex': sol_set,
+            'solutions': [sp.latex(s) for s in valid_sols],
+            'solutions_approx': [_safe_approx(s) for s in valid_sols],
+            'steps': steps,
+        })
 
     except Exception as e:
         return jsonify({
