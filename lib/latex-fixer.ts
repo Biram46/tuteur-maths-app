@@ -40,22 +40,143 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // 4.5 Auto-encapsulation des commandes LaTeX nues (sans délimiteurs $)
     // L'IA écrit souvent \Delta, \frac{a}{b}, \sqrt{x} directement dans le texte
     // sans les entourer de $ ... $. Ce step les détecte et les encadre.
-    // ⚠️ Ne s'applique QU'aux commandes qui ne sont PAS déjà dans un bloc $...$
-    // Stratégie: remplacer ligne par ligne pour éviter les faux positifs inter-lignes.
-    fixed = fixed.split('\n').map(line => {
-        // Si la ligne contient déjà des $, on ne touche pas (déjà balisée)
-        if (line.includes('$')) return line;
-        // Encapsuler \frac{...}{...} et \dfrac{...}{...}
-        line = line.replace(/\\d?frac\{[^}]*\}\{[^}]*\}/g, m => `$${m}$`);
-        // Encapsuler \sqrt{...} ou \sqrt[n]{...}
-        line = line.replace(/\\sqrt(?:\[[^\]]*\])?\{[^}]*\}/g, m => `$${m}$`);
-        // Encapsuler les lettres grecques majuscules isolées (\Delta, \Sigma, \Omega, etc.)
-        // suivies d'un espace ou ponctuation
-        line = line.replace(/\\(Delta|Sigma|Omega|Gamma|Lambda|Theta|Pi|Phi|Psi|Xi|Upsilon)(?=[\s,;.!?)]|$)/g, m => `$${m}$`);
-        // Encapsuler \infty isolé
-        line = line.replace(/\\infty(?=[\s,;.!?)]|$)/g, m => `$${m}$`);
-        return line;
-    }).join('\n');
+    // ⚠️ Ne s'applique QU'aux commandes qui ne sont PAS déjà dans un bloc $...$ ou $$...$$
+    // Helper: vérifie si une position est DANS un bloc math ($...$ ou $$...$$)
+    const isInsideMathBlock = (str: string, pos: number): boolean => {
+        let insideInline = false;
+        let insideDisplay = false;
+        let i = 0;
+        while (i < pos) {
+            // Vérifier $$ (display math) en premier
+            if (str[i] === '$' && str[i + 1] === '$') {
+                insideDisplay = !insideDisplay;
+                i += 2;
+                continue;
+            }
+            // Vérifier $ inline
+            if (str[i] === '$') {
+                insideInline = !insideInline;
+            }
+            i++;
+        }
+        // On est dans un bloc math si l'un des deux est true
+        return insideInline || insideDisplay;
+    };
+
+    // Encapsuler \frac{...}{...} et \dfrac{...}{...} (uniquement si hors d'un bloc $...$)
+    // Version améliorée : gère les espaces et accolades simples (pas imbriquées)
+    fixed = fixed.replace(/\\d?frac\s*\{[^}]*\}\s*\{[^}]*\}/g, (match, offset) => {
+        const insideMath = isInsideMathBlock(fixed, offset as number);
+        if (insideMath) {
+            return match;  // Déjà dans un bloc $...$, on ne touche pas
+        }
+        return `$${match}$`;
+    });
+    // Version pour expressions plus complexes avec accolades imbriquées (comme \frac{e^{x}}{x})
+    // On utilise une approche par comptage d'accolades
+    const wrapFractionWithNestedBraces = (str: string): string => {
+        let result = str;
+        let i = 0;
+        while (i < result.length) {
+            const match = result.substring(i).match(/\\d?frac\s*\{/);
+            if (!match) break;
+            const fracStart = i + match.index!;
+            if (isInsideMathBlock(result, fracStart)) {
+                i = fracStart + match[0].length;
+                continue;
+            }
+            // Trouver la première paire d'accolades
+            let braceCount = 0;
+            let j = fracStart + match[0].length - 1; // position du { ouvrant
+            let firstBraceEnd = -1;
+            while (j < result.length) {
+                if (result[j] === '{') braceCount++;
+                else if (result[j] === '}') {
+                    braceCount--;
+                    if (braceCount === 0) {
+                        firstBraceEnd = j;
+                        break;
+                    }
+                }
+                j++;
+            }
+            if (firstBraceEnd === -1) { i = fracStart + 1; continue; }
+            // Trouver la deuxième paire d'accolades
+            const secondBraceStart = result.substring(firstBraceEnd + 1).match(/\s*\{/);
+            if (!secondBraceStart) { i = fracStart + 1; continue; }
+            braceCount = 0;
+            j = firstBraceEnd + 1 + secondBraceStart[0].length - 1;
+            let secondBraceEnd = -1;
+            while (j < result.length) {
+                if (result[j] === '{') braceCount++;
+                else if (result[j] === '}') {
+                    braceCount--;
+                    if (braceCount === 0) {
+                        secondBraceEnd = j;
+                        break;
+                    }
+                }
+                j++;
+            }
+            if (secondBraceEnd === -1) { i = fracStart + 1; continue; }
+            // Extraire l'expression complète
+            const fullMatch = result.substring(fracStart, secondBraceEnd + 1);
+            result = result.substring(0, fracStart) + `$${fullMatch}$` + result.substring(secondBraceEnd + 1);
+            i = fracStart + fullMatch.length + 2; // +2 pour les $ ajoutés
+        }
+        return result;
+    };
+    // Appliquer seulement si le simple regex n'a pas tout capturé
+    if (fixed.includes('\\frac') && !fixed.includes('$\\frac')) {
+        fixed = wrapFractionWithNestedBraces(fixed);
+    }
+    // Encapsuler \sqrt{...} ou \sqrt[n]{...}
+    fixed = fixed.replace(/\\sqrt(?:\[[^\]]*\])?\{[^}]*\}/g, (match, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        return `$${match}$`;
+    });
+
+    // 4.5.1 Encapsuler les formules complètes avec \Delta = ... (sans $) — AVANT les lettres grecques isolées
+    // IMPORTANT: Cette règle DOIT s'exécuter AVANT la règle des lettres grecques isolées
+    // Sinon \Delta serait encapsulé seul en $\Delta$ et la formule serait brisée
+    // Si l'IA envoie "\Delta = 25 - 24" sans $, on encapsule toute la formule
+    fixed = fixed.replace(/\\Delta\s*=\s*([^$\n]+?)(?=\s*$|\n|(?=\s+[A-Za-zÀ-ÿ]))/g, (match, expr, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        // Vérifier que l'expression n'est pas vide
+        if (!expr || expr.trim().length === 0) return match;
+        return `$\\Delta = ${expr.trim()}$`;
+    });
+
+    // 4.5.2 Encapsuler les lettres grecques majuscules isolées (\Delta, \Sigma, \Omega, etc.)
+    // NOTE: \Delta = ... est déjà traité par la règle 4.5.1 ci-dessus
+    fixed = fixed.replace(/\\(Delta|Sigma|Omega|Gamma|Lambda|Theta|Pi|Phi|Psi|Xi|Upsilon)(?=[\s,;.!?)]|$)/g, (match, _greek, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        return `$${match}$`;
+    });
+    // Encapsuler \infty isolé
+    fixed = fixed.replace(/\\infty(?=[\s,;.!?)]|$)/g, (match, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        return `$${match}$`;
+    });
+
+    // 4.6 Conversion du mot "delta" (sans backslash) vers $\Delta$
+    // L'IA écrit parfois "delta = 12" au lieu de "$\Delta = 12$"
+    // On ne convertit PAS si déjà dans un bloc $...$
+    // ATTENTION: préserver l'espace avant "delta" s'il existe
+    fixed = fixed.replace(/(\s?)(delta)\b(?=[\s=])/gi, (match, space, word, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        // Préserver l'espace existant (ne pas en ajouter)
+        return space + '$\\Delta$';
+    });
+
+    // 4.7 Correction des patterns LaTeX malformés générés par l'IA
+    // L'IA génère parfois "\Delta$ = ..." au lieu de "$\Delta = ...$"
+    // On corrige en ajoutant le $ ouvrant manquant SEULEMENT s'il n'y a pas déjà un $ avant
+    fixed = fixed.replace(/(?<!\$)\\Delta\$/g, '$\\Delta$');
+    fixed = fixed.replace(/(?<!\$)\\Delta\s*\$\$/g, '$\\Delta$');
+    // Corriger les blocs $$ vides ou aberrants
+    fixed = fixed.replace(/\$\$\s*\$\$/g, '');
+    // NOTE: on supprime la correction "$ " qui causait trop de bugs
 
     // 5. \begin{aligned} et \begin{array} sans délimiteurs $$ → on les encadre
     // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour

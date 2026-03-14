@@ -117,13 +117,23 @@ export function useMathRouter({
             let inMathBlock = false;
             let lastUpdate = Date.now();
             let rafPending = false;
+            let lineBuffer = ""; // Buffer pour les lignes incomplètes entre chunks
+
+            // Référence stable pour accéder à fullText dans le RAF
+            const fullTextRef = { current: "" };
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
+                const rawChunk = decoder.decode(value, { stream: true });
+
+                // Accumuler le chunk dans le buffer et séparer les lignes complètes
+                lineBuffer += rawChunk;
+                const lines = lineBuffer.split('\n');
+
+                // Le dernier élément peut être incomplet, le garder pour le prochain chunk
+                lineBuffer = lines.pop() || "";
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
@@ -134,28 +144,20 @@ export function useMathRouter({
                             const content = json.choices[0]?.delta?.content || "";
                             if (content) {
                                 fullText += content;
+                                fullTextRef.current = fullText;
                                 currentSentence += content;
 
-                                // Mise à jour UI throttlée (max toutes les 150ms via rAF)
-                                const now = Date.now();
-                                if (now - lastUpdate > 150 && !rafPending) {
-                                    rafPending = true;
-                                    // ✅ Appliquer fixLatexContent PENDANT le streaming
-                                    // pour que \( \) \[ \] soient convertis en $ $$ pour KaTeX
-                                    const snapshot = fixLatexContent(fullText).content;
-                                    requestAnimationFrame(() => {
-                                        setMessages(prev => {
-                                            const updated = [...prev];
-                                            updated[updated.length - 1] = {
-                                                role: 'assistant',
-                                                content: snapshot
-                                            };
-                                            return updated;
-                                        });
-                                        rafPending = false;
-                                    });
-                                    lastUpdate = now;
-                                }
+                                // Mise à jour UI : utiliser le texte brut pendant le streaming
+                                // Le fixer complet sera appliqué à la fin (ligne ~214)
+                                // Cela évite les problèmes d'encapsulation de fractions incomplètes
+                                setMessages(prev => {
+                                    const updated = [...prev];
+                                    updated[updated.length - 1] = {
+                                        role: 'assistant',
+                                        content: fullText  // Texte brut pendant le streaming
+                                    };
+                                    return updated;
+                                });
 
                                 // Détection de fin de phrase pour le TTS
                                 // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
@@ -174,8 +176,26 @@ export function useMathRouter({
                                 }
                             }
                         } catch (e) {
-                            // Erreur de parsing JSON ignorée sur les chunks
+                            // Erreur de parsing JSON - log pour debug
+                            console.warn('[Stream] JSON parse error on line:', line.slice(0, 100));
                         }
+                    }
+                }
+            }
+
+            // Traiter le buffer résiduel si non vide
+            if (lineBuffer.startsWith('data: ')) {
+                const jsonStr = lineBuffer.substring(6);
+                if (jsonStr !== '[DONE]') {
+                    try {
+                        const json = JSON.parse(jsonStr);
+                        const content = json.choices[0]?.delta?.content || "";
+                        if (content) {
+                            fullText += content;
+                            fullTextRef.current = fullText;
+                        }
+                    } catch (e) {
+                        console.warn('[Stream] Residual buffer parse error');
                     }
                 }
             }
@@ -614,10 +634,14 @@ export function useMathRouter({
                             .replace(/\bd\/dx\b/gi, "")
                             // d²f/dx² → f''(x)
                             .replace(/\bd[²2]f?\/dx[²2]/gi, "f''(x)");
+                        let lineBuffer = ''; // Buffer pour les lignes incomplètes
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            for (const ln of decoder.decode(value).split('\n')) {
+                            lineBuffer += decoder.decode(value, { stream: true });
+                            const lines = lineBuffer.split('\n');
+                            lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
+                            for (const ln of lines) {
                                 if (!ln.startsWith('data: ')) continue;
                                 const js = ln.substring(6);
                                 if (js === '[DONE]') break;
@@ -880,10 +904,14 @@ export function useMathRouter({
                             const decoder = new TextDecoder();
                             let aiText = '';
                             let lastSignUpdate = 0;
+                            let lineBuffer = ''; // Buffer pour les lignes incomplètes
                             while (true) {
                                 const { done, value } = await reader.read();
                                 if (done) break;
-                                for (const line of decoder.decode(value).split('\n')) {
+                                lineBuffer += decoder.decode(value, { stream: true });
+                                const lines = lineBuffer.split('\n');
+                                lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
+                                for (const line of lines) {
                                     if (!line.startsWith('data: ')) continue;
                                     const jsonStr = line.substring(6);
                                     if (jsonStr === '[DONE]') break;
@@ -1014,10 +1042,14 @@ export function useMathRouter({
                             const decoder = new TextDecoder();
                             let aiText = '';
                             let lastVarUpdate = 0;
+                            let lineBuffer = ''; // Buffer pour les lignes incomplètes
                             while (true) {
                                 const { done, value } = await reader.read();
                                 if (done) break;
-                                for (const line of decoder.decode(value).split('\n')) {
+                                lineBuffer += decoder.decode(value, { stream: true });
+                                const lines = lineBuffer.split('\n');
+                                lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
+                                for (const line of lines) {
                                     if (!line.startsWith('data: ')) continue;
                                     const jsonStr = line.substring(6);
                                     if (jsonStr === '[DONE]') break;
@@ -1702,11 +1734,15 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                 let aiText = '';
                 let geoSceneSent = false;
                 let lastGeoUpdate = 0;
+                let lineBuffer = ''; // Buffer pour les lignes incomplètes
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    for (const line of decoder.decode(value).split('\n')) {
+                    lineBuffer += decoder.decode(value, { stream: true });
+                    const lines = lineBuffer.split('\n');
+                    lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
+                    for (const line of lines) {
                         if (!line.startsWith('data: ')) continue;
                         const jsonStr = line.substring(6);
                         if (jsonStr === '[DONE]') break;
