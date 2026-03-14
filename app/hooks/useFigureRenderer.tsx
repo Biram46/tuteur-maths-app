@@ -7,6 +7,7 @@ import MathTree, { TreeNode } from '@/app/components/MathTree';
 import MathTable from '@/app/components/MathTable';
 import IntervalAxis from '@/app/components/IntervalAxis';
 import GeometryFigure from '@/app/components/GeometryFigure';
+import SolveBlock from '@/app/components/SolveBlock';
 import { parseGeoScene } from '@/lib/geo-engine/parser';
 import type { GeoObject, GeoScene } from '@/lib/geo-engine/types';
 import GeoGebraPlotter from '@/app/components/GeoGebraPlotter';
@@ -110,6 +111,45 @@ export function useFigureRenderer() {
                     );
                 } catch (err) {
                     console.error('[Geo] error:', err);
+                    return null;
+                }
+            }
+
+            // ─── CAS SOLVE : Résolution d'équation via API SymPy ───────────
+            // Format : "solve | equation: 2*x**2-5*x+1=0"
+            if (firstToken === 'solve' || firstToken.startsWith('solve ')) {
+                try {
+                    // Extraire l'équation du bloc
+                    const lines = raw.split('\n');
+                    let equation = '';
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('equation:')) {
+                            equation = trimmed.substring(9).trim();
+                            break;
+                        }
+                        // Format alternatif: juste l'équation sur la deuxième ligne
+                        if (trimmed && !trimmed.startsWith('solve') && trimmed.includes('=')) {
+                            equation = trimmed;
+                            break;
+                        }
+                    }
+
+                    // Nettoyer l'équation
+                    equation = equation.replace(/[`'"]/g, '').trim();
+
+                    if (!equation) {
+                        console.error('[Solve] No equation found in block:', raw);
+                        return null;
+                    }
+
+                    console.log('[Solve] Rendering solve block for:', equation);
+                    return _cacheAndReturn(
+                        <SolveBlock key={`solve-${equation}`} equation={equation} />
+                    );
+                } catch (err) {
+                    console.error('[Solve] error:', err);
                     return null;
                 }
             }

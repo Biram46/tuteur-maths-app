@@ -780,6 +780,193 @@ def health():
     return jsonify({'status': 'ok', 'sympy_version': sp.__version__})
 
 
+@app.route('/solve', methods=['POST'])
+def solve_equation():
+    """
+    Résout une équation polynomiale du second degré.
+    Body: {
+        "equation": "2*x**2-5*x+1=0"  // Format SymPy
+    }
+
+    Returns: {
+        "success": true,
+        "type": "quadratic",  // ou "linear", "factorizable"
+        "discriminant": 17,
+        "discriminant_type": "positive",  // "positive", "zero", "negative"
+        "solutions": ["(5-sqrt(17))/4", "(5+sqrt(17))/4"],
+        "latex_solutions": ["\\frac{5-\\sqrt{17}}{4}", "\\frac{5+\\sqrt{17}}{4}"],
+        "steps": ["Calcul du discriminant...", "..."]
+    }
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        eq_str = data.get('equation', '')
+
+        if not eq_str:
+            return jsonify({
+                'success': False,
+                'error': 'equation is required'
+            }), 400
+
+        # Nettoyer l'expression
+        eq_str = eq_str.strip()
+        eq_str = eq_str.replace('²', '**2').replace('³', '**3')
+        eq_str = eq_str.replace('^', '**')
+
+        # Séparer gauche et droite du =
+        if '=' not in eq_str:
+            return jsonify({
+                'success': False,
+                'error': 'Equation must contain ='
+            }), 400
+
+        parts = eq_str.split('=')
+        if len(parts) != 2:
+            return jsonify({
+                'success': False,
+                'error': 'Equation must have exactly one ='
+            }), 400
+
+        left_str = parts[0].strip()
+        right_str = parts[1].strip()
+
+        # Si right_str != '0', on soustrait pour avoir = 0
+        if right_str != '0':
+            # Forme: ax² + bx + c = d  →  ax² + bx + (c-d) = 0
+            eq_expr_str = f"({left_str})-({right_str})"
+        else:
+            eq_expr_str = left_str
+
+        # Parser avec SymPy
+        try:
+            eq_expr = sp.sympify(eq_expr_str, locals=LOCALS)
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Cannot parse equation: {str(e)}'
+            }), 400
+
+        # Développer et simplifier
+        eq_expr = sp.expand(eq_expr)
+        eq_expr = sp.simplify(eq_expr)
+
+        # Vérifier si c'est un polynôme du second degré
+        # Forme: ax² + bx + c = 0
+        coeffs = sp.Poly(eq_expr, x).all_coeffs() if eq_expr.as_poly(x) else None
+
+        if coeffs and len(coeffs) == 3:
+            a, b, c = coeffs
+
+            # Calculer le discriminant
+            delta = b**2 - 4*a*c
+
+            steps = []
+            steps.append(f"Identification des coefficients: a = {a}, b = {b}, c = {c}")
+            steps.append(f"Calcul du discriminant: $\\Delta = b^2 - 4ac = {b}^2 - 4 \\times {a} \\times {c} = {delta}$")
+
+            if delta > 0:
+                # Deux solutions
+                sqrt_delta = sp.sqrt(delta)
+                x1 = (-b - sqrt_delta) / (2*a)
+                x2 = (-b + sqrt_delta) / (2*a)
+
+                # Formater en LaTeX
+                x1_latex = sp.latex(x1)
+                x2_latex = sp.latex(x2)
+
+                steps.append(f"$\\Delta = {delta} > 0$, donc l'équation admet deux solutions distinctes:")
+                steps.append(f"$x_1 = \\frac{{{ {-b} - \\sqrt{{{delta}}}}}} {{{2*a}}} = {sp.latex(x1)}$")
+                steps.append(f"$x_2 = \\frac{{{ {-b} + \\sqrt{{{delta}}}}}} {{{2*a}}} = {sp.latex(x2)}$")
+
+                return jsonify({
+                    'success': True,
+                    'type': 'quadratic',
+                    'discriminant': float(delta),
+                    'discriminant_type': 'positive',
+                    'a': float(a),
+                    'b': float(b),
+                    'c': float(c),
+                    'solutions': [str(x1), str(x2)],
+                    'latex_solutions': [str(x1_latex), str(x2_latex)],
+                    'steps': steps
+                })
+
+            elif delta == 0:
+                # Une solution double
+                x0 = -b / (2*a)
+                x0_latex = sp.latex(x0)
+
+                steps.append(f"$\\Delta = {delta} = 0$, donc l'équation admet une solution double:")
+                steps.append(f"$x_0 = \\frac{{{-b}}}{{{2*a}}} = {str(x0_latex)}$")
+
+                return jsonify({
+                    'success': True,
+                    'type': 'quadratic',
+                    'discriminant': 0,
+                    'discriminant_type': 'zero',
+                    'a': float(a),
+                    'b': float(b),
+                    'c': float(c),
+                    'solutions': [str(x0)],
+                    'latex_solutions': [str(x0_latex)],
+                    'steps': steps
+                })
+
+            else:
+                # Pas de solution réelle
+                steps.append(f"$\\Delta = {delta} < 0$, donc l'équation n'admet pas de solution réelle.")
+
+                return jsonify({
+                    'success': True,
+                    'type': 'quadratic',
+                    'discriminant': float(delta),
+                    'discriminant_type': 'negative',
+                    'a': float(a),
+                    'b': float(b),
+                    'c': float(c),
+                    'solutions': [],
+                    'latex_solutions': [],
+                    'steps': steps
+                })
+
+        else:
+            # Essayer de factoriser
+            try:
+                factors = sp.factor(eq_expr)
+                zeros = sp.solve(eq_expr, x)
+
+                if zeros:
+                    steps = []
+                    steps.append(f"Factorisation: {sp.latex(factors)}")
+                    steps.append(f"Solutions: {zeros}")
+
+                    return jsonify({
+                        'success': True,
+                        'type': 'factorizable',
+                        'solutions': [str(z) for z in zeros],
+                        'latex_solutions': [sp.latex(z) for z in zeros],
+                        'steps': steps
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Could not solve equation'
+                    }), 400
+
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': f'Not a polynomial equation: {str(e)}'
+                }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 500
+
+
 @app.route('/sign-table', methods=['POST'])
 def sign_table():
     try:

@@ -26,22 +26,32 @@ export async function POST(request: NextRequest) {
 ⛔ RÈGLE ABSOLUE N°0 - RÉSOLUTION D'ÉQUATIONS ⛔
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 
-⚠️ SI L'ÉLÈVE ÉCRIT "RÉSOUS" + EXPRESSION AVEC "=" → RÉSOLUTION ALGÉBRIQUE OBLIGATOIRE !
+⚠️ QUAND L'ÉLÈVE ÉCRIT "RÉSOUS" + ÉQUATION AVEC "=" → UTILISER @@@ solve
 
-⛔⛔⛔ INTERDICTIONS ABSOLUES ⛔⛔⛔
-1. JAMAIS @@@graph pour "Résous ... = 0"
-2. JAMAIS "résolution graphique"
-3. JAMAIS tracer de courbe
-4. JAMAIS "graphiquement, on lit..."
+⛔ JAMAIS @@@graph pour résoudre une équation
+⛔ JAMAIS de "résolution graphique"
+⛔ JAMAIS tracer de courbe
 
-✅✅✅ MÉTHODE OBLIGATOIRE ✅✅✅
-Pour "Résous ax² + bx + c = 0" :
-1. Calculer $\Delta = b^2 - 4ac$
-2. Si $\Delta > 0$ : deux solutions $x = \frac{-b \pm \sqrt{\Delta}}{2a}$
-3. Si $\Delta = 0$ : une solution $x = \frac{-b}{2a}$
-4. Si $\Delta < 0$ : pas de solution réelle
+✅ FORMAT OBLIGATOIRE :
 
-⚠️ @@@graph AUTORISÉ UNIQUEMENT si l'élève écrit EXPLICITEMENT "graphiquement"
+@@@ solve
+equation: 2*x**2-5*x+1=0
+@@@
+
+⚠️ Format SymPy : x**2 (pas x²), 2*x (pas 2x), pas d'espaces
+
+EXEMPLE :
+Question: "Résous 2x² - 5x + 1 = 0"
+Tu réponds:
+"Je résous cette équation du second degré.
+
+@@@ solve
+equation: 2*x**2-5*x+1=0
+@@@
+
+Le système affichera les solutions."
+
+⛔ @@@graph autorisé SEULEMENT si "graphiquement" est écrit explicitement
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 ⛔ RÈGLE ABSOLUE N°1 - MÉTHODES DE CALCUL DES LIMITES ⛔
@@ -816,22 +826,6 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
         }
 
         // Essayer chaque provider en cascade
-        // ⚠️ Pré-traitement : si l'élève demande de "résoudre" une équation, ajouter instruction explicite
-        const processedMessages = messages.map((msg: { role: string; content: string }) => {
-            if (msg.role === 'user' && msg.content) {
-                const content = msg.content.toLowerCase();
-                // Détecter "résous" ou "résoudre" + équation avec "="
-                if ((content.includes('résous') || content.includes('résoudre') || content.includes('resous') || content.includes('resoudre')) && content.includes('=')) {
-                    // Ajouter instruction pour résolution algébrique
-                    return {
-                        ...msg,
-                        content: `[INSTRUCTION: Résoudre algébriquement avec le discriminant. JAMAIS de graphique. JAMAIS de "résolution graphique".] ${msg.content}`
-                    };
-                }
-            }
-            return msg;
-        });
-
         let lastError = null;
         for (const provider of providers) {
             try {
@@ -847,7 +841,7 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                     headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: provider.model,
-                        messages: [{ role: 'system', content: reasoningPrompt }, ...processedMessages],
+                        messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
                         stream: true,
                         temperature: provider.temperature,
                         // seed pour la reproductibilité (OpenAI seulement)
