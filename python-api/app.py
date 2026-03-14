@@ -875,8 +875,8 @@ def solve_equation():
                 x2_latex = sp.latex(x2)
 
                 steps.append(f"$\\Delta = {delta} > 0$, donc l'équation admet deux solutions distinctes:")
-                steps.append(f"$x_1 = \\frac{{{ {-b} - \\sqrt{{{delta}}}}}} {{{2*a}}} = {sp.latex(x1)}$")
-                steps.append(f"$x_2 = \\frac{{{ {-b} + \\sqrt{{{delta}}}}}} {{{2*a}}} = {sp.latex(x2)}$")
+                steps.append(f"$x_1 = {x1_latex}$")
+                steps.append(f"$x_2 = {x2_latex}$")
 
                 return jsonify({
                     'success': True,
@@ -897,7 +897,7 @@ def solve_equation():
                 x0_latex = sp.latex(x0)
 
                 steps.append(f"$\\Delta = {delta} = 0$, donc l'équation admet une solution double:")
-                steps.append(f"$x_0 = \\frac{{{-b}}}{{{2*a}}} = {str(x0_latex)}$")
+                steps.append(f"$x_0 = {str(x0_latex)}$")
 
                 return jsonify({
                     'success': True,
