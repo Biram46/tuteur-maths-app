@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 ⛔ JAMAIS générer @@@graph pour résoudre une équation
 ⛔ JAMAIS faire de "résolution graphique"
 ⛔ JAMAIS tracer la courbe pour trouver les solutions
+⛔ JAMAIS écrire "graphiquement, on lit les solutions"
 
 ✅ TOUJOURS résoudre algébriquement :
    - Équations du 2nd degré : calculer $\Delta = b^2 - 4ac$, puis les racines
@@ -41,10 +42,24 @@ export async function POST(request: NextRequest) {
    - L'élève écrit EXPLICITEMENT : "graphiquement", "lecture graphique", "à l'aide du graphique"
    - Sans ces mots exacts → résolution algébrique OBLIGATOIRE
 
-EXEMPLES :
-- "Résous x²-5x+6=0" → ALGÉBRIQUE (discriminant) ✅
-- "Résous 2x²-5x+1=0" → ALGÉBRIQUE (discriminant) ✅
-- "Résous graphiquement x²-4=0" → OK pour @@@graph ✅
+❌❌❌ EXEMPLE INTERDIT ❌❌❌
+Question: "Résous 2x² - 5x + 1 = 0"
+Réponse INTERDITE:
+@@@ graph
+function: 2x^2-5x+1
+...
+@@@
+"Graphiquement, on lit que les solutions sont..."
+↑ CECI EST STRICTEMENT INTERDIT !
+
+✅✅✅ EXEMPLE CORRECT ✅✅✅
+Question: "Résous 2x² - 5x + 1 = 0"
+Réponse CORRECTE:
+"Calculons le discriminant:
+$\Delta = b^2 - 4ac = (-5)^2 - 4 \times 2 \times 1 = 25 - 8 = 17$
+Comme $\Delta > 0$, l'équation admet deux solutions:
+$x_1 = \frac{5 - \sqrt{17}}{4}$ et $x_2 = \frac{5 + \sqrt{17}}{4}$"
+↑ CECI EST LA SEULE RÉPONSE AUTORISÉE !
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 ⛔ RÈGLE ABSOLUE N°1 - MÉTHODES DE CALCUL DES LIMITES ⛔
