@@ -64,6 +64,13 @@ export interface SignTableInput {
     searchDomain?: [number, number];
     /** Niveau scolaire (Seconde | Premiere | Terminale) */
     niveau?: 'Seconde' | 'Premiere' | 'Terminale'; // défaut : Seconde
+    /** Domaine exact précalculé par SymPy (si disponible) */
+    sympyDomain?: {
+        domainLeft: number | null;
+        domainStrict: boolean;
+        forbiddenPoints: number[];
+        domainLatex?: string;
+    };
 }
 
 export interface DiscriminantStep {
@@ -550,6 +557,15 @@ function tryFactorizeCommonFactor(expr: string, domain: [number, number]): Facto
         const testVal2 = evalAt(cofactorExpr, -1);
 
         if (testVal !== null && testVal2 !== null) {
+            // ── GUARD : vérifier que f(0) ≈ 0 avant de conclure que x est un facteur ──
+            // Sans ça, l'expression (-2x+4)(x-3)(x²+1) détecte faussement x comme facteur
+            // à cause du terme x^2 qui fait matcher /x\^/.test() dans everyTermHasX.
+            // f(0) = 4*(-3)*1 = -12 ≠ 0 → x n'est PAS un facteur.
+            const fAtZero = evalAt(sanitized, 0);
+            if (fAtZero === null || Math.abs(fAtZero) > 1e-8) {
+                // x n'est vraiment pas un facteur → laisser extractParenProductFactors gérer
+                return null;
+            }
             const xFactor = classifyFactor('x', 'x', 'numerator', domain);
 
             // Générer un label lisible : diviser chaque terme par x
@@ -1165,7 +1181,7 @@ function computeEffectiveDomain(
 ): [number, number] | undefined {
     let hasLn = false;
     let hasSqrt = false;
-    let sqrtLeftBound = 0;
+    let sqrtLeftBound = -Infinity; // -Infinity pour ne pas forcer 0 quand la borne est négative
 
     for (const f of factors) {
         if (f.factorType === 'ln') {
@@ -1177,17 +1193,18 @@ function computeEffectiveDomain(
         }
         if (f.factorType === 'sqrt') {
             hasSqrt = true;
-            // La borne gauche est le premier zéro POSITIF ou NUL de sqrt
-            // (là où l'intérieur vaut 0 et le domaine commence)
-            // Ex: √(x²-9) → zéros = [-3, 3], domaine [3, +∞[ → prendre 3
-            // Ex: √(x-4)  → zéros = [4],      domaine [4, +∞[ → prendre 4
-            // Ex: √x      → zéros = [0],       domaine [0, +∞[ → prendre 0
+            // La borne gauche = zéro de l'expression interne (là où u(x) = 0)
+            // Ex: √(x+2) → zéros=[\u22122], borne=-2
+            // Ex: √(x²-9) → zéros=[-3,3], domaine [3;+∞[ (borne = 3)
             const positiveZeros = f.zeros.filter(z => z >= -1e-9);
             if (positiveZeros.length > 0) {
+                // Borne droite parmi les zéros positifs (cas sqrt(x²-9) où borne=3)
                 sqrtLeftBound = Math.max(sqrtLeftBound, positiveZeros[0]);
             } else if (f.zeros.length > 0) {
-                // Tous négatifs : le domaine est [dernière racine, +inf]
-                // ex: √(x+9) → zéro = -9, domaine [-9, +inf]
+                // Tous négatifs : le domaine est [é derniers zéro, +∞[
+                // ex: √(x+2) → zéros=[-2], borne=-2
+                // ex: √(x+9) → zéros=[-9], borne=-9
+                // Prendre le MAX des zéros négatifs (le moins négatif = borne naturelle)
                 sqrtLeftBound = Math.max(sqrtLeftBound, f.zeros[f.zeros.length - 1]);
             }
         }
@@ -1206,8 +1223,10 @@ function computeEffectiveDomain(
     }
 
     if (hasSqrt) {
-        // √x : domaine [0, +∞[ → borne gauche au zéro de sqrt
-        const leftBound = Math.max(sMin >= 0 ? sMin : 0, sqrtLeftBound);
+        // Borne gauche = sqrtLeftBound (peut être négative ex: sqrt(x+2) → -2)
+        // Ne pas forcer Min à 0 quand la borne naturelle est négative
+        const boundary = sqrtLeftBound === -Infinity ? 0 : sqrtLeftBound;
+        const leftBound = Math.max(sMin, boundary);
         return [leftBound, sMax > 0 && sMax < 1e9 ? sMax : 20];
     }
 
@@ -1234,13 +1253,20 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
         })));
 
         // ── Étape 1 : Domaine ──
-        const domain = determineDomain(expression, factors);
+        const domain = input.sympyDomain?.domainLatex ?? determineDomain(expression, factors);
 
         // ── Étape 4a : Domaine effectif ──
-        const effectiveDomain = computeEffectiveDomain(factors, searchDomain);
+        let effectiveDomain = computeEffectiveDomain(factors, searchDomain);
+        if (input.sympyDomain && input.sympyDomain.domainLeft !== null) {
+            effectiveDomain = [input.sympyDomain.domainLeft, searchDomain[1]];
+        }
 
         // ── Étape 3 : Valeurs critiques (filtrées des bornes du domaine) ──
-        const allCriticalPoints = collectCriticalPoints(factors);
+        const rawCriticalPoints = collectCriticalPoints(factors);
+        if (input.sympyDomain?.forbiddenPoints) {
+            rawCriticalPoints.push(...input.sympyDomain.forbiddenPoints);
+        }
+        const uniqueCriticalPoints = [...new Set(rawCriticalPoints)].sort((a, b) => a - b);
 
         // Retirer les points qui coïncident avec la borne gauche du domaine effectif.
         // Pour ln(x) : borne = 0 (strictement), mais findDiscontinuities peut retourner ~0.01.
@@ -1253,16 +1279,21 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
             if (Math.abs(leftNum) < 1e-6) return 0.1;
             return Math.abs(leftNum) * 0.1 + 1e-6;
         })();
-        const criticalPoints = allCriticalPoints.filter(cp => Math.abs(cp - leftNum) > leftTol);
+        const criticalPoints = uniqueCriticalPoints.filter(cp => Math.abs(cp - leftNum) > leftTol);
 
         const intervalBounds = buildIntervalBounds(criticalPoints, effectiveDomain);
 
         // xValues : borne gauche = formatée si domaine restreint
         const leftLabel: string = (() => {
+            if (input.sympyDomain && input.sympyDomain.domainLeft !== null) {
+                return (input.sympyDomain.domainStrict ? ']' : '') + formatForTable(input.sympyDomain.domainLeft);
+            }
             if (!effectiveDomain) return '-inf';
             const l = effectiveDomain[0];
-            // ln(x) ou sqrt(x) avec borne à 0
-            if (Math.abs(l) < 1e-6) return '0';
+            // Ne traiter l comme 0 QUE si la valeur est vraiment nulle (< 1e-9)
+            // sqrt(x) : borne = 0 → '0'
+            // sqrt(x+2) : borne = -2 → '-2' (pas '0' !)
+            if (Math.abs(l) < 1e-9) return '0';
             return formatForTable(l);
         })();
         const xValues = [leftLabel, ...criticalPoints.map(formatForTable), '+inf'];
@@ -1285,7 +1316,7 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
         // ── Injection de la valeur à la borne gauche (si domaine restreint) ──
         // Cas : sqrt(x) → x=0 filtré des criticalPoints mais doit apparaître dans le tableau
         // On préfixe chaque row avec la valeur à la borne gauche du domaine effectif.
-        const hadFilteredLeft = allCriticalPoints.length > criticalPoints.length && effectiveDomain;
+        const hadFilteredLeft = uniqueCriticalPoints.length > criticalPoints.length && effectiveDomain;
         if (hadFilteredLeft && effectiveDomain) {
             const leftBoundVal = effectiveDomain[0];
             for (const [rIdx, factor] of factors.entries()) {

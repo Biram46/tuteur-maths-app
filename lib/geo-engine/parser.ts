@@ -465,6 +465,7 @@ export function parseGeoScene(raw: string): GeoScene {
                 let color = parts[3] || undefined;
                 let dirX = 0, dirY = 0;
                 let resolved = false;
+                let refPt1: { x: number; y: number } | null = null; // un point connu sur la droite de référence
 
                 // 1) Paire de lettres : "BC"
                 if (/^[A-Z]{2}$/.test(refUpper)) {
@@ -472,6 +473,7 @@ export function parseGeoScene(raw: string): GeoScene {
                     const pB = pointMap.get(refUpper[1]);
                     if (pA && pB) {
                         dirX = pB.x - pA.x; dirY = pB.y - pA.y;
+                        refPt1 = pA;
                         resolved = true;
                     }
                 }
@@ -482,6 +484,7 @@ export function parseGeoScene(raw: string): GeoScene {
                     const pB = pointMap.get(parts[2].toUpperCase().trim());
                     if (pA && pB) {
                         dirX = pB.x - pA.x; dirY = pB.y - pA.y;
+                        refPt1 = pA;
                         resolved = true;
                         label = parts[3] || undefined;
                         color = parts[4] || undefined;
@@ -520,6 +523,7 @@ export function parseGeoScene(raw: string): GeoScene {
                         const pB = pointMap.get(foundLine.through[1]);
                         if (pA && pB) {
                             dirX = pB.x - pA.x; dirY = pB.y - pA.y;
+                            refPt1 = pA;
                             resolved = true;
                         }
                     }
@@ -527,7 +531,7 @@ export function parseGeoScene(raw: string): GeoScene {
 
                 const pP = pointMap.get(throughPoint);
                 if (resolved && pP && (dirX !== 0 || dirY !== 0)) {
-                    // Perpendiculaire : rotation 90° → (-dy, dx)
+                    // Direction effective (perpendiculaire ou parallèle)
                     const fx = isPerp ? -dirY : dirX;
                     const fy = isPerp ? dirX : dirY;
                     const q = { x: pP.x + fx, y: pP.y + fy };
@@ -540,9 +544,53 @@ export function parseGeoScene(raw: string): GeoScene {
                         label: label || (isPerp ? `(Δ)` : `(d)`), color,
                     });
                     objects.push({ kind: 'point', id: auxName, x: q.x, y: q.y, style: 'none' as any });
+
+                    // ⊾ Angle droit — uniquement pour perpendiculaire
+                    // Mathématiquement : le carré est à l'intersection des deux droites,
+                    // c'est-à-dire au pied H de la perpendiculaire sur la droite de référence.
+                    if (isPerp && refPt1) {
+                        // Calculer H = pied de la perpendiculaire de pP sur la droite de référence
+                        // H = refPt1 + t*(dirX,dirY) avec t = ((pP - refPt1)·dir) / |dir|²
+                        const d2 = dirX * dirX + dirY * dirY;
+                        const t = ((pP.x - refPt1.x) * dirX + (pP.y - refPt1.y) * dirY) / d2;
+                        const footX = refPt1.x + t * dirX;
+                        const footY = refPt1.y + t * dirY;
+                        const footId = `_foot_${throughPoint}`;
+
+                        if (!pointMap.has(footId)) {
+                            pointMap.set(footId, { x: footX, y: footY });
+                            // Le pied H est affiché comme point (croix) sauf s'il coïncide avec throughPoint
+                            const footCoincides = Math.abs(footX - pP.x) < 1e-9 && Math.abs(footY - pP.y) < 1e-9;
+                            objects.push({
+                                kind: 'point', id: footId, x: footX, y: footY,
+                                style: footCoincides ? 'none' as any : 'cross',
+                                label: footCoincides ? undefined : 'H',
+                                color: '#34d399',
+                            });
+                        }
+
+                        // Point auxiliaire dans la direction de AB depuis H (pour "from" de l'angle droit)
+                        const refLen = Math.sqrt(d2) || 1;
+                        const fromDirId = `_fromdir_${throughPoint}`;
+                        const fromDirPt = { x: footX + dirX / refLen, y: footY + dirY / refLen };
+                        if (!pointMap.has(fromDirId)) {
+                            pointMap.set(fromDirId, fromDirPt);
+                            objects.push({ kind: 'point', id: fromDirId, x: fromDirPt.x, y: fromDirPt.y, style: 'none' as any });
+                        }
+
+                        // Angle droit : vertex=H, from=direction AB, to=C (throughPoint)
+                        objects.push({
+                            kind: 'angle', id: uid('ang'),
+                            vertex: footId,
+                            from: fromDirId,
+                            to: throughPoint,
+                            label: '90°', value: 90, square: true, color: '#34d399',
+                        });
+                    }
                 }
                 break;
             }
+
 
             case 'compute':
             case 'calculer': {

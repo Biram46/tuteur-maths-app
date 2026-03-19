@@ -1,0 +1,6 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+SOLVE PAYLOAD: {'equation': '3*x**2-5*x+2=', 'niveau': 'terminale_spe'}
+SOLVE PAYLOAD: {'equation': '3*x**2-5*x+2=', 'niveau': 'terminale_spe'}
+SOLVE PAYLOAD: {'equation': '2*x**2+8=', 'niveau': 'terminale_spe'}
+SOLVE PAYLOAD: {'equation': '2*x**2+8=', 'niveau': 'terminale_spe'}

@@ -103,12 +103,25 @@ export async function POST(req: NextRequest) {
                 }
                 // ── Fallback : moteur JS ──
                 console.log(`[MathEngine] ⚠️ SymPy échoué, FALLBACK JS pour "${expression}"`);
+                let sympyDomainResult: any = null;
+                try {
+                    sympyDomainResult = await callDomainSympy(expression);
+                } catch (e) {
+                    console.warn('[MathEngine] SignTable Fallback: appel domaine échoué');
+                }
+
                 const result = generateSignTable({
                     expression,
                     numeratorFactors: options.numeratorFactors,
                     denominatorFactors: options.denominatorFactors,
                     searchDomain: options.searchDomain,
                     niveau: niveau as any,
+                    sympyDomain: sympyDomainResult?.success ? {
+                        domainLeft: sympyDomainResult.domainLeft,
+                        domainStrict: sympyDomainResult.domainStrict,
+                        forbiddenPoints: sympyDomainResult.forbiddenPoints,
+                        domainLatex: sympyDomainResult.domainLatex,
+                    } : undefined,
                 });
 
                 if (!result.success) {
@@ -149,12 +162,25 @@ export async function POST(req: NextRequest) {
                     console.warn('[MathEngine] Variation: calcul dérivée échoué, JS-only');
                 }
 
+                let sympyDomainResult: any = null;
+                try {
+                    sympyDomainResult = await callDomainSympy(expression);
+                } catch (e) {
+                    console.warn('[MathEngine] Variation: appel domaine échoué');
+                }
+
                 const result = generateVariationTable({
                     expression,
                     niveau,
                     derivativeExpr: options.derivativeExpr,
                     searchDomain: options.searchDomain,
                     title: options.title,
+                    sympyDomain: sympyDomainResult?.success ? {
+                        domainLeft: sympyDomainResult.domainLeft,
+                        domainStrict: sympyDomainResult.domainStrict,
+                        forbiddenPoints: sympyDomainResult.forbiddenPoints,
+                        domainLatex: sympyDomainResult.domainLatex,
+                    } : undefined,
                 });
 
                 if (!result.success) {
@@ -175,18 +201,37 @@ export async function POST(req: NextRequest) {
             // ───────────────────────────────────────────────────────
             case 'sign_and_variation': {
                 // Générer les deux en parallèle
+                let sympyDomainResult: any = null;
+                try {
+                    sympyDomainResult = await callDomainSympy(expression);
+                } catch (e) {
+                    console.warn('[MathEngine] Sign&Variation: appel domaine échoué');
+                }
+
                 const [signResult, varResult] = await Promise.all([
                     Promise.resolve(generateSignTable({
                         expression,
                         numeratorFactors: options.numeratorFactors,
                         denominatorFactors: options.denominatorFactors,
                         searchDomain: options.searchDomain,
+                        sympyDomain: sympyDomainResult?.success ? {
+                            domainLeft: sympyDomainResult.domainLeft,
+                            domainStrict: sympyDomainResult.domainStrict,
+                            forbiddenPoints: sympyDomainResult.forbiddenPoints,
+                            domainLatex: sympyDomainResult.domainLatex,
+                        } : undefined,
                     })),
                     Promise.resolve(generateVariationTable({
                         expression,
                         niveau,
                         derivativeExpr: options.derivativeExpr,
                         searchDomain: options.searchDomain,
+                        sympyDomain: sympyDomainResult?.success ? {
+                            domainLeft: sympyDomainResult.domainLeft,
+                            domainStrict: sympyDomainResult.domainStrict,
+                            forbiddenPoints: sympyDomainResult.forbiddenPoints,
+                            domainLatex: sympyDomainResult.domainLatex,
+                        } : undefined,
                     })),
                 ]);
 
@@ -268,7 +313,7 @@ async function callSignTableSympy(
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ expression, niveau }),
-                signal: AbortSignal.timeout(30000),
+                signal: AbortSignal.timeout(5000),
             });
             const elapsed = Date.now() - startTime;
 
@@ -362,5 +407,40 @@ async function callSympyEngine(expression: string, niveau: NiveauLycee) {
         return await response.json();
     } catch (err: any) {
         return { success: false, error: `SymPy Engine indisponible: ${err.message}` };
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// APPEL API PYTHON — Domaine de définition (SymPy)
+// ─────────────────────────────────────────────────────────────
+
+async function callDomainSympy(expression: string): Promise<Record<string, any>> {
+    const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+
+    if (!pythonApiUrl) {
+        return { success: false, error: 'Aucune API SymPy configurée' };
+    }
+
+    try {
+        console.log(`[MathEngine] SymPy Domain API: appel pour "${expression}"...`);
+        const startTime = Date.now();
+        const res = await fetch(`${pythonApiUrl}/domain`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expression }),
+            signal: AbortSignal.timeout(5000),
+        });
+        const elapsed = Date.now() - startTime;
+
+        if (!res.ok) {
+            console.warn(`[MathEngine] SymPy Domain API: HTTP ${res.status} (${elapsed}ms)`);
+            return { success: false, error: `SymPy Domain HTTP ${res.status}` };
+        }
+        const result = await res.json();
+        console.log(`[MathEngine] SymPy Domain API: ✅ succès en ${elapsed}ms`);
+        return result;
+    } catch (err: any) {
+        console.warn(`[MathEngine] SymPy Domain API: ❌ ${err.message}`);
+        return { success: false, error: err.message ?? 'Timeout SymPy Domain API' };
     }
 }

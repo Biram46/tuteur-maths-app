@@ -1,3 +1,4 @@
+"use strict";
 /**
  * INTENT DETECTOR — Détecteur d'intentions mathématiques
  * ════════════════════════════════════════════════════════
@@ -6,45 +7,23 @@
  * 2. Les expressions de fonctions à traiter
  * 3. La priorité de routing (Math Engine ou IA pure)
  */
-
-// ─────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────
-
-export type MathIntent =
-    | 'sign_table'        // Tableau de signes / étude du signe
-    | 'variation_table'   // Tableau de variations
-    | 'graph'             // Tracer la courbe / graphique
-    | 'solve_equation'    // Résoudre f(x) = 0
-    | 'solve_inequality'  // Résoudre f(x) > 0, < 0, etc.
-    | 'derivative'        // Calculer f'(x)
-    | 'integral'          // Calculer une primitive / intégrale
-    | 'factorize'         // Factoriser
-    | 'limits'            // Calculer des limites
-    | 'literal_calc'      // Calcul symbolique général
-    | 'unknown';          // IA pure sans routing
-
-export interface DetectedIntent {
-    intent: MathIntent;
-    questionText: string;       // Texte de la sous-question
-    expression: string | null;  // Expression extraite (ex: "(x-3)/(x+2)")
-    questionNumber?: string;    // "1", "2a", "3"…
-    variable: string;           // 'x' par défaut
-    context?: string;           // ex: "f(x) > 0" pour solve_inequality
-}
-
-export interface RouterAnalysis {
-    intents: DetectedIntent[];
-    globalExpression: string | null; // Expression principale de l'exercice
-    hasMathEngine: boolean;          // Au moins une intention routée au Math Engine
-    niveau: string;
-}
-
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.INTENT_LABELS = void 0;
+exports.extractExpression = extractExpression;
+exports.analyzeQuestion = analyzeQuestion;
 // ─────────────────────────────────────────────────────────────
 // PATTERNS DE DÉTECTION
 // ─────────────────────────────────────────────────────────────
-
-const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
+var INTENT_PATTERNS = [
     {
         intent: 'sign_table',
         patterns: [
@@ -140,168 +119,139 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
         ],
     },
 ];
-
 // ─────────────────────────────────────────────────────────────
 // EXTRACTION D'EXPRESSION DE FONCTION
 // ─────────────────────────────────────────────────────────────
-
 /**
  * Extrait l'expression mathématique d'une chaîne.
  * Exemple: "f(x) = (x-3)/(x+2)" → "(x-3)/(x+2)"
  *          "g(x) = 2x² - 3x + 1" → "2x^2 - 3x + 1"
  */
-export function extractExpression(text: string): string | null {
+function extractExpression(text) {
     // Normaliser les exposants unicode
-    const normalized = text
+    var normalized = text
         .replace(/²/g, '^2')
         .replace(/³/g, '^3')
         .replace(/⁴/g, '^4')
         .replace(/−/g, '-')
         .replace(/×/g, '*')
         .replace(/\u00d7/g, '*');
-
-    // Pattern 1: f(x) = <expression>
-    const funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r]+)/i;
-    let m = normalized.match(funcPattern);
-    if (m) return m[1].trim();
-
-    // Pattern 2: (équation|inéquation|de|fonction) <expression>
-    const keywordPattern = /(?:(?:é|e)quation|in(?:é|e)quation|fonction|de|sur)\s+([a-zA-Z0-9.\-+\/*^(){}=><≥≤ ]+?)(?:sur\s|pour\s|,|;|$)/i;
-    m = normalized.match(keywordPattern);
-    if (m) {
-        let candidate = m[1].trim();
-        // Remove trailing spaces or words
-        candidate = candidate.replace(/[a-zA-ZÀ-ÿ]{2,}\s*$/g, '').trim();
-        if (candidate.includes('x') && candidate.length > 2) return candidate;
+    // Pattern 1 : f(x) = <expression>
+    var funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r]+)/i;
+    var m1 = normalized.match(funcPattern);
+    if (m1)
+        return m1[1].trim();
+    // Pattern 2 : = <fraction> ou = <polynome>
+    var eqPattern = /=\s*([-+*/^()\w\s.]+)/;
+    var m2 = normalized.match(eqPattern);
+    if (m2) {
+        var candidate = m2[1].trim();
+        // Filtre les faux positifs trop courts et sans x
+        if (candidate.includes('x') && candidate.length > 2)
+            return candidate;
     }
-
-    // Pattern 3: simply <expression> = 0 at the end
-    const endEqPattern = /([0-9a-zA-Z.\-+\/*^(){\s]+(?:=|>|<|>=|<=|≥|≤)[0-9a-zA-Z.\-+\/*^(){\s]+)$/i;
-    m = normalized.match(endEqPattern);
-    if (m) {
-        const candidate = m[1].trim();
-        if (candidate.includes('x') && candidate.length > 2) return candidate;
-    }
-    
-    // Fallback: search for math block containing x
-    const mathBlockPattern = /([x0-9][0-9a-zA-Z.\-+\/*^(){\s]*[x0-9])/i;
-    m = normalized.match(mathBlockPattern);
-    if (m && m[1].includes('x') && m[1].length > 2) {
-       const candidate = m[1].trim();
-       if (candidate.split(' ').every(w => w.length < 5 || ['sqrt', 'cos', 'sin', 'tan', 'ln', 'log', 'exp'].includes(w))) {
-           return candidate;
-       }
-    }
-
+    // Pattern 3 : expression libre avec x dans le texte
+    var exprPattern = /\(([^)]*x[^)]*)\)\s*\/\s*\(/;
+    var m3 = normalized.match(exprPattern);
+    if (m3)
+        return "(".concat(m3[0].trim(), ")");
     return null;
 }
-
 /**
  * Extrait les contextes d'inégalité (ex: "> 0", "≤ 0").
  */
-function extractInequalityContext(text: string): string | null {
-    const m = text.match(/[fg]\s*(?:\([^)]*\))?\s*([><≤≥]=?\s*[0-9\s]+)/i);
+function extractInequalityContext(text) {
+    var m = text.match(/[fg]\s*(?:\([^)]*\))?\s*([><≤≥]=?\s*[0-9\s]+)/i);
     return m ? m[1].trim() : null;
 }
-
 // ─────────────────────────────────────────────────────────────
 // DÉTECTEUR DE SOUS-QUESTIONS
 // ─────────────────────────────────────────────────────────────
-
 /**
  * Découpe un texte multi-questions en sous-questions numérotées.
  */
-function splitIntoSubquestions(text: string): { num: string; text: string }[] {
-    const parts: { num: string; text: string }[] = [];
-
+function splitIntoSubquestions(text) {
+    var _a, _b, _c, _d;
+    var parts = [];
     // Pattern : 1) / 1. / a) / a. / Q1: etc.
-    const splitPattern = /(?:^|\n)\s*(?:(\d+|[a-zA-Z])\s*[).:\-]\s*)/gm;
-    const matches = [...text.matchAll(splitPattern)];
-
+    var splitPattern = /(?:^|\n)\s*(?:(\d+|[a-zA-Z])\s*[).:\-]\s*)/gm;
+    var matches = __spreadArray([], text.matchAll(splitPattern), true);
     if (matches.length <= 1) {
         // Pas de numérotation détectée : texte unique
         return [{ num: '', text: text.trim() }];
     }
-
-    for (let i = 0; i < matches.length; i++) {
-        const match = matches[i];
-        const start = (match.index ?? 0) + match[0].length;
-        const end = matches[i + 1]?.index ?? text.length;
-        const num = match[1] ?? `${i + 1}`;
-        const subText = text.slice(start, end).trim();
-        if (subText) parts.push({ num, text: subText });
+    for (var i = 0; i < matches.length; i++) {
+        var match = matches[i];
+        var start = ((_a = match.index) !== null && _a !== void 0 ? _a : 0) + match[0].length;
+        var end = (_c = (_b = matches[i + 1]) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : text.length;
+        var num = (_d = match[1]) !== null && _d !== void 0 ? _d : "".concat(i + 1);
+        var subText = text.slice(start, end).trim();
+        if (subText)
+            parts.push({ num: num, text: subText });
     }
-
     return parts.length > 0 ? parts : [{ num: '', text: text.trim() }];
 }
-
 // ─────────────────────────────────────────────────────────────
 // ANALYSEUR PRINCIPAL
 // ─────────────────────────────────────────────────────────────
-
 /**
  * Analyse complète d'une question pour détecter les intentions.
  * C'est le point d'entrée principal du système de routing.
  */
-export function analyzeQuestion(
-    userMessage: string,
-    niveau: string = 'seconde'
-): RouterAnalysis {
-    const intents: DetectedIntent[] = [];
-    const globalExpression = extractExpression(userMessage);
-    const subquestions = splitIntoSubquestions(userMessage);
-
-    for (const sub of subquestions) {
-        let detected = false;
-
-        for (const { intent, patterns } of INTENT_PATTERNS) {
-            if (patterns.some(p => p.test(sub.text))) {
+function analyzeQuestion(userMessage, niveau) {
+    var _a;
+    if (niveau === void 0) { niveau = 'seconde'; }
+    var intents = [];
+    var globalExpression = extractExpression(userMessage);
+    var subquestions = splitIntoSubquestions(userMessage);
+    var _loop_1 = function (sub) {
+        var detected = false;
+        for (var _b = 0, INTENT_PATTERNS_1 = INTENT_PATTERNS; _b < INTENT_PATTERNS_1.length; _b++) {
+            var _c = INTENT_PATTERNS_1[_b], intent = _c.intent, patterns = _c.patterns;
+            if (patterns.some(function (p) { return p.test(sub.text); })) {
                 // Chercher l'expression dans la sous-question d'abord, puis global
-                const localExpr = extractExpression(sub.text);
-                const expr = localExpr ?? globalExpression;
-
-                const context = intent === 'solve_inequality'
+                var localExpr = extractExpression(sub.text);
+                var expr = localExpr !== null && localExpr !== void 0 ? localExpr : globalExpression;
+                var context = intent === 'solve_inequality'
                     ? extractInequalityContext(sub.text)
                     : undefined;
-
                 intents.push({
-                    intent,
+                    intent: intent,
                     questionText: sub.text,
                     expression: expr,
                     questionNumber: sub.num || undefined,
                     variable: 'x',
-                    context: context ?? undefined,
+                    context: context !== null && context !== void 0 ? context : undefined,
                 });
-
                 detected = true;
                 break; // Une seule intention par sous-question
             }
         }
-
         if (!detected && sub.text.length > 10) {
             intents.push({
                 intent: 'unknown',
                 questionText: sub.text,
-                expression: extractExpression(sub.text) ?? globalExpression,
+                expression: (_a = extractExpression(sub.text)) !== null && _a !== void 0 ? _a : globalExpression,
                 questionNumber: sub.num || undefined,
                 variable: 'x',
             });
         }
+    };
+    for (var _i = 0, subquestions_1 = subquestions; _i < subquestions_1.length; _i++) {
+        var sub = subquestions_1[_i];
+        _loop_1(sub);
     }
-
     return {
-        intents,
-        globalExpression,
-        hasMathEngine: intents.some(i => i.intent !== 'unknown'),
-        niveau,
+        intents: intents,
+        globalExpression: globalExpression,
+        hasMathEngine: intents.some(function (i) { return i.intent !== 'unknown'; }),
+        niveau: niveau,
     };
 }
-
 // ─────────────────────────────────────────────────────────────
 // UTILITAIRES D'AFFICHAGE
 // ─────────────────────────────────────────────────────────────
-
-export const INTENT_LABELS: Record<MathIntent, string> = {
+exports.INTENT_LABELS = {
     sign_table: '📋 Tableau de signes',
     variation_table: '📐 Tableau de variations',
     graph: '📈 Tracé de courbe',

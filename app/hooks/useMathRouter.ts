@@ -19,22 +19,24 @@ function patchMarkdownTables(content: string): string {
         try {
             const lines = match.trim().split('\n').filter((l: string) => l.trim());
             if (lines.length < 3) continue;
-            const headers = lines[0].split('|').map((h: string) => h.trim()).filter((h: string) => h);
+            const headers = lines[0].split('|').map((h: string) => h.trim()).filter((h: string) => h.length > 0);
             const dataLines = lines.slice(2);
             if (!headers[0]) continue;
             if (headers[0].toLowerCase() === 'x') {
                 const xValues = headers.slice(1).map((v: string) =>
-                    v.replace('', '-').replace('', 'inf').replace('+', '+inf').replace('-', '-inf')
+                    v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
                 ).join(', ');
                 let tableBlock = `table |\nx: ${xValues} |\n`;
                 for (const dl of dataLines) {
-                    const cells = dl.split('|').map((c: string) => c.trim()).filter((c: string) => c);
+                    // Protéger les || avant le split !
+                    const protectedDl = dl.replace(/\|\|/g, '___DOUBLE_BAR___');
+                    const cells = protectedDl.split('|').map((c: string) => c.trim().replace(/___DOUBLE_BAR___/g, '||')).filter((c: string) => c.length > 0);
                     if (cells.length < 2) continue;
                     const label = cells[0];
                     const values = cells.slice(1).map((v: string) =>
-                        v.replace('', '-').replace('', 'inf').replace('+', '+inf').replace('-', '-inf')
+                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
                     ).join(', ');
-                    const isVariation = /||nearrow|searrow/i.test(values);
+                    const isVariation = /nearrow|searrow/.test(values) || /(croissante|décroissante)/i.test(label);
                     tableBlock += `${isVariation ? 'var' : 'sign'}: ${label} : ${values} |\n`;
                 }
                 patched = patched.replace(match, `@@@\n${tableBlock}@@@`);
@@ -106,7 +108,12 @@ export function useMathRouter({
                 body: JSON.stringify({ messages: msgs, context: baseContext }),
             });
 
-            if (!response.ok) throw new Error('Erreur API');
+            if (!response.ok) {
+                let errMsg = `Erreur API (HTTP ${response.status})`;
+                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+                console.error('[useMathRouter] /api/perplexity error:', errMsg);
+                throw new Error(errMsg);
+            }
 
             const reader = response.body?.getReader();
             if (!reader) throw new Error('Reader non disponible');
@@ -261,7 +268,7 @@ export function useMathRouter({
         const inputCleaned = deLatexInput(inputText);
         // Utiliser inputCleaned pour les détections et extractions, inputText pour l'affichage/IA
         const inputLower = inputCleaned.toLowerCase();
-        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i.test(inputLower);
+        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe|in[eé]quation/i.test(inputLower);
         // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
         const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
 
@@ -304,6 +311,8 @@ export function useMathRouter({
                     let t = e;
                     // Retirer f(x) =
                     t = t.replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '');
+                    // Retirer toute inéquation ou équation à droite (ex: > 0, = 0)
+                    t = t.replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '');
                     // Retirer $ et \\ (double backslash LaTeX)
                     t = t.replace(/\$/g, '').replace(/\\\\/g, '');
                     // Unicode → ASCII
@@ -346,7 +355,7 @@ export function useMathRouter({
                     .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
 
                 // ── 2. Parser les questions numérotées ──
-                interface ExQ { num: string; text: string; type: 'sign_table' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
+                interface ExQ { num: string; text: string; type: 'sign_table' | 'sign_table_f' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
                 const questions: ExQ[] = [];
                 const qRegex = /(\d+)\s*[).]\s*(.+?)(?=\n\s*\d+\s*[).]|\s*$)/g;
                 let qM;
@@ -386,7 +395,10 @@ export function useMathRouter({
                         else if (hasVariation) qType = 'variation_table';
                         // Courbe
                         else if (/trace|courbe|graphe|graphique|represent|dessine/i.test(qNorm)) qType = 'graph';
-                        // Résolution
+                        // Résolution d'inéquation f(x) > 0 ou < 0 → tableau de signes de f OBLIGATOIRE
+                        // Note: qNorm est sans accents → "inéquation" devient "inequation"
+                        else if (/resou|inequation/i.test(qNorm) && /[><≤≥]\s*0|[><≤≥]\s*f\(|f\(x\)\s*[><≤≥]/i.test(qText)) qType = 'sign_table_f';
+                        // Résolution d'équation
                         else if (/resou|inequation|equation/i.test(qNorm)) qType = 'solve';
                         questions.push({ num: qM[1], text: qText, type: qType });
                     }
@@ -481,6 +493,32 @@ export function useMathRouter({
                                 }
                             } catch (derivErr) {
                                 console.warn('[ExerciceMode] Erreur calcul dérivée:', derivErr);
+                            }
+                        }
+                        if (q.type === 'sign_table_f') {
+                            try {
+                                const res = await fetch('/api/math-engine', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        type: 'sign_table',
+                                        expression: exprClean,
+                                        niveau: resolveNiveau(inputText),
+                                    }),
+                                });
+                                const data = await res.json();
+                                if (data.success && data.aaaBlock) {
+                                    signTableBlock = data.aaaBlock;
+                                    signCtx = `\nInfo: tableau de signes de f(x) = ${exprClean} pré-calculé` +
+                                        (data.discriminantSteps?.length
+                                            ? '\n' + data.discriminantSteps.map((s: any) => `- Δ de ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            : '');
+                                    console.log(`[ExerciceMode] ✅ Tableau de signes f(x) via ${data.engine || 'moteur'}`);
+                                } else {
+                                    console.warn('[ExerciceMode] ⚠️ Tableau de signes f(x) échoué:', data.error);
+                                }
+                            } catch (err) {
+                                console.warn('[ExerciceMode] Erreur calcul signe f(x):', err);
                             }
                         }
                         if (q.type === 'variation_table') {
@@ -582,9 +620,22 @@ export function useMathRouter({
                             aiParts.push(
                                 `**${q.num})** ${q.text}\nExplique la méthode en suivant ces étapes :\n1. Factorisation : utilise EXACTEMENT la factorisation SymPy ci-dessous, NE la modifie PAS.\n${signCtx}\n2. Pour chaque facteur de degré 2 (trinôme) : calcule Δ = b² - 4ac. NE FACTORISE PAS le trinôme en produit de facteurs de degré 1 (ex: NE PAS écrire x²-1 = (x-1)(x+1)). Utilise la règle : signe de a à l'extérieur des racines, signe opposé entre les racines.\n3. Pour chaque facteur de degré 1 : indique le signe de part et d'autre de la racine.\n4. Applique la règle des signes du produit.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\\\\\begin{array})`
                             );
+                        } else if (q.type === 'sign_table_f') {
+                            aiParts.push(
+                                `**${q.num})** ${q.text}\n` +
+                                `Étape 1 : Calculer Δ pour trouver les racines de f(x) (OBLIGATOIRE, même si les racines sont évidentes) :\n` +
+                                `  - Identifier a, b, c dans f(x) = ax² + bx + c\n` +
+                                `  - Calculer Δ = b² - 4ac (montrer le calcul numérique)\n` +
+                                `  - Calculer x₁ = (-b - √Δ) / 2a et x₂ = (-b + √Δ) / 2a (montrer le calcul)\n` +
+                                `  - Factorisation : f(x) = a(x - x₁)(x - x₂)\n` +
+                                `Étape 2 : Dresser le tableau de signes de f(x)${signCtx}\n` +
+                                `Termine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n` +
+                                `(⛔ NE fais PAS de tableau toi-même — le tableau SymPy est inséré automatiquement)\n` +
+                                `Étape 3 : Lire la solution dans le tableau et conclure (ex: f(x) > 0 pour x ∈ ]-∞ ; x₁[ ∪ ]x₂ ; +∞[)`
+                            );
                         } else if (q.type === 'solve') {
                             aiParts.push(
-                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question ${Number(q.num) - 1}), ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
+                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question précédente, ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
                             );
                         } else if (q.type === 'variation_table') {
                             aiParts.push(
@@ -599,11 +650,57 @@ export function useMathRouter({
                         }
                     }
 
+                    // ── Contraintes pédagogiques niveau-spécifiques pour le mode exercice ──
+                    const exerciceNiveau = resolveNiveau(inputText);
+                    const niveauLabel = exerciceNiveau.startsWith('seconde') ? 'SECONDE'
+                        : exerciceNiveau.startsWith('premiere-stmg') ? 'PREMIÈRE STMG'
+                        : exerciceNiveau.startsWith('premiere') ? 'PREMIÈRE SPÉCIALITÉ'
+                        : 'TERMINALE';
+
+                    const niveauConstraints = exerciceNiveau.startsWith('seconde') ? `
+⛔⛔⛔ NIVEAU SECONDE — INTERDICTIONS ABSOLUES DANS CET EXERCICE ⛔⛔⛔
+- ⛔ JAMAIS utiliser le discriminant Δ = b² - 4ac (HORS PROGRAMME SECONDE)
+- ⛔ JAMAIS calculer des racines avec x = (-b ± √Δ) / 2a
+- ⛔ JAMAIS écrire "On calcule Δ" ou "Δ = ..."
+- ⛔ JAMAIS dériver f (pas de f'(x) en Seconde)
+- ✅ Pour factoriser : utiliser UNIQUEMENT les identités remarquables (a²-b²=(a-b)(a+b)) ou le facteur commun évident
+- ✅ Pour résoudre une inéquation : TOUJOURS tableau de signes avec les facteurs affines
+- ✅ Les facteurs affines sont directement lisibles dans les expressions fournies par l'exercice
+` : exerciceNiveau.startsWith('premiere') ? `
+⚠️ NIVEAU ${niveauLabel} — RÈGLES POUR CET EXERCICE :
+- ✅ Discriminant Δ autorisé pour les polynômes du 2nd degré
+- ✅ Dérivée f'(x) autorisée (notation de Lagrange UNIQUEMENT, JAMAIS d/dx)
+- ⛔ JAMAIS calculer des limites en ±∞ (hors programme Première)
+- ✅ Pour toute inéquation f(x) > 0 : OBLIGATOIREMENT tableau de signes @@@table
+` : `
+⚠️ NIVEAU TERMINALE — RÈGLES POUR CET EXERCICE :
+- ✅ Toutes les méthodes autorisées (dérivées, limites, asymptotes)
+- ✅ Discriminant Δ autorisé
+- ⛔ JAMAIS développements limités, équivalents (~), Taylor-Young
+- ✅ Pour toute inéquation f(x) > 0 : OBLIGATOIREMENT tableau de signes @@@table
+`;
+
                     const enrichedMessages: ChatMessage[] = [
                         ...newMessages,
                         {
                             role: 'user' as const,
-                            content: `[SYSTÈME] Exercice complet sur f(x) = ${exprClean}.\nRéponds comme un élève modèle qui traite chaque question de l'exercice.\n\n${aiParts.join('\n\n')}\n\nRÈGLES ABSOLUES :\n- NE GÉNÈRE AUCUN bloc @@@ ni tableau ASCII\n- Écris [TABLE_SIGNES] et [TABLE_VARIATIONS] EXACTEMENT là où indiqué, sur une ligne seule\n- ⛔ NE GÉNÈRE JAMAIS de tableaux LaTeX \\begin{array} pour les signes ou les variations — c'est le moteur SymPy qui les insère\n- Pour chaque question commence par le numéro en gras\n- Détaille TOUTES les étapes de calcul\n- ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔\n- ⛔ JAMAIS écrire d/dx, df/dx, dy/dx, d²f/dx²\n- ⛔ JAMAIS écrire \\\\frac{d}{dx} ou \\\\frac{df}{dx}\n- ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)\n- ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."`
+                            content: `[SYSTÈME] Exercice complet — Niveau : ${niveauLabel} — f(x) = ${exprClean}.
+Réponds comme un élève modèle qui traite chaque question de l'exercice.
+${niveauConstraints}
+${aiParts.join('\n\n')}
+
+RÈGLES ABSOLUES :
+- ⛔ NE GÉNÈRE JAMAIS de tableaux LaTeX \\begin{array} ni de tableaux Markdown pour les signes ou les variations.
+- ✅ L'unique façon d'afficher un tableau est d'utiliser le bloc @@@ fourni par le moteur.
+- ✅ TU DOIS RECOPIER EXACTEMENT ET ENTIÈREMENT le(s) bloc(s) @@@ fournis dans les questions, SANS CHANGER UN SEUL CARACTÈRE. N'ajoute AUCUN espace ou tube '|' à l'intérieur du bloc @@@.
+- Pour chaque question commence par le numéro en gras
+- Détaille TOUTES les étapes de calcul
+- ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔
+- ⛔ JAMAIS écrire d/dx, df/dx, dy/dx, d²f/dx²
+- ⛔ JAMAIS écrire \\\\frac{d}{dx} ou \\\\frac{df}{dx}
+- ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)
+- ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."
+- ⛔⛔ NE PAS tracer la courbe, NE PAS générer de graphique, NE PAS ouvrir de fenêtre graphique — SAUF si une question le demande EXPLICITEMENT avec les mots "tracer", "représenter" ou "courbe"`
                         }
                     ];
 
@@ -617,7 +714,12 @@ export function useMathRouter({
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
                         });
-                        if (!response.ok) throw new Error('Erreur API');
+                        if (!response.ok) {
+                            let errMsg = `Erreur API (HTTP ${response.status})`;
+                            try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+                            console.error('[ExerciceMode] /api/perplexity error:', errMsg);
+                            throw new Error(errMsg);
+                        }
                         const reader = response.body?.getReader();
                         if (!reader) throw new Error('Reader non disponible');
                         const decoder = new TextDecoder();
@@ -653,10 +755,9 @@ export function useMathRouter({
                                         const now = Date.now();
                                         if (now - lastUpdate > 400) {
                                             lastUpdate = now;
-                                            let disp = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                            if (signTableBlock) disp = disp.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
-                                            if (variationTableBlock) disp = disp.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
-                                            const fixedDisp = fixLatexContent(header + disp).content;
+                                            // Ne plus supprimer les blocs @@@, l'IA doit les avoir recopiés
+                                            let disp = aiText;
+                                            const fixedDisp = patchMarkdownTables(fixLatexContent(header + disp).content);
                                             requestAnimationFrame(() => {
                                                 setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
                                             });
@@ -665,9 +766,7 @@ export function useMathRouter({
                                 } catch { }
                             }
                         }
-                        let finalText = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                        if (signTableBlock) finalText = finalText.replace(/\[TABLE_SIGNES\]/g, '\n\n' + signTableBlock + '\n\n');
-                        if (variationTableBlock) finalText = finalText.replace(/\[TABLE_VARIATIONS\]/g, '\n\n' + variationTableBlock + '\n\n');
+                        let finalText = aiText;
                         if (tableOfValues && !finalText.includes('| x | f(x) |')) {
                             finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
                         }
@@ -763,11 +862,46 @@ export function useMathRouter({
             const eqMatch = inputCleaned.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = inputCleaned.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
-                if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+                // ─── Extraction 1 : retirer tout ce qui précède et inclut "signes/variations de" ───
+                let extract = inputCleaned.replace(/.*(?:signes?|variations?|l'expression|la fonction|l'étude)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trin[ôo]mes?|polyn[ôo]mes?|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
+
+                // ─── Extraction 2 : fallback — chercher après "de f(x)" ou "du" ───
+                if (extract === inputCleaned) {
+                    // ⚠️ On exige [fghk](x) pour éviter de capturer "signes de (-2x+4)..."
+                    const deMatch = inputCleaned.match(/(?:de|du)\s+(?:[fghk]\s*\(\s*x\s*\)\s*=?\s*)(.+)/i);
+                    if (deMatch) extract = deMatch[1].trim();
+                }
+
+                // ─── Extraction 3 : fallback final — chercher la première expression mathématique ───
+                // Si extract contient encore des mots français (signes, tableau, moi, etc.) c'est qu'on
+                // n'a pas réussi à extraire proprement → on cherche la 1ère parenthèse ou suite math
+                const hasFrenchWords = /\b(?:signes?|tableau|donne|moi|calcule?|résous|étudier?|l[ae]|les?|mon|trouve|dresse|faire|donner|montrer|pour|avec|selon|trouve)\b/i.test(extract);
+                if (hasFrenchWords || extract === inputCleaned) {
+                    // Chercher la 1ère sous-chaîne qui commence par (, chiffre, x, -, ou lettre math
+                    // et contient x (donc c'est une expression mathématique)
+                    const mathMatch = inputCleaned.match(/([-(]?\s*(?:[2-9]|\d+\.?\d*|x)[^a-ùA-ÙÀ-üà-ü]{0,3}[\w^*/+().,-]*(?:(?:\s*[*+\-/^]\s*|\s*\(\s*)[\w^*()+.,/-]*)*(?:\([^)]+\))*[^,;]*)/i);
+                    if (mathMatch && mathMatch[1].includes('x')) {
+                        // Affiner : chercher spécifiquement après le dernier "de " suivi d'une expression
+                        const lastDeMatch = inputCleaned.match(/(?:^|\s)de\s+((?:[-(]|\d)[^a-zA-ZÀ-ÿ,;.]{0}[\s\S]+)$/i);
+                        if (lastDeMatch && lastDeMatch[1].includes('x')) {
+                            extract = lastDeMatch[1].trim();
+                        } else {
+                            extract = mathMatch[1].trim();
+                        }
+                    }
+                }
+
+            expr = extract.replace(/^(?:(?:[fghkP]\s*\(\s*x\s*\)|y)\s*=?\s*)/i, '').trim();
             }
+            
+            // Sécurité anti- "polynôme suivant :" restant
+            expr = expr.replace(/^(?:le\s+|ce\s+)?(?:trin[ôo]mes?|polyn[ôo]mes?|produits?|quotients?|fonctions?|fractions?|expressions?)\s*(?:suivante?|ci-dessous)?\s*:?\s*/i, '');
+
             expr = expr
+                .replace(/\$/g, '')
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                // Retirer toute inéquation ou équation à droite (ex: > 0, = 0, <= 1)
+                .replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                 // Exposants Unicode superscript → notation ^
@@ -804,6 +938,9 @@ export function useMathRouter({
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
+                .replace(/\s*s'?il\s*(?:te|vous)\s*pla[îi]t\b/gi, '')
+                .replace(/\s*s(?:tp|vp)\b/gi, '')
+                .replace(/\s*merci\b/gi, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
 
@@ -898,7 +1035,12 @@ export function useMathRouter({
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
                             });
-                            if (!response.ok) throw new Error('Erreur API');
+                            if (!response.ok) {
+                                let errMsg = `Erreur API sign_table (HTTP ${response.status})`;
+                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+                                console.error('[SignTable] /api/perplexity error:', errMsg);
+                                throw new Error(errMsg);
+                            }
                             const reader = response.body?.getReader();
                             if (!reader) throw new Error('Reader non disponible');
                             const decoder = new TextDecoder();
@@ -967,11 +1109,16 @@ export function useMathRouter({
             const eqMatch = inputCleaned.match(/=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr) {
-                const deMatch = inputCleaned.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
+                let extract = inputCleaned.replace(/.*(?:variations?|l'étude|la fonction)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trinôme|polynôme|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
+                
+                const deMatch = extract.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');
+                else expr = extract;
             }
             expr = expr
+                .replace(/\$/g, '')
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
+                .replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                 // Exposants Unicode superscript → notation ^
@@ -990,7 +1137,7 @@ export function useMathRouter({
                 // Retirer les domaines de définition (sur ℝ, sur R, sur ]a;b[, etc.)
                 .replace(/\s+sur\s+ℝ\s*\.?\s*$/i, '')
                 .replace(/\s+sur\s+[Rr]\s*\.?\s*$/i, '')
-                .replace(/\s+sur\s+[\[\]].+$/i, '')    // sur ]0 ; +∞[, sur [a ; b], etc.
+                .replace(/\s+sur\s+(?:l(?:'|’|e\s+|a\s+|les\s+)?intervalles?\s*)?(?:ℝ|[Rr]|[\[\]I]).*$/i, '')
                 .replace(/\s+pour\s+tout\s+x\s*\.?\s*$/i, '')
                 .replace(/\s+∀\s*x\s*\.?\s*$/i, '')
                 // Retirer les contraintes de domaine : "pour x ≠ 0", "(x ≠ 0)", ", x ≠ 0"
@@ -1001,18 +1148,59 @@ export function useMathRouter({
                 // Retirer le texte français résiduel (virgule + mot courant, point + phrase)
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                // Retirer instructions en langage naturel après point/virgule
+                // Retirer instructions en langage naturel après point/virgule ou "et"
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
+                .replace(/\s+(?:et|puis)\s+(?:trace|dedui|dresse|calcule|donne|determi|represent).+$/i, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
 
+            let vOptions: any = {};
+            const intMatch = inputCleaned.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
+            if (intMatch) {
+                vOptions.searchDomain = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
+            }
+
+            const inputNormV = inputLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const wantsGraphAlongWithTable = (
+                /\btrace\b|\btracer\b|\btrace\b|\bdessine\b|\bdessin\b/i.test(inputNormV)
+                || /\bcourbe\b|\bgraphe\b|\bgraphique\b|\bplot\b/i.test(inputNormV)
+                || /represent/i.test(inputNormV)
+                || /visualise|affiche|montre/i.test(inputNormV)
+            ) && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteur|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
+
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
+
+                if (wantsGraphAlongWithTable) {
+                    try {
+                        const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
+                        const prettyName = expr
+                            .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
+                            .replace(/\blog\(/g, 'ln(')
+                            .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
+                            .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                        const gs = {
+                            curves: [{ id: 'curve-0', expression: expr, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: vOptions.searchDomain || [-10, 10] }],
+                            intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
+                            title: `f(x) = ${prettyName}`,
+                        };
+                        localStorage.setItem('graphState', JSON.stringify(gs));
+                        const bch = new BroadcastChannel('mimimaths-graph');
+                        bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
+                        try { window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no'); } catch {}
+                    } catch (e) {}
+                }
+
                 try {
                     const engineRes = await fetch('/api/math-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'variation_table', expression: expr, niveau: resolveNiveau(inputText) }),
+                        body: JSON.stringify({ 
+                            type: 'variation_table', 
+                            expression: expr, 
+                            niveau: resolveNiveau(inputText),
+                            options: vOptions
+                        }),
                     });
                     const engineData = await engineRes.json();
                     if (engineData.success && engineData.aaaBlock) {
@@ -1036,7 +1224,12 @@ export function useMathRouter({
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
                             });
-                            if (!response.ok) throw new Error('Erreur API');
+                            if (!response.ok) {
+                                let errMsg = `Erreur API variation_table (HTTP ${response.status})`;
+                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+                                console.error('[VarTable] /api/perplexity error:', errMsg);
+                                throw new Error(errMsg);
+                            }
                             const reader = response.body?.getReader();
                             if (!reader) throw new Error('Reader non disponible');
                             const decoder = new TextDecoder();
@@ -1187,8 +1380,32 @@ export function useMathRouter({
                 if (mFb) rawEq = mFb[1].trim();
             }
 
+            // Nettoyage de l'équation : retirer les mots français
+            let cleanEq = rawEq
+                .replace(/\$/g, '')
+                .replace(/(?:l['’]\s*)?(?:é|e)quations?/gi, '')
+                .replace(/(?:l['’]\s*)?(?:in(?:é|e)quations?)/gi, '')
+                .replace(/(?:l['’]\s*)?expressions?/gi, '')
+                .replace(/(?:le\s+|ce\s+)?polyn[ôo]mes?/gi, '')
+                .replace(/(?:le\s+|ce\s+)?trin[ôo]mes?/gi, '')
+                .replace(/de\s+degré\s+\d+/gi, '')
+                .replace(/:\s*/g, '')
+                .replace(/\s*s'?il\s*(?:te|vous)\s*pla[îi]t\b/gi, '')
+                .replace(/\s*s(?:tp|vp)\b/gi, '')
+                .replace(/\s*merci\b/gi, '')
+                // On supprime toute ponctuation de fin de phrase ou parenthèse fermante résiduelle
+                .replace(/[\s,;:!?.\\)"\]]+$/, '')
+                .trim();
+            
+            // Retirer des prefixes textuels eventuels (Ex: 'la ' dans 'la x^2 = 0')
+            cleanEq = cleanEq.replace(/^([a-zA-ZÀ-ÿ]{2,}\s+)+/i, '');
+            // Retirer les résidus textuels à la fin (ex: mots isolés sans variable)
+            cleanEq = cleanEq.replace(/(?:\s+[a-zA-ZÀ-ÿ]{2,})+\s*$/i, '');
+            // Strip any remaining formatting
+            cleanEq = cleanEq.replace(/[\s,;]+$/, '').trim();
+
             // Nettoyer l'équation pour l'API SymPy
-            const sympifyEq = rawEq
+            const sympifyEq = cleanEq
                 .replace(/²/g, '**2').replace(/³/g, '**3').replace(/⁴/g, '**4')
                 .replace(/\^/g, '**')
                 .replace(/(\d),(\d)/g, '$1.$2')   // virgule decimale francaise : 0,5 → 0.5
@@ -1200,10 +1417,11 @@ export function useMathRouter({
 
 
             if (sympifyEq && sympifyEq.includes('=') && sympifyEq.includes('x')) {
-                console.log(`[Solve] 🔢 Résolution équation: "${sympifyEq}"`);
+                const solveNiveau = resolveNiveau(inputText);
+                console.log(`[Solve] 🔢 Résolution équation: "${sympifyEq}" niveau=${solveNiveau}`);
 
                 // Injecter un bloc @@@ solve directement dans le message affiché
-                const solveBlock = `@@@\nsolve\nequation: ${sympifyEq}\n@@@`;
+                const solveBlock = `@@@\nsolve\nequation: ${sympifyEq}\nniveau: ${solveNiveau}\n@@@`;
                 const introText = `Je résous cette équation via le moteur SymPy.\n\n`;
                 setMessages(prev => [...prev, { role: 'assistant', content: introText + solveBlock }]);
 
@@ -1252,6 +1470,7 @@ export function useMathRouter({
                 // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
                 const cleanExpr = (e: string) => {
                     let c = e
+                        .replace(/\$/g, '')
                         // Retirer f(x)=, g(x)=, y= etc.
                         .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
                         .replace(/^\s*y\s*=\s*/i, '')
@@ -1510,63 +1729,86 @@ export function useMathRouter({
                 // CAS 4 : TRACER / AJOUTER UNE COURBE
                 // ═══════════════════════════════════════════════════════
                 else {
-                    // Extraire l'expression
-                    let gExpr = '';
-                    const gEqMatch = inputText.match(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+(?:sur|pour|entre|de\s+-?\d)\s|$)/);
-                    if (gEqMatch) gExpr = gEqMatch[1].trim();
-                    if (!gExpr) {
-                        // Pattern étendu avec tous les verbes/noms BO
-                        const gVerbMatch = inputText.match(
-                            /(?:trace|tracer|dessine|ajoute|rajoute|repr[eé]sente|visualise|affiche|montre)\s+(?:(?:la\s+)?(?:courbe\s+(?:repr[eé]sentative\s+)?|repr[eé]sentation\s+graphique\s+|fonction\s+|graphe\s+|graphique\s+)?(?:de\s+)?)?(.+?)(?:\s+(?:sur|pour|entre|dans)\s|$)/i
-                        );
-                        if (gVerbMatch) {
-                            gExpr = gVerbMatch[1].trim()
-                                .replace(/^(?:de\s+)?(?:[fgh]\s*\(x\)\s*=\s*)/, '')
-                                .replace(/[.!?]+$/, '');
+                    // Extraire potentiellement plusieurs expressions séparées par 'et', ','
+                    // On part de inputText pour retrouver tous les "f(x) = ..."
+                    const exprMatches = [...inputText.matchAll(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*([^,;]+?(?=\s+et\s+|\s+ou\s+|\s*(?:sur|pour|entre|dans)\s|\s*$))/gi)];
+                    
+                    let gExprs: { name: string, expr: string }[] = [];
+
+                    if (exprMatches.length > 0) {
+                        gExprs = exprMatches.map((m, idx) => {
+                            // m[0] = "f(x) = x^2", m[1] = "x^2"
+                            const nameMatch = m[0].match(/([fghFGH])/i);
+                            const name = nameMatch ? nameMatch[1].toLowerCase() : `f${idx+1}`;
+                            return { name, expr: cleanExpr(m[1].trim()) };
+                        });
+                    } else {
+                        // Fallback simple ou verbes
+                        let gExpr = '';
+                        const gEqMatch = inputText.match(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+(?:sur|pour|entre|de\s+-?\d)\s|$)/);
+                        if (gEqMatch) gExpr = gEqMatch[1].trim();
+                        if (!gExpr) {
+                            const gVerbMatch = inputText.match(
+                                /(?:trace|tracer|dessine|ajoute|rajoute|repr[eé]sente|visualise|affiche|montre)\s+(?:(?:la\s+)?(?:courbe\s+(?:repr[eé]sentative\s+)?|repr[eé]sentation\s+graphique\s+|fonction\s+|graphe\s+|graphique\s+)?(?:de\s+)?)?(.+?)(?:\s+(?:sur|pour|entre|dans)\s|$)/i
+                            );
+                            if (gVerbMatch) {
+                                gExpr = gVerbMatch[1].trim()
+                                    .replace(/^(?:de\s+)?(?:[fgh]\s*\(x\)\s*=\s*)/, '')
+                                    .replace(/[.!?]+$/, '');
+                            }
+                        }
+                        gExpr = cleanExpr(gExpr);
+                        if (gExpr) {
+                            const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
+                            gExprs.push({ name: nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f'), expr: gExpr });
                         }
                     }
-                    gExpr = cleanExpr(gExpr);
 
-                    // Extraire le nom de la fonction
-                    const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
-                    const funcName = nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f');
+                    // Ne garder que les expressions qui contiennent au moins 'x' ou sont des nombres/constantes mathématiques
+                    gExprs = gExprs.filter(g => g.expr && (g.expr.includes('x') || /^[\d\s+\-*/()eπ.]+$/.test(g.expr)));
 
-                    if (gExpr && gExpr.includes('x')) {
+                    if (gExprs.length > 0) {
                         if (wantsAddCurve && graphState.curves.length > 0) {
-                            // AJOUTER une courbe
-                            const idx = graphState.curves.length;
-                            graphState.curves.push({
-                                id: `curve-${idx}`,
-                                expression: gExpr,
-                                name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
-                                color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
-                                interval: gInterval,
-                            });
+                            // AJOUTER des courbes
+                            for (const {name, expr} of gExprs) {
+                                const idx = graphState.curves.length;
+                                graphState.curves.push({
+                                    id: `curve-${idx}`,
+                                    expression: expr,
+                                    name: `${name}(x) = ${prettifyMath(expr)}`,
+                                    color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
+                                    interval: gInterval,
+                                });
+                            }
                             graphState.title = 'Graphique multi-courbes';
                             graphState.intersections = graphState.curves.length >= 2 ? '__COMPUTE__' : [];
                             graphState.tangent = null;
+                            const action = 'ajoutée' + (gExprs.length > 1 ? 's' : '');
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `📊 Courbe(s) ${action} : **${gExprs.map(g => `${g.name}(x) = ${prettifyMath(g.expr)}`).join(', ')}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                            }]);
                         } else {
-                            // TRACER une nouvelle courbe (efface les précédentes)
+                            // TRACER une ou plusieurs nouvelles courbes (efface les précédentes)
                             graphState = {
-                                curves: [{
-                                    id: 'curve-0',
-                                    expression: gExpr,
-                                    name: `${funcName}(x) = ${prettifyMath(gExpr)}`,
-                                    color: GRAPH_COLORS[0],
+                                curves: gExprs.map((g, i) => ({
+                                    id: `curve-${i}`,
+                                    expression: g.expr,
+                                    name: `${g.name}(x) = ${prettifyMath(g.expr)}`,
+                                    color: GRAPH_COLORS[i % GRAPH_COLORS.length],
                                     interval: gInterval,
-                                }],
-                                intersections: [],
+                                })),
+                                intersections: gExprs.length >= 2 ? '__COMPUTE__' : [],
                                 positionsRelatives: [],
                                 tangent: null,
-                                title: `${funcName}(x) = ${prettifyMath(gExpr)}`,
+                                title: gExprs.length > 1 ? 'Graphique multi-courbes' : `${gExprs[0].name}(x) = ${prettifyMath(gExprs[0].expr)}`,
                             };
+                            const action = 'tracée' + (gExprs.length > 1 ? 's' : '');
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `📊 Courbe(s) ${action} : **${gExprs.map(g => `${g.name}(x) = ${prettifyMath(g.expr)}`).join(', ')}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
+                            }]);
                         }
-
-                        const action = wantsAddCurve ? 'ajoutée' : 'tracée';
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `📊 Courbe ${action} : **${funcName}(x) = ${prettifyMath(gExpr)}** sur [${gInterval[0]}, ${gInterval[1]}]. Regarde la fenêtre graphique !`
-                        }]);
                     } else {
                         // Pas d'expression trouvée → laisser l'IA gérer
                         await startStreamingResponse(newMessages);
@@ -1713,10 +1955,12 @@ Puis explique la figure pédagogiquement.
 
 ⛔ INTERDIT : calculer Ox, Oy, Ix, Iy, R, r toi-même — tu ferais des erreurs ! Utilise uniquement les commandes ci-dessus.
 
-RÈGLES STRICTES :
-- ✅ TOUJOURS mettre "repere: orthonormal" si l'élève donne des coordonnées explicites (ex: A(2;3), B(5;1)...) ou demande de placer des points dans un repère.
-- ✅ TOUJOURS mettre "repere: orthonormal" si la demande implique un calcul de distance, périmètre, ou coordonnées de milieu.
-- ❌ NE PAS mettre repere si l'élève demande une figure purement géométrique SANS coordonnées (ex: "trace un triangle isoèle", "trace un cercle de rayon 3").
+RÈGLES STRICTES SUR LE REPÈRE :
+- ✅ Mettre "repere: orthonormal" UNIQUEMENT si l'élève lui-même mentionne un repère, ou si la demande est de nature analytique (équation de droite, vecteur avec coordonnées, produit scalaire).
+- ✅ Mettre "repere: orthonormal" si l'élève donne des coordonnées explicites dans SA question (ex: "place A(2;3) et B(5;1)").
+- ❌ NE PAS mettre repere: orthonormal si c'est TOI qui choisis les coordonnées pour dessiner la figure (c'est le cas le plus fréquent).
+- ❌ NE PAS mettre repere si l'élève demande une figure purement géométrique : "trace un triangle", "trace un cercle", "trace la médiatrice", "perpendiculaire à AB", etc.
+- ❌ NE PAS mettre repere si les coordonnées ne sont que des supports internes pour le tracé SVG — les élèves ne les voient pas.
 - Utilise UNIQUEMENT des coordonnées entières ou demi-entières (ex: 0, 1, 2, 0.5)
 - Le bloc @@@ DOIT commencer par "geo" sur la première ligne
 - Respecte les conventions EN France : [AB] pour segments, (d) pour droites, [AB) pour demi-droites
@@ -1803,13 +2047,19 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                     body: JSON.stringify({ messages: geoMessages, context: baseContext }),
                 });
 
-                if (!response.ok) throw new Error('Erreur API géométrie');
+                if (!response.ok) {
+                    let errMsg = `Erreur API géométrie (HTTP ${response.status})`;
+                    try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+                    console.error('[Geo] /api/perplexity error:', errMsg);
+                    throw new Error(errMsg);
+                }
                 const reader = response.body?.getReader();
                 if (!reader) throw new Error('Reader indisponible');
 
                 const decoder = new TextDecoder();
                 let aiText = '';
                 let geoSceneSent = false;
+                let filteredGeoBlock = ''; // bloc geo post-traité (repère corrigé) pour affichage inline
                 let lastGeoUpdate = 0;
                 let lineBuffer = ''; // Buffer pour les lignes incomplètes
 
@@ -1919,6 +2169,37 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                 }
                                             } catch { /* ignore post-processing errors */ }
 
+                                            // ── POST-TRAITEMENT déterministe : type de repère ──
+                                            // On détecte ce que l'élève veut depuis SA question,
+                                            // puis on impose le bon type dans le bloc (indépendamment de l'IA).
+                                            const hasCoords = /[A-Z]\s*\(\s*-?\d/.test(inputText); // ex: A(0,0), A(2;3)
+                                            const mentionsRepere = /rep[eè]re/i.test(inputText);
+
+                                            let forcedRepere: string | null = null;
+                                            if (hasCoords || mentionsRepere) {
+                                                // L'élève donne des coords ou mentionne un repère → on affiche les axes
+                                                if (/orthogonal(?!\S*normal)/i.test(inputText)) {
+                                                    // Repère orthogonal (axes perpendiculaires, unités libres)
+                                                    forcedRepere = 'orthogonal';
+                                                } else if (/s[eé]cant|oblique|vec\s*[({]|\\vec/i.test(inputText)) {
+                                                    // Repère oblique / sécantes / (O, vec u, vec v)
+                                                    forcedRepere = 'orthogonal'; // rendu approximatif — TODO: support oblique
+                                                } else {
+                                                    // Défaut : repère orthonormal
+                                                    forcedRepere = 'orthonormal';
+                                                }
+                                            }
+                                            // Appliquer : supprimer toute directive repere: existante puis injecter la bonne
+                                            block = block.split('\n').filter(l => !/^\s*rep[eè]re\s*:/i.test(l)).join('\n');
+                                            if (forcedRepere) {
+                                                // Injecter après la ligne "geo" (1ère ligne du bloc)
+                                                const blockLines = block.split('\n');
+                                                blockLines.splice(1, 0, `repere: ${forcedRepere}`);
+                                                block = blockLines.join('\n');
+                                            }
+                                            // Mémoriser le bloc filtré pour l'affichage inline
+                                            filteredGeoBlock = `@@@\n${block}\n@@@`;
+
                                             try {
                                                 // Stocker dans localStorage (partagé entre fenêtres)
                                                 localStorage.setItem(sceneKey, JSON.stringify({ raw: block }));
@@ -1951,8 +2232,33 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                     const geoBlockMatch = aiText.match(/@@@[\s\S]*?@@@/);
                     const cleanFinalText = aiText.replace(/@@@[\s\S]*?@@@/g, '').trim();
                     const finalFixed = fixLatexContent(patchMarkdownTables(cleanFinalText)).content;
-                    const finalContent = geoBlockMatch
-                        ? `${geoBlockMatch[0]}\n\n${finalFixed}`.trim()
+
+                    // Appliquer le filtre repère déterministe sur le bloc final
+                    // (même logique que dans le streaming, pour garantir la cohérence)
+                    let geoBlockDisplay = filteredGeoBlock; // préférer le bloc déjà filtré
+                    if (!geoBlockDisplay && geoBlockMatch) {
+                        // filteredGeoBlock vide (timing) → filtrer le brut maintenant
+                        const rawBlock = geoBlockMatch[0];
+                        const innerBlock = rawBlock.replace(/^@@@\s*/, '').replace(/\s*@@@$/, '').trim();
+                        const hasCoordsFinal = /[A-Z]\s*\(\s*-?\d/.test(inputText);
+                        const mentionsRepereFinal = /rep[eè]re/i.test(inputText);
+                        let forcedRepereFinal: string | null = null;
+                        if (hasCoordsFinal || mentionsRepereFinal) {
+                            if (/orthogonal(?!\S*normal)/i.test(inputText)) forcedRepereFinal = 'orthogonal';
+                            else if (/s[eé]cant|oblique|vec\s*[({]|\\vec/i.test(inputText)) forcedRepereFinal = 'orthogonal';
+                            else forcedRepereFinal = 'orthonormal';
+                        }
+                        let filteredInner = innerBlock.split('\n').filter(l => !/^\s*rep[eè]re\s*:/i.test(l)).join('\n');
+                        if (forcedRepereFinal) {
+                            const lines = filteredInner.split('\n');
+                            lines.splice(1, 0, `repere: ${forcedRepereFinal}`);
+                            filteredInner = lines.join('\n');
+                        }
+                        geoBlockDisplay = `@@@\n${filteredInner}\n@@@`;
+                    }
+
+                    const finalContent = geoBlockDisplay
+                        ? `${geoBlockDisplay}\n\n${finalFixed}`.trim()
                         : finalFixed;
                     console.log('[Router-Geo] geoBlockMatch:', !!geoBlockMatch, 'finalContent starts:', finalContent.slice(0, 60));
                     setMessages(prev => {

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { equation } = body;
+        const { equation, niveau } = body;
 
         if (!equation) {
             clearTimeout(timeoutId);
@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`[Solve] equation envoyée: "${equation}" → ${PYTHON_API}`);
+        console.log(`[Solve] equation envoyée: "${equation}" niveau=${niveau ?? 'non précisé'} → ${PYTHON_API}`);
 
         const response = await fetch(`${PYTHON_API}/solve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ equation }),
+            body: JSON.stringify({ equation, niveau: niveau ?? 'terminale_spe' }),
             signal: controller.signal,
         });
 

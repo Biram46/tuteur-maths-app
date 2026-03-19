@@ -31,6 +31,11 @@ export interface VariationTableInput {
     derivativeExpr?: string;  // f'(x) fournie si déjà calculée
     searchDomain?: [number, number];
     title?: string;
+    sympyDomain?: {
+        domainLeft: number | null;
+        domainStrict: boolean;
+        forbiddenPoints: number[];
+    };
 }
 
 export interface VariationTableResult {
@@ -390,7 +395,7 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
                 break;
 
             case 'general':
-                result = handleGeneral(expression, niveau, rules, searchDomain, input);
+                result = handleGeneral(expression, niveau, rules, input.searchDomain, input);
                 break;
 
             default:
@@ -721,9 +726,10 @@ function handleGeneral(
     expression: string,
     niveau: NiveauLycee,
     rules: NiveauRules,
-    searchDomain: [number, number],
+    explicitDomain: [number, number] | undefined,
     input: VariationTableInput
 ): VariationTableResult {
+    const searchDomain = explicitDomain ?? [-20, 20];
 
     // ── 1. Calculer f'(x) ──
     const derivExpr = input.derivativeExpr ?? computeDerivative(expression);
@@ -740,13 +746,79 @@ function handleGeneral(
     const derivZeros = findZeros(derivExpr, searchDomain[0], searchDomain[1]);
 
     // ── 3. Valeurs interdites de f ──
-    const rawDiscontinuities = findDiscontinuities(expression, searchDomain[0], searchDomain[1]);
+    let discontinuities: number[];
+    let domainLeft: number | null = null;
+    let domainStrict = false;
 
-    // ── 3b. Fusionner les discontinuités numériquement proches ──
-    // findDiscontinuities peut retourner des artefacts comme [-2.01, -2, -1.99]
-    // au lieu de [-2]. On regroupe les points proches (écart < 0.1) et on garde
-    // la valeur la plus « propre » (entier ou fraction simple) du groupe.
-    const discontinuities = mergeClosePoints(rawDiscontinuities, 0.1);
+    if (input.sympyDomain) {
+        discontinuities = input.sympyDomain.forbiddenPoints;
+        domainLeft = input.sympyDomain.domainLeft;
+        domainStrict = input.sympyDomain.domainStrict;
+    } else {
+        const rawDiscontinuities = findDiscontinuities(expression, searchDomain[0], searchDomain[1]);
+
+        // ── 3b. Fusionner les discontinuités numériquement proches ──
+        discontinuities = mergeClosePoints(rawDiscontinuities, 0.1);
+
+        // ── 4b. Détection du domaine de définition ──
+        // Pour ln(x), sqrt(x), etc. le domaine commence à une borne finie
+        const exprLower = expression.toLowerCase();
+        const hasLn = /\b(ln|log)\s*\(/.test(exprLower);
+        const hasSqrt = /\b(sqrt|racine)\s*\(|√/.test(exprLower);
+
+        if (hasLn || hasSqrt) {
+            // Trouver la borne par évaluation numérique
+            // Tester si la fonction est définie en -10, -1, -0.1, 0, 0.1, 1...
+            const testPts = [-10, -5, -2, -1, -0.5, -0.1, -0.01, 0, 0.01, 0.1, 0.5, 1, 2, 5];
+            let firstDefined: number | null = null;
+            for (const t of testPts) {
+                const v = evalAt(expression, t);
+                if (v !== null) {
+                    firstDefined = t;
+                    break;
+                }
+            }
+
+            if (firstDefined !== null) {
+                // Vérifier que la fonction N'EST PAS définie juste avant firstDefined
+                // → c'est bien une borne de domaine (ex: sqrt(x+2) non définie avant x=-2)
+                // Si evalAt(firstDefined - 0.5) est défini, la fonction est définie partout → pas de borne
+                const justBefore = evalAt(expression, firstDefined - 0.5);
+                if (justBefore === null) {
+                    // La borne est quelque part entre firstDefined-5 et firstDefined → bisection
+                    let lo = Math.max(firstDefined - 10, -20);
+                    let hi = firstDefined;
+                    for (let iter = 0; iter < 50; iter++) {
+                        const mid = (lo + hi) / 2;
+                        const v = evalAt(expression, mid);
+                        if (v !== null) hi = mid;
+                        else lo = mid;
+                    }
+                    const boundary = Math.round(hi * 1000) / 1000;
+                    domainLeft = Math.abs(boundary - Math.round(boundary)) < 0.01
+                        ? Math.round(boundary)
+                        : boundary;
+                }
+                domainStrict = hasLn; // ln → domaine ouvert ], sqrt → domaine fermé [
+            }
+        }
+    }
+
+    // ── 4c. Surcharge par le domaine explicite de l'utilisateur ──
+    let domainRight: number | null = null;
+    let domainRightStrict = false;
+    
+    if (explicitDomain) {
+        // L'utilisateur a demandé un tableau sur [a, b]
+        domainLeft = Math.max(domainLeft ?? -Infinity, explicitDomain[0]);
+        domainRight = explicitDomain[1];
+        domainStrict = false; // Par défaut, un intervalle spécifié est fermé sauf si ça tombe sur une valeur interdite
+        domainRightStrict = false;
+        
+        // Si l'utilisateur demande [a, b] mais que a ou b est une valeur interdite, on ouvre
+        if (discontinuities.some(d => Math.abs(d - domainLeft!) < 0.05)) domainStrict = true;
+        if (discontinuities.some(d => Math.abs(d - domainRight!) < 0.05)) domainRightStrict = true;
+    }
 
     // ── 3c. Supprimer les derivZeros qui sont en fait des discontinuités ──
     // (si f'(x) n'est pas définie en x=a, ce n'est pas un vrai zéro de f')
@@ -757,80 +829,45 @@ function handleGeneral(
     // ── 4. Tous les points critiques triés ──
     const allCritical = [...new Set([...cleanDerivZeros, ...discontinuities])].sort((a, b) => a - b);
 
-    // ── 4b. Détection du domaine de définition ──
-    // Pour ln(x), sqrt(x), etc. le domaine commence à une borne finie
-    let domainLeft: number | null = null;
-    let domainStrict = false;
-
-    // Détection textuelle : ln/log → stricte, sqrt → inclusive
-    const exprLower = expression.toLowerCase();
-    const hasLn = /\b(ln|log)\s*\(/.test(exprLower);
-    const hasSqrt = /\b(sqrt|racine)\s*\(|√/.test(exprLower);
-
-    if (hasLn || hasSqrt) {
-        // Trouver la borne par évaluation numérique
-        // Tester si la fonction est définie en -10, -1, -0.1, 0, 0.1, 1...
-        const testPts = [-10, -5, -2, -1, -0.5, -0.1, -0.01, 0, 0.01, 0.1, 0.5, 1, 2, 5];
-        let firstDefined: number | null = null;
-        for (const t of testPts) {
-            const v = evalAt(expression, t);
-            if (v !== null) {
-                firstDefined = t;
-                break;
-            }
-        }
-
-        if (firstDefined !== null) {
-            // Vérifier que la fonction N'EST PAS définie juste avant firstDefined
-            // → c'est bien une borne de domaine (ex: sqrt(x+2) non définie avant x=-2)
-            // Si evalAt(firstDefined - 0.5) est défini, la fonction est définie partout → pas de borne
-            const justBefore = evalAt(expression, firstDefined - 0.5);
-            if (justBefore === null) {
-                // La borne est quelque part entre firstDefined-5 et firstDefined → bisection
-                let lo = Math.max(firstDefined - 10, -20);
-                let hi = firstDefined;
-                for (let iter = 0; iter < 50; iter++) {
-                    const mid = (lo + hi) / 2;
-                    const v = evalAt(expression, mid);
-                    if (v !== null) hi = mid;
-                    else lo = mid;
-                }
-                const boundary = Math.round(hi * 1000) / 1000;
-                domainLeft = Math.abs(boundary - Math.round(boundary)) < 0.01
-                    ? Math.round(boundary)
-                    : boundary;
-            }
-            domainStrict = hasLn; // ln → domaine ouvert ], sqrt → domaine fermé [
-        }
-    }
-
     // Filtrer les points critiques hors domaine et construire xValues
     let filteredCritical = allCritical;
-    let xValues: string[];
+    
     if (domainLeft !== null) {
-        filteredCritical = allCritical.filter(c => c > domainLeft! + 0.1);
-        const prefix = domainStrict ? ']' : '';
-        xValues = [prefix + formatForTable(domainLeft), ...filteredCritical.map(formatForTable), '+inf'];
-    } else {
-        xValues = buildXValues(allCritical);
+        filteredCritical = filteredCritical.filter(c => c > domainLeft! + 0.05);
     }
-    // Recalculer allCritical filtré pour les lignes
-    const finalCritical = domainLeft !== null ? filteredCritical : allCritical;
+    if (domainRight !== null) {
+        filteredCritical = filteredCritical.filter(c => c < domainRight! - 0.05);
+    }
 
-    // ── 5. Intervalles (utiliser finalCritical = filtré par domaine) ──
-    // Si on a un domaine borné, utiliser domainLeft comme borne gauche au lieu de -inf
-    const intervalBounds = domainLeft !== null
-        ? buildIntervalBoundsWithDomain(finalCritical, domainLeft)
-        : buildIntervalBounds(finalCritical);
+    const finalCritical = filteredCritical;
 
-    // Filtrer aussi les derivZeros et discontinuités par domaine
-    // Seuil 0.1 : les artefacts numériques (bisection imprécise) près de la borne sont éliminés
-    const finalDerivZeros = domainLeft !== null
-        ? cleanDerivZeros.filter(z => z > domainLeft! + 0.1)
-        : cleanDerivZeros;
-    const finalDiscontinuities = domainLeft !== null
-        ? discontinuities.filter(d => d > domainLeft! + 0.1)
-        : discontinuities;
+    // Construction de xValues
+    let xValues: string[] = [];
+    xValues.push(domainLeft !== null ? (domainStrict ? ']' : '') + formatForTable(domainLeft) : '-inf');
+    xValues.push(...finalCritical.map(formatForTable));
+    xValues.push(domainRight !== null ? (domainRightStrict ? '[' : '') + formatForTable(domainRight) : '+inf');
+
+    // ── 5. Intervalles ──
+    const intervalBounds: [number | '-inf', number | '+inf'][] = [];
+    if (finalCritical.length === 0) {
+        intervalBounds.push([domainLeft ?? '-inf', domainRight ?? '+inf']);
+    } else {
+        intervalBounds.push([domainLeft ?? '-inf', finalCritical[0]]);
+        for (let i = 0; i < finalCritical.length - 1; i++) {
+            intervalBounds.push([finalCritical[i], finalCritical[i + 1]]);
+        }
+        intervalBounds.push([finalCritical[finalCritical.length - 1], domainRight ?? '+inf']);
+    }
+
+    // Filtrer aussi les derivZeros et discontinuités par domaine pour buildDerivSignRow
+    const finalDerivZeros = cleanDerivZeros.filter(z => 
+        (domainLeft === null || z > domainLeft + 0.05) && 
+        (domainRight === null || z < domainRight - 0.05)
+    );
+    const finalDiscontinuities = discontinuities.filter(d => 
+        (domainLeft === null || d > domainLeft + 0.05) &&
+        (domainRight === null || d < domainRight - 0.05)
+    );
 
     // ── 6. Construire les lignes ──
     const rows: TableRow[] = [];
@@ -1013,10 +1050,20 @@ function buildVariationRow(
 ): VariationRow {
     const values: string[] = [];
 
-    // Valeur à -∞ (Terminale uniquement)
-    if (rules.showLimitsAtInfinity) {
-        const limitMinus = computeLimitAtInfinity(expression, '-inf');
-        values.push(limitMinus);
+    // Valeur au point initial (soit -∞, soit la borne du domaine)
+    const firstBound = intervalBounds[0][0];
+    if (rules.showLimitsAtInfinity || firstBound !== '-inf') {
+        if (firstBound === '-inf') {
+            values.push(computeLimitAtInfinity(expression, '-inf'));
+        } else {
+            let valNum: number | null = evalAt(expression, firstBound as number);
+            if (valNum === null) {
+                const limitStr = computeLateralLimit(expression, firstBound as number, 'right');
+                values.push(limitStr);
+            } else {
+                values.push(formatForTable(round4(valNum)));
+            }
+        }
     }
 
     for (let i = 0; i < intervalBounds.length; i++) {
@@ -1076,10 +1123,20 @@ function buildVariationRow(
         }
     }
 
-    // Valeur à +∞ (Terminale uniquement)
-    if (rules.showLimitsAtInfinity) {
-        const limitPlus = computeLimitAtInfinity(expression, '+inf');
-        values.push(limitPlus);
+    // Valeur au point final (soit +∞, soit la borne du domaine)
+    const lastBound = intervalBounds[intervalBounds.length - 1][1];
+    if (rules.showLimitsAtInfinity || lastBound !== '+inf') {
+        if (lastBound === '+inf') {
+            values.push(computeLimitAtInfinity(expression, '+inf'));
+        } else {
+            let valNum: number | null = evalAt(expression, lastBound as number);
+            if (valNum === null) {
+                const limitStr = computeLateralLimit(expression, lastBound as number, 'left');
+                values.push(limitStr);
+            } else {
+                values.push(formatForTable(round4(valNum)));
+            }
+        }
     }
 
     return { label: 'f(x)', type: 'variation', values };
@@ -1093,28 +1150,53 @@ function buildVariationRow(
  * Approximation numérique de lim(x→±∞) f(x)
  */
 function computeLimitAtInfinity(expr: string, direction: '-inf' | '+inf'): string {
-    const x = direction === '-inf' ? -1e6 : 1e6;
-    const y = evalAt(expr, x);
+    const x1 = direction === '-inf' ? -1e4 : 1e4;
+    const x2 = direction === '-inf' ? -1e6 : 1e6;
+    const y1 = evalAt(expr, x1);
+    const y2 = evalAt(expr, x2);
 
-    if (y === null) return direction === '-inf' ? '-inf' : '+inf';
-    if (Math.abs(y) > 1e5) return y > 0 ? '+inf' : '-inf';
-    if (Math.abs(y) < 1e-4) return '0';
+    if (y2 === null) return direction === '-inf' ? '-inf' : '+inf';
+    
+    if (Math.abs(y2) > 1e4) return y2 > 0 ? '+inf' : '-inf';
+    if (Math.abs(y2) < 1e-4) return '0';
 
-    return formatForTable(round4(y));
+    if (y1 !== null) {
+        // Détecter la divergence lente (ex: log)
+        if ((y2 - y1 > 2 && y2 > 5) || (y1 - y2 > 2 && y2 < -5)) {
+            return y2 > 0 ? '+inf' : '-inf';
+        }
+    }
+
+    return formatForTable(round4(y2));
 }
 
 /**
  * Approximation numérique de lim(x→a⁻) ou lim(x→a⁺) f(x)
  */
 function computeLateralLimit(expr: string, a: number, side: 'left' | 'right'): string {
-    const epsilon = 1e-4;
-    const x = side === 'left' ? a - epsilon : a + epsilon;
-    const y = evalAt(expr, x);
+    const epsilon1 = 1e-4;
+    const epsilon2 = 1e-8;
+    const x1 = side === 'left' ? a - epsilon1 : a + epsilon1;
+    const x2 = side === 'left' ? a - epsilon2 : a + epsilon2;
+    const y1 = evalAt(expr, x1);
+    const y2 = evalAt(expr, x2);
 
-    if (y === null) return side === 'left' ? '-inf' : '+inf';
-    if (Math.abs(y) > 1e4) return y > 0 ? '+inf' : '-inf';
+    if (y1 === null || y2 === null) return side === 'left' ? '-inf' : '+inf';
 
-    return formatForTable(round4(y));
+    // Explosion rapide (ex: 1/x)
+    if (Math.abs(y1) >= 1e4 || Math.abs(y2) >= 1e4) {
+        // En cas d'explosion numérique, y2 peut devenir Infinity ou NaN si pas précis
+        // On se fie au signe de y1 ou y2 (y2 en priorité si c'est fini)
+        if (Math.abs(y2) > 1e4 && isFinite(y2)) return y2 > 0 ? '+inf' : '-inf';
+        return y1 > 0 ? '+inf' : '-inf';
+    }
+
+    // Divergence lente (ex: ln(x))
+    if ((y2 - y1 > 2 && y2 > 5) || (y1 - y2 > 2 && y2 < -5)) {
+        return y2 > 0 ? '+inf' : '-inf';
+    }
+
+    return formatForTable(round4(y1));
 }
 
 // ─────────────────────────────────────────────────────────────

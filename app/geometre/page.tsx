@@ -38,14 +38,9 @@ const WAITING_SCENE: GeoScene = {
 // Si repere === 'none' mais qu'au moins un point a des coordonnées non-triviales
 // (x≠0 ou y≠0, hors points auxiliaires), on force orthonormal + grille.
 function applyRepereHeuristic(scene: GeoScene): GeoScene {
-    if (scene.repere !== 'none') return scene; // l'IA a décidé → respecter
-    const hasNonTrivialCoords = scene.objects.some(o => {
-        if (o.kind !== 'point') return false;
-        const p = o as import('@/lib/geo-engine/types').GeoPoint;
-        return (Math.abs(p.x) > 0.01 || Math.abs(p.y) > 0.01) && !p.id.startsWith('_');
-    });
-    if (!hasNonTrivialCoords) return scene;
-    return { ...scene, repere: 'orthonormal', showGrid: true };
+    // Respecte la directive repere: telle quelle — le post-traitement de useMathRouter
+    // a déjà injecté le bon type (orthonormal si l'élève a donné des coords, none sinon).
+    return scene;
 }
 
 // ─── Parser la payload reçue depuis le BroadcastChannel ──────────────────────

@@ -56,19 +56,10 @@ export function useFigureRenderer() {
                     // Si l'IA a mis repere: → on respecte.
                     // Sinon : forcer orthonormal si au moins 1 point a des coords non-nulles.
                     // Cela couvre A(1,1), B(4,3) mais ignore point: O, 0, 0 (centre cercle).
+                    // On respecte la directive repere: du bloc geo (gérée par useMathRouter)
+                    // Ne pas forcer orthonormal ici — le post-traitement déterministe a déjà
+                    // injecté le bon type (orthonormal/orthogonal) si nécessaire.
                     let sceneForRender = parsedScene;
-
-                    if (parsedScene.repere === 'none') {
-                        const hasNonTrivialCoords = parsedScene.objects.some(o => {
-                            if (o.kind !== 'point') return false;
-                            const p = o as import('@/lib/geo-engine/types').GeoPoint;
-                            return (Math.abs(p.x) > 0.01 || Math.abs(p.y) > 0.01)
-                                && !p.id.startsWith('_'); // ignorer les points auxiliaires
-                        });
-                        if (hasNonTrivialCoords) {
-                            sceneForRender = { ...parsedScene, repere: 'orthonormal' as const, showGrid: true };
-                        }
-                    }
                     console.log('[Geo] repere:', sceneForRender.repere, 'objects:', parsedScene.objects.map(o => o.kind + ':' + (o as any).id).join(','));
 
 
@@ -116,23 +107,24 @@ export function useFigureRenderer() {
             }
 
             // ─── CAS SOLVE : Résolution d'équation via API SymPy ───────────
-            // Format : "solve | equation: 2*x**2-5*x+1=0"
+            // Format : "solve | equation: 2*x**2-5*x+1=0 | niveau: seconde"
             if (firstToken === 'solve' || firstToken.startsWith('solve ')) {
                 try {
-                    // Extraire l'équation du bloc
+                    // Extraire l'équation et le niveau du bloc
                     const lines = raw.split('\n');
                     let equation = '';
+                    let solveNiveau = 'terminale_spe';
 
                     for (const line of lines) {
                         const trimmed = line.trim();
                         if (trimmed.startsWith('equation:')) {
                             equation = trimmed.substring(9).trim();
-                            break;
+                        } else if (trimmed.startsWith('niveau:')) {
+                            solveNiveau = trimmed.substring(7).trim();
                         }
                         // Format alternatif: juste l'équation sur la deuxième ligne
-                        if (trimmed && !trimmed.startsWith('solve') && trimmed.includes('=')) {
+                        if (!equation && trimmed && !trimmed.startsWith('solve') && !trimmed.startsWith('niveau') && trimmed.includes('=')) {
                             equation = trimmed;
-                            break;
                         }
                     }
 
@@ -144,9 +136,9 @@ export function useFigureRenderer() {
                         return null;
                     }
 
-                    console.log('[Solve] Rendering solve block for:', equation);
+                    console.log('[Solve] Rendering solve block for:', equation, 'niveau:', solveNiveau);
                     return _cacheAndReturn(
-                        <SolveBlock key={`solve-${equation}`} equation={equation} />
+                        <SolveBlock key={`solve-${equation}`} equation={equation} niveau={solveNiveau} />
                     );
                 } catch (err) {
                     console.error('[Solve] error:', err);

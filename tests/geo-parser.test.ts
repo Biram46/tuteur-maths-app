@@ -236,7 +236,7 @@ describe('parseGeoScene — Domaine', () => {
     });
 });
 
-// ─── Parallèles / Perpendiculaires ───────────────────────────────────────────
+// ─── Perpendiculaires / Parallèles ───────────────────────────────────────────
 
 describe('parseGeoScene — Perpendiculaires et Parallèles', () => {
     it('perpendiculaire crée une droite + un point auxiliaire _perp_', () => {
@@ -249,5 +249,154 @@ describe('parseGeoScene — Perpendiculaires et Parallèles', () => {
         expect(auxPoints.length).toBeGreaterThanOrEqual(1);
         // Le point auxiliaire doit avoir style 'none'
         expect((auxPoints[0] as any).style).toBe('none');
+    });
+
+    it('parallele ne crée PAS d\'angle droit', () => {
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 4, 0\npoint: C, 1, 3\nparallele: C, AB'
+        );
+        const angles = scene.objects.filter(o => o.kind === 'angle');
+        expect(angles.length).toBe(0);
+    });
+});
+
+// ─── Régression 2026-03-16 — Perpendiculaire & Médiatrice ────────────────────
+
+describe('Régression 2026-03-16 — Angle droit au pied H (perpendiculaire)', () => {
+    it('⊾ créé automatiquement quand perpendiculaire: est utilisé', () => {
+        // Bug : aucun angle droit n'était créé pour la commande perpendiculaire:
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 6, 0\npoint: C, 3, 5\nperpendiculaire: C, AB'
+        );
+        const angles = scene.objects.filter(o => o.kind === 'angle' && (o as any).square === true);
+        expect(angles.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('⊾ est au pied H (intersection droites) — pas au point C passant', () => {
+        // Bug corrigé : le vertex du carré était en C au lieu de H
+        // A(0,0), B(6,0), C(3,5) → pied H de la perp de C sur AB = (3, 0)
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 6, 0\npoint: C, 3, 5\nperpendiculaire: C, AB'
+        );
+        const angles = scene.objects.filter(o => o.kind === 'angle' && (o as any).square === true);
+        expect(angles.length).toBeGreaterThanOrEqual(1);
+        const ang = angles[0] as any;
+
+        // Le vertex de l'angle droit est le pied H, PAS C
+        expect(ang.vertex).not.toBe('C');
+        expect(ang.vertex).toMatch(/^_foot_C/);
+
+        // Le point _foot_C doit exister avec les bonnes coords (3, 0)
+        const foot = scene.objects.find(o => o.kind === 'point' && (o as any).id === '_foot_C') as any;
+        expect(foot).toBeDefined();
+        expect(foot.x).toBeCloseTo(3, 5);
+        expect(foot.y).toBeCloseTo(0, 5);
+    });
+
+    it('⊾ au pied H (perpendiculaire sur segment oblique)', () => {
+        // A(0,0), B(4,4) → AB direction (1,1).  P(0,4) → pied H de P sur AB
+        // t = ((0-0)*1 + (4-0)*1) / (1²+1²) = 4/2 = 2 → H = (2, 2)
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 4, 4\npoint: P, 0, 4\nperpendiculaire: P, AB'
+        );
+        const foot = scene.objects.find(o => o.kind === 'point' && (o as any).id === '_foot_P') as any;
+        expect(foot).toBeDefined();
+        expect(foot.x).toBeCloseTo(2, 5);
+        expect(foot.y).toBeCloseTo(2, 5);
+    });
+
+    it('pied H coïncide avec P → ⊾ en P, point H invisible', () => {
+        // Si P est déjà sur la droite de référence, le pied = P lui-même
+        // A(0,0), B(4,0), P(2,0) : P est sur AB → foot = (2,0) = P
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 4, 0\npoint: P, 2, 0\nperpendiculaire: P, AB'
+        );
+        const foot = scene.objects.find(o => o.kind === 'point' && (o as any).id === '_foot_P') as any;
+        // Le foot existe mais doit être invisible (style: 'none') car il coïncide avec P
+        if (foot) {
+            expect((foot as any).style).toBe('none');
+        }
+    });
+});
+
+describe('Régression 2026-03-16 — Médiatrice avec ⊾ au milieu M', () => {
+    it('mediatrice crée un point M (milieu visible)', () => {
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 6, 0\nmediatrice: A, B'
+        );
+        const midPt = scene.objects.find(o => o.kind === 'point' && (o as any).id === '_M_AB') as any;
+        expect(midPt).toBeDefined();
+        expect(midPt.x).toBeCloseTo(3, 5);
+        expect(midPt.y).toBe(0);
+    });
+
+    it('mediatrice crée un ⊾ en M (vertex = _M_AB)', () => {
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 6, 0\nmediatrice: A, B'
+        );
+        const angles = scene.objects.filter(o => o.kind === 'angle' && (o as any).square === true);
+        expect(angles.length).toBeGreaterThanOrEqual(1);
+        const ang = angles[0] as any;
+        expect(ang.vertex).toBe('_M_AB');
+        // from=A (sur la droite AB), to=point médiatrice
+        expect(ang.from).toBe('A');
+    });
+
+    it('mediatrice crée une droite perpendiculaire (1 droite dans les objets)', () => {
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 4, 0\nmediatrice: A, B'
+        );
+        const lines = scene.objects.filter(o => o.kind === 'line');
+        expect(lines.length).toBe(1);
+    });
+});
+
+// ─── Régression 2026-03-16 — Repère déterministe ─────────────────────────────
+// Bug : le repère était forcé à 'orthonormal' par l'heuristique hasNonTrivialCoords
+// dans useFigureRenderer.tsx et page.tsx — même quand l'utilisateur n'en voulait pas.
+// Fix : l'heuristique est désactivée. Le parseur retourne toujours 'none' par défaut.
+// C'est useMathRouter.ts qui décide du type (via la question de l'élève).
+
+describe('Régression 2026-03-16 — Repère : parseur ne force jamais les axes', () => {
+    it('repere: none par défaut (même avec points aux coords non-nulles)', () => {
+        // ⚠️ Avant le fix, hasNonTrivialCoords forçait orthonormal pour ce cas
+        const scene = parseGeoScene('geo\npoint: A, 2, 3\npoint: B, 5, 1\nsegment: AB');
+        expect(scene.repere).toBe('none'); // le parseur ne décide PAS du repère
+    });
+
+    it('repere: none même pour un triangle avec 3 points non-nuls', () => {
+        // Cas exact du bug signalé : "Trace les points A, B, C et le triangle ABC"
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 4, 0\npoint: C, 2, 3\ntriangle: A, B, C'
+        );
+        expect(scene.repere).toBe('none');
+    });
+
+    it('repere: orthonormal seulement si directive explicite', () => {
+        // Le post-traitement de useMathRouter injecte cette ligne si besoin
+        const scene = parseGeoScene(
+            'geo\nrepere: orthonormal\npoint: A, 0, 0\npoint: B, 6, 0\npoint: C, 3, 5'
+        );
+        expect(scene.repere).toBe('orthonormal');
+    });
+
+    it('repere: orthogonal si directive explicite "repere: orthogonal"', () => {
+        const scene = parseGeoScene('geo\nrepere: orthogonal\npoint: A, 0, 0');
+        expect(scene.repere).toBe('orthogonal');
+    });
+
+    it('repere: none si directive explicite "repere: none"', () => {
+        // Doit écaser tout héritage potentiel
+        const scene = parseGeoScene('geo\nrepere: none\npoint: A, 2, 3\npoint: B, 5, 1');
+        expect(scene.repere).toBe('none');
+    });
+
+    it('bloc avec uniquement perpendiculaire → repere: none (figure géométrique pure)', () => {
+        // Cas représentatif : "Trace la perpendiculaire à AB par C" sans coords élève
+        // → le bloc IA ne contient PAS "repere: orthonormal" (filtré par useMathRouter)
+        const scene = parseGeoScene(
+            'geo\npoint: A, 0, 0\npoint: B, 6, 0\npoint: C, 3, 5\ntriangle: A, B, C\nperpendiculaire: C, AB'
+        );
+        expect(scene.repere).toBe('none');
     });
 });

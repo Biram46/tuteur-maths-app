@@ -37,5 +37,5 @@ export function resolveNiveau(
         onDetected?.(detected);
         return detected;
     }
-    return 'premiere_spe';
+    return 'terminale_spe';
 }

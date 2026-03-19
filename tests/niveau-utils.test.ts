@@ -106,13 +106,13 @@ describe('resolveNiveau', () => {
         expect(spy).not.toHaveBeenCalled();
     });
 
-    it('retourne "premiere_spe" par défaut si rien n\'est détecté', () => {
+    it('retourne "terminale_spe" par défaut si rien n\'est détecté', () => {
         const result = resolveNiveau('bonjour', null);
-        expect(result).toBe('premiere_spe');
+        expect(result).toBe('terminale_spe');
     });
 
-    it('retourne "premiere_spe" par défaut même sans onDetected', () => {
+    it('retourne "terminale_spe" par défaut même sans onDetected', () => {
         const result = resolveNiveau('bonjour', null, undefined);
-        expect(result).toBe('premiere_spe');
+        expect(result).toBe('terminale_spe');
     });
 });

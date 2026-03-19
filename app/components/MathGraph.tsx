@@ -52,6 +52,43 @@ function safeEval(expr: string, xVal: number): number | null {
 }
 
 /**
+ * Détecte les asymptotes verticales automatiquement (dénominateur = 0 ou saut infini).
+ */
+function findVerticalAsymptotes(expr: string, xMin: number, xMax: number, numSamples: number = 1000): number[] {
+    const asyms: number[] = [];
+    const step = (xMax - xMin) / numSamples;
+    let prevY: number | null = null;
+    let prevX = xMin;
+
+    for (let i = 0; i <= numSamples; i++) {
+        const xv = xMin + i * step;
+        const yv = safeEval(expr, xv);
+
+        if (i > 0) {
+            if ((prevY !== null && yv === null) || (prevY === null && yv !== null)) {
+                let lo = prevX, hi = xv;
+                for (let j = 0; j < 30; j++) {
+                    const mid = (lo + hi) / 2;
+                    const mVal = safeEval(expr, mid);
+                    if ((prevY !== null && mVal !== null)) lo = mid; else hi = mid;
+                }
+                const asym = Math.round(((lo + hi) / 2) * 1000) / 1000;
+                if (!asyms.some(a => Math.abs(a - asym) < 0.05)) asyms.push(asym);
+            } else if (prevY !== null && yv !== null && Math.sign(prevY) !== Math.sign(yv)) {
+                const ratio = Math.abs(yv - prevY) / step;
+                if (ratio > 500) { // pente gigantesque = probablement asymptote
+                    const asym = Math.round(((prevX + xv) / 2) * 1000) / 1000;
+                    if (!asyms.some(a => Math.abs(a - asym) < 0.05)) asyms.push(asym);
+                }
+            }
+        }
+        prevX = xv;
+        prevY = yv;
+    }
+    return asyms;
+}
+
+/**
  * Détecte si une expression ou un titre concerne les fonctions trigonométriques.
  * Vérifie tant les noms de fonctions (cos, sin, tan) que les mots français
  * (cosinus, sinus, sinusoïdale, tangente, trigonométrique, etc.)
@@ -262,6 +299,17 @@ export default function MathGraph({
         let xDomain = domainProp.x;
         let yDomain = domainProp.y;
 
+        // Auto-calculer les asymptotes pour toutes les expressions si non fournies
+        let computedAsymptotes = [...asymptotes];
+        if (functions.length > 0) {
+            functions.forEach(f => {
+                const fnAsyms = findVerticalAsymptotes(f.fn, xDomain[0], xDomain[1]);
+                for (const a of fnAsyms) {
+                    if (!computedAsymptotes.includes(a)) computedAsymptotes.push(a);
+                }
+            });
+        }
+        
         // Pour les fonctions trigo : forcer le domaine X en multiples de π
         if (hasTrigFunctions) {
             const PI = Math.PI;
@@ -275,7 +323,7 @@ export default function MathGraph({
 
         // Auto-calculer le domaine Y quand on a des fonctions (expressions)
         if (functions.length > 0) {
-            const autoY = autoComputeYDomain(functions, xDomain, asymptotes);
+            const autoY = autoComputeYDomain(functions, xDomain, computedAsymptotes);
             yDomain = autoY;
         }
         // Même sans fonctions, adapter le Y aux points si on en a assez
@@ -290,7 +338,7 @@ export default function MathGraph({
             if (yDomain[1] < 0) yDomain[1] = 0;
         }
 
-        return { x: xDomain as [number, number], y: yDomain as [number, number] };
+        return { x: xDomain as [number, number], y: yDomain as [number, number], asyms: computedAsymptotes };
     })();
 
     // Responsive : observer la taille du conteneur
@@ -557,7 +605,7 @@ export default function MathGraph({
                     const xVal = xMin + i * step;
 
                     // Vérifier si on est proche d'une asymptote
-                    const nearAsymptote = asymptotes.some(a => Math.abs(xVal - a) < step * 1.5);
+                    const nearAsymptote = domain.asyms.some(a => Math.abs(xVal - a) < step * 3);
                     if (nearAsymptote) {
                         if (currentSegment.length > 0) {
                             segments.push(currentSegment);
@@ -609,8 +657,8 @@ export default function MathGraph({
                 });
             });
 
-            // Asymptotes verticales
-            asymptotes.forEach(a => {
+            // Asymptotes verticales (combinaison des prop asymptotes et des auto-détectées)
+            domain.asyms.forEach(a => {
                 if (a >= domain.x[0] && a <= domain.x[1]) {
                     g.append('line')
                         .attr('x1', xScale(a)).attr('y1', 0)

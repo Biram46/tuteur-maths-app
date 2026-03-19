@@ -178,6 +178,23 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
     - Exemple : x³ - x = x·(x² - 1) avec Δ calculé pour x² - 1
     - On NE factorise PAS complètement en (x)(x-1)(x+1) car ça saute l'étape Δ
     """
+    # Préserver les produits existants (ex: (-2x+4)(x-3)) pour éviter
+    # qu'ils ne soient développés et que les coefficients soient modifiés.
+    if poly_expr.is_Mul:
+        all_factors = []
+        total_const = 1.0
+        for arg in poly_expr.args:
+            if arg.is_number:
+                try:
+                    total_const *= float(arg.evalf())
+                except:
+                    pass
+            else:
+                f, c = get_polynomial_factors(arg, role, niveau)
+                all_factors.extend(f)
+                total_const *= c
+        return all_factors, total_const
+
     # Retirer les facteurs transcendants (exp, ln, sqrt) déjà traités séparément
     poly_simplified = poly_expr
     for atom in poly_expr.atoms(sp.exp, sp.log, sp.sqrt):
@@ -198,16 +215,9 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
         const_val = float(poly_simplified.evalf()) if hasattr(poly_simplified, 'evalf') else float(poly_simplified)
         return [], const_val
 
-    # ── Extraire le coefficient dominant ──
-    all_coeffs = p.all_coeffs()
-    leading = all_coeffs[0]
-    const_coeff = float(leading.evalf()) if hasattr(leading, 'evalf') else float(leading)
-
-    # Rendre le polynôme unitaire : P(x) = leading × P_monic(x)
-    monic = sp.expand(poly_simplified / leading)
-
+    const_coeff = 1.0
     factors = []
-    remaining = monic
+    remaining = sp.expand(poly_simplified)
 
     seconde_full_factor = (niveau == "seconde")  # Seconde: no Delta for deg-2
 
@@ -328,11 +338,22 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
 
 def compute_sign_table(expression, niveau='terminale_spe'):
     """Calcule le tableau de signes complet d'une expression."""
+    # Si l'expression contient une inéquation ou équation, on ne garde que la partie gauche
+    expression = re.sub(r'\s*(?:>|<|>=|<=|=)\s*.*$', '', str(expression))
+    
     # Nettoyer l'expression
     raw = expression.replace('^', '**').replace(',', '.')
     # Convertir les exposants Unicode et symboles
     raw = raw.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
     raw = raw.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
+    
+    # Rétablissement des multiplications implicites (ex: 2x -> 2*x)
+    raw = re.sub(r'(\d)\s*([a-zA-Z])', r'\1*\2', raw)
+    raw = re.sub(r'\)\s*\(', r')*(', raw)
+    raw = re.sub(r'([x-zX-Z])\s*\(', r'\1*(', raw)
+    raw = re.sub(r'(\d)\s*\(', r'\1*(', raw)
+    raw = re.sub(r'\)\s*([a-zA-Z])', r')*\1', raw)
+    
     expr_full = sp.sympify(raw, locals=LOCALS)
     num, den = sp.fraction(expr_full)
 
@@ -513,12 +534,24 @@ def compute_sign_table(expression, niveau='terminale_spe'):
             vals.append(s or '+')
             if i < len(critical):
                 cp = critical[i]
-                if any(abs(cp - dz) < 1e-9 for dz in den_zeros_f):
+                is_den_zero = any(abs(cp - dz) < 1e-9 for dz in den_zeros_f)
+                is_own_zero = any(abs(cp - z) < 1e-9 for z in own_zero_set)
+
+                if is_before_domain(cp) or is_in_forbidden_zone(cp):
                     vals.append('||')
-                elif any(abs(cp - z) < 1e-9 for z in own_zero_set):
+                elif is_own_zero:
+                    # Ce facteur s'annule ici : afficher '0'
+                    # Pour le dénominateur, ce '0' est aussi la valeur interdite de f(x)
                     vals.append('0')
-                elif is_before_domain(cp) or is_in_forbidden_zone(cp):
-                    vals.append('||')
+                elif is_den_zero:
+                    # Ce point est un zéro du dénominateur global, MAIS pas de ce facteur.
+                    # On évalue le signe de CE facteur à ce point (il est défini et non nul ici).
+                    # Le facteur dénominateur qui possède ce zéro affichera '0' via is_own_zero.
+                    if ftype == 'exp':
+                        s2 = '+'
+                    else:
+                        s2 = sign_at(sym, cp) if sym else '+'
+                    vals.append(s2 or '+')
                 else:
                     if ftype == 'exp': s2 = '+'
                     else: s2 = sign_at(sym, cp) if sym else '+'
@@ -836,8 +869,15 @@ def _safe_approx(expr):
         return sp.latex(expr)
 
 
+import functools
+import json
+
+SOLVE_CACHE = {}
+SOLVE_CACHE_MAX_SIZE = 1000
+
 @app.route('/solve', methods=['POST'])
 def solve_equation():
+    print('SOLVE PAYLOAD:', request.json, flush=True)
     """
     Résout une équation polynomiale du second degré.
     Body: {
@@ -855,8 +895,14 @@ def solve_equation():
     }
     """
     try:
-        data = request.get_json(force=True, silent=True)
+        data = request.get_json(force=True, silent=True) or {}
         eq_str = data.get('equation', '')
+        niveau = data.get('niveau', 'terminale_spe')  # seconde | premiere | terminale_spe
+        is_seconde = (niveau == 'seconde')
+
+        cache_key = (eq_str, niveau)
+        if cache_key in SOLVE_CACHE:
+            return jsonify(SOLVE_CACHE[cache_key])
 
         if not eq_str:
             return jsonify({
@@ -868,6 +914,12 @@ def solve_equation():
         eq_str = eq_str.strip()
         eq_str = eq_str.replace('\u00b2', '**2').replace('\u00b3', '**3')
         eq_str = eq_str.replace('^', '**')
+        # Rétablissement des multiplications implicites (ex: 2x -> 2*x)
+        eq_str = re.sub(r'(\d)\s*([a-zA-Z])', r'\1*\2', eq_str)
+        eq_str = re.sub(r'\)\s*\(', r')*(', eq_str)
+        eq_str = re.sub(r'([x-zX-Z])\s*\(', r'\1*(', eq_str)
+        eq_str = re.sub(r'(\d)\s*\(', r'\1*(', eq_str)
+        eq_str = re.sub(r'\)\s*([a-zA-Z])', r')*\1', eq_str)
         # Virgule decimale francaise : 0,5 → 0.5 (ne touche que chiffre,chiffre)
         eq_str = re.sub(r'(\d),(\d)', r'\1.\2', eq_str)
 
@@ -886,8 +938,11 @@ def solve_equation():
                 'error': 'Equation must have exactly one ='
             }), 400
 
-        left_str = parts[0].strip()
-        right_str = parts[1].strip()
+        left_str = parts[0].strip().replace('$', '').strip().rstrip(',;.').strip()
+        right_str = parts[1].strip().replace('$', '').strip().rstrip(',;.').strip()
+        
+        if not right_str:
+            right_str = '0'
 
         # Si right_str != '0', on soustrait pour avoir = 0
         if right_str != '0':
@@ -898,6 +953,7 @@ def solve_equation():
 
         # Parser avec SymPy
         try:
+            eq_expr_str = eq_expr_str.replace('$', '').strip().rstrip(',;.').strip()
             eq_expr = sp.sympify(eq_expr_str, locals=LOCALS)
         except Exception as e:
             return jsonify({
@@ -918,12 +974,25 @@ def solve_equation():
         rhs_str = parts_raw[1].strip()
 
         try:
+            lhs_str = lhs_str.replace('$', '').strip().rstrip(',;.').strip()
+            rhs_str = rhs_str.replace('$', '').strip().rstrip(',;.').strip()
+            if not rhs_str:
+                rhs_str = '0'
             lhs_sym = sp.sympify(lhs_str, locals=LOCALS)
             rhs_sym = sp.sympify(rhs_str, locals=LOCALS)
+            if isinstance(lhs_sym, tuple) or isinstance(rhs_sym, tuple):
+                raise ValueError("Tuple operations are restricted")
         except Exception as pe:
             return jsonify({'success': False, 'error': 'Cannot parse: ' + str(pe)}), 400
 
         f_sym = sp.expand(lhs_sym - rhs_sym)
+
+        if f_sym.has(sp.zoo, sp.nan, sp.oo, -sp.oo):
+            return jsonify({
+                'success': False,
+                'error': 'L\'équation contient une division par zéro ou une forme indéterminée.'
+            }), 400
+
         steps = []
 
         # ── Etape 1 : Domaine de definition ──────────────────────────
@@ -990,13 +1059,155 @@ def solve_equation():
         all_solutions  = []
 
         # ══════════════════════════════════════════════════════════════
-        # REGLE PEDAGOGIQUE BO : degre 2 -> DELTA OBLIGATOIRE
-        # La factorisation n'est montree qu'en consequence
+        # REGLE PEDAGOGIQUE BO : degre 2 -> DELTA OBLIGATOIRE (sauf Seconde)
         # ══════════════════════════════════════════════════════════════
         if poly_degree == 2:
             cf = poly_obj.all_coeffs()
             av, bv, cv = cf[0], cf[1], cf[2]
             al, bl, cl = sp.latex(av), sp.latex(bv), sp.latex(cv)
+
+            # ── CAS SECONDE : méthode sans Δ ──────────────────────────
+            if is_seconde:
+                # Tenter factorisation par identité remarquable ou facteur commun
+                factored_s = sp.factor(f_sym)
+                fact_l = sp.latex(factored_s)
+                seconde_solved = False
+
+                # Cas 1 : différence de carrés a²x² - c = 0 (bv == 0)
+                av_f = float(av.evalf())
+                bv_f = float(bv.evalf())
+                cv_f = float(cv.evalf())
+
+                if abs(bv_f) < 1e-10 and av_f * cv_f < 0:
+                    # ax² - c = 0  → ax² = c → x² = c/a → identité a²-b² (c/a positif)
+                    k2 = sp.Rational(-cv, av)
+                    k = sp.sqrt(k2)
+                    kl = sp.latex(sp.nsimplify(k))
+                    x1s = sp.nsimplify(-k)
+                    x2s = sp.nsimplify(k)
+                    steps.append(
+                        '**Etape 3 - Méthode (Seconde — sans discriminant)**\n\n'
+                        'On utilise l\'identité remarquable $a^2 - b^2 = (a-b)(a+b)$ :\n\n'
+                        f'$f(x) = {sp.latex(av)}x^2 - {sp.latex(sp.nsimplify(k2))} = 0$\n\n'
+                        f'$\\Leftrightarrow \\left(x - {kl}\\right)\\left(x + {kl}\\right) = 0$'
+                    )
+                    steps.append(
+                        f'**Etape 4 - Solutions**\n\n'
+                        f'$x - {kl} = 0 \\Rightarrow x_1 = -{kl}$\n\n'
+                        f'$x + {kl} = 0 \\Rightarrow x_2 = {kl}$\n\n'
+                        f'**Conclusion :** $S = \\left\\{{-{kl} ; {kl}\\right\\}}$'
+                    )
+                    all_solutions = [x1s, x2s]
+                    factor_details.append({'type': 'seconde_difference_carres', 'roots': [sp.latex(x1s), sp.latex(x2s)]})
+                    seconde_solved = True
+                    
+                # NOUVEAU CAS : a et c de même signe (ex: 2x² + 8 = 0)
+                elif abs(bv_f) < 1e-10 and av_f * cv_f > 0:
+                    steps.append(
+                        '**Etape 3 - Méthode (Seconde — sans discriminant)**\n\n'
+                        f'On isole $x^2$ :\n\n'
+                        f'$f(x) = {sp.latex(av)}x^2 + {sp.latex(cv)} = 0$\n\n'
+                        f'$\\Leftrightarrow {sp.latex(av)}x^2 = -{sp.latex(cv)}$\n\n'
+                        f'$\\Leftrightarrow x^2 = {sp.latex(sp.Rational(-cv, av))}$'
+                    )
+                    steps.append(
+                        f'**Etape 4 - Solutions**\n\n'
+                        f'Un carré dans $\\mathbb{{R}}$ étant toujours positif ou nul, '
+                        f'l\'équation $x^2 = {sp.latex(sp.Rational(-cv, av))}$ n\'admet **aucune solution réelle**.\n\n'
+                        f'**Conclusion :** $S = \\emptyset$'
+                    )
+                    all_solutions = []
+                    factor_details.append({'type': 'seconde_no_real', 'roots': []})
+                    seconde_solved = True
+
+                # Cas 2 : facteur commun x (cv == 0)
+                elif abs(cv_f) < 1e-10:
+                    # ax² + bx = 0 → x(ax + b) = 0
+                    inner_fac = sp.expand(av * x + bv)
+                    inner_l = sp.latex(inner_fac)
+                    sol_inner = sp.nsimplify(-bv / av)
+                    sol_inner_l = sp.latex(sol_inner)
+                    steps.append(
+                        '**Etape 3 - Méthode (Seconde — facteur commun)**\n\n'
+                        f'On factorise par $x$ :\n\n'
+                        f'$f(x) = x \\times ({inner_l}) = 0$'
+                    )
+                    steps.append(
+                        f'**Etape 4 - Solutions**\n\n'
+                        f'$x = 0$ ou $({inner_l}) = 0$\n\n'
+                        f'$({inner_l}) = 0 \\Rightarrow x = {sol_inner_l}$\n\n'
+                        f'**Conclusion :** $S = \\left\\{{0 ; {sol_inner_l}\\right\\}}$'
+                    )
+                    all_solutions = [sp.Integer(0), sol_inner]
+                    factor_details.append({'type': 'seconde_facteur_commun', 'roots': ['0', sol_inner_l]})
+                    seconde_solved = True
+
+                # Cas 3 : déjà factorisé en produit d'affines (ex: (x-3)(x+2)=0)
+                elif factored_s.is_Mul:
+                    lin_factors = []
+                    for arg in factored_s.args:
+                        if arg.is_number: continue
+                        fp = arg.as_poly(x)
+                        if fp and fp.degree() == 1:
+                            lin_factors.append(arg)
+                    if len(lin_factors) >= 2:
+                        steps.append(
+                            '**Etape 3 - Méthode (Seconde — produit de facteurs affines)**\n\n'
+                            f'$f(x) = {fact_l} = 0$\n\n'
+                            '(Factorisation obtenue par observation, sans discriminant)'
+                        )
+                        sol_parts = []
+                        for lf in lin_factors:
+                            z = sp.solve(lf, x)
+                            if z:
+                                s = z[0]
+                                all_solutions.append(s)
+                                sol_parts.append(f'${sp.latex(lf)} = 0 \\Rightarrow x = {sp.latex(s)}$')
+                        steps.append(
+                            '**Etape 4 - Solutions**\n\n' +
+                            '\n\n'.join(sol_parts) + '\n\n' +
+                            f'**Conclusion :** $S = \\left\\{{{" ; ".join(sp.latex(s) for s in all_solutions)}\\right\\}}$'
+                        )
+                        factor_details.append({'type': 'seconde_affines', 'roots': [sp.latex(s) for s in all_solutions]})
+                        seconde_solved = True
+
+                if not seconde_solved:
+                    # Équation de degré 2 non factorisable sans Δ → hors programme Seconde
+                    steps.append(
+                        '**⛔ Hors programme Seconde**\n\n'
+                        'Cette équation du second degré nécessite le discriminant $\\Delta = b^2 - 4ac$\n\n'
+                        'qui est **hors programme en Seconde**. Ce chapitre est étudié en **Première**.\n\n'
+                        f'L\'équation est : $f(x) = {sp.latex(f_sym)} = 0$'
+                    )
+                    return jsonify({
+                        'success': True,
+                        'steps': steps,
+                        'solutions': [],
+                        'latex_solutions': [],
+                        'factor_details': [],
+                        'domain_latex': domain_latex,
+                        'equation_latex': eq_disp,
+                        'f_expr_latex': f_latex,
+                        'niveau': niveau,
+                        'hors_programme': True,
+                    })
+
+                # Retour Seconde réussi
+                return jsonify({
+                    'success': True,
+                    'steps': steps,
+                    'solutions': [str(s) for s in all_solutions],
+                    'latex_solutions': [sp.latex(s) for s in all_solutions],
+                    'factor_details': factor_details,
+                    'domain_latex': domain_latex,
+                    'equation_latex': eq_disp,
+                    'f_expr_latex': f_latex,
+                    'niveau': niveau,
+                })
+
+            # ── CAS PREMIÈRE / TERMINALE : méthode avec Δ (comportement original) ──
+            al, bl, cl = sp.latex(av), sp.latex(bv), sp.latex(cv)
+
 
             steps.append(
                 '**Etape 3 - Identification des coefficients**\n\n'
@@ -1266,6 +1477,14 @@ def domain():
         raw = expression.replace('^', '**').replace(',', '.')
         raw = raw.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
         raw = raw.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
+        
+        # Rétablissement des multiplications implicites (ex: 2x -> 2*x)
+        raw = re.sub(r'(\d)\s*([a-zA-Z])', r'\1*\2', raw)
+        raw = re.sub(r'\)\s*\(', r')*(', raw)
+        raw = re.sub(r'([x-zX-Z])\s*\(', r'\1*(', raw)
+        raw = re.sub(r'(\d)\s*\(', r'\1*(', raw)
+        raw = re.sub(r'\)\s*([a-zA-Z])', r')*\1', raw)
+
         expr_sym = sp.sympify(raw, locals=LOCALS)
 
         domain_left = None

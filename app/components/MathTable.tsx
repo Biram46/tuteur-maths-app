@@ -339,13 +339,19 @@ export default function MathTable({ data, title }: MathTableProps) {
                                 stroke="#1e293b" strokeWidth="1.5" />
                         </g>
                     );
-                } else if (isForbidden(val) && !isFxRow) {
-                    // Sur une ligne facteur : si || → le facteur S'ANNULE à ce point
-                    // (c'est ce zéro qui rend f(x) interdite) → afficher "0"
+                } else if (val.trim() === 'D') {
+                    // 'D' = marqueur JS pour "zéro du dénominateur" → le facteur s'annule ici → afficher "0"
+                    // (convention moteur JS sign-table-engine)
                     cells.push(
                         <text key={`z-${idx}`} x={xPos} y={yMid} dy="0.35em"
                             textAnchor="middle" fontSize="16" fontWeight="bold" fill="#1e293b">0</text>
                     );
+                } else if (isForbidden(val) && !isFxRow) {
+                    // '||' sur une ligne facteur non-f(x) (venant de SymPy) :
+                    // Ce facteur ne s'annule pas forcément à ce point (ex: x+2 en x=3 vaut 5).
+                    // On n'affiche RIEN ici — la valeur interdite est déjà indiquée par la ligne f(x).
+                    // Exception : si le facteur est du type dénominateur et son propre zéro coïncide avec ce point,
+                    // cela est géré par isZero(val) → '0' plus haut, pas par ce cas.
                 }
                 // Sinon : RIEN (pas de + ou - sur la ligne pointillée)
             } else {
@@ -419,6 +425,8 @@ export default function MathTable({ data, title }: MathTableProps) {
         const valAtXk: (string | null)[] = new Array(N).fill(null);
         const arrowAtInterval: (string | null)[] = new Array(N - 1).fill(null);
         const forbiddenAt: boolean[] = new Array(N).fill(false);
+        const leftLimitAt: (string | null)[] = new Array(N).fill(null);
+        const rightLimitAt: (string | null)[] = new Array(N).fill(null);
 
         // Scanning séquentiel token par token
         let tokenIdx = 0;
@@ -442,7 +450,6 @@ export default function MathTable({ data, title }: MathTableProps) {
                     const tok = content[tokenIdx];
                     if (isForbidden(tok)) {
                         forbiddenAt[k + 1] = true;
-                        valAtXk[k + 1] = '||';
                         tokenIdx++;
                     } else if (isArrow(tok)) {
                         // Pas de valeur ici, la prochaine est déjà une flèche
@@ -461,7 +468,6 @@ export default function MathTable({ data, title }: MathTableProps) {
                 if (isForbidden(tok)) {
                     // Simple || (format 1ère Spé)
                     forbiddenAt[xIdx] = true;
-                    valAtXk[xIdx] = '||';
                     tokenIdx++;
                 } else if (isArrow(tok)) {
                     // On est tombé sur une flèche alors qu'on attendait une valeur
@@ -471,17 +477,13 @@ export default function MathTable({ data, title }: MathTableProps) {
                     // Regarder si le token SUIVANT est || (= c'est une limite latérale gauche)
                     if (tokenIdx + 1 < content.length && isForbidden(content[tokenIdx + 1])) {
                         // Format Terminale : limitLeft, ||, limitRight
-                        // limitLeft = tok
-                        valAtXk[xIdx] = tok; // on affiche la limite gauche au-dessus
-                        forbiddenAt[xIdx] = true; // c'est quand même une discontinuité
+                        leftLimitAt[xIdx] = tok; 
+                        forbiddenAt[xIdx] = true; 
                         tokenIdx++; // skip limitLeft
                         tokenIdx++; // skip ||
                         // limitRight : on le stocke aussi
                         if (tokenIdx < content.length && !isArrow(content[tokenIdx])) {
-                            // limitRight sera la valeur de départ de la flèche suivante
-                            // On va le stocker comme valeur "droite" de la discontinuité
-                            // Pour l'affichage, on met la limite de gauche en haut et celle de droite en bas (ou inversement)
-                            // Simplifions : on affiche || et les limites sont dans le contexte IA
+                            rightLimitAt[xIdx] = content[tokenIdx];
                             tokenIdx++; // skip limitRight
                         }
                     } else {
@@ -537,6 +539,37 @@ export default function MathTable({ data, title }: MathTableProps) {
                             stroke="#1e293b" strokeWidth="1.5" />
                     </g>
                 );
+                
+                // Dessiner limite gauche
+                const leftLim = leftLimitAt[k];
+                if (leftLim) {
+                    const prevArrow = k > 0 ? arrowAtInterval[k - 1] : null;
+                    const yLeft = prevArrow 
+                        ? (/nearrow/i.test(prevArrow) ? (yTop + margin) : (yTop + ROW_H - margin))
+                        : (yTop + ROW_H / 2);
+                    
+                    if (isLatexValue(leftLim)) {
+                        elements.push(<MathSvgText key={`ll-${k}`} latex={valToLatex(leftLim)} x={xPos - 24} y={yLeft} fontSize={12} />);
+                    } else {
+                        elements.push(<text key={`ll-${k}`} x={xPos - 24} y={yLeft} dy="0.35em" textAnchor="middle" fontSize={13} fill="#1e293b">{clean(leftLim)}</text>);
+                    }
+                }
+                
+                // Dessiner limite droite
+                const rightLim = rightLimitAt[k];
+                if (rightLim) {
+                    const nextArrow = k < N - 1 ? arrowAtInterval[k] : null;
+                    const yRight = nextArrow
+                        ? (/nearrow/i.test(nextArrow) ? (yTop + ROW_H - margin) : (yTop + margin))
+                        : (yTop + ROW_H / 2);
+                        
+                    if (isLatexValue(rightLim)) {
+                        elements.push(<MathSvgText key={`rl-${k}`} latex={valToLatex(rightLim)} x={xPos + 24} y={yRight} fontSize={12} />);
+                    } else {
+                        elements.push(<text key={`rl-${k}`} x={xPos + 24} y={yRight} dy="0.35em" textAnchor="middle" fontSize={13} fill="#1e293b">{clean(rightLim)}</text>);
+                    }
+                }
+                
             } else if (val) {
                 // ── Valeurs exactes SymPy (fractions, racines…) → KaTeX ──
                 // ── Valeurs simples (entiers, ±∞) → texte SVG natif ──

@@ -34,6 +34,7 @@ interface SolveResult {
 
 interface SolveBlockProps {
     equation: string;
+    niveau?: string;  // seconde | premiere | terminale_spe
 }
 
 const MD_OPTS = {
@@ -54,7 +55,7 @@ const Md = ({ children }: { children: string }) => (
  * Affiche la résolution complète d'une équation via l'API SymPy.
  * Pipeline : domaine → f(x)=0 → factorisation → résolution par discriminant.
  */
-export default function SolveBlock({ equation }: SolveBlockProps) {
+export default function SolveBlock({ equation, niveau }: SolveBlockProps) {
     const [result, setResult] = useState<SolveResult | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,7 @@ export default function SolveBlock({ equation }: SolveBlockProps) {
                 const res = await fetch('/api/solve', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ equation }),
+                    body: JSON.stringify({ equation, niveau: niveau ?? 'terminale_spe' }),
                 });
                 const data = await res.json();
                 if (!res.ok) setError(data.error || 'Erreur');

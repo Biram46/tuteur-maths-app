@@ -210,7 +210,7 @@ export function findZeros(
     let prevY = evalAt(expr, xMin);
 
     // Vérifier si xMin lui-même est un zéro (important pour sqrt(x) en x=0, etc.)
-    if (prevY !== null && Math.abs(prevY) < 1e-8) {
+    if (prevY !== null && Math.abs(prevY) < 1e-12) {
         zeros.push(round4(xMin));
     }
 
@@ -458,7 +458,7 @@ export function formatForTable(x: number): string {
 
     // Multiples simples de e
     for (const mult of [1, 2, 3, -1, -2, -3]) {
-        if (Math.abs(x - mult * E_VAL) < 1e-6) {
+        if (Math.abs(x - mult * E_VAL) < 5e-4) {
             if (mult === 1) return 'e';
             if (mult === -1) return '-e';
             return `${mult}e`;
@@ -469,7 +469,7 @@ export function formatForTable(x: number): string {
     for (const num of [1, 2, 3, 4, -1, -2, -3, -4]) {
         for (const den of [1, 2, 3, 4, 6]) {
             const val = num * PI_VAL / den;
-            if (Math.abs(x - val) < 1e-6) {
+            if (Math.abs(x - val) < 5e-4) {
                 if (den === 1) {
                     if (num === 1) return 'π';
                     if (num === -1) return '-π';
