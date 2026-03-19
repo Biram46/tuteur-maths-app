@@ -417,6 +417,7 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     left_label = '-inf'
     forbidden_domain_pts = []  # internal gap points (ex: +-2 for ln(x^2-4))
 
+    dom = None
     try:
         dom = continuous_domain(expr_full, x, sp.S.Reals)
 
@@ -501,6 +502,18 @@ def compute_sign_table(expression, niveau='terminale_spe'):
         return domain_left is not None and pt < domain_left - 1e-9
 
     def is_in_forbidden_zone(pt):
+        # Pour savoir si on est dans un "trou" du domaine de définition
+        # (ex: ]-2, 2[ pour ln(x^2 - 4))
+        # Si sympy a calculé "dom", on s'en sert directement (rapide et mathématiquement parfait)
+        if dom is not None:
+            try:
+                # contains() renvoie S.true ou S.false
+                # s'il renvoie true, alors pt est dans le domaine, donc pas forbidden
+                return getattr(dom.contains(pt), 'is_Boolean') and not dom.contains(pt)
+            except:
+                pass
+        
+        # Fallback ultra-basique (uniquement si dom est absent ce qui sera rare)
         if not forbidden_domain_pts: return False
         fps = sorted(forbidden_domain_pts)
         for j in range(0, len(fps) - 1, 2):

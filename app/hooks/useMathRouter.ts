@@ -1017,7 +1017,11 @@ RÈGLES ABSOLUES :
                                     parts.push(`**Étape 4 : Conclusion**`);
                                     parts.push(`On lit le signe de f(x) sur chaque intervalle à partir du tableau affiché ci-dessus.`);
                                     parts.push(`---`);
-                                    parts.push(`\n⚠️ RAPPEL : les facteurs de degré 2 se traitent AVEC LE DISCRIMINANT Δ. Ne les factorise JAMAIS en produit de facteurs de degré 1.`);
+                                    if (inputText.match(/>|<|≥|≤|>=|<=/)) {
+                                        parts.push(``);
+                                        parts.push(`**RÉSOLUTION DE L'INÉQUATION**`);
+                                        parts.push(`Puisque la question demande de résoudre une inéquation, utilise le tableau de signes pour conclure et DONNE LA SOLUTION $S = ...$ sous forme d'intervalle à la toute fin.`);
+                                    }
 
                                     return parts.join('\n');
                                 })()
