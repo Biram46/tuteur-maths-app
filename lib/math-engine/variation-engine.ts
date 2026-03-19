@@ -35,6 +35,7 @@ export interface VariationTableInput {
         domainLeft: number | null;
         domainStrict: boolean;
         forbiddenPoints: number[];
+        domainLatex?: string;
     };
 }
 
