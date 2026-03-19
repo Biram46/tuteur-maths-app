@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Level, Chapter, Resource, QuizResult } from "@/lib/data";
+import type { Level, Chapter, Resource, QuizResult, QcmResult } from "@/lib/data";
 import {
     createOrUpdateLevel,
     createOrUpdateChapter,
@@ -18,12 +18,13 @@ interface Props {
         chapters: Chapter[];
         resources: Resource[];
         quizResults: QuizResult[];
+        qcmResults?: QcmResult[];
     };
 }
 
 export default function AdminDashboard({ initialData }: Props) {
-    const { levels, chapters, resources, quizResults } = initialData;
-    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "converter">("levels");
+    const { levels, chapters, resources, quizResults, qcmResults = [] } = initialData;
+    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "qcm_results" | "converter">("levels");
 
     // States for editing
     const [editingLevel, setEditingLevel] = useState<Level | null>(null);
@@ -73,7 +74,13 @@ export default function AdminDashboard({ initialData }: Props) {
                     onClick={() => setActiveTab("results")}
                     className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'results' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
                 >
-                    Résultats
+                    Exos
+                </button>
+                <button
+                    onClick={() => setActiveTab("qcm_results")}
+                    className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'qcm_results' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    QCM
                 </button>
                 <button
                     onClick={() => setActiveTab("converter")}
@@ -668,6 +675,67 @@ export default function AdminDashboard({ initialData }: Props) {
                                             </td>
                                         </tr>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- TAB RESULTATS QCM ENTRAINE TOI --- */}
+                {activeTab === "qcm_results" && (
+                    <div className="animate-message">
+                        <header className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">Monitoring Élèves (QCM)</h2>
+                            <span className="text-[10px] font-mono text-emerald-500/50 uppercase tracking-[0.3em]">Total: {qcmResults.length}</span>
+                        </header>
+
+                        <div className="bg-slate-900/40 rounded-3xl border border-emerald-500/10 overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-emerald-500/5 border-b border-emerald-500/10 font-['Orbitron'] text-[10px] text-emerald-400 uppercase tracking-widest">
+                                    <tr>
+                                        <th className="px-8 py-6">Élève</th>
+                                        <th className="px-8 py-6">Module</th>
+                                        <th className="px-8 py-6">Validé le</th>
+                                        <th className="px-8 py-6 text-right">Note (/20)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-emerald-500/5 font-['Exo_2']">
+                                    {(qcmResults || []).map((result) => (
+                                        <tr key={result.id} className="hover:bg-emerald-500/5 transition-colors">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-emerald-500/20" title={String(result.id)}>
+                                                        {(result.student_email || "?").substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-200 font-medium text-xs font-mono">{result.student_email}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5 text-slate-400 text-sm font-medium">
+                                                ENTRAÎNE-TOI (QCM) • {result.score_base}/{result.total_questions} Juste
+                                            </td>
+                                            <td className="px-8 py-5 text-slate-500 text-xs font-mono">
+                                                {new Date(result.date || result.created_at).toLocaleString('fr-FR', {
+                                                    day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className={`font-mono font-bold text-xl ${result.score >= 15 ? "text-green-400" :
+                                                    result.score >= 10 ? "text-emerald-400" : "text-amber-500"
+                                                    }`}>
+                                                    {result.score}/20
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {qcmResults.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-8 py-12 text-center text-slate-500 text-xs tracking-widest uppercase">
+                                                Aucun résultat QCM enregistré pour le moment.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

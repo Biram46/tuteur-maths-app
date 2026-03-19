@@ -39,6 +39,16 @@ export type QuizResult = {
     exercise_id: string | null;
 };
 
+export type QcmResult = {
+    id: string;
+    student_email: string;
+    score: number;
+    score_base: number;
+    total_questions: number;
+    date: string;
+    created_at: string;
+};
+
 export async function getEducationalData() {
     const { data: levels } = await supabaseServer
         .from("levels")
@@ -61,10 +71,17 @@ export async function getEducationalData() {
         .select("*")
         .order("created_at", { ascending: false });
 
+    // Fetch QCM ENTRAINE-TOI results
+    const { data: qcmResults } = await supabaseServer
+        .from("qcm_results")
+        .select("*")
+        .order("created_at", { ascending: false });
+
     return {
         levels: (levels || []) as Level[],
         chapters: (chapters || []) as Chapter[],
         resources: (resources || []) as Resource[],
         quizResults: (quizResults || []) as QuizResult[],
+        qcmResults: (qcmResults || []) as QcmResult[],
     };
 }
