@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Level, Chapter, Resource } from "@/lib/data";
-import MathAssistant from "./MathAssistant";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -87,15 +86,22 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                 {/* 1. Sidebar NIVEAUX & CHAPITRES (Glassmorphism) */}
                 <aside className="w-80 flex flex-col gap-6 p-6 border-r border-white/5 bg-white/5 backdrop-blur-xl transition-all h-full overflow-y-auto">
 
-                    {/* Header Logo */}
-                    <div className="flex items-center gap-3 px-2 mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <span className="text-xl">📐</span>
+                    {/* Header Logo & Assistant Button */}
+                    <div className="flex flex-col gap-4 mb-6">
+                        <div className="flex items-center gap-3 px-2">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <span className="text-xl">📐</span>
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-lg leading-tight text-white tracking-wide">Tuteur Maths</h1>
+                                <p className="text-xs text-slate-400 font-medium tracking-wider">ESPACE ÉLÈVE</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="font-bold text-lg leading-tight text-white tracking-wide">Tuteur Maths</h1>
-                            <p className="text-xs text-slate-400 font-medium tracking-wider">ESPACE ÉLÈVE</p>
-                        </div>
+                        <Link href="/assistant" target="_blank" className="mx-2 flex items-center gap-2 py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-400 shadow-lg shadow-blue-500/20 text-white font-semibold text-sm transition-all group">
+                            <span>🤖</span>
+                            <span>Module Assistant</span>
+                            <span className="opacity-70 group-hover:opacity-100 transition-opacity ml-auto text-xs">↗</span>
+                        </Link>
                     </div>
 
                     {/* Section Niveaux */}
@@ -322,10 +328,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                     </div>
                 </section>
 
-                {/* 3. Right Sidebar (Robot & Assistant) */}
-                <aside className="w-96 border-l border-white/5 bg-[#020617] hidden xl:flex flex-col h-full relative overflow-hidden">
-                    <MathAssistant baseContext={`L'élève étudie le niveau ${activeLevel?.label || 'non précisé'}. Chapitre actuel : ${activeChapter?.title || 'général'}.`} />
-                </aside>
+                {/* (AssistantSidebar is removed per user request) */}
             </div>
 
         </main>
