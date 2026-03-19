@@ -141,7 +141,7 @@ export default function QcmModule({ userName }: { userName: string }) {
             <div className="mb-8 p-6 bg-slate-900/50 border border-slate-700 rounded-3xl backdrop-blur-md">
                 <div className="flex flex-col md:flex-row items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-white mb-2 md:mb-0">
-                        {isFinished ? 'Bilan d\'entraînement' : 'Module Entraîne-Toi'}
+                        {isFinished ? 'Bilan d\'entraînement' : 'Module Entraîne-toi (QCM Épreuve anticipée de maths 1ère)'}
                     </h2>
                     <div className="text-sm font-medium px-4 py-2 bg-slate-800 rounded-xl text-slate-300">
                         {isFinished ? 'Terminé' : `Question ${currentIndex + 1} sur ${questions.length}`}

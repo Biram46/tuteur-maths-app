@@ -106,7 +106,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
                         <Link href="/entraine-toi" className="mx-2 flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-white font-semibold text-sm transition-all group">
                             <span className="text-lg">🎯</span>
-                            <span>Entraîne-Toi (QCM)</span>
+                            <span>Entraîne-toi (QCM Épreuve anticipée de maths 1ère)</span>
                             <span className="opacity-70 group-hover:opacity-100 transition-opacity ml-auto text-xs">→</span>
                         </Link>
                     </div>
