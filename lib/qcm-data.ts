@@ -6,6 +6,8 @@ export type QcmCategory =
     | "Statistiques"
     | "Probabilités";
 
+import { generateProceduralQuestion } from './qcm-generator';
+
 export interface QcmQuestion {
     id: string;
     category: QcmCategory;
@@ -436,17 +438,23 @@ export function generateRandomQcmSession(numberOfQuestions: number = 12): QcmQue
     const selected: QcmQuestion[] = [];
     const questionsPerCategory = Math.max(1, Math.floor(numberOfQuestions / categories.length));
 
-    // Tirer 'questionsPerCategory' dans chaque catégorie
+    // Pour chaque catégorie, on pioche un mix
     for (const cat of categories) {
         const catQuestions = [...questionsByCategory[cat]].sort(() => Math.random() - 0.5);
-        selected.push(...catQuestions.slice(0, questionsPerCategory));
+        for (let i = 0; i < questionsPerCategory; i++) {
+            // 70% de généré procéduralement, 30% issu de la base fixe
+            if (Math.random() < 0.7 || i >= catQuestions.length) {
+                selected.push(generateProceduralQuestion(cat as QcmCategory));
+            } else {
+                selected.push(catQuestions[i]);
+            }
+        }
     }
 
-    // Compléter avec du tirage aléatoire sur le reste si besoin (improbable vu qu'on a 6*2 = 12)
-    if (selected.length < numberOfQuestions) {
-        const remainingPool = qcmDatabase.filter(q => !selected.find(s => s.id === q.id));
-        remainingPool.sort(() => Math.random() - 0.5);
-        selected.push(...remainingPool.slice(0, numberOfQuestions - selected.length));
+    // Compléter avec du procédural si jamais le compte n'est pas bon
+    while (selected.length < numberOfQuestions) {
+        const randomCat = categories[Math.floor(Math.random() * categories.length)] as QcmCategory;
+        selected.push(generateProceduralQuestion(randomCat));
     }
 
     // Mélanger le résultat final
