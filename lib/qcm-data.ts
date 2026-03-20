@@ -10,8 +10,13 @@ export interface QcmQuestion {
     id: string;
     category: QcmCategory;
     question: string;
+    questionTableData?: any;
+    questionGraphData?: any;
     options: string[];
+    optionsTableData?: any[];
+    optionsGraphData?: any[];
     correctAnswerIndex: number;
+    explanation?: string;
 }
 
 export const qcmDatabase: QcmQuestion[] = [
@@ -201,6 +206,133 @@ export const qcmDatabase: QcmQuestion[] = [
             "Sinusoïde"
         ],
         correctAnswerIndex: 2
+    },
+    {
+        id: "fonc-5",
+        category: "Fonctions",
+        question: "Soit $f$ une fonction définie sur $[-3 ; 4]$ dont le tableau de variations est donné ci-dessous. \n\nCombien de solutions l'équation $f(x) = 0$ admet-elle ?",
+        questionTableData: {
+            xValues: ["-3", "0", "4"],
+            rows: [
+                {
+                    label: "Variations de $f$",
+                    type: "variation",
+                    content: ["-2", "nearrow", "5", "searrow", "-1"]
+                }
+            ]
+        },
+        options: [
+            "Aucune solution",
+            "Une seule solution",
+            "Deux solutions",
+            "Trois solutions"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "fonc-6",
+        category: "Fonctions",
+        question: "Quel est le tableau de signes de la fonction affine $f(x) = -2x + 6$ ?",
+        options: [
+            "Signe positif puis négatif",
+            "Signe négatif puis positif",
+            "Toujours positif",
+            "Toujours négatif"
+        ],
+        optionsTableData: [
+            {
+                xValues: ["-\\infty", "3", "+\\infty"],
+                rows: [
+                    { label: "Signe de $f$", type: "sign", content: ["+", "0", "-"] }
+                ]
+            },
+            {
+                xValues: ["-\\infty", "-3", "+\\infty"],
+                rows: [
+                    { label: "Signe de $f$", type: "sign", content: ["-", "0", "+"] }
+                ]
+            },
+            {
+                xValues: ["-\\infty", "6", "+\\infty"],
+                rows: [
+                    { label: "Signe de $f$", type: "sign", content: ["+", "0", "-"] }
+                ]
+            },
+            {
+                xValues: ["-\\infty", "+\\infty"],
+                rows: [
+                    { label: "Signe de $f$", type: "sign", content: ["+"] }
+                ]
+            }
+        ],
+        correctAnswerIndex: 0
+    },
+    {
+        id: "fonc-7",
+        category: "Fonctions",
+        question: "La courbe ci-dessous représente une fonction polynomiale du second degré $f(x) = ax^2 + bx + c$. \n\nQuel est le signe du coefficient $a$ ?",
+        questionGraphData: {
+            domain: { x: [-4, 4], y: [-5, 5] },
+            functions: [ { fn: "-x^2 + 2x + 1", color: "#f43f5e" } ]
+        },
+        options: [
+            "Positif car la parabole a un maximum",
+            "Négatif car la parabole est tournée vers le bas",
+            "Négatif car elle croise l'axe des ordonnées en $y=1$",
+            "On ne peut pas le déterminer à l'œil nu"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "La fonction représentée est un polynôme du second degré de la forme $ax^2 + bx + c$. La courbe est une parabole. Puisqu'elle est **tournée vers le bas** (ses branches sont dirigées vers le bas), on en déduit immédiatement que le coefficient dominant $a$ est strictement négatif."
+    },
+    {
+        id: "fonc-8",
+        category: "Fonctions",
+        question: "Le graphe ci-dessous illustre une fonction $f$. Sur quel intervalle la fonction est-elle manifestement **croissante** ?",
+        questionGraphData: {
+            domain: { x: [-3, 5], y: [-4, 6] },
+            functions: [ { fn: "0.5*x^3 - 1.5*x^2 - 1", color: "#3b82f6" } ]
+        },
+        options: [
+            "$]-\\infty, 0]$",
+            "$[0, 2]$",
+            "$[2, +\\infty[$",
+            "$[-3, 5]$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "fonc-9",
+        category: "Fonctions",
+        question: "On considère la fonction rationnelle $g(x) = \\dfrac{x+1}{x-2}$. Quel est le tableau de signes correct ?",
+        options: [
+            "Signe positif sur $]-\\infty, -1]$ puis négatif",
+            "Négatif entre $-1$ et $2$, positif ailleurs",
+            "Positif entre $-1$ et $2$, négatif ailleurs",
+            "Toujours positif sauf en $x=2$"
+        ],
+        optionsTableData: [
+            {
+                xValues: ["-\\infty", "-1", "2", "+\\infty"],
+                rows: [ 
+                    { label: "$x+1$", type: "sign", content: ["-", "0", "+", " ", "+"] }, 
+                    { label: "$x-2$", type: "sign", content: ["-", " ", "-", "0", "+"] }, 
+                    { label: "$g(x)$", type: "sign", content: ["+", "0", "-", "||", "+"] } 
+                ]
+            },
+            {
+                xValues: ["-\\infty", "-1", "2", "+\\infty"],
+                rows: [ { label: "$g(x)$", type: "sign", content: ["+", "0", "-", "||", "+"] } ]
+            },
+            {
+                xValues: ["-\\infty", "-1", "2", "+\\infty"],
+                rows: [ { label: "$g(x)$", type: "sign", content: ["-", "0", "+", "||", "-"] } ]
+            },
+            {
+                xValues: ["-\\infty", "2", "+\\infty"],
+                rows: [ { label: "$g(x)$", type: "sign", content: ["+", "||", "+"] } ]
+            }
+        ],
+        correctAnswerIndex: 1
     },
 
     // --- Statistiques ---

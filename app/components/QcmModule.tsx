@@ -7,6 +7,8 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { useRouter } from 'next/navigation';
+import MathTable from './MathTable';
+import MathGraph from './MathGraph';
 
 export default function QcmModule({ userName }: { userName: string }) {
     const router = useRouter();
@@ -174,12 +176,93 @@ export default function QcmModule({ userName }: { userName: string }) {
                         </div>
                     </div>
 
-                    <button 
-                        onClick={startNewSession}
-                        className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all"
-                    >
-                        Refaire un Enraînement
-                    </button>
+                    <div className="w-full text-left pt-12 border-t border-slate-700/50">
+                        <h3 className="text-2xl font-bold text-white mb-8 text-center flex items-center justify-center gap-3">
+                            <span>🔍</span> Correction détaillée
+                        </h3>
+                        <div className="space-y-12">
+                            {questions.map((q, idx) => {
+                                const userAnswerIdx = answers[q.id];
+                                const isCorrect = userAnswerIdx === q.correctAnswerIndex;
+                                const hasUserAnswered = userAnswerIdx !== undefined;
+
+                                return (
+                                    <div key={q.id} className={`p-6 md:p-8 rounded-2xl border-2 ${isCorrect ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+                                        <div className="flex items-start gap-4 mb-6">
+                                            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
+                                                {isCorrect ? '✓' : '✗'}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Question {idx + 1}</div>
+                                                <div className="text-lg text-slate-100 font-medium prose prose-invert max-w-none math-prose">
+                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.question}</ReactMarkdown>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {q.questionTableData && (
+                                            <div className="mb-6 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
+                                                <MathTable data={q.questionTableData} />
+                                            </div>
+                                        )}
+                                        {q.questionGraphData && (
+                                            <div className="mb-6 flex justify-center w-full">
+                                                <MathGraph {...q.questionGraphData} />
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Ton Choix</div>
+                                                <div className="text-slate-200 prose prose-invert math-prose">
+                                                    {hasUserAnswered ? (
+                                                        <>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[userAnswerIdx]}</ReactMarkdown>
+                                                            {q.optionsTableData?.[userAnswerIdx] && (
+                                                                <div className="mt-4 overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
+                                                            )}
+                                                            {q.optionsGraphData?.[userAnswerIdx] && (
+                                                                <div className="mt-4"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
+                                                            )}
+                                                        </>
+                                                    ) : <span className="text-slate-500 italic">Aucune réponse</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
+                                                <div className="text-xs text-green-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse</div>
+                                                <div className="text-green-100 prose prose-invert math-prose">
+                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[q.correctAnswerIndex]}</ReactMarkdown>
+                                                    {q.optionsTableData?.[q.correctAnswerIndex] && (
+                                                        <div className="mt-4 overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
+                                                    )}
+                                                    {q.optionsGraphData?.[q.correctAnswerIndex] && (
+                                                        <div className="mt-4"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {q.explanation && (
+                                            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-100 prose prose-invert math-prose text-sm">
+                                                <span className="font-bold text-blue-400 block mb-1">Explication :</span>
+                                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="mt-12 pt-8 border-t border-slate-700/50 w-full flex justify-center">
+                        <button 
+                            onClick={startNewSession}
+                            className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all"
+                        >
+                            Refaire un Entraînement
+                        </button>
+                    </div>
                 </div>
             ) : (
                 /* QUESTION ACTUELLE */
@@ -200,9 +283,24 @@ export default function QcmModule({ userName }: { userName: string }) {
                                 </ReactMarkdown>
                             </div>
 
+                            {currentQuestion.questionTableData && (
+                                <div className="mt-6 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
+                                    <MathTable data={currentQuestion.questionTableData} />
+                                </div>
+                            )}
+
+                            {currentQuestion.questionGraphData && (
+                                <div className="mt-6 flex justify-center w-full">
+                                    <MathGraph {...currentQuestion.questionGraphData} />
+                                </div>
+                            )}
+
                             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {currentQuestion.options.map((opt, idx) => {
                                     const isSelected = answers[currentQuestion.id] === idx;
+                                    const hasTable = currentQuestion.optionsTableData?.[idx];
+                                    const hasGraph = currentQuestion.optionsGraphData?.[idx];
+
                                     return (
                                         <button
                                             key={idx}
@@ -225,6 +323,18 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 >
                                                     {opt}
                                                 </ReactMarkdown>
+                                                
+                                                {hasTable && (
+                                                    <div className="mt-4 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 rounded-xl">
+                                                        <MathTable data={hasTable} />
+                                                    </div>
+                                                )}
+                                                
+                                                {hasGraph && (
+                                                    <div className="mt-4 flex justify-center w-full">
+                                                        <MathGraph {...hasGraph} />
+                                                    </div>
+                                                )}
                                             </div>
                                         </button>
                                     );

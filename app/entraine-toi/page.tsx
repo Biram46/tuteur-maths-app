@@ -14,7 +14,7 @@ export default async function EntraineToiPage() {
         <div className="min-h-screen bg-[#020617] text-slate-100 p-4 md:p-8">
             <div className="max-w-6xl mx-auto flex items-center justify-between mb-8">
                 <Link 
-                    href="/eleve" 
+                    href="/" 
                     className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-semibold uppercase tracking-widest"
                 >
                     ← Retour Espace
