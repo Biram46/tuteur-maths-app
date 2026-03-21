@@ -658,6 +658,142 @@ def compute_sign_table(expression, niveau='terminale_spe'):
 
 
 # ─────────────────────────────────────────────────────────────
+# MODULE DÉRIVATION : CALCUL ET EXPLICATIONS PAS À PAS
+# ─────────────────────────────────────────────────────────────
+
+def get_derivative_steps(expr_sym):
+    """
+    Parcourt l'arbre de l'expression pour générer les étapes pédagogiques
+    du calcul de la dérivée (Terminal / Première).
+    """
+    steps = []
+
+    def walk(e, label="f(x)"):
+        # Gérer la dérivée d'une constante ou x
+        if e == x:
+            return sp.Integer(1)
+        elif not e.has(x):
+            return sp.Integer(0)
+
+        if e.is_Add:
+            steps.append(f"{label} est une somme de termes. On dérive terme à terme.")
+            d_args = []
+            for arg in e.args:
+                d_args.append(walk(arg, f"Terme ({sp.latex(arg)})"))
+            d = sum(d_args)
+            return d
+
+        elif e.is_Mul:
+            # Vérifier si c'est un quotient (un des termes a une puissance négative)
+            num, den = sp.fraction(e)
+            if den != 1:
+                u, v = num, den
+                steps.append(f"{label} est de la forme $u/v$ avec $u(x)={sp.latex(u)}$ et $v(x)={sp.latex(v)}$.")
+                du = walk(u, "u(x)")
+                dv = walk(v, "v(x)")
+                steps.append("On applique la formule du quotient : $(u/v)' = \\frac{u'v - uv'}{v^2}$")
+                d = sp.simplify((du * v - u * dv) / (v**2))
+                return d
+            else:
+                # C'est un produit
+                if len(e.args) == 2:
+                    u, v = e.args[0], e.args[1]
+                    if not x in u.free_symbols:
+                        return u * walk(v, "v(x)")
+                    if not x in v.free_symbols:
+                        return v * walk(u, "u(x)")
+                        
+                    steps.append(f"{label} est de la forme $u\\cdot v$ avec $u(x)={sp.latex(u)}$ et $v(x)={sp.latex(v)}$.")
+                    du = walk(u, "u(x)")
+                    dv = walk(v, "v(x)")
+                    steps.append("On applique la formule du produit : $(uv)' = u'v + uv'$")
+                    d = sp.simplify(du * v + u * dv)
+                    return d
+                else:
+                    return sp.diff(e, x)
+
+        elif hasattr(e, 'func'):
+            if e.func == sp.exp:
+                u = e.args[0]
+                if u == x: 
+                    return sp.exp(x)
+                steps.append(f"{label} est de la forme $e^u$ avec $u(x)={sp.latex(u)}$.")
+                du = walk(u, "u(x)")
+                steps.append("On applique la formule : $(e^u)' = u'e^u$")
+                d = du * sp.exp(u)
+                return d
+            elif e.func == sp.log:
+                u = e.args[0]
+                if u == x: 
+                    return 1/x
+                steps.append(f"{label} est de la forme $\\ln(u)$ avec $u(x)={sp.latex(u)}$.")
+                du = walk(u, "u(x)")
+                steps.append("On applique la formule : $(\\ln(u))' = \\frac{u'}{u}$")
+                d = du / u
+                return d
+            elif e.is_Pow:
+                u, n = e.args[0], e.args[1]
+                if u == x: 
+                    return sp.diff(e, x)
+                # Formule pour u^n ou sqrt(u)
+                if n == sp.Rational(1, 2):
+                    steps.append(f"{label} est de la forme $\\sqrt{{u}}$ avec $u(x)={sp.latex(u)}$.")
+                    du = walk(u, "u(x)")
+                    steps.append("On applique la formule : $(\\sqrt{u})' = \\frac{u'}{2\\sqrt{u}}$")
+                    d = sp.simplify(du / (2 * sp.sqrt(u)))
+                    return d
+                else:
+                    steps.append(f"{label} est de la forme $u^n$ avec $u(x)={sp.latex(u)}$ et $n={sp.latex(n)}$.")
+                    du = walk(u, "u(x)")
+                    steps.append(f"On applique la formule : $(u^{n})' = n u' u^{n-1}$")
+                    d = sp.simplify(n * du * u**(n - 1))
+                    return d
+
+        # Fallback pour d'autres fonctions (sin, cos, etc.)
+        return sp.diff(e, x)
+
+    final_d = walk(expr_sym)
+    # Tenter une factorisation claire (utile pour les tableaux de signes ensuite)
+    final_simple = sp.factor(final_d)
+    return steps, final_d, final_simple
+
+@app.route('/derivative', methods=['POST'])
+def handle_derivative():
+    """Endpoint pour générer le calcul détaillé de la dérivée."""
+    data = request.json or {}
+    expr_str = data.get('expression', '')
+    
+    if not expr_str:
+        return jsonify({'success': False, 'error': 'Expression manquante'})
+        
+    try:
+        # Reprendre le nettoyage local standard (e^x -> exp(x) etc.)
+        raw = str(expr_str).replace('^', '**').replace(',', '.')
+        raw = raw.replace('²', '**2').replace('³', '**3')
+        raw = raw.replace('×', '*').replace('·', '*').replace('−', '-')
+        # Rétablissement des multiplications implicites
+        raw = re.sub(r'(\d)\s*([a-zA-Z])', r'\1*\2', raw)
+        raw = re.sub(r'\)\s*\(', r')*(', raw)
+        raw = re.sub(r'([x-zX-Z])\s*\(', r'\1*(', raw)
+        raw = re.sub(r'(\d)\s*\(', r'\1*(', raw)
+        
+        expr_sym = sp.sympify(raw, locals=LOCALS)
+        
+        steps, raw_deriv, factored_deriv = get_derivative_steps(expr_sym)
+        
+        return jsonify({
+            'success': True,
+            'original_latex': geo_exact_latex(expr_sym),
+            'steps': steps,
+            'raw_derivative_latex': geo_exact_latex(raw_deriv),
+            'factored_derivative_latex': geo_exact_latex(factored_deriv),
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ─────────────────────────────────────────────────────────────
 # CALCULS GÉOMÉTRIQUES EXACTS (SymPy)
 # ─────────────────────────────────────────────────────────────
 

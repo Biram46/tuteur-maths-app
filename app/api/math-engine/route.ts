@@ -254,6 +254,49 @@ export async function POST(req: NextRequest) {
             }
 
             // ───────────────────────────────────────────────────────
+            case 'derivative': {
+                const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+                if (!pythonApiUrl) {
+                    return NextResponse.json({ success: false, error: 'Aucune API SymPy configurée' }, { status: 500 });
+                }
+                const res = await fetch(`${pythonApiUrl}/derivative`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ expression }),
+                    signal: AbortSignal.timeout(5000),
+                });
+                if (!res.ok) {
+                    return NextResponse.json({ success: false, error: `Erreur HTTP ${res.status}` }, { status: res.status });
+                }
+                const derivData = await res.json();
+                if (!derivData.success) {
+                    return NextResponse.json({ success: false, error: derivData.error }, { status: 500 });
+                }
+                
+                // Préparer le contexte pédagogique pour l'IA
+                const stepsBulletPoints = (derivData.steps || []).map((s: string) => `- ${s}`).join('\n');
+                let aiContext = `[MODE MODULE DÉRIVATION]
+Le système a calculé de manière exacte la dérivée de f(x) = ${derivData.original_latex}.
+
+Voici les étapes de calcul algébrique formel (par composition) :
+${stepsBulletPoints}
+
+Résultat brut obtenu : ${derivData.raw_derivative_latex}
+Résultat factorisé idéal : ${derivData.factored_derivative_latex}
+
+TA MISSION :
+Rédige une explication pédagogique claire, détaillée et bien formatée pour un élève de lycée.
+Utilise les notations du lycée: u(x), v(x), u'(x), v'(x). JAMAIS la notation d/dx.
+Conclus toujours en affichant l'expression finale factorisée entourée de $$ (LaTeX centré).`;
+
+                return NextResponse.json({
+                    success: true,
+                    aiContext,
+                    rawData: derivData
+                });
+            }
+
+            // ───────────────────────────────────────────────────────
             case 'graph': {
                 const result = generateGraphData({
                     expression,

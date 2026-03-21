@@ -857,6 +857,110 @@ RÈGLES ABSOLUES :
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // HANDLER "CALCULER UNE DÉRIVÉE EXACTE" (Module Dérivation)
+        // ═══════════════════════════════════════════════════════════
+        const wantsDerivative = /(?:calculer?|donne|calcule|déterminer?|determiner?)\s+(?:la\s+)?(?:dérivée?|derivée?)\s+(?:de\s+)?(?:[fghk]|cette\s+fonction|l'expression)/i.test(inputLower)
+            || /(?:c'est\s+quoi\s+la\s+dérivée|quelle\s+est\s+la\s+dérivée)/i.test(inputLower)
+            || /^[fghk]'\s*\(\s*x\s*\)/i.test(inputLower);
+
+        // Bloquer si c'est une étude complète ou un tableau (les autres handlers s'en chargent)
+        if (wantsDerivative && !wantsStudyFunction && !wantsVariationTable && !wantsSignTable && !isMultiExpr) {
+            let expr = '';
+            const eqMatch = inputCleaned.match(/(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s*$|\.)/i);
+            if (eqMatch) expr = eqMatch[1].split(/[?!]/)[0].trim();
+            if (!expr) {
+                let extract = inputCleaned.replace(/.*(?:dérivée?)\s+(?:de\s+(?:la\s+fonction\s+)?)?(?:[fghk]\s*\(\s*x\s*\)\s*=\s*)?/i, '');
+                extract = extract.split(/[?!]/)[0];
+                expr = extract.replace(/^(?:=\s*)/, '').trim();
+            }
+
+            // Nettoyage classique
+            expr = expr.replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
+                       .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
+                       .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
+                       .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
+
+            if (expr && expr.includes('x') && expr.length > 1) {
+                console.log(`[MathEngine] 🎯 Module dérivation strict déclenché pour: "${expr}"`);
+                try {
+                    const engineRes = await fetch('/api/math-engine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'derivative', expression: expr, niveau: resolveNiveau(inputText) }),
+                    });
+                    const engineData = await engineRes.json();
+                    if (engineData.success && engineData.aiContext) {
+                        const enrichedMessages: ChatMessage[] = [
+                            ...newMessages,
+                            {
+                                role: 'user' as const,
+                                content: `[SYSTÈME] DÉCLENCHEMENT DU MODULE DÉRIVATION.
+
+${engineData.aiContext}`
+                            }
+                        ];
+
+                        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+                        setLoading(true);
+                        setIsTalking(true);
+                        const response = await fetch('/api/perplexity', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                        });
+                        
+                        if (!response.ok) throw new Error(`Erreur API deriv (HTTP ${response.status})`);
+                        const reader = response.body?.getReader();
+                        if (!reader) throw new Error('Reader non disponible');
+                        const decoder = new TextDecoder();
+                        let aiText = '';
+                        let lastUpdate = 0;
+                        let lineBuffer = '';
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            lineBuffer += decoder.decode(value, { stream: true });
+                            const lines = lineBuffer.split('\n');
+                            lineBuffer = lines.pop() || '';
+                            for (const line of lines) {
+                                if (!line.startsWith('data: ')) continue;
+                                const jsonStr = line.substring(6);
+                                if (jsonStr === '[DONE]') break;
+                                try {
+                                    const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+                                    if (c) {
+                                        aiText += c;
+                                        const now = Date.now();
+                                        if (now - lastUpdate > 250) {
+                                            lastUpdate = now;
+                                            const fixedClean = fixLatexContent(aiText).content;
+                                            setMessages(prev => {
+                                                const u = [...prev];
+                                                u[u.length - 1] = { role: 'assistant', content: fixedClean };
+                                                return u;
+                                            });
+                                        }
+                                    }
+                                } catch { }
+                            }
+                        }
+                        const finalFixed = fixLatexContent(aiText).content;
+                        setMessages(prev => {
+                            const u = [...prev];
+                            u[u.length - 1] = { role: 'assistant', content: finalFixed };
+                            return u;
+                        });
+                        setLoading(false);
+                        setIsTalking(false);
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('[MathEngine] Erreur module dérivation, fallback IA:', err);
+                }
+            }
+        }
+
         if (wantsSignTable && !isMultiExpr) {
             let expr = '';
             const eqMatch = inputCleaned.match(/=\s*(.+)/);
