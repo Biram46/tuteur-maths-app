@@ -140,26 +140,50 @@ export async function POST(req: NextRequest) {
 
             // ───────────────────────────────────────────────────────
             case 'variation_table': {
-                // ── Stratégie hybride : SymPy pour le signe de f'(x), JS pour le reste ──
-                // La dérivée de fonctions rationnelles tend vers 0 à l'infini,
-                // ce qui rend l'évaluation numérique peu fiable. SymPy est exact.
+                // ── Stratégie hybride (mise à jour) : 100% Python/SymPy pour f'(x), puis JS/Python pour le signe ──
                 let derivativeExprForSympy: string | undefined;
                 try {
-                    const { computeDerivative } = require('@/lib/math-engine/expression-parser');
-                    derivativeExprForSympy = computeDerivative(expression);
-                    if (derivativeExprForSympy) {
-                        console.log(`[MathEngine] Variation: f'(x) = ${derivativeExprForSympy}`);
-                        // Appeler SymPy pour le signe de f'(x) — résultat exact
-                        const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
-                        if (sympyDerivSign.success && sympyDerivSign.fxValues) {
-                            console.log(`[MathEngine] Variation: ✅ SymPy signe f'(x) OK`);
-                            // Passer le résultat SymPy au variation engine
-                            options.derivativeExpr = derivativeExprForSympy;
-                            (options as any).sympyDerivSign = sympyDerivSign;
+                    const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+                    if (pythonApiUrl) {
+                        const drRes = await fetch(`${pythonApiUrl}/derivative`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ expression }),
+                            signal: AbortSignal.timeout(5000),
+                        });
+                        if (drRes.ok) {
+                            const drData = await drRes.json();
+                            if (drData.success && drData.factored_derivative_str) {
+                                // Utiliser l'expression factorisée pour une meilleure évaluation des signes
+                                // Remplacer double '*' pour pow par un seul '^' (format standard pour nos TS)
+                                derivativeExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
+                                console.log(`[MathEngine] Variation: Python/SymPy f'(x) = ${derivativeExprForSympy}`);
+                                
+                                // Appeler SymPy pour le signe de f'(x)
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                                if (sympyDerivSign.success && sympyDerivSign.fxValues) {
+                                    console.log(`[MathEngine] Variation: ✅ SymPy signe f'(x) OK`);
+                                    options.derivativeExpr = derivativeExprForSympy;
+                                    (options as any).sympyDerivSign = sympyDerivSign;
+                                }
+                            }
+                        }
+                    }
+                    if (!derivativeExprForSympy) {
+                        // Fallback mathjs si l'API Python n'est pas dispo
+                        const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                        derivativeExprForSympy = computeDerivative(expression);
+                        if (derivativeExprForSympy) {
+                            console.log(`[MathEngine] Variation: MathJS f'(x) = ${derivativeExprForSympy}`);
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                            if (sympyDerivSign.success && sympyDerivSign.fxValues) {
+                                options.derivativeExpr = derivativeExprForSympy;
+                                (options as any).sympyDerivSign = sympyDerivSign;
+                            }
                         }
                     }
                 } catch (e) {
-                    console.warn('[MathEngine] Variation: calcul dérivée échoué, JS-only');
+                    console.warn('[MathEngine] Variation: calcul dérivée échoué', e);
                 }
 
                 let sympyDomainResult: any = null;
@@ -198,7 +222,6 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-            // ───────────────────────────────────────────────────────
             case 'sign_and_variation': {
                 // Générer les deux en parallèle
                 let sympyDomainResult: any = null;
@@ -206,6 +229,44 @@ export async function POST(req: NextRequest) {
                     sympyDomainResult = await callDomainSympy(expression);
                 } catch (e) {
                     console.warn('[MathEngine] Sign&Variation: appel domaine échoué');
+                }
+
+                // ── Mettre à profit le nouveau module Python SymPy ──
+                let derivativeExprForSympy: string | undefined;
+                try {
+                    const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+                    if (pythonApiUrl) {
+                        const drRes = await fetch(`${pythonApiUrl}/derivative`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ expression }),
+                            signal: AbortSignal.timeout(5000),
+                        });
+                        if (drRes.ok) {
+                            const drData = await drRes.json();
+                            if (drData.success && drData.factored_derivative_str) {
+                                derivativeExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                                if (sympyDerivSign.success && sympyDerivSign.fxValues) {
+                                    options.derivativeExpr = derivativeExprForSympy;
+                                    (options as any).sympyDerivSign = sympyDerivSign;
+                                }
+                            }
+                        }
+                    }
+                    if (!derivativeExprForSympy) {
+                        const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                        derivativeExprForSympy = computeDerivative(expression);
+                        if (derivativeExprForSympy) {
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                            if (sympyDerivSign.success && sympyDerivSign.fxValues) {
+                                options.derivativeExpr = derivativeExprForSympy;
+                                (options as any).sympyDerivSign = sympyDerivSign;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[MathEngine] Sign&Variation: calcul dérivée échoué', e);
                 }
 
                 const [signResult, varResult] = await Promise.all([

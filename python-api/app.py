@@ -786,7 +786,9 @@ def handle_derivative():
             'original_latex': geo_exact_latex(expr_sym),
             'steps': steps,
             'raw_derivative_latex': geo_exact_latex(raw_deriv),
+            'raw_derivative_str': str(raw_deriv),
             'factored_derivative_latex': geo_exact_latex(factored_deriv),
+            'factored_derivative_str': str(factored_deriv),
         })
     except Exception as e:
         traceback.print_exc()
