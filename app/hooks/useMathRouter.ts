@@ -610,7 +610,10 @@ export function useMathRouter({
                             );
                         } else if (q.type === 'derivative_sign') {
                             aiParts.push(
-                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`
+                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.` +
+                                (hasStudyVarTable 
+                                    ? `\n⚠️ NE DESSINE PAS DE TABLEAU DE SIGNES ICI et n'écris pas le marqueur [TABLE_SIGNES]. Contente-toi du texte, car le signe sera intégré au [TABLE_VARIATIONS] de la question suivante.`
+                                    : `\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`)
                             );
                         } else if (q.type === 'sign_table') {
                             aiParts.push(
@@ -751,9 +754,8 @@ RÈGLES ABSOLUES :
                                         const now = Date.now();
                                         if (now - lastUpdate > 400) {
                                             lastUpdate = now;
-                                            // Remplacement des balises par les vrais tableaux (uniquement si disponibles)
                                             let disp = aiText
-                                                .replace(/\[TABLE_SIGNES\]/gi, signTableBlock ? `\n\n${signTableBlock}\n\n` : '')
+                                                .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
                                                 .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
                                             const fixedDisp = patchMarkdownTables(fixLatexContent(header + disp).content);
                                             requestAnimationFrame(() => {
@@ -765,7 +767,7 @@ RÈGLES ABSOLUES :
                             }
                         }
                         let finalText = aiText
-                            .replace(/\[TABLE_SIGNES\]/gi, signTableBlock ? `\n\n${signTableBlock}\n\n` : '')
+                            .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
                             .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
                         if (tableOfValues && !finalText.includes('| x | f(x) |')) {
                             finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
@@ -953,6 +955,14 @@ ${engineData.aiContext}`
                         });
                         setLoading(false);
                         setIsTalking(false);
+                        return;
+                    } else if (!engineData.success) {
+                        console.warn('[MathEngine] Module dérivation: API a retourné success=false:', engineData.error);
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Désolé, le moteur de calcul formel est actuellement en cours de démarrage ou semble surchargé (délai d'attente dépassé). Veuillez patienter une vingtaine de secondes et réessayer pour calculer la dérivée exacte de $${expr}$.`
+                        }]);
+                        setLoading(false);
                         return;
                     }
                 } catch (err) {
@@ -1203,10 +1213,9 @@ ${engineData.aiContext}`
                             setLoading(false);
                             setIsTalking(false);
                         }
-                        return;
                     }
                 } catch (err) {
-                    console.warn('[MathEngine] Erreur, fallback IA:', err);
+                    console.warn('[MathEngine] Erreur module dérivation, fallback IA:', err);
                 }
             }
         }

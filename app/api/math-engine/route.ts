@@ -149,14 +149,14 @@ export async function POST(req: NextRequest) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ expression }),
-                            signal: AbortSignal.timeout(5000),
+                            signal: AbortSignal.timeout(30000),
                         });
                         if (drRes.ok) {
                             const drData = await drRes.json();
-                            if (drData.success && drData.factored_derivative_str) {
-                                // Utiliser l'expression factorisée pour une meilleure évaluation des signes
-                                // Remplacer double '*' pour pow par un seul '^' (format standard pour nos TS)
-                                derivativeExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
+                            if (drData.success && drData.raw_derivative_str) {
+                                // Utiliser l'expression NON factorisée (raw) pour que callSignTableSympy calcule le delta !
+                                // S'il reçoit "3*(x-1)*(x-3)", il fait un tableau à facteurs (inutile ici).
+                                derivativeExprForSympy = drData.raw_derivative_str.replace(/\*\*/g, '^');
                                 console.log(`[MathEngine] Variation: Python/SymPy f'(x) = ${derivativeExprForSympy}`);
                                 
                                 // Appeler SymPy pour le signe de f'(x)
@@ -241,12 +241,12 @@ export async function POST(req: NextRequest) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ expression }),
-                            signal: AbortSignal.timeout(5000),
+                            signal: AbortSignal.timeout(30000),
                         });
                         if (drRes.ok) {
                             const drData = await drRes.json();
-                            if (drData.success && drData.factored_derivative_str) {
-                                derivativeExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
+                            if (drData.success && drData.raw_derivative_str) {
+                                derivativeExprForSympy = drData.raw_derivative_str.replace(/\*\*/g, '^');
                                 const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
                                 if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                     options.derivativeExpr = derivativeExprForSympy;
@@ -326,7 +326,7 @@ export async function POST(req: NextRequest) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ expression }),
-                    signal: AbortSignal.timeout(5000),
+                    signal: AbortSignal.timeout(30000),
                 });
                 if (!res.ok) {
                     return NextResponse.json({ success: false, error: `Erreur HTTP ${res.status}` }, { status: res.status });
@@ -419,7 +419,7 @@ async function callSignTableSympy(
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ expression, niveau }),
-                signal: AbortSignal.timeout(5000),
+                signal: AbortSignal.timeout(30000),
             });
             const elapsed = Date.now() - startTime;
 
@@ -534,7 +534,7 @@ async function callDomainSympy(expression: string): Promise<Record<string, any>>
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ expression }),
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(30000),
         });
         const elapsed = Date.now() - startTime;
 
