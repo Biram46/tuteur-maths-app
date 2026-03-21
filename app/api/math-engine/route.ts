@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                                 console.log(`[MathEngine] Variation: Python/SymPy f'(x) = ${derivativeExprForSympy}`);
                                 
                                 // Appeler SymPy pour le signe de f'(x)
-                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
                                 if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                     console.log(`[MathEngine] Variation: ✅ SymPy signe f'(x) OK`);
                                     options.derivativeExpr = derivativeExprForSympy;
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
                             console.log(`[MathEngine] Variation: MathJS f'(x) = ${derivativeExprForSympy}`);
-                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
                             if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                 options.derivativeExpr = derivativeExprForSympy;
                                 (options as any).sympyDerivSign = sympyDerivSign;
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
                             const drData = await drRes.json();
                             if (drData.success && drData.factored_derivative_str) {
                                 derivativeExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
-                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
                                 if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                     options.derivativeExpr = derivativeExprForSympy;
                                     (options as any).sympyDerivSign = sympyDerivSign;
@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
                         const { computeDerivative } = require('@/lib/math-engine/expression-parser');
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
-                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy, niveau);
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
                             if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                 options.derivativeExpr = derivativeExprForSympy;
                                 (options as any).sympyDerivSign = sympyDerivSign;
