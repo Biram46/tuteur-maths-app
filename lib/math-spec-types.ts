@@ -25,6 +25,7 @@ export type MathOutputType =
     | 'probability_tree'  // Arbre de probabilités → MathTree
     | 'interval'          // Axe intervalles → IntervalAxis
     | 'literal_calc'      // Calcul littéral SymPy → future Couche 3
+    | 'derivative'        // Dérivation analytique -> Module Dérivation (Python)
     | 'explanation';      // Réponse textuelle + LaTeX uniquement
 
 // ─────────────────────────────────────────────────────────────
