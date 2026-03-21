@@ -269,6 +269,7 @@ export function useMathRouter({
         // Utiliser inputCleaned pour les détections et extractions, inputText pour l'affichage/IA
         const inputLower = inputCleaned.toLowerCase();
         const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe|in[eé]quation/i.test(inputLower);
+        const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
         // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
         const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
 
@@ -1212,8 +1213,6 @@ ${engineData.aiContext}`
         }
 
         // ── INTERCEPTION TABLEAU DE VARIATIONS (expression unique) ──
-        const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
-
         if (wantsVariationTable && !isMultiExpr) {
             let expr = '';
             const eqMatch = inputCleaned.match(/=\s*(.+)/);
