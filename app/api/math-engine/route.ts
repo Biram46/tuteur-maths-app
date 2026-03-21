@@ -205,7 +205,8 @@ export async function POST(req: NextRequest) {
                         forbiddenPoints: sympyDomainResult.forbiddenPoints,
                         domainLatex: sympyDomainResult.domainLatex,
                     } : undefined,
-                });
+                    sympyDerivSign: (options as any).sympyDerivSign,
+                } as any);
 
                 if (!result.success) {
                     return NextResponse.json({ success: false, error: result.error }, { status: 422 });
@@ -293,7 +294,8 @@ export async function POST(req: NextRequest) {
                             forbiddenPoints: sympyDomainResult.forbiddenPoints,
                             domainLatex: sympyDomainResult.domainLatex,
                         } : undefined,
-                    })),
+                        sympyDerivSign: (options as any).sympyDerivSign,
+                    } as any)),
                 ]);
 
                 const errors = [

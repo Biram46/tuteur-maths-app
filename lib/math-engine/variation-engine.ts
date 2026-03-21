@@ -328,6 +328,19 @@ function buildAIContext(
                 lines.push(`Méthode : étude du signe de la dérivée.`);
                 lines.push(`f'(x) = ${extra.derivativeExpr}.`);
                 lines.push(`Explique : calcul de f'(x), résolution de f'(x)=0, signe de f'(x) sur chaque intervalle, variation de f.`);
+                
+                // Si on a les étapes de calcul du signe de la dérivée (ex: Delta), on les rajoute :
+                const sympySign = (extra as any).sympyDerivSign;
+                if (sympySign?.discriminantSteps?.length) {
+                    lines.push(`\n[IMPORTANT] Pour l'étude du signe de f'(x), reproduis exactement ce calcul de racines :`);
+                    for (const s of sympySign.discriminantSteps) {
+                        lines.push(`- Pour le facteur ${s.factor} : ${s.steps.join(' ; ')}`);
+                    }
+                }
+                if (sympySign?.factors?.length) {
+                    const factStr = sympySign.factors.map((f: any) => f.label).join(' × ');
+                    lines.push(`\n[IMPORTANT] Utilise la factorisation suivante pour f'(x) : ${factStr}`);
+                }
             }
             if (rules.showLimitsAtInfinity) {
                 lines.push(`Inclus l'étude des limites en ±∞.`);
@@ -411,6 +424,7 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
                 derivativeExpr: result.derivativeExpr,
                 coeffs: detection.quadratic ?? detection.affine,
                 extrema: result.extrema,
+                sympyDerivSign: (input as any).sympyDerivSign,
             });
         }
 

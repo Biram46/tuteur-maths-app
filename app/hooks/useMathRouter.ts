@@ -452,45 +452,40 @@ export function useMathRouter({
                             } catch { /* AI fallback */ }
                         }
                         if (q.type === 'derivative_sign') {
-                            // Calculer la dérivée avec mathjs, puis déléguer à SymPy via l'API
-                            // ⚠️ On ne fait PAS de recherche de racines numérique côté client
-                            // (causait un freeze par faux positifs quand f'(x) ≈ 0 partout).
-                            // SymPy fait la factorisation et l'analyse de signe de façon EXACTE.
+                            // Appel direct de l'API Python SymPy pour calculer la dérivée exacte
                             try {
-                                const { derivative, simplify } = await import('mathjs');
-                                const san = (e2: string) => e2
-                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
-                                    .replace(/−/g, '-')
-                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')   // 2x → 2*x
-                                    .replace(/(\d)\(/g, '$1*(')             // 3( → 3*(
-                                    .replace(/\)(\w)/g, ')*$1')             // )x → )*x
-                                    .replace(/\)\(/g, ')*(');               // )( → )*(
-                                const derivNode = derivative(san(exprClean), 'x');
-                                const derivExpr = simplify(derivNode).toString()
-                                    .replace(/\s+/g, ' ').trim();
-                                console.log(`[ExerciceMode] Dérivée calculée: f'(x) = ${derivExpr}`);
-
-                                // Envoyer directement à l'API (SymPy prioritaire, JS fallback)
-                                const res = await fetch('/api/math-engine', {
+                                const drRes = await fetch('/api/math-engine', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        type: 'sign_table',
-                                        expression: derivExpr,
-                                        niveau: resolveNiveau(inputText),
-                                    }),
+                                    body: JSON.stringify({ type: 'derivative', expression: exprClean }),
                                 });
-                                const data = await res.json();
-                                if (data.success && data.aaaBlock) {
-                                    signTableBlock = data.aaaBlock
-                                        .replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
-                                    signCtx = `\nInfo : f'(x) = ${derivExpr}` + (data.discriminantSteps?.length
-                                        ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
-                                        : '');
-                                    console.log(`[ExerciceMode] ✅ Tableau de signes f'(x) via ${data.engine || 'moteur'}`);
+                                const drData = await drRes.json();
+                                let derivExprForSympy = '';
+                                if (drData.success && drData.factored_derivative_str) {
+                                    derivExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
                                 } else {
-                                    console.warn(`[ExerciceMode] ⚠️ Tableau de signes f'(x) échoué:`, data.error);
+                                    // Fallback mathjs si Python indisponible 
+                                    const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                                    derivExprForSympy = computeDerivative(exprClean) || '';
+                                }
+
+                                if (derivExprForSympy) {
+                                    const res = await fetch('/api/math-engine', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            type: 'sign_table',
+                                            expression: derivExprForSympy,
+                                            niveau: resolveNiveau(inputText),
+                                        }),
+                                    });
+                                    const data = await res.json();
+                                    if (data.success && data.aaaBlock) {
+                                        signTableBlock = data.aaaBlock.replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
+                                        signCtx = `\nInfo : f'(x) = ${derivExprForSympy}` + (data.discriminantSteps?.length
+                                            ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            : '');
+                                    }
                                 }
                             } catch (derivErr) {
                                 console.warn('[ExerciceMode] Erreur calcul dérivée:', derivErr);
@@ -756,8 +751,10 @@ RÈGLES ABSOLUES :
                                         const now = Date.now();
                                         if (now - lastUpdate > 400) {
                                             lastUpdate = now;
-                                            // Ne plus supprimer les blocs @@@, l'IA doit les avoir recopiés
-                                            let disp = aiText;
+                                            // Remplacement des balises par les vrais tableaux (uniquement si disponibles)
+                                            let disp = aiText
+                                                .replace(/\[TABLE_SIGNES\]/gi, signTableBlock ? `\n\n${signTableBlock}\n\n` : '')
+                                                .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
                                             const fixedDisp = patchMarkdownTables(fixLatexContent(header + disp).content);
                                             requestAnimationFrame(() => {
                                                 setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
@@ -767,7 +764,9 @@ RÈGLES ABSOLUES :
                                 } catch { }
                             }
                         }
-                        let finalText = aiText;
+                        let finalText = aiText
+                            .replace(/\[TABLE_SIGNES\]/gi, signTableBlock ? `\n\n${signTableBlock}\n\n` : '')
+                            .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
                         if (tableOfValues && !finalText.includes('| x | f(x) |')) {
                             finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
                         }
@@ -861,7 +860,7 @@ RÈGLES ABSOLUES :
         // ═══════════════════════════════════════════════════════════
         // HANDLER "CALCULER UNE DÉRIVÉE EXACTE" (Module Dérivation)
         // ═══════════════════════════════════════════════════════════
-        const wantsDerivative = /(?:calculer?|donne|calcule|déterminer?|determiner?)\s+(?:la\s+)?(?:dérivée?|derivée?)\s+(?:de\s+)?(?:[fghk]|cette\s+fonction|l'expression)/i.test(inputLower)
+        const wantsDerivative = /(?:calculer?|donne-?moi|calcule|déterminer?|determiner?|quelle\s+est|trouve[rz]?)\s+(?:la\s+)?(?:dérivée?|derivée?)\s*(?:de|du|d'un|d'une|des)?\s*(?:[fghk]|cette|l'expression|la\s+fonction|trin[ôo]me|polyn[ôo]me|quotient|produit|fraction)/i.test(inputLower)
             || /(?:c'est\s+quoi\s+la\s+dérivée|quelle\s+est\s+la\s+dérivée)/i.test(inputLower)
             || /^[fghk]'\s*\(\s*x\s*\)/i.test(inputLower);
 
