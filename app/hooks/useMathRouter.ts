@@ -1114,29 +1114,35 @@ ${engineData.aiContext}`
                                         }
                                     }
 
+                                    if (engineData.fxValues && engineData.fxValues.length > 0) {
+                                        parts.push(`\n📌 **AIDE INFAILLIBLE FOURNIE PAR LE SYSTÈME** 📌`);
+                                        parts.push(`Le système a calculé formellement les signes de f(x) sur les intervalles séparés par les racines (de gauche à droite) :`);
+                                        const xArr = engineData.tableSpec?.xValues || [];
+                                        if (xArr.length > 0) {
+                                            parts.push(`- Valeurs de x : ${xArr.join(' ; ')}`);
+                                        }
+                                        parts.push(`- Signes successifs de f(x) : ${engineData.fxValues.join(' puis ')}`);
+                                        parts.push(`Tu DOIS ABSOLUMENT te calquer sur ces signes pour justifier le résultat, ne propose pas une autre méthode.`);
+                                    }
+
                                     // Modèle pédagogique
                                     parts.push(`\n📝 MODÈLE D'EXPLICATION À SUIVRE (adapte les valeurs) :`);
                                     parts.push(`---`);
-                                    parts.push(`**Étape 1 : Factorisation**`);
-                                    parts.push(`On écrit f(x) = ${factorizationStr || expr}`);
+                                    parts.push(`**Étape 1 : Factorisation (si applicable)**`);
+                                    parts.push(`On part de l'expression f(x) = ${factorizationStr || expr}`);
                                     parts.push(``);
-                                    parts.push(`**Étape 2 : Étude de chaque facteur**`);
-                                    parts.push(`• Pour chaque facteur de degré 1 (ex: x) : s'annule en x=0, négatif avant, positif après.`);
-                                    parts.push(`• Pour chaque facteur de degré 2 (trinôme ax²+bx+c) : calcule Δ = b²-4ac.`);
-                                    parts.push(`  - Si Δ > 0 : deux racines x₁ et x₂. Le trinôme est du signe de a à l'extérieur des racines, du signe opposé entre les racines.`);
-                                    parts.push(`  - Si Δ = 0 : une racine double. Le trinôme est du signe de a partout sauf en la racine.`);
-                                    parts.push(`  - Si Δ < 0 : pas de racine réelle. Le trinôme est du signe de a pour tout x.`);
+                                    parts.push(`**Étape 2 : Étude de chaque facteur ou du trinôme**`);
+                                    parts.push(`- Pour un trinôme (ax² + bx + c) : calcule Δ et les racines x₁ et x₂. Rappelle la règle du signe de "a" à l'extérieur des racines.`);
+                                    parts.push(`- Sers-toi de la règle pour lier les racines au signe exact que je t'ai fourni ci-dessus.`);
                                     parts.push(``);
-                                    parts.push(`**Étape 3 : Règle des signes**`);
-                                    parts.push(`On applique la règle des signes d'un produit sur chaque intervalle délimité par les racines.`);
-                                    parts.push(``);
-                                    parts.push(`**Étape 4 : Conclusion**`);
+                                    parts.push(`**Étape 3 : Conclusion**`);
                                     parts.push(`On lit le signe de f(x) sur chaque intervalle à partir du tableau affiché ci-dessus.`);
                                     parts.push(`---`);
                                     if (inputText.match(/>|<|≥|≤|>=|<=/)) {
                                         parts.push(``);
                                         parts.push(`**RÉSOLUTION DE L'INÉQUATION**`);
-                                        parts.push(`Puisque la question demande de résoudre une inéquation, utilise le tableau de signes pour conclure et DONNE LA SOLUTION $S = ...$ sous forme d'intervalle à la toute fin.`);
+                                        parts.push(`À partir des signes confirmés, donne LA SOLUTION EXACTE de l'inéquation sous la forme $S = ...$`);
+                                        parts.push(`⚠️ ATTENTION : Ne ré-explique pas l'inéquation autrement, ne propose pas une "autre méthode" en bas de page. Fais ton analyse une seule fois. Ne récris pas l'inéquation inversée.`);
                                     }
 
                                     return parts.join('\n');

@@ -349,7 +349,8 @@ Résultat factorisé idéal : ${derivData.factored_derivative_latex}
 
 TA MISSION :
 Rédige une explication pédagogique claire, détaillée et bien formatée pour un élève de lycée.
-Utilise les notations du lycée: u(x), v(x), u'(x), v'(x). JAMAIS la notation d/dx.
+Utilise UNIQUEMENT les notations du lycée: f'(x), u(x), v(x), u'(x), v'(x). 
+⛔ INTERDICTION STRICTE d'utiliser la notation différentielle 'd/dx' ou '\\frac{d}{dx}'. Tu seras pénalisé si tu l'utilises.
 Conclus toujours en affichant l'expression finale factorisée entourée de $$ (LaTeX centré).`;
 
                 return NextResponse.json({
