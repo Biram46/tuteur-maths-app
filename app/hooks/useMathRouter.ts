@@ -935,6 +935,8 @@ RÈGLES ABSOLUES :
                 .replace(/\s+pour\s+x\s*[^=].{0,20}$/i, '')            // "pour x ≠ 0", "pour x > 0"
                 .replace(/\s*,?\s*\(?\s*x\s*≠\s*\d*\s*\)?\s*$/g, '')    // ", x ≠ 0" résiduel
                 .replace(/\s+pour\s*$/i, '')                            // "pour" résiduel seul
+                // Stopper brut à n'importe quel point d'interrogation ou d'exclamation
+                .split(/[?!]/)[0]
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
@@ -1149,10 +1151,12 @@ RÈGLES ABSOLUES :
                 .replace(/\s+pour\s+x\s*[^=].{0,20}$/i, '')            // "pour x ≠ 0", "pour x > 0"
                 .replace(/\s*,?\s*\(?\s*x\s*≠\s*\d*\s*\)?\s*$/g, '')    // ", x ≠ 0" résiduel
                 .replace(/\s+pour\s*$/i, '')                            // "pour" résiduel seul
+                // Stopper brut à n'importe quel point d'interrogation ou d'exclamation
+                .split(/[?!]/)[0]
                 // Retirer le texte français résiduel (virgule + mot courant, point + phrase)
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
-                // Retirer instructions en langage naturel après point/virgule ou "et"
+                // Retirer instructions en langage naturel
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
                 .replace(/\s+(?:et|puis)\s+(?:trace|dedui|dresse|calcule|donne|determi|represent).+$/i, '')
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');

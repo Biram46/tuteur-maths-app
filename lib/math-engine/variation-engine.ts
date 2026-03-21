@@ -317,8 +317,9 @@ function buildAIContext(
             break;
 
         case 'quadratic':
-            lines.push(`Méthode : forme canonique du polynôme du second degré (PAS la dérivée).`);
-            lines.push(`Explique : calcul du discriminant Δ = b²-4ac, sommet x_s = -b/(2a), f(x_s) = -Δ/(4a), signe de a → minimum ou maximum.`);
+            lines.push(`Méthode : propriété du polynôme du second degré (PAS la dérivée).`);
+            lines.push(`Explique : calcul de l'abscisse du sommet x_s = -b/(2a), et de son ordonnée f(x_s) (soit en évaluant f(x_s), soit via la formule f(x_s) = -Δ/(4a)). Utilise le signe de a pour déterminer si c'est un minimum ou maximum.`);
+            lines.push(`NE CALCULE PAS ET NE MENTIONNE PAS les racines (x1, x2), c'est hors-sujet et inutile pour dresser un tableau de variations !`);
             lines.push(`NE PARLE PAS de dérivée pour un polynôme du second degré.`);
             break;
 
@@ -659,10 +660,10 @@ function handleQuadratic(
 ): VariationTableResult {
     const { a, b, c } = coeffs;
 
-    // ── Sommet via forme canonique ──
+    // ── Sommet de la parabole ──
     const xs = -b / (2 * a);                // x du sommet
     const delta = b * b - 4 * a * c;        // discriminant
-    const ys = -delta / (4 * a);            // f(xs) = -Δ/(4a)
+    const ys = -delta / (4 * a);            // f(xs)
 
     const xsStr = formatForTable(round4(xs));
     const ysStr = formatForTable(round4(ys));
@@ -705,8 +706,8 @@ function handleQuadratic(
     const methodLines = [
         `Polynôme du second degré (a=${formatForTable(round4(a))}, b=${formatForTable(round4(b))}, c=${formatForTable(round4(c))})`,
         `Δ = b² - 4ac = ${formatForTable(round4(delta))}`,
-        `Sommet : x_s = -b/(2a) = ${xsStr}`,
-        `f(x_s) = -Δ/(4a) = ${ysStr}`,
+        `Sommet : abscisse x_s = -b/(2a) = ${xsStr}`,
+        `Ordonnée du sommet : f(x_s) = -Δ/(4a) = ${ysStr}`,
         a > 0 ? `a > 0 → minimum au sommet` : `a < 0 → maximum au sommet`,
     ];
 

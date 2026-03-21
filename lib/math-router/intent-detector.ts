@@ -161,7 +161,7 @@ export function extractExpression(text: string): string | null {
         .replace(/\u00d7/g, '*');
 
     // Pattern 1: f(x) = <expression>
-    const funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r]+)/i;
+    const funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r?!]+)/i;
     let m = normalized.match(funcPattern);
     if (m) return m[1].trim();
 

@@ -1,7 +1,7 @@
-export const dynamic = 'force-dynamic';
 import MathAssistant from '@/app/components/MathAssistant';
 import { createClient } from '@/lib/supabaseAction';
 
+export const dynamic = 'force-dynamic';
 /**
  * Page de l'assistant mathématique mimimaths@i
  * Structure optimisée pour la visibilité de l'input.
