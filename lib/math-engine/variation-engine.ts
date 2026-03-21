@@ -257,6 +257,7 @@ function buildAIContext(
         derivativeExpr?: string;
         coeffs?: { a?: number; b?: number; c?: number };
         extrema?: { x: number; y: number; type: 'max' | 'min' }[];
+        sympyDerivSign?: any;
     } = {}
 ): string {
     const niveauLabel = NIVEAU_LABELS[niveau] ?? niveau;
