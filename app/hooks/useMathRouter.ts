@@ -1120,7 +1120,7 @@ RÈGLES ABSOLUES :
                                         
                                         const xMatch = (engineData.aaaBlock || '').match(/x:\s*([^|]+)/);
                                         const xStr = xMatch ? xMatch[1].trim() : '';
-                                        const xArr = xStr ? xStr.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+                                        const xArr = xStr ? xStr.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0) : [];
                                         
                                         if (xArr.length >= 2 && engineData.fxValues.length === 2 * xArr.length - 3) {
                                             for (let i = 0; i < xArr.length - 1; i++) {
