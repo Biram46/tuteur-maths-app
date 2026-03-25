@@ -1117,12 +1117,28 @@ RÈGLES ABSOLUES :
                                     if (engineData.fxValues && engineData.fxValues.length > 0) {
                                         parts.push(`\n📌 **AIDE INFAILLIBLE FOURNIE PAR LE SYSTÈME** 📌`);
                                         parts.push(`Le système a calculé formellement les signes de f(x) sur les intervalles séparés par les racines (de gauche à droite) :`);
-                                        const xArr = engineData.tableSpec?.xValues || [];
-                                        if (xArr.length > 0) {
-                                            parts.push(`- Valeurs de x : ${xArr.join(' ; ')}`);
+                                        
+                                        const xMatch = (engineData.aaaBlock || '').match(/x:\s*([^|]+)/);
+                                        const xStr = xMatch ? xMatch[1].trim() : '';
+                                        const xArr = xStr ? xStr.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+                                        
+                                        if (xArr.length >= 2 && engineData.fxValues.length === 2 * xArr.length - 3) {
+                                            for (let i = 0; i < xArr.length - 1; i++) {
+                                                const left = xArr[i];
+                                                const right = xArr[i + 1];
+                                                const sign = engineData.fxValues[2 * i];
+                                                parts.push(`- Sur l'intervalle ]${left}; ${right}[ : l'expression est de signe ${sign}`);
+                                                if (i < xArr.length - 2) {
+                                                    const ptSign = engineData.fxValues[2 * i + 1];
+                                                    parts.push(`- En x = ${right} : l'expression vaut ${ptSign === '||' ? 'NON DÉFINIE (||)' : ptSign}`);
+                                                }
+                                            }
+                                        } else {
+                                            // Fallback
+                                            if (xArr.length > 0) parts.push(`- Valeurs de x : ${xArr.join(' ; ')}`);
+                                            parts.push(`- Signes successifs de f(x) : ${engineData.fxValues.join(' puis ')}`);
                                         }
-                                        parts.push(`- Signes successifs de f(x) : ${engineData.fxValues.join(' puis ')}`);
-                                        parts.push(`Tu DOIS ABSOLUMENT te calquer sur ces signes pour justifier le résultat, ne propose pas une autre méthode.`);
+                                        parts.push(`Tu DOIS ABSOLUMENT te calquer sur ces signes pour justifier le résultat et trouver l'ensemble de solutions S, ne propose pas une autre méthode.`);
                                     }
 
                                     parts.push(`\n**CONCLUSION ATTENDUE :**`);
