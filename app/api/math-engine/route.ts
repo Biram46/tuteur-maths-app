@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                                 console.log(`[MathEngine] Variation: Python/SymPy f'(x) = ${derivativeExprForSympy}`);
                                 
                                 // Appeler SymPy pour le signe de f'(x)
-                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau, expression);
                                 if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                     console.log(`[MathEngine] Variation: ✅ SymPy signe f'(x) OK`);
                                     options.derivativeExpr = derivativeExprForSympy;
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
                             console.log(`[MathEngine] Variation: MathJS f'(x) = ${derivativeExprForSympy}`);
-                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau, expression);
                             if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                 options.derivativeExpr = derivativeExprForSympy;
                                 (options as any).sympyDerivSign = sympyDerivSign;
@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
                             const drData = await drRes.json();
                             if (drData.success && drData.raw_derivative_str) {
                                 derivativeExprForSympy = drData.raw_derivative_str.replace(/\*\*/g, '^');
-                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
+                                const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau, expression);
                                 if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                     options.derivativeExpr = derivativeExprForSympy;
                                     (options as any).sympyDerivSign = sympyDerivSign;
@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
                         const { computeDerivative } = require('@/lib/math-engine/expression-parser');
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
-                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau);
+                            const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau, expression);
                             if (sympyDerivSign.success && sympyDerivSign.fxValues) {
                                 options.derivativeExpr = derivativeExprForSympy;
                                 (options as any).sympyDerivSign = sympyDerivSign;
@@ -349,7 +349,8 @@ Résultat factorisé idéal : ${derivData.factored_derivative_latex}
 
 TA MISSION :
 Rédige une explication pédagogique claire, détaillée et bien formatée pour un élève de lycée.
-Utilise UNIQUEMENT les notations du lycée: f'(x), u(x), v(x), u'(x), v'(x). 
+Utilise UNIQUEMENT les notations du lycée: f'(x), u(x), v(x), u'(x), v'(x).
+⛔ N'utilise jamais (fg)' = f'g + fg', car la fonction principale s'appelle déjà f(x). Utilise TOUJOURS la notation avec u et v : (uv)' = u'v + uv', (u/v)' = (u'v - uv')/v².
 ⛔ INTERDICTION STRICTE d'utiliser la notation différentielle 'd/dx' ou '\\frac{d}{dx}'. Tu seras pénalisé si tu l'utilises.
 Conclus toujours en affichant l'expression finale factorisée entourée de $$ (LaTeX centré).`;
 
@@ -406,7 +407,8 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
 
 async function callSignTableSympy(
     expression: string,
-    niveau: string
+    niveau: string,
+    originalExpr?: string
 ): Promise<Record<string, any>> {
     // Priorité 1 : API Python séparée (SYMPY_API_URL)
     // Priorité 2 : Supabase Edge Function (fallback legacy)
@@ -419,7 +421,7 @@ async function callSignTableSympy(
             const res = await fetch(`${pythonApiUrl}/sign-table`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expression, niveau }),
+                body: JSON.stringify({ expression, niveau, originalExpr }),
                 signal: AbortSignal.timeout(30000),
             });
             const elapsed = Date.now() - startTime;

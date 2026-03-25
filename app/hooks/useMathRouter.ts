@@ -271,7 +271,7 @@ export function useMathRouter({
         const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe|in[eé]quation/i.test(inputLower);
         const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
         // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
-        const isMultiExpr = /(?:^|[\n;])\s*\d+\s*[).]\s+[\s\S]*(?:\n|;)\s*\d+\s*[).]\s+/.test(inputText);
+        const isMultiExpr = /(?:^|[\n;.!?\s])\s*\d+\s*[).]\s+[\s\S]+?(?:[\n;.!?\s])\s*\d+\s*[).]\s+/.test(inputText);
 
         // ═══════════════════════════════════════════════════════════
         // HANDLER EXERCICE MULTI-QUESTIONS
@@ -288,9 +288,9 @@ export function useMathRouter({
                 // Supporte : "f(x) = ...", "Soit f(x) = ...", "définie par : f(x) = ...", "par : f(x) = ..."
                 const preMatch = cleanedInput.match(/(?:soit|on\s+(?:consid[eè]re|pose|d[eé]finit)|d[eé]finie?\s+(?:sur\s+\S+\s+)?par\s*:?)?\s*(?:[fghk]\s*\(\s*x\s*\)|y)\s*=\s*(.+)/i);
                 if (preMatch) {
-                    // Prendre tout jusqu'au premier \n (l'expression est sur une seule ligne)
-                    // ⚠️ Ne PAS utiliser split(/\d+\s*[).]/) car ça coupe "+1." dans l'expression !
-                    commonExpr = preMatch[1].split('\n')[0].trim()
+                    // Prendre l'expression en s'arrêtant au premier numéro de question (ex: "1)", "1.", "Q1")
+                    // ou au premier retour à la ligne.
+                    commonExpr = preMatch[1].split(/(?:^|[\n;.!?\s])(?:\d+\s*[).]\s|Q\d+\b)/)[0].trim()
                         .replace(/[.!?]+$/, '')
                         // ⚠️ Retirer le texte français après l'expression
                         // Ex: "3/(x²+2x-3), et on note (Cf) sa courbe" → "3/(x²+2x-3)"
@@ -301,7 +301,7 @@ export function useMathRouter({
                 }
                 if (!commonExpr) {
                     const eqMatch = cleanedInput.match(/=\s*(.+)/);
-                    if (eqMatch) commonExpr = eqMatch[1].split('\n')[0].trim()
+                    if (eqMatch) commonExpr = eqMatch[1].split(/(?:^|[\n;.!?\s])(?:\d+\s*[).]\s|Q\d+\b)/)[0].trim()
                         .replace(/[.!?]+$/, '')
                         .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|vous|c'est|puis|or|car|si|quand|donc|cette)\b.*$/i, '')
                         .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
@@ -312,8 +312,8 @@ export function useMathRouter({
                     let t = e;
                     // Retirer f(x) =
                     t = t.replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '');
-                    // Retirer toute inéquation ou équation à droite (ex: > 0, = 0)
-                    t = t.replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '');
+                    // Retirer toute inéquation ou équation à droite (ex: > 0, = 0, ≥ 0)
+                    t = t.replace(/\s*(?:>|<|>=|<=|=|≥|≤)\s*.*$/, '');
                     // Retirer $ et \\ (double backslash LaTeX)
                     t = t.replace(/\$/g, '').replace(/\\\\/g, '');
                     // Unicode → ASCII
@@ -626,15 +626,16 @@ export function useMathRouter({
                                 `  - Identifier a, b, c dans f(x) = ax² + bx + c\n` +
                                 `  - Calculer Δ = b² - 4ac (montrer le calcul numérique)\n` +
                                 `  - Calculer x₁ = (-b - √Δ) / 2a et x₂ = (-b + √Δ) / 2a (montrer le calcul)\n` +
-                                `  - Factorisation : f(x) = a(x - x₁)(x - x₂)\n` +
-                                `Étape 2 : Dresser le tableau de signes de f(x)${signCtx}\n` +
+                                `Étape 2 : Étudier le signe du trinôme : rappeler la règle du signe de 'a' à l'extérieur des racines.\n` +
+                                `Étape 3 : Dresser le tableau de signes de f(x)${signCtx}\n` +
                                 `Termine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n` +
                                 `(⛔ NE fais PAS de tableau toi-même — le tableau SymPy est inséré automatiquement)\n` +
-                                `Étape 3 : Lire la solution dans le tableau et conclure (ex: f(x) > 0 pour x ∈ ]-∞ ; x₁[ ∪ ]x₂ ; +∞[)`
+                                `Étape 4 : Utilise le tableau de signes. Pour >0 ou ≥0, garde UNIQUEMENT les intervalles où f(x) a un signe '+'. Pour <0 ou ≤0, garde UNIQUEMENT les intervalles avec un signe '-'. Attention aux valeurs interdites (||).\n` +
+                                `Encadre OBLIGATOIREMENT TOUTE la ligne de solution finale dans **$ $**.\nExemple de format : **$S = ]-\\infty ; x_1[ \\cup ]x_2 ; +\\infty[$** (L'union doit correspondre rigoureusement aux bons signes, ne te trompe pas !)`
                             );
                         } else if (q.type === 'solve') {
                             aiParts.push(
-                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question précédente, ..."\nUtilise le tableau pour lire les intervalles où f(x) vérifie l'inégalité.\nConclus OBLIGATOIREMENT par : **S = ]-∞ ; x₁] ∪ [x₂ ; +∞[** (avec les valeurs numériques des racines)`
+                                `**${q.num})** ${q.text}\nCommence par : "D'après le tableau de signes de la question précédente, ..."\n⛔ ATTENTION : Lis TRÈS ATTENTIVEMENT la dernière ligne (f(x)) du tableau pour trouver EXACTEMENT les bons intervalles (+ ou - selon l'inégalité demandée). Ne te trompe pas sur les valeurs des bornes (-∞, x₁, x₂, +∞) !\nConclus OBLIGATOIREMENT par la solution exacte **S = ...** en l'encadrant ENTIÈREMENT avec des symboles **$ $**. Utilise correctement \\cup pour l'union et \\infty.`
                             );
                         } else if (q.type === 'variation_table') {
                             aiParts.push(
@@ -679,11 +680,9 @@ export function useMathRouter({
 - ✅ Pour toute inéquation f(x) > 0 : OBLIGATOIREMENT tableau de signes @@@table
 `;
 
-                    const enrichedMessages: ChatMessage[] = [
-                        ...newMessages,
-                        {
-                            role: 'user' as const,
-                            content: `[SYSTÈME] Exercice complet — Niveau : ${niveauLabel} — f(x) = ${exprClean}.
+                    const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
+                    if (enrichedMessages.length > 0) {
+                        enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] Exercice complet — Niveau : ${niveauLabel} — f(x) = ${exprClean}.
 Réponds comme un élève modèle qui traite chaque question de l'exercice.
 ${niveauConstraints}
 ${aiParts.join('\n\n')}
@@ -699,9 +698,8 @@ RÈGLES ABSOLUES :
 - ⛔ JAMAIS écrire \\\\frac{d}{dx} ou \\\\frac{df}{dx}
 - ✅ TOUJOURS utiliser f'(x) (notation de Lagrange, la SEULE au programme)
 - ✅ Écrire "La dérivée de f est f'(x) = ..." et PAS "d/dx(f) = ..."
-- ⛔⛔ NE PAS tracer la courbe, NE PAS générer de graphique, NE PAS ouvrir de fenêtre graphique — SAUF si une question le demande EXPLICITEMENT avec les mots "tracer", "représenter" ou "courbe"`
-                        }
-                    ];
+- ⛔⛔ NE PAS tracer la courbe, NE PAS générer de graphique, NE PAS ouvrir de fenêtre graphique — SAUF si une question le demande EXPLICITEMENT avec les mots "tracer", "représenter" ou "courbe"`;
+                    }
 
                     // ── 5. Streaming + remplacement des placeholders ──
                     const header = `📝 **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
@@ -893,15 +891,11 @@ RÈGLES ABSOLUES :
                     });
                     const engineData = await engineRes.json();
                     if (engineData.success && engineData.aiContext) {
-                        const enrichedMessages: ChatMessage[] = [
-                            ...newMessages,
-                            {
-                                role: 'user' as const,
-                                content: `[SYSTÈME] DÉCLENCHEMENT DU MODULE DÉRIVATION.
-
-${engineData.aiContext}`
-                            }
-                        ];
+                        // ANTI-REGRESSION: JSON purge empêche les rôles 'user' consécutifs qui faisaient planter l'API Anthropic.
+                        const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
+                        if (enrichedMessages.length > 0) {
+                            enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS]\n${engineData.aiContext}`;
+                        }
 
                         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
                         setLoading(true);
@@ -973,9 +967,11 @@ ${engineData.aiContext}`
 
         if (wantsSignTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = inputCleaned.match(/=\s*(.+)/);
+            // Match '= ...' only if it's not part of an inequality (<=, >=, !=, etc.)
+            const eqMatch = inputCleaned.match(/(?<![><≤≥!])=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
-            if (!expr) {
+            // Si expr ne contient pas 'x' (ex: matché sur '= 0'), on invalide cette extraction basique
+            if (!expr || !expr.includes('x')) {
                 // ─── Extraction 1 : retirer tout ce qui précède et inclut "signes/variations de" ───
                 let extract = inputCleaned.replace(/.*(?:signes?|variations?|l'expression|la fonction|l'étude)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trin[ôo]mes?|polyn[ôo]mes?|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
 
@@ -991,9 +987,9 @@ ${engineData.aiContext}`
                 // n'a pas réussi à extraire proprement → on cherche la 1ère parenthèse ou suite math
                 const hasFrenchWords = /\b(?:signes?|tableau|donne|moi|calcule?|résous|étudier?|l[ae]|les?|mon|trouve|dresse|faire|donner|montrer|pour|avec|selon|trouve)\b/i.test(extract);
                 if (hasFrenchWords || extract === inputCleaned) {
-                    // Chercher la 1ère sous-chaîne qui commence par (, chiffre, x, -, ou lettre math
+                    // Chercher la 1ère sous-chaîne qui commence par (, chiffre, x, e^, ln, log, exp, sqrt ou -
                     // et contient x (donc c'est une expression mathématique)
-                    const mathMatch = inputCleaned.match(/([-(]?\s*(?:[2-9]|\d+\.?\d*|x)[^a-ùA-ÙÀ-üà-ü]{0,3}[\w^*/+().,-]*(?:(?:\s*[*+\-/^]\s*|\s*\(\s*)[\w^*()+.,/-]*)*(?:\([^)]+\))*[^,;]*)/i);
+                    const mathMatch = extract.match(/([-(]?\s*(?:[2-9]|\d+\.?\d*|x|e\^|exp\s*\(|ln\s*\(|log\s*\(|sqrt\s*\()[^a-zA-ZÀ-ÿ]{0,3}[\w^*/+().,-]*(?:(?:\s*[*+\-/^]\s*|\s*\(\s*)[\w^*()+.,/-]*)*(?:\([^)]+\))*[^,;]*)/i);
                     if (mathMatch && mathMatch[1].includes('x')) {
                         // Affiner : chercher spécifiquement après le dernier "de " suivi d'une expression
                         const lastDeMatch = inputCleaned.match(/(?:^|\s)de\s+((?:[-(]|\d)[^a-zA-ZÀ-ÿ,;.]{0}[\s\S]+)$/i);
@@ -1014,8 +1010,8 @@ ${engineData.aiContext}`
             expr = expr
                 .replace(/\$/g, '')
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                // Retirer toute inéquation ou équation à droite (ex: > 0, = 0, <= 1)
-                .replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '')
+                // Retirer toute inéquation ou équation à droite (ex: > 0, = 0, <= 1, ≥ 0)
+                .replace(/\s*(?:>|<|>=|<=|=|≥|≤)\s*.*$/, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                 // Exposants Unicode superscript → notation ^
@@ -1073,13 +1069,13 @@ ${engineData.aiContext}`
                     if (engineData.success && engineData.aaaBlock) {
                         const tableBlock = engineData.aaaBlock;
                         console.log(`[MathEngine] ✅ Injection directe du tableau SymPy`);
-                        const enrichedMessages: ChatMessage[] = [
-                            ...newMessages,
-                            {
-                                role: 'user' as const,
-                                content: (() => {
-                                    const parts: string[] = [];
-                                    parts.push(`[SYSTÈME] ⚠️ Le tableau de signes de f(x) = ${expr} est DÉJÀ AFFICHÉ au-dessus. NE GÉNÈRE AUCUN tableau.`);
+                        // ANTI-REGRESSION: JSON purge empêche les rôles 'user' consécutifs qui faisaient planter l'API Anthropic.
+                        const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
+                        if (enrichedMessages.length > 0) {
+                            enrichedMessages[enrichedMessages.length - 1].content += '\n\n' + (() => {
+                                const parts: string[] = [];
+                                parts.push(`[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] ⚠️ Le tableau de signes de f(x) = ${expr} est DÉJÀ AFFICHÉ au-dessus. NE GÉNÈRE AUCUN tableau.`);
+                                parts.push(`\n**VOICI LE TABLEAU EXACT GÉNÉRÉ PAR LE MOTEUR (blocs @@@) :**\n${tableBlock}\n`);
 
                                     // Factorisation SymPy
                                     let factorizationStr = '';
@@ -1090,7 +1086,10 @@ ${engineData.aiContext}`
                                             ? `${engineData.effectiveConst} × ` : '';
                                         if (numFactors.length > 0) {
                                             factorizationStr = `${constPart}${numFactors.map((f: string) => `(${f})`).join(' × ')}`;
-                                            parts.push(`\n📌 FACTORISATION IMPOSÉE : f(x) = ${factorizationStr}`);
+                                            // Ne l'appeler "FACTORISATION" que s'il y a vraiment plusieurs facteurs
+                                            if (numFactors.length > 1 || constPart) {
+                                                parts.push(`\n📌 FORME À UTILISER : f(x) = ${factorizationStr}`);
+                                            }
                                         }
                                         if (denFactors.length > 0) {
                                             parts.push(`📌 DÉNOMINATEUR : ${denFactors.map((f: string) => `(${f})`).join(' × ')}`);
@@ -1099,13 +1098,14 @@ ${engineData.aiContext}`
 
                                     // INTERDICTION EXPLICITE
                                     parts.push(`\n⛔⛔⛔ INTERDICTIONS ABSOLUES ⛔⛔⛔`);
-                                    parts.push(`- NE FACTORISE PAS DAVANTAGE les trinômes (degré 2). Par exemple si un facteur est (x²-1), tu NE DOIS PAS écrire (x-1)(x+1). Tu gardes (x²-1) tel quel.`);
-                                    parts.push(`- NE GÉNÈRE AUCUN tableau (ni @@@, ni markdown, ni LaTeX \\begin{array}).`);
-                                    parts.push(`- Utilise UNIQUEMENT la factorisation ci-dessus, pas une autre.`);
+                                    parts.push(`- NE FACTORISE JAMAIS LES TRINÔMES pour faire un tableau ! (ex: on n'utilise jamais (x-1)(x+1) pour faire deux lignes dans un tableau, on garde la ligne x²-1).`);
+                                    parts.push(`- NE DESSINE STRICTEMENT AUCUN TABLEAU (pas de markdown genre |x|...|, pas de LaTeX, pas de tirets). Le tableau est déjà codé dans l'application et s'affiche au-dessus de ta réponse !`);
+                                    parts.push(`- Ne donne QU'UNE SEULE ET UNIQUE méthode de résolution (celle avec le discriminant si c'est un degré 2). Il est STRICTEMENT INTERDIT de proposer une seconde méthode (ni racines évidentes, ni factorisation).`);
 
                                     // Étapes discriminant Δ
                                     if (engineData.discriminantSteps?.length) {
-                                        parts.push(`\n📐 MÉTHODE DU DISCRIMINANT pour chaque trinôme :`);
+                                        parts.push(`\n📐 MÉTHODE DU DISCRIMINANT OBLIGATOIRE pour l'explication :`);
+                                        parts.push(`⚠️ INTERDICTION STRICTE DE FACTORISER DAVANTAGE CES TRINÔMES (pas d'identités remarquables) ! Garde le trinôme entier et étudie son signe avec le signe de 'a'.`);
                                         for (const s of engineData.discriminantSteps) {
                                             parts.push(`\n▸ Pour le facteur ${s.factor} :`);
                                             for (const step of s.steps) {
@@ -1125,30 +1125,19 @@ ${engineData.aiContext}`
                                         parts.push(`Tu DOIS ABSOLUMENT te calquer sur ces signes pour justifier le résultat, ne propose pas une autre méthode.`);
                                     }
 
-                                    // Modèle pédagogique
-                                    parts.push(`\n📝 MODÈLE D'EXPLICATION À SUIVRE (adapte les valeurs) :`);
-                                    parts.push(`---`);
-                                    parts.push(`**Étape 1 : Factorisation (si applicable)**`);
-                                    parts.push(`On part de l'expression f(x) = ${factorizationStr || expr}`);
-                                    parts.push(``);
-                                    parts.push(`**Étape 2 : Étude de chaque facteur ou du trinôme**`);
-                                    parts.push(`- Pour un trinôme (ax² + bx + c) : calcule Δ et les racines x₁ et x₂. Rappelle la règle du signe de "a" à l'extérieur des racines.`);
-                                    parts.push(`- Sers-toi de la règle pour lier les racines au signe exact que je t'ai fourni ci-dessus.`);
-                                    parts.push(``);
-                                    parts.push(`**Étape 3 : Conclusion**`);
-                                    parts.push(`On lit le signe de f(x) sur chaque intervalle à partir du tableau affiché ci-dessus.`);
-                                    parts.push(`---`);
+                                    parts.push(`\n**CONCLUSION ATTENDUE :**`);
                                     if (inputText.match(/>|<|≥|≤|>=|<=/)) {
-                                        parts.push(``);
-                                        parts.push(`**RÉSOLUTION DE L'INÉQUATION**`);
-                                        parts.push(`À partir des signes confirmés, donne LA SOLUTION EXACTE de l'inéquation sous la forme $S = ...$`);
-                                        parts.push(`⚠️ ATTENTION : Ne ré-explique pas l'inéquation autrement, ne propose pas une "autre méthode" en bas de page. Fais ton analyse une seule fois. Ne récris pas l'inéquation inversée.`);
+                                        parts.push(`Avant de donner la solution, TU DOIS IMPÉRATIVEMENT prendre le temps de lister chaque intervalle du tableau avec son signe correspondant (ex: Sur ]-inf, 2[, f(x) est -). C'est crucial pour ne pas te tromper.`);
+                                        parts.push(`Ensuite seulement, déduis logiquement la solution finale et termine par LA SOLUTION EXACTE de l'inéquation en tapant : **S = ...**`);
+                                    } else if (inputText.match(/(?:équa|equation|résoud|solution)/i)) {
+                                        parts.push(`Termine simplement par l'ensemble exact des solutions de l'équation en tapant : S = { ... }`);
+                                    } else {
+                                        parts.push(`⛔ NE DONNE SURTOUT PAS d'ensemble de solution S=... à la fin ! On t'a simplement demandé le tableau ou l'étude de signe, pas de résoudre une inéquation.`);
                                     }
 
                                     return parts.join('\n');
-                                })()
-                            }
-                        ];
+                                })();
+                        }
                         const tablePrefix = tableBlock + '\n\n';
                         // AJOUTER un nouveau message assistant (pas remplacer !)
                         setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
@@ -1156,6 +1145,7 @@ ${engineData.aiContext}`
                         setLoading(true);
                         setIsTalking(true);
                         try {
+                            console.log('[DEBUG PROMPT IA COMPLET]:', JSON.stringify(enrichedMessages, null, 2));
                             const response = await fetch('/api/perplexity', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1191,8 +1181,11 @@ ${engineData.aiContext}`
                                             const now = Date.now();
                                             if (now - lastSignUpdate > 250) {
                                                 lastSignUpdate = now;
-                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
+                                                const clean = aiText
+                                                    .replace(/@@@[\s\S]*?@@@/g, '')
+                                                    .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')
+                                                    .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');
+                                                const fixedClean = patchMarkdownTables(fixLatexContent(tablePrefix + clean).content);
                                                 setMessages(prev => {
                                                     const u = [...prev];
                                                     u[u.length - 1] = { role: 'assistant', content: fixedClean };
@@ -1206,7 +1199,7 @@ ${engineData.aiContext}`
                             const cleanFinal = aiText
                                 .replace(/@@@[\s\S]*?@@@/g, '')
                                 .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')  // Supprimer tableaux LaTeX générés par l'IA
-                                .replace(/\|\s*x\s*\|[^\n]*\n(?:\|[^\n]*\n)*/g, '');    // Supprimer tableaux markdown de signes
+                                .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');  // Supprimer tableaux markdown de signes
                             const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
                             setMessages(prev => {
                                 const u = [...prev];
@@ -1219,6 +1212,7 @@ ${engineData.aiContext}`
                             setLoading(false);
                             setIsTalking(false);
                         }
+                        return; // OBLIGATOIRE : stoppe l'exécution pour ne pas retomber dans le fallback !
                     }
                 } catch (err) {
                     console.warn('[MathEngine] Erreur module dérivation, fallback IA:', err);
@@ -1229,9 +1223,10 @@ ${engineData.aiContext}`
         // ── INTERCEPTION TABLEAU DE VARIATIONS (expression unique) ──
         if (wantsVariationTable && !isMultiExpr) {
             let expr = '';
-            const eqMatch = inputCleaned.match(/=\s*(.+)/);
+            // Match '= ...' only if it's not part of an inequality
+            const eqMatch = inputCleaned.match(/(?<![><≤≥!])=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
-            if (!expr) {
+            if (!expr || !expr.includes('x')) {
                 let extract = inputCleaned.replace(/.*(?:variations?|l'étude|la fonction)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trinôme|polynôme|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
                 
                 const deMatch = extract.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
@@ -1241,7 +1236,7 @@ ${engineData.aiContext}`
             expr = expr
                 .replace(/\$/g, '')
                 .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                .replace(/\s*(?:>|<|>=|<=|=)\s*.*$/, '')
+                .replace(/\s*(?:>|<|>=|<=|=|≥|≤)\s*.*$/, '')
                 .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-')
                 .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                 // Exposants Unicode superscript → notation ^
@@ -1331,13 +1326,11 @@ ${engineData.aiContext}`
                     if (engineData.success && engineData.aaaBlock) {
                         const tableBlock = engineData.aaaBlock;
                         console.log(`[MathEngine] ✅ Injection directe du tableau de variations`);
-                        const enrichedMessages: ChatMessage[] = [
-                            ...newMessages,
-                            {
-                                role: 'user' as const,
-                                content: `[SYSTÈME] Le tableau de variations de f(x) = ${expr} est DÉJÀ affiché au-dessus. ⛔ NE REPRODUIS PAS le tableau (ni en @@@, ni en texte, ni en markdown, ni en ASCII). Fais UNIQUEMENT les explications pédagogiques des étapes.\n${engineData.aiContext || 'Explique les étapes de l\'étude des variations sans refaire le tableau.'}`
-                            }
-                        ];
+                        // ANTI-REGRESSION: JSON purge empêche les rôles 'user' consécutifs qui faisaient planter l'API Anthropic.
+                        const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
+                        if (enrichedMessages.length > 0) {
+                            enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] Le tableau de variations de f(x) = ${expr} est DÉJÀ affiché au-dessus. ⛔ NE REPRODUIS PAS le tableau (ni en @@@, ni en texte, ni en markdown, ni en ASCII). Fais UNIQUEMENT les explications pédagogiques des étapes.\n${engineData.aiContext || 'Explique les étapes de l\'étude des variations sans refaire le tableau.'}`;
+                        }
                         const tablePrefix = tableBlock + '\n\n';
                         setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
 
@@ -1434,22 +1427,12 @@ ${engineData.aiContext}`
             || (/aussi|en\s+plus|egalement/i.test(inputNorm) && /trace|dessine/i.test(inputNorm))
             // "et trace", "et dessine" (début de phrase ou après virgule)
             || /(?:,|et)\s+(?:trace|dessine)/i.test(inputNorm)
-            // g(x) ou h(x) mentionné quand il y a déjà une courbe (= probable ajout)
-            || (/[gh]\s*\(\s*x\s*\)/i.test(inputLower) && (() => {
-                try {
-                    const stored = localStorage.getItem('graphState');
-                    if (stored) {
-                        const s = JSON.parse(stored);
-                        return s.curves && s.curves.length > 0;
-                    }
-                } catch { /* ignore */ }
-                return false;
-            })())
         );
         const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
         const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
             && /graphi|graphement|graphique|graphiquement|courbe/i.test(inputNorm);
-        const wantsTangente = /tangente|tangent/i.test(inputNorm);
+        const wantsTangente = /tangente|tangent/i.test(inputNorm)
+            && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteur|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
         const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
         const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
 
@@ -1462,6 +1445,9 @@ ${engineData.aiContext}`
             && !wantsSignTable
             && !wantsVariationTable
             && !isMultiExpr
+            && !/in(?:é|e)quation/i.test(inputNorm)
+            && !/[<≤>≥]/.test(inputText) // ⛔ Ne JAMAIS capturer les inéquations ici
+            && !/=[^0-9]*[1-9]/i.test(inputText) // Essayer d'éviter "f(x) = 2" si ce n'est pas géré
         );
 
         if (wantsSolveEquation) {
@@ -1617,6 +1603,10 @@ ${engineData.aiContext}`
                         .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
                         // Symboles
                         .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
+                        // Multiplications implicites
+                        .replace(/(\d)\s*([a-zA-Z(])/g, '$1*$2')
+                        .replace(/([xX])\s*([a-zA-Z(])/g, '$1*$2')
+                        .replace(/\)\s*([a-zA-Z(])/g, ')*$1')
                         // Français : racine carrée de → sqrt
                         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
                         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
@@ -2048,6 +2038,7 @@ segment: AB
 parallele: P, AB
 perpendiculaire: P, AB
 compute: distance AB
+compute: milieu AB
 @@@
 
 Puis explique la figure pédagogiquement.
@@ -2124,17 +2115,19 @@ perpendiculaire: C, d, (T)
 
 
 ⚠️ ANGLES DROITS :
-- Pour marquer un angle droit (90°), utilise OBLIGATOIREMENT : angle_droit: P1, Sommet, P2
-  ex : angle_droit: A, B, C  → marque l'angle droit en B entre BA et BC
+- Pour marquer un angle droit (90°), utilise OBLIGATOIREMENT : angle_droit: Point1, Sommet, Point2
+  ex : si le triangle est rectangle en A, tu dois écrire : angle_droit: B, A, C
 - ⛔ N'utilise PAS "angle: A, B, C" pour un angle droit — ça afficherait un arc, pas un carré !
 - Le rendu affiche le symbole ⊾ (petit carré) à l'angle droit, comme en géométrie classique.
 - Utilise angle_droit: chaque fois que tu traces une perpendiculaire, une hauteur ou un triangle rectangle.
 
-⚠️ NOMMAGE DES DROITES :
 - Pour nommer une droite, utilise le 3e argument : parallele: N, BC, (d) ou perpendiculaire: C, d, (Δ)
 - L'élève tape "delta" au clavier → TU convertis en symbole : (Δ). Idem : "delta'" → (Δ')
 - Conversions obligatoires : delta → Δ, gamma → Γ, alpha → α, beta → β
 - Pour référencer une droite existante, utilise le label COURT : "d" pour (d), et "d" pour (Δ) aussi (le moteur comprend les alias delta/d/Δ)
+
+⚠️ TANGENTE À UN CERCLE :
+- Pour tracer une tangente à un cercle en un point M, commence par définir le segment du rayon (ex: segment: OM), puis trace la perpendiculaire à ce rayon passant par M (ex: perpendiculaire: M, OM, (T)).
 
 La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
 

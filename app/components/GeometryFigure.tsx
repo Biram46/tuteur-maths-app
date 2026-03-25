@@ -16,6 +16,9 @@ import type {
     GeoScene, GeoObject, GeoPoint, GeoSegment, GeoLine,
     GeoCircle, GeoAngle, GeoVector, GeoLabel, GeoPolygon,
 } from '@/lib/geo-engine/types';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 // ─── Re-exports pour compatibilité ──────────────────────────────────────────
 export type { GeoPoint, GeoSegment, GeoLine, GeoCircle };
@@ -651,15 +654,25 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                     {renderGrid()}
                     {sorted.map((obj, i) => renderObject(obj, i))}
                 </g>
-                {/* Titre */}
-                {scene.title && !scene.title.includes('attente') && (
-                    <text x={width / 2} y={14} textAnchor="middle"
-                        fontSize={12} fontWeight="600" fill="rgba(148,163,184,0.7)"
-                        fontFamily="Inter,sans-serif">
-                        {scene.title}
-                    </text>
-                )}
+                {/* Titre rendu via ReactMarkdown en overlay (voir après le svg) */}
             </svg>
+
+            {/* Titre (HTML Superposé pour gérer KaTeX) */}
+            {scene.title && !scene.title.includes('attente') && (
+                <div style={{
+                    position: 'absolute', top: 8, width: '100%',
+                    textAlign: 'center', pointerEvents: 'none',
+                    color: 'rgba(148,163,184,0.85)', fontSize: 13, fontWeight: 600,
+                    textShadow: '0px 0px 4px #020617'
+                }}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                        components={{ p: ({ ...props }) => <p style={{ margin: 0 }} {...props} /> }}>
+                        {scene.title.includes('$') || scene.title.includes('\\') 
+                            ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 
+                            : scene.title}
+                    </ReactMarkdown>
+                </div>
+            )}
 
             {/* Contrôles zoom (coin inférieur droit) */}
             {interactive && (
@@ -762,9 +775,16 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
-                        {scene.title || 'Figure géométrique'}
-                    </p>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
+                        {!scene.title ? 'Figure géométrique' : (
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                                components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
+                                {scene.title.includes('$') || scene.title.includes('\\') 
+                                    ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 
+                                    : scene.title}
+                            </ReactMarkdown>
+                        )}
+                    </div>
                     <p style={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', margin: '2px 0 0' }}>
                         {nPts} point{nPts > 1 ? 's' : ''} · {nObjs} objet{nObjs > 1 ? 's' : ''}
                         {scene.computed?.length ? ` · ${scene.computed.length} calcul(s)` : ''}

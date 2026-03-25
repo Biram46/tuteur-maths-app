@@ -161,6 +161,11 @@ def prettify_label(label):
     # log(...) → ln(...)
     result = re.sub(r'\blog\(([^)]+)\)', r'ln(\1)', result)
     result = result.replace('*', '·')
+    
+    # SymPy affiche la constante d'Euler "e" comme "E" par défaut.
+    # On le repasse en minuscule (sauf si E était censé être majuscule, "e" est standard)
+    result = re.sub(r'\bE\b', 'e', result)
+    
     return result
 
 
@@ -195,20 +200,26 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
                 total_const *= c
         return all_factors, total_const
 
-    # Retirer les facteurs transcendants (exp, ln, sqrt) déjà traités séparément
+    # Les facteurs transcendants multiplicatifs (ex: le `e^x` dans `e^x * (x-1)`)
+    # sont déjà gérés via poly_expr.is_Mul.
+    # On garde poly_expr tel quel pour le bloc sp.Poly / fallback.
     poly_simplified = poly_expr
-    for atom in poly_expr.atoms(sp.exp, sp.log, sp.sqrt):
-        try:
-            q = sp.cancel(poly_simplified / atom)
-            if atom not in q.atoms(sp.exp, sp.log, sp.sqrt):
-                poly_simplified = sp.expand(q)
-        except:
-            pass
 
     try:
         p = sp.Poly(sp.expand(poly_simplified), x)
     except:
-        return [], 1.0
+        # Fallback pour expressions non-polynomiales (ex: e^x - 1)
+        try:
+            zs = sorted([s for s in sp.solve(poly_simplified, x) if s.is_real], key=lambda r: float(r.evalf()))
+            return [{
+                'label': str(sp.expand(poly_simplified)), 
+                'degree': 1 if zs else 0, 
+                'zeros': zs, 
+                'role': role, 
+                'delta_steps': None
+            }], 1.0
+        except:
+            return [], 1.0
 
     deg = p.degree()
     if deg == 0:
@@ -336,10 +347,10 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
 # CALCUL DU TABLEAU DE SIGNES
 # ─────────────────────────────────────────────────────────────
 
-def compute_sign_table(expression, niveau='terminale_spe'):
+def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
     """Calcule le tableau de signes complet d'une expression."""
     # Si l'expression contient une inéquation ou équation, on ne garde que la partie gauche
-    expression = re.sub(r'\s*(?:>|<|>=|<=|=)\s*.*$', '', str(expression))
+    expression = re.sub(r'\s*(?:>|<|>=|<=|=|≥|≤)\s*.*$', '', str(expression))
     
     # Nettoyer l'expression
     raw = expression.replace('^', '**').replace(',', '.')
@@ -357,9 +368,17 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     expr_full = sp.sympify(raw, locals=LOCALS)
     num, den = sp.fraction(expr_full)
 
-    # Extraire tous les facteurs
+    # Extraire tous les facteurs transcendants
     num_trans = extract_transcendental_factors(num, 'numerator')
     den_trans = extract_transcendental_factors(den, 'denominator')
+
+    # Retirer les facteurs transcendants du numérateur et dénominateur originaux
+    for tf in num_trans:
+        num = sp.cancel(num / tf['expr'])
+    for tf in den_trans:
+        den = sp.cancel(den / tf['expr'])
+
+    # Extraire le reste comme polynômes
     num_poly, num_const = get_polynomial_factors(num, 'numerator', niveau)
     den_poly, den_const = get_polynomial_factors(den, 'denominator', niveau)
 
@@ -431,19 +450,15 @@ def compute_sign_table(expression, niveau='terminale_spe'):
                 first_iv = intervals[0]
                 if first_iv.inf != sp.S.NegativeInfinity:
                     domain_left = float(first_iv.inf.evalf())
-                    domain_strict = first_iv.left_open
-                seen_pts = set()
-                for iv in intervals:
-                    if iv.sup != sp.S.Infinity:
-                        v = float(iv.sup.evalf())
-                        if v not in seen_pts:
-                            forbidden_domain_pts.append(v)
-                            seen_pts.add(v)
-                    if iv.inf != sp.S.NegativeInfinity:
-                        v = float(iv.inf.evalf())
-                        if v not in seen_pts:
-                            forbidden_domain_pts.append(v)
-                            seen_pts.add(v)
+                    domain_strict = getattr(first_iv, 'left_open', False)
+                # Trouver les "trous" entre les intervalles successifs
+                for i in range(len(intervals) - 1):
+                    right_bound = float(intervals[i].sup.evalf())
+                    next_left_bound = float(intervals[i+1].inf.evalf())
+                    # Si l'écart est non-nulle, c'est un intervalle interdit complet
+                    # Sinon, si c'est le même point, c'est juste un point interdit ponctuel
+                    forbidden_domain_pts.append(right_bound)
+                    forbidden_domain_pts.append(next_left_bound)
                 forbidden_domain_pts.sort()
         elif hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
             domain_left = float(dom.inf.evalf())
@@ -504,16 +519,9 @@ def compute_sign_table(expression, niveau='terminale_spe'):
     def is_in_forbidden_zone(pt):
         # Pour savoir si on est dans un "trou" du domaine de définition
         # (ex: ]-2, 2[ pour ln(x^2 - 4))
-        # Si sympy a calculé "dom", on s'en sert directement (rapide et mathématiquement parfait)
-        if dom is not None:
-            try:
-                # contains() renvoie S.true ou S.false
-                # s'il renvoie true, alors pt est dans le domaine, donc pas forbidden
-                return getattr(dom.contains(pt), 'is_Boolean') and not dom.contains(pt)
-            except:
-                pass
-        
-        # Fallback ultra-basique (uniquement si dom est absent ce qui sera rare)
+        # On utilise uniquement les intervalles extraits.
+        # Cela empêche qu'une simple valeur interdite (trou isolé) ne masque
+        # les valeurs des facteurs individuels (sinon dom.contains(cp) serait False).
         if not forbidden_domain_pts: return False
         fps = sorted(forbidden_domain_pts)
         for j in range(0, len(fps) - 1, 2):
@@ -643,6 +651,52 @@ def compute_sign_table(expression, niveau='terminale_spe'):
             'label': prettify_label(row['label']),
             'type': row.get('type', 'numerator'),
         })
+        
+    # --- Collecter les valeurs exactes des racines pour un affichage parfait ---
+    exact_map = {}
+    z_exact_list = []
+    def try_add_exact(z_exact):
+        try:
+            if not hasattr(z_exact, 'is_real') or not z_exact.is_real:
+                return
+            val = float(z_exact.evalf())
+            k = str(round(val, 4)) if abs(val - round(val)) >= 0.01 else str(int(round(val)))
+            if k not in exact_map and not isinstance(z_exact, sp.Float) and not z_exact.is_integer:
+                exact_map[k] = sp.latex(z_exact)
+                z_exact_list.append((k, z_exact))
+        except:
+            pass
+
+    for f in num_factors_all + den_factors_all:
+        if 'zeros' in f:
+            for z in f['zeros']: try_add_exact(z)
+                 
+    try:
+        if 'direct_zeros' in locals():
+            for z in direct_zeros: try_add_exact(z)
+        if 'direct_den_zeros' in locals():
+            for z in direct_den_zeros: try_add_exact(z)
+    except:
+        pass
+
+    # --- Évaluer les extremums exacts (f(x) formel) si f(x) est injecté ---
+    # optionnel: l'API JS peut passer ?originalExpr= dans l'endpoint
+    if 'originalExpr' in kwargs and kwargs['originalExpr']:
+        try:
+            from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application, convert_xor
+            transformations = standard_transformations + (implicit_multiplication_application, convert_xor)
+            orig_expr_str = kwargs['originalExpr'].replace('^', '**')
+            orig_sym = parse_expr(orig_expr_str, transformations=transformations, local_dict=LOCALS)
+            
+            for k, z_val in z_exact_list:
+                try:
+                    img = sp.simplify(orig_sym.subs(x, z_val))
+                    if not isinstance(img, sp.Float):
+                         exact_map[f"y_{k}"] = sp.latex(img)
+                except:
+                    pass
+        except:
+            pass
 
     return {
         'success': True,
@@ -654,7 +708,9 @@ def compute_sign_table(expression, niveau='terminale_spe'):
         'denZeros': den_zeros_f,
         'fxValues': fx_vals,
         'effectiveConst': effective_const,
+        'exactMap': exact_map,
     }
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1238,9 +1294,8 @@ def solve_equation():
                     x2s = sp.nsimplify(k)
                     steps.append(
                         '**Etape 3 - Méthode (Seconde — sans discriminant)**\n\n'
-                        'On utilise l\'identité remarquable $a^2 - b^2 = (a-b)(a+b)$ :\n\n'
-                        f'$f(x) = {sp.latex(av)}x^2 - {sp.latex(sp.nsimplify(k2))} = 0$\n\n'
-                        f'$\\Leftrightarrow \\left(x - {kl}\\right)\\left(x + {kl}\\right) = 0$'
+                        'On utilise l\'identité remarquable $A^2 - B^2 = (A-B)(A+B)$ pour factoriser :\n\n'
+                        f'$f(x) = {fact_l} = 0$'
                     )
                     steps.append(
                         f'**Etape 4 - Solutions**\n\n'
@@ -1566,11 +1621,12 @@ def sign_table():
         data = request.get_json()
         expression = data.get('expression', '')
         niveau = data.get('niveau', 'terminale_spe')
+        original_expr = data.get('originalExpr', '')
 
         if not expression:
             return jsonify({'success': False, 'error': 'expression manquante'}), 400
 
-        result = compute_sign_table(expression, niveau)
+        result = compute_sign_table(expression, niveau, originalExpr=original_expr)
         return jsonify(result)
 
     except Exception as e:

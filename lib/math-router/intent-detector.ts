@@ -70,23 +70,24 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
     {
         intent: 'graph',
         patterns: [
-            /trac(?:er|ez|ons)\s+(?:la courbe|le graphe|la représentation)/i,
+            /trac(?:e|er|ez|ons(?:-\w+)?)\s+(?:moi\s+)?(?:la courbe|le graphe|la représentation)/i,
             /représentation\s+graphique/i,
             /courbe\s+représentative/i,
             /graphe\s+de\s+[fg]/i,
-            /esquiss(?:er|ez)\s+(?:la courbe|le graphe)/i,
-            /construi(?:re|re)\s+(?:la courbe|le graphe)/i,
+            /esquiss(?:e|er|ez)\s+(?:la courbe|le graphe)/i,
+            /construi(?:re|s|sez)\s+(?:la courbe|le graphe)/i,
         ],
     },
     {
         intent: 'solve_inequality',
         patterns: [
-            /résou(?:dre|ds)\s+.*[fg]\s*[><≤≥]/i,
-            /résou(?:dre|ds)\s+l['']inéquation/i,
-            /[fg]\s*\([^)]*\)\s*[><≤≥]\s*0/i,
-            /solution[s]?\s+de\s+.*[><≤≥]/i,
-            /[fg]\s*[><≤≥]\s*0/i,
+            /résou(?:dre|ds)\s+.*[><≤≥]/i,
+            /résou(?:dre|ds|tion)\s+l['']inéquation/i,
+            /[fg]?\s*\([^)]*\)\s*[><≤≥]\s*0/i,
+            /solution[s]?\s+.*[><≤≥]/i,
             /inéquation/i,
+            /[><≤≥]\s*0/i,
+            /[><≤≥]/,
         ],
     },
     {
@@ -165,11 +166,13 @@ export function extractExpression(text: string): string | null {
     let m = normalized.match(funcPattern);
     if (m) return m[1].trim();
 
-    // Pattern 2: (équation|inéquation|de|fonction) <expression>
-    const keywordPattern = /(?:(?:é|e)quation|in(?:é|e)quation|fonction|de|sur)\s+([a-zA-Z0-9.\-+\/*^(){}=><≥≤ ]+?)(?:sur\s|pour\s|,|;|$)/i;
+    // Pattern 2: (équation|inéquation|de|fonction|expression) <expression>
+    const keywordPattern = /(?:(?:é|e)quation|in(?:é|e)quation|fonction|expression|de|sur)\s+([a-zA-Z0-9.\-+\/*^(){}=><≥≤' ]+?)(?:sur\s|pour\s|,|;|$)/i;
     m = normalized.match(keywordPattern);
     if (m) {
         let candidate = m[1].trim();
+        // Remove leading words like "l'expression", "la fonction"
+        candidate = candidate.replace(/^(?:l['’]expression|la fonction|l['’]équation|les?|des?|l['’]|la|le)\s*/i, '').trim();
         // Remove trailing spaces or words
         candidate = candidate.replace(/[a-zA-ZÀ-ÿ]{2,}\s*$/g, '').trim();
         if (candidate.includes('x') && candidate.length > 2) return candidate;

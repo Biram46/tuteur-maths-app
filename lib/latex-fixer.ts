@@ -154,7 +154,7 @@ export function fixLatexContent(content: string): LatexFixerResult {
         return `$${match}$`;
     });
     // Encapsuler \infty isolé
-    fixed = fixed.replace(/\\infty(?=[\s,;.!?)]|$)/g, (match, offset) => {
+    fixed = fixed.replace(/\\infty(?=[\s,;.!?)\]\[{}]|$)/g, (match, offset) => {
         if (isInsideMathBlock(fixed, offset as number)) return match;
         return `$${match}$`;
     });

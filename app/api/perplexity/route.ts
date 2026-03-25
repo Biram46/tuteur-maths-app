@@ -9,6 +9,9 @@ import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 export async function POST(request: NextRequest) {
     try {
         const { messages: rawMessages, context } = await request.json();
+        if (rawMessages && rawMessages.length > 0) {
+            console.log('\n[DEBUG IA] MESSAGE COMPLET REÇU DU FRONTEND (Dernier message) :\n', rawMessages[rawMessages.length-1].content);
+        }
         // ⚡ Troncature de sécurité : garder les 8 derniers messages pour rester dans les limites de tokens
         // (le prompt système ~35KB + prompt exercice ~5KB + historique → peut dépasser 128K tokens si non tronqué)
         const MAX_HISTORY = 8;
@@ -36,6 +39,7 @@ export async function POST(request: NextRequest) {
 
 ⚠️ QUAND L'ÉLÈVE ÉCRIT "RÉSOUS" + ÉQUATION AVEC "=" → UTILISER @@@ solve
 
+⛔ JAMAIS @@@ solve pour une INÉQUATION (avec <, >, ≤, ≥) !!! @@@ solve ne marche QUE pour le signe "=".
 ⛔ JAMAIS @@@graph pour résoudre une équation
 ⛔ JAMAIS de "résolution graphique"
 ⛔ JAMAIS tracer de courbe
@@ -81,7 +85,7 @@ Le système affichera les solutions."
 ÉTAPE 1 — Ramener à f(x) > 0 (ou <, ≥, ≤)
   Si l'inéquation n'est pas sous cette forme, réécrire : ex "2x² > 3x+1" → "2x²-3x-1 > 0"
 
-ÉTAPE 2 — Identifier les facteurs (ou factoriser si nécessaire)
+ÉTAPE 2 — Identifier les éléments de l'étude
   - Si f est déjà un PRODUIT fourni par l'énoncé : identifier les racines de chaque facteur
   - Si f est un polynôme de degré 2 non factorisé (Première/Terminale) : calculer Δ et trouver les racines
   - Si f contient une exponentielle, un ln ou une racine : identifier le domaine + facteurs
@@ -96,6 +100,8 @@ Le système affichera les solutions."
 ÉTAPE 4 — Conclure : lire la solution dans le tableau de signes
   Lire les intervalles où f(x) > 0 (ou <, ≥, ≤) directement dans le tableau.
   ⚠️ Toujours restreindre à l'INTERVALLE DE DÉFINITION si l'énoncé en précise un (ex: x ∈ [0 ; 100])
+  ⛔⛔ OBLIGATION ABSOLUE : La solution finale DOIT être ENCADRÉE ENTIÈREMENT DANS **$ $**
+  Exemple OBLIGATOIRE : **$S = ]-\\infty ; -3[ \\cup ]1 ; +\\infty[$**
 
 EXEMPLE 1 — Produit simple : (x-1)(x+3) > 0
 Étape 1 : f(x) = (x-1)(x+3), on cherche f(x) > 0
@@ -107,7 +113,7 @@ sign: x + 3 : -, 0, +, +, + |
 sign: x - 1 : -, -, -, 0, + |
 sign: f(x) : +, 0, -, 0, + |
 @@@
-Étape 4 : f(x) > 0 sur $]-\\infty ; -3[ \\cup ]1 ; +\\infty[$
+Étape 4 : f(x) > 0. Solution : **$S = ]-\\infty ; -3[ \\cup ]1 ; +\\infty[$**
 
 EXEMPLE 2 — CAS TYPIQUE : produit avec coefficient négatif (-x+20)(x-60) > 0
 (Typique des exercices de chiffre d'affaires, recettes, bénéfices)
@@ -121,11 +127,11 @@ sign: -x + 20 : +, 0, -, -, - |
 sign: x - 60 : -, -, -, 0, + |
 sign: f(x) : -, 0, +, 0, - |
 @@@
-Étape 4 : (-x+20)(x-60) > 0 sur $]20 ; 60[$
-          Si l'énoncé précise x ∈ [0 ; 100], la solution est : $x \\in ]20 ; 60[$
+Étape 4 : (-x+20)(x-60) > 0. Solution : **$S = ]20 ; 60[$**
+          Si l'énoncé précise x ∈ [0 ; 100], la solution est : **$S = ]20 ; 60[$**
 
-EXEMPLE 3 — Produit avec facteur commun : x(80-x) > 0
-(Typique de C(x) > 2000 → 80x - x² > 0 → x(80-x) > 0)
+EXEMPLE 3 — Produit avec facteur commun (et INÉQUATION LARGEMENT INFÉRIEURE) : x(80-x) <= 0
+(Typique de bénéfice négatif)
 Étape 2 : x = 0 ; (80-x) = 0 → x = 80 ; (80-x) > 0 quand x < 80
 Étape 3 :
 @@@ table |
@@ -134,38 +140,47 @@ sign: x : -, 0, +, +, + |
 sign: 80 - x : +, +, +, 0, - |
 sign: f(x) : -, 0, +, 0, - |
 @@@
-Étape 4 : x(80-x) > 0 sur $]0 ; 80[$, soit sur $[0;100]$ : $x \\in ]0 ; 80[$
+Étape 4 : x(80-x) <= 0. La fonction est négative ou nulle (signes - et 0) à l'extérieur des racines.
+          Solution : **$S = ]-\\infty ; 0] \\cup [80 ; +\\infty[$**
+          ⛔ Ne jamais écrire {80} pour dire [80 ; +\\infty[ ! Respecter toujours les intervalles complets marqués par des -.
 
 ⚠️ RÈGLE SPÉCIFIQUE PAR NIVEAU :
 
-- SECONDE : factoriser SANS Δ (identités remarquables ou observation), puis TOUJOURS tableau de signes
-  ✅ x² - 4 > 0 → (x-2)(x+2) > 0 → TABLEAU DE SIGNES ← identité a²-b²=(a-b)(a+b), PAS de Δ
-  ✅ x(x-3) > 0 → TABLEAU DE SIGNES (déjà factorisé)
-  ⛔ Si on ne peut pas factoriser sans Δ → refuser, c'est au programme de Première
+- SECONDE : Trouver les racines SANS Δ (identités remarquables ou observation), puis TOUJOURS tableau de signes
+  ✅ x² - 4 > 0 → équivaut à (x-2)(x+2) > 0 → TABLEAU DE SIGNES ← identité a²-b²=(a-b)(a+b), PAS de Δ
+  ✅ x(x-3) > 0 → TABLEAU DE SIGNES (déjà scindé)
+  ⛔ Si on ne peut pas trouver les racines sans Δ → refuser, c'est au programme de Première
 
 - PREMIÈRE / TERMINALE : Pour tout trinôme ax² + bx + c, le calcul de Δ = b² - 4ac est
   ⛔⛔ ABSOLUMENT OBLIGATOIRE, même si les racines sont des entiers "évidents" ⛔⛔
-  ⛔ JAMAIS factoriser un trinôme du 2nd degré par simple inspection (ex : x²-5x+6 = (x-2)(x-3))
-     SANS avoir d'abord montré le calcul de Δ.
+  ⛔ JAMAIS éclater un trinôme du 2nd degré en deux lignes (x-x1)(x-x2) dans un tableau !
   ✅ TOUJOURS montrer : a=..., b=..., c=... → Δ = b²-4ac = ... → x₁ = (-b-√Δ)/2a, x₂ = (-b+√Δ)/2a
-  ✅ PUIS : tableau de signes OBLIGATOIRE avec les facteurs (x-x₁) et (x-x₂)
+  ✅ PUIS : tableau de signes OBLIGATOIRE avec UNE SEULE LIGNE pour le trinôme entier (règle du signe de 'a').
 
-EXEMPLE OBLIGATOIRE À SUIVRE — Résoudre x² - 5x + 6 > 0 (Première/Terminale) :
-Étape 1 : Réécrire : f(x) = x² - 5x + 6, on cherche f(x) > 0
+EXEMPLE OBLIGATOIRE À SUIVRE — Résoudre x² + 2x - 8 > 0 (Première/Terminale) :
+Étape 1 : Réécrire : f(x) = x² + 2x - 8, on cherche f(x) > 0
 Étape 2 : Calculer Δ (OBLIGATOIRE même si on « voit » les racines) :
-  a = 1, b = -5, c = 6
-  Δ = b² - 4ac = (-5)² - 4×1×6 = 25 - 24 = 1 > 0
-  x₁ = (-b - √Δ) / 2a = (5 - 1) / 2 = 2
-  x₂ = (-b + √Δ) / 2a = (5 + 1) / 2 = 3
-  Donc f(x) = (x - 2)(x - 3)
-Étape 3 : TABLEAU DE SIGNES OBLIGATOIRE :
+  a = 1, b = 2, c = -8
+  Δ = b² - 4ac = 2² - 4×1×(-8) = 4 + 32 = 36 > 0
+  x₁ = (-b - √Δ) / 2a = (-2 - 6) / 2 = -4
+  x₂ = (-b + √Δ) / 2a = (-2 + 6) / 2 = 2
+Étape 3 : TABLEAU DE SIGNES OBLIGATOIRE (UNE SEULE LIGNE pour le trinôme, en utilisant le signe de a=1 extérieur des racines) :
 @@@ table |
-x: -inf, 2, 3, +inf |
-sign: x - 2 : -, 0, +, +, + |
-sign: x - 3 : -, -, -, 0, + |
-sign: f(x) : +, 0, -, 0, + |
+x: -inf, -4, 2, +inf |
+sign: x^2 + 2x - 8 : +, 0, -, 0, + |
 @@@
-Étape 4 : f(x) > 0 sur $]-\\infty ; 2[ \\cup ]3 ; +\\infty[$
+Étape 4 : f(x) > 0. Solution : **$S = ]-\\infty ; -4[ \\cup ]2 ; +\\infty[$**
+(Fin de la démonstration, ne propose PAS de seconde méthode ! Ne redis rien de plus.)
+
+⛔⛔⛔ RÈGLE ABSOLUE SUR LA LECTURE DU TABLEAU (ANTI-HALLUCINATION) ⛔⛔⛔
+1. TU DOIS LIRE LE SIGNE DE f(x) OU DE f'(x) UNIQUEMENT DANS LA LIGNE CORRESPONDANTE DU TABLEAU FOURNI PAR LES BLOCS @@@.
+2. NE DÉDUIS PAS LE SIGNE TOI-MÊME AVEC TES RÈGLES INTERNES ! Fais confiance AVEUGLÉMENT aux signes +, -, 0 du tableau.
+3. Attention piège fréquent : Pour un trinôme du second degré, tu NE DOIS PAS dire "positive avant la racine et négative après" si le tableau indique "-, 0, -". Si Δ=0, la parabole ne traverse JAMAIS l'axe, elle a un signe constant !
+4. Si tu écris un texte qui contredit le tableau @@@ fourni, ton explication sera considérée comme fausse.
+
+⛔ SUR-FACTORISATION INTERDITE EN PREMIÈRE/TERMINALE ⛔
+Si tu as une fonction factorisée du type f(x) = x(x^2 - 4), tu NE DOIS PAS factoriser x^2 - 4 en (x-2)(x+2) en Première et Terminale.
+Tu dois analyser le trinôme x^2 - 4 EN ENTIER (ax²+bx+c, avec Δ) et lui consacrer UNE SEULE ligne "sign: x^2 - 4" dans le tableau de signes. Faire des lignes pour (x-2) et (x+2) est PÉDAGOGIQUEMENT INCORRECT !
 
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
@@ -275,6 +290,10 @@ circle: O, 3
 - 'circle: NomCentre, rayon'  ex: 'circle: O, 3'  ou  'circle: O, 5'
 - Le point centre DOIT être défini dans 'points:' AVANT la ligne 'circle:'
 - ⛔ JAMAIS écrire 'circles: cercle(O, 3)' — utiliser uniquement 'circle: O, 3'
+
+⚠️ **FORMAT POUR LES ANGLES :**
+- Angle droit au sommet S (petit carré affiché) : utiliser **strictement** 'angle_droit: P1, S, P2' (ex: triangle rectangle en A -> 'angle_droit: B, A, C')
+- Angle quelconque : 'angle: A, B, C' (ajoute un arc d'angle)
 
 ⚠️ **FORMAT POUR LE CALCUL DU PÉRIMÈTRE :**
 - 'compute: perimetre ABC'  → calcule et affiche le périmètre du triangle ABC
@@ -413,7 +432,7 @@ sign: x + 2 : -, 0, +, +, + |
 sign: x - 2 : -, -, -, 0, + |
 sign: x²-4 : +, 0, -, 0, + |
 @@@
-Étape 4 : $x^2 - 4 > 0$ sur $S = ]-\\infty ; -2[ \\cup ]2 ; +\\infty[$
+Étape 4 : $x^2 - 4 > 0$. Solution : **$S = ]-\\infty ; -2[ \\cup ]2 ; +\\infty[$**
 
 **EXEMPLE INTERDIT EN SECONDE :** ❌
 "On calcule Δ = 16 > 0, donc x₁ = -2 et x₂ = 2..." ← STRICTEMENT INTERDIT !

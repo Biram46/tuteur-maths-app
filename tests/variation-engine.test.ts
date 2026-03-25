@@ -313,10 +313,25 @@ describe('generateVariationTable — Cas général', () => {
         expect(leftVal).toBeCloseTo(-1, 0);
     });
 
-    it('cas général : aiContext contient les interdictions absol.', () => {
+    it('cas général : aiContext contient les interdictions absolues et la règle anti d/dx', () => {
         const result = generateVariationTable({ expression: 'x^3-3*x', niveau: 'terminale_spe' });
         expect(result.aiContext).toBeDefined();
         expect(result.aiContext).toContain('INTERDICTIONS');
+        expect(result.aiContext).toContain('d/dx');
+    });
+
+    it('cas général : fusion derivation/variation avec sympyDerivSign injecte factorisation dans aiContext', () => {
+        const mockSympyDerivSign = {
+            success: true,
+            factors: [{ label: '3', type: 'numerator' }, { label: 'x^2-1', type: 'numerator' }]
+        };
+        const result = generateVariationTable({ 
+            expression: 'x^3-3*x', 
+            niveau: 'terminale_spe',
+            sympyDerivSign: mockSympyDerivSign
+        } as any);
+        expect(result.aiContext).toBeDefined();
+        expect(result.aiContext).toContain("Utilise la factorisation suivante pour f'(x) : 3 × x^2-1");
     });
 });
 

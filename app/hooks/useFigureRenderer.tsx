@@ -658,8 +658,11 @@ export function useFigureRenderer() {
                             currentRows = [];
                         }
                         const valPart = sec.split(':').slice(1).join(':').trim();
-                        // Support virgules OU espaces
-                        currentXValues = valPart.split(/[\s,]+/).map(v => v.trim()).filter(v => v.length > 0);
+                        // S'il y a des virgules, on sépare par virgule (protège les espaces dans les formules exactes)
+                        // Sinon par espace pour rétrocompatibilité
+                        currentXValues = valPart.includes(',')
+                            ? valPart.split(',').map(v => v.trim()).filter(v => v.length > 0)
+                            : valPart.split(/\s+/).filter(v => v.length > 0);
                     } else if (low.includes(':') && !low.startsWith('table')) {
                         const colonIndex = sec.lastIndexOf(':');
                         const prefixAndLabel = sec.substring(0, colonIndex).trim();

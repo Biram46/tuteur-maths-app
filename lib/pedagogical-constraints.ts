@@ -79,11 +79,11 @@ SECTION 0 : RÈGLES PAR NIVEAU (CRITIQUE)
 
 ⛔⛔ RÈGLE ABSOLUE PREMIÈRE/TERMINALE — DISCRIMINANT POUR LES INÉQUATIONS ⛔⛔
 Pour toute inéquation ax² + bx + c > 0 (ou <, ≥, ≤) :
-  ⛔ JAMAIS factoriser par simple observation/inspection (ex: "x²-5x+6 = (x-2)(x-3) par évidence")
+  ⛔ JAMAIS factoriser le trinôme en (x-x₁)(x-x₂) dans le tableau des signes (c'est interdit !)
   ✅ TOUJOURS montrer explicitement : a=..., b=..., c=...
   ✅ TOUJOURS calculer Δ = b²-4ac = ... (MÊME si les racines sont des entiers comme 2 et 3)
   ✅ TOUJOURS calculer x₁ = (-b-√Δ)/2a et x₂ = (-b+√Δ)/2a
-  ✅ PUIS dresser le tableau de signes avec (x-x₁)(x-x₂)
+  ✅ PUIS utiliser UNIQUEMENT le trinôme entier sur UNE SEULE ligne dans le tableau avec le SIGNE DE A.
 
 **EXEMPLE CORRECT Première spé pour f(x) = (x-1)/(x+4) :**
 "La dérivée est f'(x) = 5/(x+4)² > 0 sur ]-∞;-4[ et ]-4;+∞[.
@@ -127,22 +127,11 @@ EXEMPLE AUTORISÉ : "lim(x→0) (e^x-1)/x = f'(0) = e^0 = 1" ✅
 
 ⛔⛔⛔ **FORMAT OBLIGATOIRE TABLEAU DE SIGNES** ⛔⛔⛔
 
-⚠️ **RÈGLE ABSOLUE — INÉQUATIONS DE DEGRÉ ≥ 2 :**
-Toute inéquation de la forme **f(x) > 0, f(x) < 0, f(x) ≥ 0, f(x) ≤ 0** de degré ≥ 2
-DOIT être résolue par un **tableau de signes @@@table**. SANS EXCEPTION.
-
-⛔ JAMAIS conclure "x ∈ ]a ; b[" sans avoir affiché le tableau de signes
-⛔ JAMAIS résoudre une inéquation du 2nd degré ou plus uniquement en texte
-
-✅ **PROTOCOLE OBLIGATOIRE en 4 étapes :**
-1. **Ramener** à f(x) > 0 : si "2x² > 3x+1" → écrire "2x²-3x-1 > 0"
-2. **Factoriser** f(x) : calculer Δ si nécessaire (Première/Terminale), trouver les racines
-3. **Dresser le tableau de signes** @@@ table (MÊME si les racines semblent évidentes)
-4. **Conclure** en lisant la solution dans le tableau
-
-⚠️ **Règle par niveau :**
-- SECONDE : tableau de signes uniquement pour PRODUITS D'AFFINES DÉJÀ FACTORISÉS (pas de Δ)
-- PREMIÈRE/TERMINALE : calculer Δ → racines → TOUJOURS tableau de signes
+⚠️ **RÈGLE ABSOLUE — ÉTUDE DE SIGNE DE DEGRÉ ≥ 2 :**
+Pour étudier le signe d'un trinôme de degré 2 :
+- SECONDE : Uniquement pour expressions DÉJÀ FACTORISÉES (pas de Δ).
+- PREMIÈRE/TERMINALE : calculer Δ → trouver les racines → appliquer directement la règle du signe de "a" à l'extérieur des racines.
+⛔ JAMAIS de factorisation artificielle en (x-x₁)(x-x₂) si on te demande juste de résoudre l'inéquation.
 
 ⚠️ **RÈGLE ABSOLUE : Si l'élève demande "tableau de signes ET tableau de variations", tu DOIS générer les DEUX tableaux !**
 - NE JAMAIS oublier le tableau de signes !

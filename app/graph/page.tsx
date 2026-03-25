@@ -88,6 +88,10 @@ function sanitizeExpr(expr: string): string {
         .replace(/√(\w+)/g, 'sqrt($1)')
         .replace(/π/g, 'pi')
         .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')
+        // Implicit multiplication (2x -> 2*x, x e^x -> x*e^x, 2 sin -> 2*sin)
+        .replace(/(\d)\s*([a-zA-Z(])/g, '$1*$2')
+        .replace(/([xX])\s*([a-zA-Z(])/g, '$1*$2')
+        .replace(/\)\s*([a-zA-Z(])/g, ')*$1')
         // Français
         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')

@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useId, useCallback } from 'react';
 import * as d3 from 'd3';
 import { evalAt } from '@/lib/math-engine/expression-parser';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 /**
  * Moteur de Graphique Mathématique Professionnel "Quantum Graph"
@@ -749,23 +752,7 @@ export default function MathGraph({
         }
 
         // ── TITRE ──
-        if (title) {
-            const titleSize = isMobile ? '13px' : '16px';
-            // Convertir la notation mathjs vers la notation française pour l'affichage
-            const displayTitle = title
-                .replace(/\blog\(/g, 'ln(')
-                .replace(/\bsqrt\(/g, '√(')
-                .replace(/\*/g, '×')
-                .replace(/\bpi\b/g, 'π');
-            svg.append('text')
-                .attr('x', dimensions.width / 2)
-                .attr('y', isMobile ? 18 : 25)
-                .attr('text-anchor', 'middle')
-                .attr('fill', 'white')
-                .attr('font-weight', 'bold')
-                .style('font-size', titleSize)
-                .text(displayTitle);
-        }
+        // (Rendu en HTML au lieu du SVG pour gérer le LaTeX/KaTeX proprement)
     }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions]);
 
     useEffect(() => {
@@ -775,7 +762,23 @@ export default function MathGraph({
     return (
         <div ref={containerRef} className="my-8 w-full flex flex-col items-center">
             <div className="relative p-4 sm:p-6 bg-slate-900 border border-white/10 rounded-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-xl group w-full max-w-[648px]">
-                <div className="absolute top-3 right-4 sm:top-4 sm:right-6 flex items-center gap-3 z-20">
+                {/* Titre superposé pour LaTeX */}
+                {title && (
+                    <div style={{
+                        position: 'absolute', top: 16, width: '100%', left: 0,
+                        textAlign: 'center', pointerEvents: 'none', zIndex: 30,
+                        color: 'white', fontSize: dimensions.width < 400 ? 13 : 16, fontWeight: 'bold',
+                        textShadow: '0px 0px 4px #020617'
+                    }}>
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                            components={{ p: ({ ...props }) => <p style={{ margin: 0 }} {...props} /> }}>
+                            {title.includes('$') || title.includes('\\') 
+                                ? `$$${title.replace(/\\$/g, '').replace(/(\blog\()|(\bsqrt\()|(\bpi\b)/g, (m) => m === 'log(' ? '\\ln(' : m === 'sqrt(' ? '\\sqrt{' : '\\pi ')}$$` 
+                                : title.replace(/\blog\(/g, 'ln(').replace(/\bsqrt\(/g, '√(').replace(/\bpi\b/g, 'π')}
+                        </ReactMarkdown>
+                    </div>
+                )}
+                <div className="absolute top-3 right-4 sm:top-4 sm:right-6 flex items-center gap-3 z-40">
                     <button
                         onClick={() => { setAnimationKey(k => k + 1); setIsVisible(true); }}
                         className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-cyan-400 transition-all border border-white/5"

@@ -571,3 +571,66 @@ describe('Régression #2026-03-18B — Limites numériques exactes (ln, exp)', (
         expect(fxRow?.values).toEqual(['-inf', 'nearrow', '+inf']);
     });
 });
+
+// ─── Régression #2026-03-21 — Crash "reading trim" sur undefined expression ───
+
+describe('Régression #2026-03-21 — Undefined expression crash', () => {
+    it('generateSignTable gère gracieusement une expression undefined sans crasher', () => {
+        // En forçant undefined via le type `any`
+        const result = generateSignTable({ expression: undefined as any });
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('requise');
+    });
+});
+
+// ─── Régression #2026-03-21 — Modules Dérivation & Tableaux de Variations ───
+
+describe('Régression #2026-03-21 — Modules Dérivation et Variations (Invariants IA)', () => {
+
+    it('Dérivation : L\'aiContext de generateVariationTable inclut systématiquement le bannissement de "d/dx"', () => {
+        // Pour s'assurer que le LLM n'utilise jamais de notations hors-programme
+        const result = generateVariationTable({ expression: 'x^3 - 3*x', niveau: 'terminale_spe' });
+        expect(result.aiContext).toBeDefined();
+        
+        // La règle exacte injectée récemment
+        expect(result.aiContext).toContain('INTERDICTION STRICTE');
+        expect(result.aiContext).toContain('d/dx');
+        expect(result.aiContext).toContain('\\frac{d}{dx}');
+    });
+
+    it('Dérivation : L\'aiContext de generateVariationTable intègre correctement les étapes de discriminant (sympyDerivSign)', () => {
+        // Lorsqu'un tableau de signes de la dérivée est fusionné avec l'étude des variations,
+        // les étapes précises (ex: calcul du Delta) doivent être passées à l'IA pour éviter les hallucinations.
+        const mockSympyDerivSign = {
+            success: true,
+            discriminantSteps: [
+                { factor: 'x^2 - 1', steps: ['\\Delta = 0 - 4(1)(-1) = 4', '\\Delta > 0 : x_1=-1, x_2=1'] }
+            ]
+        };
+        const result = generateVariationTable({ 
+            expression: 'x^3 / 3 - x', 
+            niveau: 'terminale_spe',
+            sympyDerivSign: mockSympyDerivSign
+        } as any);
+
+        expect(result.aiContext).toBeDefined();
+        // Vérifie l'injection de la sous-instruction et des étapes
+        expect(result.aiContext).toContain('Pour l\'étude du signe de f\'(x)');
+        expect(result.aiContext).toContain('\\Delta = 0 - 4(1)(-1) = 4');
+    });
+
+    it('Dérivation : L\'aiContext intègre la factorisation sympyDerivSign', () => {
+        // Si la dérivée a été factorisée formellement, l'IA reçoit la factorisation stricte
+        const mockSympyDerivSign = {
+            success: true,
+            factors: [{ label: '3' }, { label: 'x^2-1' }]
+        };
+        const result = generateVariationTable({ 
+            expression: 'x^3-3*x', 
+            niveau: 'terminale_spe',
+            sympyDerivSign: mockSympyDerivSign
+        } as any);
+        expect(result.aiContext).toContain("Utilise la factorisation suivante pour f'(x) : 3 × x^2-1");
+    });
+
+});

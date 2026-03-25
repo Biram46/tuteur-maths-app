@@ -270,6 +270,7 @@ function buildAIContext(
     lines.push(`- Le tableau est DÉJÀ affiché au-dessus par le moteur de calcul. Tu ne dois PAS le reproduire.`);
     lines.push(`- Fais UNIQUEMENT les explications pédagogiques des étapes (dérivée, signe, conclusion).`);
     lines.push(`- Ton rôle est d'expliquer la méthode, pas de refaire le tableau.`);
+    lines.push(`- ⛔ INTERDICTION STRICTE d'utiliser la notation différentielle 'd/dx' ou '\\frac{d}{dx}'. Tu seras pénalisé si tu l'utilises.`);
 
     // ── Interdictions globales par niveau ──
     if (!rules.allowDerivativeCalc) {
@@ -746,6 +747,12 @@ function handleGeneral(
     explicitDomain: [number, number] | undefined,
     input: VariationTableInput
 ): VariationTableResult {
+    const exactMap = (input as any).sympyDerivSign?.exactMap || {};
+    const getExact = (val: number) => {
+        const r4 = round4(val);
+        const kStr = Number.isInteger(r4) ? String(r4) : String(r4);
+        return exactMap[kStr] || formatForTable(val);
+    };
     const searchDomain = explicitDomain ?? [-20, 20];
 
     // ── 1. Calculer f'(x) ──
@@ -860,9 +867,9 @@ function handleGeneral(
 
     // Construction de xValues
     let xValues: string[] = [];
-    xValues.push(domainLeft !== null ? (domainStrict ? ']' : '') + formatForTable(domainLeft) : '-inf');
-    xValues.push(...finalCritical.map(formatForTable));
-    xValues.push(domainRight !== null ? (domainRightStrict ? '[' : '') + formatForTable(domainRight) : '+inf');
+    xValues.push(domainLeft !== null ? (domainStrict ? ']' : '') + getExact(domainLeft) : '-inf');
+    xValues.push(...finalCritical.map(getExact));
+    xValues.push(domainRight !== null ? (domainRightStrict ? '[' : '') + getExact(domainRight) : '+inf');
 
     // ── 5. Intervalles ──
     const intervalBounds: [number | '-inf', number | '+inf'][] = [];
@@ -899,7 +906,7 @@ function handleGeneral(
     const extrema: { x: number; y: number; type: 'max' | 'min' }[] = [];
     const varRow = buildVariationRow(
         expression, derivExpr, finalCritical, intervalBounds,
-        finalDerivZeros, finalDiscontinuities, rules, extrema
+        finalDerivZeros, finalDiscontinuities, rules, extrema, exactMap
     );
     rows.push(varRow);
 
@@ -1063,7 +1070,8 @@ function buildVariationRow(
     derivZeros: number[],
     discontinuities: number[],
     rules: NiveauRules,
-    extrema: { x: number; y: number; type: 'max' | 'min' }[]
+    extrema: { x: number; y: number; type: 'max' | 'min' }[],
+    exactMap: Record<string, string> = {}
 ): VariationRow {
     const values: string[] = [];
 
@@ -1120,7 +1128,12 @@ function buildVariationRow(
                     yCP = evalAt(normExpr, cp);
                 }
                 if (yCP !== null) {
-                    const yStr = formatForTable(round4(yCP));
+                    const r4 = round4(cp);
+                    const k = Number.isInteger(r4) ? String(r4) : String(r4);
+                    let yStr = exactMap[`y_${k}`];
+                    if (!yStr) {
+                         yStr = formatForTable(round4(yCP));
+                    }
                     values.push(yStr);
 
                     // Enregistrer l'extremum

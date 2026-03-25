@@ -26,6 +26,7 @@ export interface RoutedResult {
     expression: string | null;
     mathBlock: string | null;          // Bloc @@@ généré par le Math Engine
     textSummary: string | null;        // Résumé textuel pour le prompt IA
+    aiContext?: string;                // Contexte IA généré localement
     discriminantSteps?: { factor: string; steps: string[] }[]; // Étapes Δ
     error?: string;
     /** Vrai si le moteur JS a échoué → l'IA doit générer le tableau */
@@ -53,7 +54,7 @@ async function callMathEngine(
     intent: DetectedIntent,
     niveau: string,
     baseUrl: string
-): Promise<{ mathBlock: string | null; textSummary: string | null; discriminantSteps?: { factor: string; steps: string[] }[]; error?: string; needsAI?: boolean }> {
+): Promise<{ mathBlock: string | null; textSummary: string | null; aiContext?: string; discriminantSteps?: { factor: string; steps: string[] }[]; error?: string; needsAI?: boolean }> {
     if (!intent.expression) {
         return { mathBlock: null, textSummary: null, error: 'Expression non trouvée' };
     }
@@ -85,6 +86,7 @@ async function callMathEngine(
                 return {
                     mathBlock: signResult.aaaBlock ?? null,
                     textSummary: null,
+                    aiContext: signResult.aiContext,
                     discriminantSteps: signResult.discriminantSteps,
                 };
             }
@@ -95,7 +97,7 @@ async function callMathEngine(
                 if (!varResult.success) {
                     return { mathBlock: null, textSummary: null, error: varResult.error };
                 }
-                return { mathBlock: varResult.aaaBlock ?? null, textSummary: null };
+                return { mathBlock: varResult.aaaBlock ?? null, textSummary: varResult.method ?? null, aiContext: varResult.aiContext };
             }
 
             // ── Graphique (JS direct) ──
@@ -191,7 +193,7 @@ export async function routeQuestion(
             }
 
             const engineResult = await callMathEngine(intent, niveau, baseUrl);
-            const { mathBlock, textSummary, discriminantSteps, error, needsAI } = engineResult;
+            const { mathBlock, textSummary, aiContext, discriminantSteps, error, needsAI } = engineResult;
 
             return {
                 questionNumber: intent.questionNumber,
@@ -200,6 +202,7 @@ export async function routeQuestion(
                 expression: intent.expression,
                 mathBlock,
                 textSummary,
+                aiContext,
                 discriminantSteps,
                 error,
                 needsAI,
@@ -255,6 +258,12 @@ export async function routeQuestion(
         } else if (result.intent === 'unknown') {
             contextLines.push(`→ Répondre librement à cette sous-question.`);
         }
+        
+        if (result.aiContext) {
+            contextLines.push(`\n--- CONSIGNES ANTI-HALLUCINATION DU MOTEUR MATHEMATIQUE ---`);
+            contextLines.push(result.aiContext);
+        }
+        
         contextLines.push('');
     }
 

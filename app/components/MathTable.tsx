@@ -192,8 +192,9 @@ function MathSvgText({
     latex: string; x: number; y: number; fontSize?: number; color?: string;
 }) {
     let html = '';
-    try { html = katex.renderToString(latex, { throwOnError: false, displayMode: false }); }
-    catch { html = latex.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    const cleanLatex = latex.replace(/\$/g, '').trim();
+    try { html = katex.renderToString(cleanLatex, { throwOnError: false, displayMode: false }); }
+    catch { html = cleanLatex.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
     // Wrap KaTeX HTML with a style override to force dark text color
     // This prevents the parent's text-slate-100 (light) from bleeding through
     const styledHtml = `<style>.katex,.katex *,.katex .mord,.katex .mbin,.katex .mrel,.katex .mopen,.katex .mclose,.katex .mpunct,.katex .minner{color:${color}!important;}</style>${html}`;
@@ -511,6 +512,10 @@ export default function MathTable({ data, title }: MathTableProps) {
             const rightArrow = k < N - 1 ? arrowAtInterval[k] : null;
 
             if (forbiddenAt[k]) {
+                yAtX[k] = yMid;
+            } else if (leftArrow && rightArrow && leftArrow === rightArrow) {
+                // Point d'inflexion / palier (dérivée nulle sans changement de signe)
+                // Ex: x^3 en 0. On positionne la valeur au milieu pour que les flèches l'encadrent bien.
                 yAtX[k] = yMid;
             } else if (leftArrow && /nearrow/i.test(leftArrow)) {
                 yAtX[k] = yTop + margin;             // arrivée ↗ → haut

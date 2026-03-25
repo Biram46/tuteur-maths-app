@@ -447,8 +447,8 @@ function autoExtractFactors(expression: string, domain: [number, number]): Facto
     const factoized = tryFactorizeCommonFactor(expr, domain);
     if (factoized !== null) return factoized;
 
-    // ── 3. Produit de facteurs entre parenthèses : (a)(b)(c) ou (a)*(b) ──
-    const productFactors = extractParenProductFactors(expr, domain);
+    // ── 3. Produit de facteurs : (a)(b)(c) ou a*b ──
+    const productFactors = parseProductFactors(expr, 'numerator', domain);
     if (productFactors.length > 1) {
         return productFactors;
     }
@@ -1117,12 +1117,12 @@ function buildSignTableAIContext(
                 lines.push(`     Afficher les racines exactes (avec √) ET décimales approchées`);
             } else if (Math.abs(tri.delta) < 1e-10) {
                 lines.push(`  2. CAS Δ = 0 : une racine double x₀ = -b/(2a)`);
-                lines.push(`     Le trinôme est du signe de a pour tout x ≠ x₀, vaut 0 en x₀`);
-                lines.push(`     Message : "Le trinôme a un signe constant (signe de a), sauf en x₀ où il s'annule."`);
+                lines.push(`     Le trinôme est STRICTEMENT DU SIGNE DE "a" pour tout x ≠ x₀, et vaut 0 en x₀`);
+                lines.push(`     Message OBLIGATOIRE : "Le trinôme est toujours de signe constant (celui de a = ${tri.a}), sauf en x₀ où il s'annule. INTERDIT d'écrire que c'est positif avant et négatif après."`);
             } else {
                 lines.push(`  2. CAS Δ < 0 : pas de racine réelle`);
-                lines.push(`     Le trinôme est du signe de a pour tout x ∈ ℝ`);
-                lines.push(`     Message : "Le trinôme est du signe de a pour tout réel x (pas de racine réelle)."`);
+                lines.push(`     Le trinôme est STRICTEMENT DU SIGNE DE "a" pour tout x ∈ ℝ`);
+                lines.push(`     Message OBLIGATOIRE : "Le trinôme est strictement du signe de a = ${tri.a} pour tout réel x (la parabole ne touche jamais l'axe)."`);
                 lines.push(`     PAS de factorisation si Δ < 0`);
             }
 
@@ -1239,11 +1239,24 @@ function computeEffectiveDomain(
  * conforme au programme lycée français.
  */
 export function generateSignTable(input: SignTableInput): SignTableResult {
-    const { expression, searchDomain = [-20, 20], niveau = 'Seconde' } = input;
+    let { expression, searchDomain = [-20, 20], niveau = 'Seconde' } = input;
+
+    if (!expression) {
+        return {
+            success: false,
+            error: "L'expression est requise.",
+            criticalPoints: []
+        };
+    }
+
+    // Nettoyer les inégalités qui auraient pu fuiter depuis solve_inequality
+    // ex: "(x-2)(-x+3) >= 0" -> "(x-2)(-x+3)"
+    expression = expression.replace(/\s*(?:<=|>=|<|>|≤|≥)\s*0\s*$/, '').trim();
 
     try {
         // ── Étape 2 : Identifier et classifier les facteurs ──
-        const factors = extractFactors(input);
+        // On passe bien l'expression nettoyée à extractFactors (qui la lit de input.expression)
+        const factors = extractFactors({ ...input, expression });
 
         // ── DEBUG TRACE (à retirer après debug) ──
         console.log('[SIGN-ENGINE] Expression:', expression);
@@ -1314,30 +1327,9 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
         const rows: SignRow[] = [...factorRows, fxRow];
 
         // ── Injection de la valeur à la borne gauche (si domaine restreint) ──
-        // Cas : sqrt(x) → x=0 filtré des criticalPoints mais doit apparaître dans le tableau
-        // On préfixe chaque row avec la valeur à la borne gauche du domaine effectif.
-        const hadFilteredLeft = uniqueCriticalPoints.length > criticalPoints.length && effectiveDomain;
-        if (hadFilteredLeft && effectiveDomain) {
-            const leftBoundVal = effectiveDomain[0];
-            for (const [rIdx, factor] of factors.entries()) {
-                const atLeft = evalAt(factor.expr, leftBoundVal);
-                let leftSym = '+';
-                if (atLeft === null || !isFinite(atLeft)) leftSym = '||';
-                else if (Math.abs(atLeft) < 1e-8) leftSym = '0';
-                else leftSym = atLeft > 0 ? '+' : '-';
-                rows[rIdx].values = [leftSym, ...rows[rIdx].values];
-            }
-            // Ligne f(x) : évaluer la fonction à la borne gauche
-            const fxAtLeft = evalAt(expression, leftBoundVal);
-            let fxLeftSym = '+';
-            if (fxAtLeft === null || !isFinite(fxAtLeft)) fxLeftSym = '||';
-            else if (Math.abs(fxAtLeft) < 1e-8) fxLeftSym = '0';
-            else fxLeftSym = fxAtLeft > 0 ? '+' : '-';
-            fxRow.values = [fxLeftSym, ...fxRow.values];
-        }
-
-
-        // ── Étapes Δ pour les trinômes ──
+        // Le frontend MathTable attend un format strict de 2N-3 éléments pour les lignes de signes.
+        // La gestion des bornes est gérée côté frontend via le caractère ']' (isDomainBounded).
+        // On ne modifie pas les valeurs ici pour éviter un décalage pair/impair qui casse l'affichage.        // ── Étapes Δ pour les trinômes ──
         const discriminantSteps = buildDiscriminantSteps(factors);
 
         const tableSpec: TableSpec = {
