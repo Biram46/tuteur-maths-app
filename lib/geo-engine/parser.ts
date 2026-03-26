@@ -177,41 +177,47 @@ export function parseGeoScene(raw: string): GeoScene {
 
             case 'segment':
             case 'seg': {
-                // segment: AB [, color]  ou  segment: A, B [, color]
-                let a: string, b: string, color: string | undefined;
-                const nameSeg = parts[0].toUpperCase().replace(/\s+/g, '');
-                if (nameSeg.length === 2 && /^[A-Z]{2}$/.test(nameSeg)) {
-                    a = nameSeg[0]; b = nameSeg[1]; color = parts[1];
-                } else {
-                    a = parts[0].toUpperCase().trim(); b = (parts[1] || '').toUpperCase().trim(); color = parts[2];
+                // Magiquement extraire les 2 premières lettres (qui ne sont ni HEX ni COLOR etc)
+                // Ex: "A(1,2), B(4,6)" -> "A", "B"
+                const letters = (rest.toUpperCase().replace(/VEC|SEG|VECTOR/g, '').match(/[a-zA-Z]/g) || []).slice(0, 2);
+                let a = letters[0] || '';
+                let b = letters[1] || '';
+                let color: string | undefined;
+                if (parts.length > 1) {
+                    // La couleur est généralement le dernier ou l'avant-dernier s'il est de la forme "rouge" ou "#...""
+                    const possibleColors = parts.filter(p => /^#|[a-z]{3,}/i.test(p));
+                    if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
                 }
-                objects.push({ kind: 'segment', id: uid('seg'), from: a, to: b, color });
+                if (a && b) {
+                    objects.push({ kind: 'segment', id: uid('seg'), from: a, to: b, color });
+                }
                 break;
             }
 
             case 'vecteur':
             case 'vector':
             case 'vec': {
-                // vecteur: AB [, label, color]  ou  vecteur: A, B [, label, color]
-                let a: string, b: string, label: string | undefined, color: string | undefined;
-                let namePart = parts[0].toUpperCase().trim();
-                // Tolérer "A B" au lieu de "AB" (hallucination de l'IA ou espace de l'utilisateur)
-                const namePartNoSpace = namePart.replace(/\s+/g, '');
-                if (/^[A-Z]{2}$/.test(namePartNoSpace)) {
-                    a = namePartNoSpace[0]; b = namePartNoSpace[1];
-                    label = parts[1] || undefined;
-                    color = parts[2] || undefined;
-                } else {
-                    a = namePart; b = (parts[1] || '').toUpperCase().trim();
-                    label = parts[2] || undefined;
-                    color = parts[3] || undefined;
+                const letters = (rest.toUpperCase().replace(/VEC|SEG|VECTOR|OVERRIGHTARROW/g, '').match(/[A-Z]/g) || []).slice(0, 2);
+                let a = letters[0] || '';
+                let b = letters[1] || '';
+                let label: string | undefined;
+                let color: string | undefined;
+                
+                if (parts.length > 1) {
+                    const possibleColors = parts.filter(p => /^#|[a-z]{3,}/i.test(p));
+                    if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
+                    const possibleLabels = parts.filter(p => !/^#|[a-z]{3,}/i.test(p) && p.length > 0 && !/[A-Z]\(/.test(p?.toUpperCase()));
+                    if (possibleLabels.length > 1) label = possibleLabels[1];
                 }
-                objects.push({
-                    kind: 'vector', id: uid('vec'),
-                    from: a, to: b,
-                    label: label || `\\vec{${a}${b}}`,
-                    color,
-                });
+                
+                if (a && b) {
+                    objects.push({
+                        kind: 'vector', id: uid('vec'),
+                        from: a, to: b,
+                        label: label || `\\vec{${a}${b}}`,
+                        color,
+                    });
+                }
                 break;
             }
 
