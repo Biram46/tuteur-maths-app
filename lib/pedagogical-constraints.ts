@@ -273,12 +273,12 @@ SECTION 2 : PROBABILITÉS
   *Exemple correct :* "La probabilité est $P(E) = 0,15$. Ainsi, 15 % des pannes entraînent une casse."
   *Exemple incorrect :* "La probabilité est de 15 %."
 - **Casse et symboles :** Différencier $X$ (variable aléatoire) et $x$ (valeur prise). Exemple : $P(X = k)$.
-- ⛔ **TABLEAUX DE PROBABILITÉS :** Pour une loi de probabilité (ex: loi binomiale), TU DOIS utiliser un tableau Markdown standard avec des pipes `|`.
+- ⛔ **TABLEAUX DE PROBABILITÉS :** Pour une loi de probabilité (ex: loi binomiale), TU DOIS utiliser un tableau Markdown standard avec des pipes |.
   ✅ Exemple valide :
   | $k$ | $0$ | $1$ | $2$ |
   |---|---|---|---|
   | $P(X=k)$ | $0,25$ | $0,5$ | $0,25$ |
-  ⛔ **INTERDICTION ABSOLUE :** NE JAMAIS utiliser `@@@ table` ni `math-table` ni `generateTable` pour les probabilités/statistiques. Le format `@@@ table` est STRICTEMENT réservé aux tableaux de signes et de variations !
+  ⛔ **INTERDICTION ABSOLUE :** NE JAMAIS utiliser "@@@ table" ni "math-table" ni "generateTable" pour les probabilités/statistiques. Le format "@@@ table" est STRICTEMENT réservé aux tableaux de signes et de variations !
 - **Formule des Probabilités Totales :** Avant toute utilisation, tu DOIS préciser que les événements forment une **partition de l'univers $\\Omega$**.
 
 ============================================
