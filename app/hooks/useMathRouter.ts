@@ -2111,6 +2111,7 @@ RÈGLES STRICTES SUR LE REPÈRE :
 - Utilise UNIQUEMENT des coordonnées entières ou demi-entières (ex: 0, 1, 2, 0.5)
 - Le bloc @@@ DOIT commencer par "geo" sur la première ligne
 - Respecte les conventions EN France : [AB] pour segments, (d) pour droites, [AB) pour demi-droites
+- Pour un vecteur canonique, utilise OBLIGATOIREMENT : vecteur: AB (ne trace JAMAIS un segment classique si un vecteur $\\vec{AB}$ est explicitement demandé)
 - Pour un angle droit, utilise angle_droit: [premier bras], [sommet], [deuxième bras]
 - Adapte le domain si les coordonnées sortent de [-8,8]
 - ⛔ NE GÉNÈRE QU'UN SEUL bloc @@@...@@@. Jamais deux blocs @@@ dans la même réponse.
@@ -2396,13 +2397,23 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                             if (/orthogonal(?!\S*normal)/i.test(inputText)) forcedRepereFinal = 'orthogonal';
                             else if (/s[eé]cant|oblique|vec\s*[({]|\\vec/i.test(inputText)) forcedRepereFinal = 'orthogonal';
                             else forcedRepereFinal = 'orthonormal';
-                        }
                         let filteredInner = innerBlock.split('\n').filter(l => !/^\s*rep[eè]re\s*:/i.test(l)).join('\n');
                         if (forcedRepereFinal) {
                             const lines = filteredInner.split('\n');
                             lines.splice(1, 0, `repere: ${forcedRepereFinal}`);
                             filteredInner = lines.join('\n');
                         }
+                        
+                        // Anti-hallucination : Forcer 'vecteur' si l'IA a généré 'segment' par erreur
+                        if (/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/i.test(inputCleaned)) {
+                            const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/gi)];
+                            vecMatches.forEach(m => {
+                                const vecName = m[1].toUpperCase();
+                                // Remplace "segment: AB" par "vecteur: AB"
+                                filteredInner = filteredInner.replace(new RegExp(`segment:\\s*${vecName}\\b`, 'gi'), `vecteur: ${vecName}`);
+                            });
+                        }
+                        
                         geoBlockDisplay = `@@@\n${filteredInner}\n@@@`;
                     }
 
@@ -2441,7 +2452,8 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
         // HANDLER ARBRES DE PROBABILITÉS
         // Détecte les demandes d'arbres et injecte un prompt dédié.
         // ═══════════════════════════════════════════════════════════
-        const wantsTree = /\b(arbre|arbre\s+pond[eé]r[eé]|arbre\s+de\s+proba|arbre\s+probabilit)/i.test(inputLower);
+        const wantsTree = /\b(arbre|arbre\s+pond[eé]r[eé]|arbre\s+de\s+proba|arbre\s+probabilit)\b/i.test(inputLower)
+            || (/\b(sch[eé]ma|dessin)\b/i.test(inputLower) && /\b(probabilit[eé]s?|proba|d[eé]|lance|tirage|pile\b|\bface\b|boules?|urnes?)\b/i.test(inputLower));
 
         if (wantsTree) {
             const treeSystemPrompt = `[SYSTÈME ARBRE DE PROBABILITÉS]
@@ -2465,6 +2477,7 @@ RÈGLES :
 - Pour le complémentaire, utilise la barre Unicode : Ā, B̄ (pas A' ni \\bar{A})
 - NE mets PAS de résultats aux feuilles (pas de P(A∩B) = ...)
 - La somme des branches d'un même nœud = 1
+- ⛔ ATTENTION: Si l'expérience probabiliste comporte un très grand nombre de branches (ex: binomiale n > 3, n=5 répétitions), NE DESSINE PAS l'arbre entier (trop gigantesque). Trace UNIQUEMENT les 2 ou 3 premiers niveaux pour illustrer le mécanisme avec un arbre partiel !
 
 EXEMPLE pour "arbre avec P(A) = 0.4, P(B|A) = 0.3, P(B|Ā) = 0.5" :
 @@@
