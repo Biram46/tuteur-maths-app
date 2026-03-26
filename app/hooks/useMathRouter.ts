@@ -2348,11 +2348,10 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                 block = blockLines.join('\n');
                                             }
                                             
-                                            // Anti-hallucination LIVE : Forcer 'vecteur' si l'IA a généré 'segment' par erreur
-                                            if (/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/i.test(inputCleaned)) {
-                                                const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/gi)];
+                                            if (/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/i.test(inputCleaned)) {
+                                                const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/gi)];
                                                 vecMatches.forEach(m => {
-                                                    const vecName = m[1].toUpperCase();
+                                                    const vecName = m[1].toUpperCase().replace(/\s+/g, '');
                                                     // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
                                                     const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
                                                     block = block.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
@@ -2418,10 +2417,10 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         }
                         
                         // Anti-hallucination : Forcer 'vecteur' si l'IA a généré 'segment' par erreur (bloc final)
-                        if (/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/i.test(inputCleaned)) {
-                            const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]{1,2})\b/gi)];
+                        if (/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/i.test(inputCleaned)) {
+                            const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/gi)];
                             vecMatches.forEach(m => {
-                                const vecName = m[1].toUpperCase();
+                                const vecName = m[1].toUpperCase().replace(/\s+/g, '');
                                 // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
                                 const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
                                 filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);

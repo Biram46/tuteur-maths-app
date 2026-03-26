@@ -179,10 +179,11 @@ export function parseGeoScene(raw: string): GeoScene {
             case 'seg': {
                 // segment: AB [, color]  ou  segment: A, B [, color]
                 let a: string, b: string, color: string | undefined;
-                if (parts[0].length === 2 && /[A-Z]{2}/.test(parts[0])) {
-                    a = parts[0][0]; b = parts[0][1]; color = parts[1];
+                const nameSeg = parts[0].toUpperCase().replace(/\s+/g, '');
+                if (nameSeg.length === 2 && /^[A-Z]{2}$/.test(nameSeg)) {
+                    a = nameSeg[0]; b = nameSeg[1]; color = parts[1];
                 } else {
-                    a = parts[0].toUpperCase(); b = (parts[1] || '').toUpperCase(); color = parts[2];
+                    a = parts[0].toUpperCase().trim(); b = (parts[1] || '').toUpperCase().trim(); color = parts[2];
                 }
                 objects.push({ kind: 'segment', id: uid('seg'), from: a, to: b, color });
                 break;
@@ -193,9 +194,11 @@ export function parseGeoScene(raw: string): GeoScene {
             case 'vec': {
                 // vecteur: AB [, label, color]  ou  vecteur: A, B [, label, color]
                 let a: string, b: string, label: string | undefined, color: string | undefined;
-                const namePart = parts[0].toUpperCase().trim();
-                if (/^[A-Z]{2}$/.test(namePart)) {
-                    a = namePart[0]; b = namePart[1];
+                let namePart = parts[0].toUpperCase().trim();
+                // Tolérer "A B" au lieu de "AB" (hallucination de l'IA ou espace de l'utilisateur)
+                const namePartNoSpace = namePart.replace(/\s+/g, '');
+                if (/^[A-Z]{2}$/.test(namePartNoSpace)) {
+                    a = namePartNoSpace[0]; b = namePartNoSpace[1];
                     label = parts[1] || undefined;
                     color = parts[2] || undefined;
                 } else {
