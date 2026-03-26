@@ -2355,7 +2355,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                     const vecName = m[1].toUpperCase();
                                                     // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
                                                     const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
-                                                    block = block.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}\\b`, 'gi'), `vecteur: ${vecName}`);
+                                                    block = block.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
                                                 });
                                             }
 
@@ -2424,7 +2424,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                 const vecName = m[1].toUpperCase();
                                 // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
                                 const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
-                                filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}\\b`, 'gi'), `vecteur: ${vecName}`);
+                                filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
                             });
                         }
                         
