@@ -255,12 +255,26 @@ export function useMathRouter({
             // \sqrt{a} → sqrt(a)
             .replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)')
             .replace(/\\sqrt\s*([a-zA-Z0-9])/g, 'sqrt($1)')
+            // Inégalités et symboles mathématiques
+            .replace(/\\ge(q)?\b/g, '>=')
+            .replace(/\\le(q)?\b/g, '<=')
+            .replace(/\\ne(q)?\b/g, '!=')
+            .replace(/\\pi\b/g, 'pi')
+            .replace(/\\infty\b/g, 'Infinity')
+            .replace(/\\to\b/g, '->')
+            // Vecteurs : garder le nom explicite avant de supprimer les accolades
+            .replace(/\\vec\s*\{([^{}]+)\}/g, 'vecteur $1')
+            .replace(/\\overrightarrow\s*\{([^{}]+)\}/g, 'vecteur $1')
+            .replace(/\\vec\s*([a-zA-Z0-9]{1,2})/g, 'vecteur $1')
+            .replace(/\\overrightarrow\s*([a-zA-Z0-9]{1,2})/g, 'vecteur $1')
             // Accolades LaTeX → parenthèses
             .replace(/\{/g, '(').replace(/\}/g, ')')
             // \cdot, \times → *
-            .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
+            .replace(/\\cdot\b/g, '*').replace(/\\times\b/g, '*')
             // \left, \right → supprimé
-            .replace(/\\left/g, '').replace(/\\right/g, '')
+            .replace(/\\left\b/g, '').replace(/\\right\b/g, '')
+            // Conserver les fonctions mathématiques standards (enlever juste le \)
+            .replace(/\\(ln|log|exp|sin|cos|tan|arcsin|arccos|arctan)\b/g, '$1')
             // Commandes résiduelles → supprimées
             .replace(/\\[a-zA-Z]+/g, '')
             .trim();
@@ -333,11 +347,12 @@ export function useMathRouter({
                     t = t.replace(/\\pi/g, 'pi');
                     // Nettoyer les accolades résiduelles
                     t = t.replace(/\{/g, '(').replace(/\}/g, ')');
+                    // Traduction française (et math) avant la suppression des macros
+                    t = t.replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)');
+                    t = t.replace(/\\?ln\s*\(/gi, 'log(');
+                    t = t.replace(/\\?log\s*\(/gi, 'log(');
                     // ⛔ Supprimer TOUTE commande LaTeX restante (\xxx)
                     t = t.replace(/\\[a-zA-Z]+/g, '');
-                    // Traduction française
-                    t = t.replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)');
-                    t = t.replace(/\bln\s*\(/g, 'log(');
                     // Multiplication implicite
                     t = t.replace(/(\d)([a-zA-Z])/g, '$1*$2');   // 2x → 2*x
                     t = t.replace(/(\d)\(/g, '$1*(');             // 3( → 3*(
@@ -973,7 +988,7 @@ RÈGLES ABSOLUES :
             // Si expr ne contient pas 'x' (ex: matché sur '= 0'), on invalide cette extraction basique
             if (!expr || !expr.includes('x')) {
                 // ─── Extraction 1 : retirer tout ce qui précède et inclut "signes/variations de" ───
-                let extract = inputCleaned.replace(/.*(?:signes?|variations?|l'expression|la fonction|l'étude)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trin[ôo]mes?|polyn[ôo]mes?|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
+                let extract = inputCleaned.replace(/.*(?:signes?|variations?|l'expression|la fonction|l'étude)\s+(?:complet\s+)?(?:de|du|d'un|d'une|des?|pour\s+r[eé]soudre)\s+(?:l'in[eé]quation\s+|l'expression\s+|la\s+fonction\s+)?(?:(?:trin[ôo]mes?|polyn[ôo]mes?|produit|quotient|fonction|fraction(?: rationnelle)?|expression|in[eé]quation)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
 
                 // ─── Extraction 2 : fallback — chercher après "de f(x)" ou "du" ───
                 if (extract === inputCleaned) {
@@ -988,8 +1003,7 @@ RÈGLES ABSOLUES :
                 const hasFrenchWords = /\b(?:signes?|tableau|donne|moi|calcule?|résous|étudier?|l[ae]|les?|mon|trouve|dresse|faire|donner|montrer|pour|avec|selon|trouve)\b/i.test(extract);
                 if (hasFrenchWords || extract === inputCleaned) {
                     // Chercher la 1ère sous-chaîne qui commence par (, chiffre, x, e^, ln, log, exp, sqrt ou -
-                    // et contient x (donc c'est une expression mathématique)
-                    const mathMatch = extract.match(/([-(]?\s*(?:[2-9]|\d+\.?\d*|x|e\^|exp\s*\(|ln\s*\(|log\s*\(|sqrt\s*\()[^a-zA-ZÀ-ÿ]{0,3}[\w^*/+().,-]*(?:(?:\s*[*+\-/^]\s*|\s*\(\s*)[\w^*()+.,/-]*)*(?:\([^)]+\))*[^,;]*)/i);
+                    const mathMatch = extract.match(/([-(]*\s*(?:[2-9]|\d+\.?\d*|\bx\b|e\^|exp\s*\(|ln\s*\(|log\s*\(|sqrt\s*\()[^a-zA-ZÀ-ÿ]{0,3}[\w^*/+().,-]*(?:(?:\s*[*+\-/^]\s*|\s*\(\s*)[\w^*()+.,/-]*)*(?:\([^)]+\))*[^,;]*)/i);
                     if (mathMatch && mathMatch[1].includes('x')) {
                         // Affiner : chercher spécifiquement après le dernier "de " suivi d'une expression
                         const lastDeMatch = inputCleaned.match(/(?:^|\s)de\s+((?:[-(]|\d)[^a-zA-ZÀ-ÿ,;.]{0}[\s\S]+)$/i);
@@ -1050,6 +1064,7 @@ RÈGLES ABSOLUES :
                 .replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '')
                 .replace(/;\s*(?!\s*[+-])[a-zA-ZÀ-ÿ].*$/i, '')
                 .replace(/\.\s+[A-ZÀ-Ÿa-zà-ÿ].+$/s, '')
+                .replace(/\s+(?:et|puis|alors|donc|en\s+déduire|fais|dresse|calcule|donne|résous)\s+.*(?:tableau|signes?|variations|courbe|graphe|racines?).*$/i, '')
                 .replace(/\s*s'?il\s*(?:te|vous)\s*pla[îi]t\b/gi, '')
                 .replace(/\s*s(?:tp|vp)\b/gi, '')
                 .replace(/\s*merci\b/gi, '')
@@ -1243,7 +1258,7 @@ RÈGLES ABSOLUES :
             const eqMatch = inputCleaned.match(/(?<![><≤≥!])=\s*(.+)/);
             if (eqMatch) expr = eqMatch[1].trim();
             if (!expr || !expr.includes('x')) {
-                let extract = inputCleaned.replace(/.*(?:variations?|l'étude|la fonction)\s+(?:de|du|d'un|d'une|des?)\s+(?:(?:trinôme|polynôme|produit|quotient|fonction|fraction(?: rationnelle)?|expression)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
+                let extract = inputCleaned.replace(/.*(?:variations?|l'étude|la fonction)\s+(?:complet\s+)?(?:de|du|d'un|d'une|des?|pour\s+r[eé]soudre)\s+(?:l'in[eé]quation\s+|l'expression\s+|la\s+fonction\s+)?(?:(?:trin[ôo]mes?|polyn[ôo]mes?|produit|quotient|fonction|fraction(?: rationnelle)?|expression|in[eé]quation)\s*(?:suivante?|ci-dessous)?\s*:?\s*)?/i, '');
                 
                 const deMatch = extract.match(/(?:de|du)\s+(?:[fghk]\s*\(x\)\s*)?(.+)/i);
                 if (deMatch) expr = deMatch[1].trim().replace(/^=\s*/, '');

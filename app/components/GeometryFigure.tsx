@@ -427,11 +427,12 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         // Label au milieu, décalé au-dessus du segment (perpendiculairement)
         const mx = (x1 + x2) / 2;
         const my = (y1 + y2) / 2;
-        // Normaliser le label : extraire le contenu de \vec{AB} ou \overrightarrow{AB}
-        // SVG ne peut pas rendre du LaTeX → on affiche juste "AB", la flèche est dessinée en SVG
+        // Normaliser le label : extraire le contenu de \vec{AB} ou \overrightarrow{AB} ou "vecteur AB"
         const rawLabel = obj.label || `${obj.from}${obj.to}`;
         const vecMatch = rawLabel.match(/\\(?:vec|overrightarrow)\{([^}]+)\}/);
-        const labelText = vecMatch ? vecMatch[1] : rawLabel.replace(/\\/g, '').replace(/\{|\}/g, '');
+        let labelText = vecMatch ? vecMatch[1] : rawLabel.replace(/\\/g, '').replace(/\{|\}/g, '').trim();
+        // Remove "vecteur " or "vector " if AI put it in the label
+        labelText = labelText.replace(/^(?:vecteur|vector)\s+/i, '');
         const textWidth = labelText.length * 8; // estimation largeur texte
 
 
