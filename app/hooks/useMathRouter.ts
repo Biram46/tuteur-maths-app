@@ -2397,6 +2397,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                             if (/orthogonal(?!\S*normal)/i.test(inputText)) forcedRepereFinal = 'orthogonal';
                             else if (/s[eé]cant|oblique|vec\s*[({]|\\vec/i.test(inputText)) forcedRepereFinal = 'orthogonal';
                             else forcedRepereFinal = 'orthonormal';
+                        }
                         let filteredInner = innerBlock.split('\n').filter(l => !/^\s*rep[eè]re\s*:/i.test(l)).join('\n');
                         if (forcedRepereFinal) {
                             const lines = filteredInner.split('\n');
