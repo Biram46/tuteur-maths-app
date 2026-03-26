@@ -2465,7 +2465,9 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
         // HANDLER ARBRES DE PROBABILITÉS
         // Détecte les demandes d'arbres et injecte un prompt dédié.
         // ═══════════════════════════════════════════════════════════
-        const wantsTree = /\b(arbre|arbre\s+pond[eé]r[eé]|arbre\s+de\s+proba|arbre\s+probabilit)\b/i.test(inputLower)
+        const hasProba = /\b(probabilit[eé]s?|proba|d[eé]|pièce|tirage|urne|boule)\b/i.test(inputLower);
+        const hasSchema = /\b(sch[eé]ma|dessin|diagramme|arbre)\b/i.test(inputLower);
+        const wantsTree = (hasProba && hasSchema) || /\b(arbre\s+pond[eé]r[eé]|arbre\s+de\s+proba|arbre\s+probabilit)\b/i.test(inputLower)
             || (/\b(sch[eé]ma|dessin)\b/i.test(inputLower) && /\b(probabilit[eé]s?|proba|d[eé]|lance|tirage|pile\b|\bface\b|boules?|urnes?)\b/i.test(inputLower));
 
         if (wantsTree) {
