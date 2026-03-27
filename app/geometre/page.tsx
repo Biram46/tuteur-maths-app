@@ -77,8 +77,35 @@ function patchVecteurs(raw: string): string {
             return name ? `\n${indent}vecteur: ${name}` : match;
         }
     );
-    if (patched !== raw) console.log('[Géomètre] vecteur patch applied (context:', contextLine || titleLine, ')');
-    return patched;
+
+    // ── Synthèse vecteurs manquants ──────────────────────────────────────────
+    // Si l'IA a généré les points mais oublié les vecteurs eux-mêmes,
+    // on les ajoute synthétiquement depuis les noms dans context: vecteurs, AB, AC
+    const vecNamesFromCtx: string[] = [];
+    const ctxContent = contextLine.replace(/^context\s*:\s*/i, '').replace(/\bvecteurs?\b/i, '').trim();
+    (ctxContent.match(/\b[A-Z]{2}\b/g) || []).forEach(n => {
+        if (!vecNamesFromCtx.includes(n)) vecNamesFromCtx.push(n);
+    });
+
+    let result = patched;
+    const hasTriOrPoly = /^\s*triangle\s*:/im.test(patched) || /^\s*polygon[eo]?\s*:/im.test(patched);
+    if (!hasTriOrPoly && vecNamesFromCtx.length > 0) {
+        const hasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(patched);
+        if (!hasVecLines) {
+            const toAdd = vecNamesFromCtx.filter(name => {
+                const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(patched);
+                const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(patched);
+                return hasA && hasB;
+            });
+            if (toAdd.length > 0) {
+                result += '\n' + toAdd.map(n => `vecteur: ${n}`).join('\n');
+                console.log('[Géomètre] Vecteurs synthétisés (IA les avait omis):', toAdd);
+            }
+        }
+    }
+
+    if (result !== raw) console.log('[Géomètre] vecteur patch applied (context:', contextLine || titleLine, ')');
+    return result;
 }
 
 // ─── Parser la payload reçue depuis le BroadcastChannel ──────────────────────

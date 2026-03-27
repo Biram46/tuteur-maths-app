@@ -65,7 +65,6 @@ export function useFigureRenderer() {
 
                     if (titleHasVectors && !hasTriangle && !hasPolygon) {
                         // Conversion robuste : segment: [tout format] → vecteur: XY
-                        // Gère : "AB", "[AB]", "A, B", "A(0,0), B(3,1)", "AB, bleu"...
                         const segToVec = (content: string): string | null => {
                             const clean = content
                                 .replace(/\$\$?/g, '')
@@ -85,11 +84,27 @@ export function useFigureRenderer() {
                             }
                         );
                         // Normaliser les notations LaTeX dans les lignes "vecteur:"
-                        // ex: "vecteur: \vec{AB}" → "vecteur: AB"
                         rawToParse = rawToParse.replace(
                             /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*\$?\\?(?:overrightarrow|vec)\s*\{?\s*([A-Z]{2})\s*\}?\$?\s*(?=\n|$)/gim,
                             (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
                         );
+                        // ── Synthèse vecteurs manquants ────────────────────────────────
+                        // Si l'IA a généré les points mais oublié les vecteurs (fréquent avec coords
+                        // explicites), on les reconstruit depuis context: vecteurs, AB, AC
+                        const hasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(rawToParse);
+                        if (!hasVecLines && contextLine) {
+                            const ctxContent = contextLine.replace(/^context\s*:\s*/i, '').replace(/\bvecteurs?\b/i, '').trim();
+                            const vecNamesCtx = (ctxContent.match(/\b[A-Z]{2}\b/g) || []).filter((n, i, arr) => arr.indexOf(n) === i);
+                            const toAdd = vecNamesCtx.filter(name => {
+                                const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(rawToParse);
+                                const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(rawToParse);
+                                return hasA && hasB;
+                            });
+                            if (toAdd.length > 0) {
+                                rawToParse += '\n' + toAdd.map(n => `vecteur: ${n}`).join('\n');
+                                console.log('[Geo] Vecteurs synthétisés (IA les avait omis):', toAdd);
+                            }
+                        }
                         console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
                     }
                     const parsedScene = parseGeoScene(rawToParse);

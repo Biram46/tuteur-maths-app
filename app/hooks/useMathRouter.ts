@@ -2438,6 +2438,25 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                         `context: vecteurs${vecNames.length > 0 ? ', ' + vecNames.join(', ') : ''}`);
                                                     block = blockLines2.join('\n');
                                                 }
+
+                                                // ── 4. Synthèse vecteurs manquants ──────────────────────────────
+                                                // Si l'IA a généré les points MAIS oublié les lignes vecteur:
+                                                // (cas fréquent quand les coordonnées sont explicites), on les ajoute.
+                                                if (!blockHasTriangle && !blockHasPolygon && vecNames.length > 0) {
+                                                    const blockHasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(block);
+                                                    if (!blockHasVecLines) {
+                                                        const toAdd = vecNames.filter(name => {
+                                                            // Vérifier que les 2 points du vecteur sont déclarés dans le bloc
+                                                            const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(block);
+                                                            const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(block);
+                                                            return hasA && hasB;
+                                                        });
+                                                        if (toAdd.length > 0) {
+                                                            block += '\n' + toAdd.map(n => `vecteur: ${n}`).join('\n');
+                                                            console.log('[Geo] Vecteurs synthétisés (IA les avait omis):', toAdd);
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             // Anti-hallucination angle_droit : forcer le bon sommet si "rectangle en X"
