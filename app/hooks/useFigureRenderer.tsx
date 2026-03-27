@@ -52,7 +52,35 @@ export function useFigureRenderer() {
             if (firstToken === 'geo' || firstToken.startsWith('geo ')) {
                 try {
                     // ── Parser la scène + heuristique repère ──────────────────────────
-                    const parsedScene = parseGeoScene(raw); // ← déclaration requise ici
+                    // ── Patch anti-hallucination vecteurs avant parsing ──────────────
+                    // Si le titre dit "vecteur(s)" ou si le bloc a des segment: AB
+                    // correspondant à des vecteurs nommés dans le titre → forcer vecteur:
+                    let rawToParse = raw;
+                    const titleLine = raw.split(/[\n|]/).find(l => l.toLowerCase().startsWith('title:')) || '';
+                    const titleHasVectors = /vecteurs?\b/i.test(titleLine);
+                    if (titleHasVectors) {
+                        // Extraire les noms de vecteurs du titre (ex: "AB et AC" → ["AB","AC"])
+                        const vecNamesInTitle: string[] = [];
+                        const vecMatches = [...titleLine.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
+                        vecMatches.forEach(m => {
+                            const all = m[1].match(/[A-Z]{2}/g) || [];
+                            all.forEach(v => { if (!vecNamesInTitle.includes(v)) vecNamesInTitle.push(v); });
+                        });
+                        // Aussi extraire toutes paires XX dans le titre
+                        const allPairs = titleLine.match(/\b[A-Z]{2}\b/g) || [];
+                        allPairs.forEach(v => { if (!vecNamesInTitle.includes(v)) vecNamesInTitle.push(v); });
+
+                        // Remplacer segment: XY → vecteur: XY pour chaque vecteur du titre
+                        vecNamesInTitle.forEach(vecName => {
+                            const p = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
+                            rawToParse = rawToParse.replace(
+                                new RegExp(`(?:segment|seg):\\s*${p}(?:\\s|$)`, 'gi'),
+                                `vecteur: ${vecName}\n`
+                            );
+                        });
+                        console.log('[Geo] vecteur patch applied, vecNames:', vecNamesInTitle);
+                    }
+                    const parsedScene = parseGeoScene(rawToParse);
                     // Si l'IA a mis repere: → on respecte.
                     // Sinon : forcer orthonormal si au moins 1 point a des coords non-nulles.
                     // Cela couvre A(1,1), B(4,3) mais ignore point: O, 0, 0 (centre cercle).
