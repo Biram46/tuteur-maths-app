@@ -2397,21 +2397,25 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                     all.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
                                                 });
 
-                                                // ── 2. Conversion inconditionnelle : segment: XY → vecteur: XY ──
-                                                // Approche robuste : on remplace TOUS les segment: 2-lettres
-                                                // et aussi ceux dont le nom est dans vecNames
+                                                // ── 2. Conversion robuste : segment: [tout format] → vecteur: XY ──
+                                                // Gère : "AB", "[AB]", "A, B", "A(0,0), B(3,1)", "AB, bleu"...
                                                 const blockHasTriangle = /^\s*triangle\s*:/im.test(block);
                                                 const blockHasPolygon = /^\s*polygon[eo]?\s*:/im.test(block);
                                                 if (!blockHasTriangle && !blockHasPolygon) {
-                                                    // Remplacer segment: AB (2 lettres majuscules) → vecteur: AB
                                                     block = block.replace(
-                                                        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
-                                                        (m, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
-                                                    );
-                                                    // Remplacer segment: A, B → vecteur: AB
-                                                    block = block.replace(
-                                                        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
-                                                        (m, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                                                        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
+                                                        (m, indent, content) => {
+                                                            const clean = content
+                                                                .replace(/\$\$?/g, '')
+                                                                .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                                                                .replace(/[{}]/g, ' ')
+                                                                .replace(/\[|\]/g, ' ');
+                                                            const two = clean.match(/\b([A-Z])([A-Z])\b/);
+                                                            if (two) return `\n${indent}vecteur: ${two[1]}${two[2]}`;
+                                                            const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
+                                                            if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
+                                                            return m; // Impossible à convertir → garder
+                                                        }
                                                     );
                                                 } else if (vecNames.length > 0) {
                                                     // Triangle/polygone présent : patcher uniquement les vecteurs nommés
@@ -2541,15 +2545,21 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                             const finalHasTriangle = /^\s*triangle\s*:/im.test(filteredInner);
                             const finalHasPolygon = /^\s*polygon[eo]?\s*:/im.test(filteredInner);
                             if (!finalHasTriangle && !finalHasPolygon) {
-                                // ── Conversion globale : tous les segment: AB (2 lettres) → vecteur: AB ──
-                                // Même logique que dans le streaming (ligne ~2407)
+                                // ── Conversion robuste : segment: [tout format] → vecteur: XY ──
                                 filteredInner = filteredInner.replace(
-                                    /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
-                                    (m, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
-                                );
-                                filteredInner = filteredInner.replace(
-                                    /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
-                                    (m, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                                    /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
+                                    (m, indent, content) => {
+                                        const clean = content
+                                            .replace(/\$\$?/g, '')
+                                            .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                                            .replace(/[{}]/g, ' ')
+                                            .replace(/\[|\]/g, ' ');
+                                        const two = clean.match(/\b([A-Z])([A-Z])\b/);
+                                        if (two) return `\n${indent}vecteur: ${two[1]}${two[2]}`;
+                                        const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
+                                        if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
+                                        return m;
+                                    }
                                 );
                             } else if (vecNamesFinal.length > 0) {
                                 // Triangle/polygone présent : patcher uniquement les vecteurs nommés

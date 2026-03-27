@@ -64,18 +64,28 @@ export function useFigureRenderer() {
                     const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
                     if (titleHasVectors && !hasTriangle && !hasPolygon) {
-                        // Convertir tous les "segment: XY" (2 lettres) en "vecteur: XY"
+                        // Conversion robuste : segment: [tout format] → vecteur: XY
+                        // Gère : "AB", "[AB]", "A, B", "A(0,0), B(3,1)", "AB, bleu"...
+                        const segToVec = (content: string): string | null => {
+                            const clean = content
+                                .replace(/\$\$?/g, '')
+                                .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                                .replace(/[{}]/g, ' ')
+                                .replace(/\[|\]/g, ' ');
+                            const two = clean.match(/\b([A-Z])([A-Z])\b/);
+                            if (two) return `${two[1]}${two[2]}`;
+                            const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
+                            return letters.length === 2 ? `${letters[0]}${letters[1]}` : null;
+                        };
                         rawToParse = raw.replace(
-                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
-                            (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
-                        );
-                        rawToParse = rawToParse.replace(
-                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
-                            (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
+                            (match, indent, content) => {
+                                const name = segToVec(content);
+                                return name ? `\n${indent}vecteur: ${name}` : match;
+                            }
                         );
                         // Normaliser les notations LaTeX dans les lignes "vecteur:"
                         // ex: "vecteur: \vec{AB}" → "vecteur: AB"
-                        // ex: "vecteur: $\overrightarrow{AB}$" → "vecteur: AB"
                         rawToParse = rawToParse.replace(
                             /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*\$?\\?(?:overrightarrow|vec)\s*\{?\s*([A-Z]{2})\s*\}?\$?\s*(?=\n|$)/gim,
                             (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`

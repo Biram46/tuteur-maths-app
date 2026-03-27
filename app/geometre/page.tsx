@@ -57,15 +57,25 @@ function patchVecteurs(raw: string): string {
     // Ne pas toucher aux triangles/polygones
     if (/^\s*triangle\s*:/im.test(raw) || /^\s*polygon[eo]?\s*:/im.test(raw)) return raw;
 
-    // Convertir "segment: AB" → "vecteur: AB"
-    let patched = raw.replace(
-        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
-        (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
-    );
-    // Convertir "segment: A, B" → "vecteur: AB"
-    patched = patched.replace(
-        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
-        (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+    // Conversion robuste : segment: [tout format] → vecteur: XY
+    // Gère : "AB", "[AB]", "A, B", "A(0,0), B(3,1)", "AB, bleu"...
+    const segToVec = (content: string): string | null => {
+        const clean = content
+            .replace(/\$\$?/g, '')
+            .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+            .replace(/[{}]/g, ' ')
+            .replace(/\[|\]/g, ' ');
+        const two = clean.match(/\b([A-Z])([A-Z])\b/);
+        if (two) return `${two[1]}${two[2]}`;
+        const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
+        return letters.length === 2 ? `${letters[0]}${letters[1]}` : null;
+    };
+    const patched = raw.replace(
+        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
+        (match, indent, content) => {
+            const name = segToVec(content);
+            return name ? `\n${indent}vecteur: ${name}` : match;
+        }
     );
     if (patched !== raw) console.log('[Géomètre] vecteur patch applied (context:', contextLine || titleLine, ')');
     return patched;
