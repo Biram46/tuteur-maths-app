@@ -73,6 +73,13 @@ export function useFigureRenderer() {
                             /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
                             (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
                         );
+                        // Normaliser les notations LaTeX dans les lignes "vecteur:"
+                        // ex: "vecteur: \vec{AB}" → "vecteur: AB"
+                        // ex: "vecteur: $\overrightarrow{AB}$" → "vecteur: AB"
+                        rawToParse = rawToParse.replace(
+                            /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*\$?\\?(?:overrightarrow|vec)\s*\{?\s*([A-Z]{2})\s*\}?\$?\s*(?=\n|$)/gim,
+                            (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+                        );
                         console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
                     }
                     const parsedScene = parseGeoScene(rawToParse);

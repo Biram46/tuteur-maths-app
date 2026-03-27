@@ -2537,10 +2537,27 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                 const all = m[1].match(/[A-Z]{2}/g) || [];
                                 all.forEach(v => { if (!vecNamesFinal.includes(v)) vecNamesFinal.push(v); });
                             });
-                            vecNamesFinal.forEach(vecName => {
-                                const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
-                                filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
-                            });
+
+                            const finalHasTriangle = /^\s*triangle\s*:/im.test(filteredInner);
+                            const finalHasPolygon = /^\s*polygon[eo]?\s*:/im.test(filteredInner);
+                            if (!finalHasTriangle && !finalHasPolygon) {
+                                // ── Conversion globale : tous les segment: AB (2 lettres) → vecteur: AB ──
+                                // Même logique que dans le streaming (ligne ~2407)
+                                filteredInner = filteredInner.replace(
+                                    /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
+                                    (m, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+                                );
+                                filteredInner = filteredInner.replace(
+                                    /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
+                                    (m, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                                );
+                            } else if (vecNamesFinal.length > 0) {
+                                // Triangle/polygone présent : patcher uniquement les vecteurs nommés
+                                vecNamesFinal.forEach(vecName => {
+                                    const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
+                                    filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
+                                });
+                            }
                         }
 
                         // Anti-hallucination angle_droit (bloc final) : forcer le bon sommet si "rectangle en X"

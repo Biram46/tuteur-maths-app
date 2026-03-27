@@ -177,15 +177,30 @@ export function parseGeoScene(raw: string): GeoScene {
 
             case 'segment':
             case 'seg': {
-                // Magiquement extraire les 2 premières lettres (qui ne sont ni HEX ni COLOR etc)
-                // Ex: "A(1,2), B(4,6)" -> "A", "B"
-                const letters = (rest.toUpperCase().replace(/VEC|SEG|VECTOR/g, '').match(/[a-zA-Z]/g) || []).slice(0, 2);
-                let a = letters[0] || '';
-                let b = letters[1] || '';
+                // Stratégie 1 : 2 lettres majuscules consécutives (cas le plus fiable)
+                // Stratégie 2 : 2 lettres séparées par des espaces/virgules/parenthèses
+                // Stratégie 3 : fallback — extraire les 2 premières lettres après nettoyage LaTeX
+                const cleanRest = rest
+                    .replace(/\$\$?/g, '')                          // supprimer $
+                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')            // supprimer \commande{
+                    .replace(/[{}]/g, ' ')                          // supprimer accolades
+                    .replace(/\[|\]/g, ' ')                         // supprimer crochets
+                    .replace(/VEC|SEG|VECTOR|SEGMENT/gi, ' ');
+                // Chercher d'abord 2 lettres MAJ consécutives (AB, BC...)
+                const twoLettersMatch = cleanRest.match(/\b([A-Z])([A-Z])\b/);
+                let a: string, b: string;
+                if (twoLettersMatch) {
+                    a = twoLettersMatch[1];
+                    b = twoLettersMatch[2];
+                } else {
+                    // Fallback : extraire les 2 premières lettres MAJ isolées
+                    const letters = (cleanRest.match(/[A-Z]/g) || []).slice(0, 2);
+                    a = letters[0] || '';
+                    b = letters[1] || '';
+                }
                 let color: string | undefined;
                 if (parts.length > 1) {
-                    // La couleur est généralement le dernier ou l'avant-dernier s'il est de la forme "rouge" ou "#...""
-                    const possibleColors = parts.filter(p => /^#|[a-z]{3,}/i.test(p));
+                    const possibleColors = parts.filter(p => /^#/.test(p) || /^(rouge|bleu|vert|orange|violet|rose|noir|blanc|gris|jaune|cyan|magenta|red|blue|green|yellow|purple|pink|black|white|gray|grey)$/i.test(p));
                     if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
                 }
                 if (a && b) {
@@ -197,16 +212,46 @@ export function parseGeoScene(raw: string): GeoScene {
             case 'vecteur':
             case 'vector':
             case 'vec': {
-                const letters = (rest.toUpperCase().replace(/VEC|SEG|VECTOR|OVERRIGHTARROW/g, '').match(/[A-Z]/g) || []).slice(0, 2);
-                let a = letters[0] || '';
-                let b = letters[1] || '';
+                // Nettoyage robuste du LaTeX généré par l'IA :
+                // ex: "\vec{AB}", "$\overrightarrow{AB}$", "[AB]"
+                const cleanVecRest = rest
+                    .replace(/\$\$?/g, '')                              // $ et $$
+                    .replace(/\\overrightarrow\s*\{([^}]*)\}/g, '$1')  // \overrightarrow{AB} → AB
+                    .replace(/\\overrightarrow\s*/g, '')                // \overrightarrow seul
+                    .replace(/\\vec\s*\{([^}]*)\}/g, '$1')             // \vec{AB} → AB
+                    .replace(/\\vec\s*/g, '')                           // \vec seul
+                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')               // autres commandes LaTeX
+                    .replace(/[{}]/g, ' ')                              // accolades
+                    .replace(/\[|\]/g, ' ')                             // crochets
+                    .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b|\bOVERRIGHTARROW\b/gi, ' ');
+                // Chercher d'abord 2 lettres MAJ consécutives (AB, BC...) — cas le plus fiable
+                const twoLettersVecMatch = cleanVecRest.match(/\b([A-Z])([A-Z])\b/);
+                let a: string, b: string;
+                if (twoLettersVecMatch) {
+                    a = twoLettersVecMatch[1];
+                    b = twoLettersVecMatch[2];
+                } else {
+                    // Fallback : extraire les 2 premières lettres MAJ isolées
+                    const letters = (cleanVecRest.toUpperCase().match(/[A-Z]/g) || []).slice(0, 2);
+                    a = letters[0] || '';
+                    b = letters[1] || '';
+                }
                 let label: string | undefined;
                 let color: string | undefined;
                 
                 if (parts.length > 1) {
-                    const possibleColors = parts.filter(p => /^#|[a-z]{3,}/i.test(p));
+                    // Couleurs reconnues : hex (#...) ou noms CSS français/anglais courants
+                    const COLOR_NAMES = /^(rouge|bleu|vert|orange|violet|rose|noir|blanc|gris|jaune|cyan|magenta|red|blue|green|yellow|purple|pink|black|white|gray|grey)$/i;
+                    const possibleColors = parts.filter(p => /^#/.test(p) || COLOR_NAMES.test(p.trim()));
                     if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
-                    const possibleLabels = parts.filter(p => !/^#|[a-z]{3,}/i.test(p) && p.length > 0 && !/[A-Z]\(/.test(p?.toUpperCase()));
+                    // Label : uniquement si c'est une LaTeX expression ou un chiffre (pas un point A-Z)
+                    const possibleLabels = parts.filter(p => {
+                        const t = p.trim();
+                        if (!t || COLOR_NAMES.test(t)) return false;
+                        if (/^#/.test(t)) return false;
+                        if (/^[A-Z]{1,2}$/.test(t)) return false; // identifiant de point seul
+                        return true;
+                    });
                     if (possibleLabels.length > 1) label = possibleLabels[1];
                 }
                 
