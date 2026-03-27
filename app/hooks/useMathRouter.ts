@@ -2112,8 +2112,15 @@ RÈGLES STRICTES SUR LE REPÈRE :
 - Utilise UNIQUEMENT des coordonnées entières ou demi-entières (ex: 0, 1, 2, 0.5)
 - Le bloc @@@ DOIT commencer par "geo" sur la première ligne
 - Respecte les conventions EN France : [AB] pour segments, (d) pour droites, [AB) pour demi-droites
-- Pour un vecteur canonique, utilise OBLIGATOIREMENT : vecteur: AB (ne trace JAMAIS un segment classique si un vecteur $\\vec{AB}$ est explicitement demandé)
-- Pour un angle droit, utilise angle_droit: [premier bras], [sommet], [deuxième bras]
+- Pour un vecteur canonique, utilise OBLIGATOIREMENT : vecteur: AB
+  ⛔ JAMAIS "segment: AB" si l'élève demande le vecteur $\\vec{AB}$ — utilise toujours "vecteur: AB"
+  ⛔ Si l'élève demande "les vecteurs AB et AC", écris DEUX lignes : "vecteur: AB" ET "vecteur: AC"
+- Pour un angle droit :
+  ⛔⛔ SYNTAXE EXACTE : angle_droit: [bras1], [SOMMET], [bras2] — le SOMMET est TOUJOURS au MILIEU !
+  ⛔ "triangle rectangle en A" → tu DOIS écrire : angle_droit: B, A, C  (A est au milieu !)
+  ⛔ "triangle rectangle en B" → angle_droit: A, B, C  (B est au milieu !)
+  ⛔ "triangle rectangle en C" → angle_droit: A, C, B  (C est au milieu !)
+  ⛔ NE JAMAIS écrire angle_droit: A, B, C si le triangle est rectangle en A — ce serait FAUX !
 - Adapte le domain si les coordonnées sortent de [-8,8]
 - ⛔ NE GÉNÈRE QU'UN SEUL bloc @@@...@@@. Jamais deux blocs @@@ dans la même réponse.
 - ⛔ NE génère AUCUN autre graphique (ni @@@graph, ni @@@figure). Seulement le bloc geo.
@@ -2150,9 +2157,32 @@ perpendiculaire: C, d, (T)
 ⚠️ ANGLES DROITS :
 - Pour marquer un angle droit (90°), utilise OBLIGATOIREMENT : angle_droit: Point1, Sommet, Point2
   ex : si le triangle est rectangle en A, tu dois écrire : angle_droit: B, A, C
+  ⛔⛔ ERREUR FRÉQUENTE : NE PAS écrire angle_droit: A, B, C pour un angle en A — B serait le sommet !
 - ⛔ N'utilise PAS "angle: A, B, C" pour un angle droit — ça afficherait un arc, pas un carré !
 - Le rendu affiche le symbole ⊾ (petit carré) à l'angle droit, comme en géométrie classique.
 - Utilise angle_droit: chaque fois que tu traces une perpendiculaire, une hauteur ou un triangle rectangle.
+
+EXEMPLE "Triangle ABC rectangle en A" :
+@@@
+geo
+title: Triangle rectangle en A
+point: A, 0, 0
+point: B, 4, 0
+point: C, 0, 3
+triangle: A, B, C
+angle_droit: B, A, C
+@@@
+
+⚠️ VECTEURS MULTIPLES : si l'élève demande "les vecteurs AB et AC", écris :
+@@@
+geo
+title: Vecteurs AB et AC
+point: A, 0, 0
+point: B, 3, 1
+point: C, 1, 3
+vecteur: AB
+vecteur: AC
+@@@
 
 - Pour nommer une droite, utilise le 3e argument : parallele: N, BC, (d) ou perpendiculaire: C, d, (Δ)
 - L'élève tape "delta" au clavier → TU convertis en symbole : (Δ). Idem : "delta'" → (Δ')
@@ -2349,14 +2379,57 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                 block = blockLines.join('\n');
                                             }
                                             
-                                            if (/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/i.test(inputCleaned)) {
-                                                const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/gi)];
-                                                vecMatches.forEach(m => {
-                                                    const vecName = m[1].toUpperCase().replace(/\s+/g, '');
-                                                    // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
-                                                    const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
+                                            // Anti-hallucination vecteurs : matcher singulier ET pluriel ("vecteur AB" et "vecteurs AB et AC")
+                                            if (/\bvecteurs?\b/i.test(inputCleaned)) {
+                                                // Extraire tous les noms de vecteurs (2 lettres consécutives ou séparées)
+                                                const vecNames: string[] = [];
+                                                // Pattern 1 : "vecteur(s) AB" ou "vecteur(s) AB et AC"
+                                                const afterVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
+                                                afterVec.forEach(m => {
+                                                    m[1].split(/\s+et\s+/i).forEach(v => {
+                                                        const name = v.trim().toUpperCase();
+                                                        if (name.length === 2) vecNames.push(name);
+                                                    });
+                                                });
+                                                // Pattern 2 : "vecteur(s) AB, AC et AD" (virgule + et)
+                                                const commaVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
+                                                commaVec.forEach(m => {
+                                                    const all = m[1].match(/[A-Z]{2}/g) || [];
+                                                    all.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
+                                                });
+
+                                                vecNames.forEach(vecName => {
+                                                    const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
                                                     block = block.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
                                                 });
+                                            }
+
+                                            // Anti-hallucination angle_droit : forcer le bon sommet si "rectangle en X"
+                                            const rectMatch = inputCleaned.match(/\brectangle\s+en\s+([A-Z])\b/i);
+                                            if (rectMatch) {
+                                                const rightAngleVertex = rectMatch[1].toUpperCase();
+                                                // Corriger toute ligne angle_droit: qui n'a pas le bon sommet au milieu
+                                                block = block.replace(
+                                                    /angle_droit:\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*)/gi,
+                                                    (match, p1, p2, p3) => {
+                                                        if (p2.toUpperCase() === rightAngleVertex) return match; // déjà correct
+                                                        // Reconstruire avec le bon sommet au milieu
+                                                        const pts = [p1, p2, p3].map(p => p.toUpperCase());
+                                                        const others = pts.filter(p => p !== rightAngleVertex);
+                                                        return `angle_droit: ${others[0]}, ${rightAngleVertex}, ${others[1] || others[0]}`;
+                                                    }
+                                                );
+                                                // Si angle_droit est absent, l'ajouter après le triangle
+                                                if (!/angle_droit:/i.test(block)) {
+                                                    const triMatch = block.match(/triangle:\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*)/i);
+                                                    if (triMatch) {
+                                                        const pts = [triMatch[1], triMatch[2], triMatch[3]].map(p => p.toUpperCase());
+                                                        const others = pts.filter(p => p !== rightAngleVertex);
+                                                        if (others.length === 2) {
+                                                            block += `\nangle_droit: ${others[0]}, ${rightAngleVertex}, ${others[1]}`;
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             // Mémoriser le bloc filtré pour l'affichage inline
@@ -2417,15 +2490,50 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                             filteredInner = lines.join('\n');
                         }
                         
-                        // Anti-hallucination : Forcer 'vecteur' si l'IA a généré 'segment' par erreur (bloc final)
-                        if (/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/i.test(inputCleaned)) {
-                            const vecMatches = [...inputCleaned.matchAll(/\bvecteur\s+([a-zA-Z0-9]\s*[a-zA-Z0-9]?)\b/gi)];
-                            vecMatches.forEach(m => {
-                                const vecName = m[1].toUpperCase().replace(/\s+/g, '');
-                                // Accepter "segment: AB", "segment: A, B", "segment: [AB]"
-                                const pattern = vecName.length === 2 ? `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?` : vecName;
+                        // Anti-hallucination vecteurs (bloc final) : singulier ET pluriel + multi-noms
+                        if (/\bvecteurs?\b/i.test(inputCleaned)) {
+                            const vecNamesFinal: string[] = [];
+                            const afterVecF = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
+                            afterVecF.forEach(m => {
+                                m[1].split(/\s+et\s+/i).forEach(v => {
+                                    const name = v.trim().toUpperCase();
+                                    if (name.length === 2) vecNamesFinal.push(name);
+                                });
+                            });
+                            const commaVecF = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
+                            commaVecF.forEach(m => {
+                                const all = m[1].match(/[A-Z]{2}/g) || [];
+                                all.forEach(v => { if (!vecNamesFinal.includes(v)) vecNamesFinal.push(v); });
+                            });
+                            vecNamesFinal.forEach(vecName => {
+                                const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
                                 filteredInner = filteredInner.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
                             });
+                        }
+
+                        // Anti-hallucination angle_droit (bloc final) : forcer le bon sommet si "rectangle en X"
+                        const rectMatchFinal = inputCleaned.match(/\brectangle\s+en\s+([A-Z])\b/i);
+                        if (rectMatchFinal) {
+                            const rightV = rectMatchFinal[1].toUpperCase();
+                            filteredInner = filteredInner.replace(
+                                /angle_droit:\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*)/gi,
+                                (match, p1, p2, p3) => {
+                                    if (p2.toUpperCase() === rightV) return match;
+                                    const pts = [p1, p2, p3].map(p => p.toUpperCase());
+                                    const others = pts.filter(p => p !== rightV);
+                                    return `angle_droit: ${others[0]}, ${rightV}, ${others[1] || others[0]}`;
+                                }
+                            );
+                            if (!/angle_droit:/i.test(filteredInner)) {
+                                const triMatchF = filteredInner.match(/triangle:\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*),\s*([A-Z][A-Z0-9']*)/i);
+                                if (triMatchF) {
+                                    const pts = [triMatchF[1], triMatchF[2], triMatchF[3]].map(p => p.toUpperCase());
+                                    const others = pts.filter(p => p !== rightV);
+                                    if (others.length === 2) {
+                                        filteredInner += `\nangle_droit: ${others[0]}, ${rightV}, ${others[1]}`;
+                                    }
+                                }
+                            }
                         }
                         
                         geoBlockDisplay = `@@@\n${filteredInner}\n@@@`;
