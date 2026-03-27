@@ -146,15 +146,18 @@ export function useFigureRenderer() {
                 }
             }
 
-            // Pour les tableaux, on normalise dabord en remplacant les retours a la ligne par des espaces
+            // Pour les arbres : détecter en PREMIER (priorité absolue sur les tableaux)
+            // car un arbre peut contenir des mots comme "var" ou "x:" dans les labels
+            const isTreeBlock = raw.toLowerCase().includes('arbre') || raw.toLowerCase().includes('tree');
 
-            // Puis on divise par | uniquement
-            const isTableBlock = raw.toLowerCase().includes('table') ||
+            // Pour les tableaux : diviser d'abord par | uniquement
+            // ⚠️ IMPORTANT: 'var' seul est trop large (peut matcher un arbre) → exiger \bvar\b en début de ligne
+            const isTableBlock = !isTreeBlock && (
+                raw.toLowerCase().includes('table') ||
                 raw.toLowerCase().includes('x:') ||
                 raw.toLowerCase().includes('sign:') ||
-                raw.toLowerCase().includes('var');
-
-            const isTreeBlock = raw.toLowerCase().includes('arbre') || raw.toLowerCase().includes('tree');
+                /(?:^|\n)\s*var\b/i.test(raw)  // 'var' uniquement en début de ligne, pas dans n'importe quel mot
+            );
 
             let sections: string[];
             if (isTableBlock) {
@@ -531,7 +534,8 @@ export function useFigureRenderer() {
 
             if (sections[0].toLowerCase().includes('tree') || sections[0].toLowerCase().includes('arbre')) {
                 const treeNodesMap = new Map<string, TreeNode>();
-                const title = sections[0].split(':')[1]?.trim() || "Arbre de Probabilités";
+                // Fix: utiliser slice(1).join(':') pour garder les ':' dans le titre
+                const title = sections[0].split(':').slice(1).join(':').trim() || "Arbre de Probabilités";
                 treeNodesMap.set('root', { id: 'root', label: 'Ω' });
 
                 // Normalisation Unicode robuste

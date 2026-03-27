@@ -2015,7 +2015,8 @@ RÈGLES ABSOLUES :
             || /\b(figure géo|figure géométrique|construction géométrique|médiatrice|bissectrice|hauteur|médiane)\b/i.test(inputLower)
             || /\b[A-Z]\s*\(\s*-?\d/.test(inputText) // Coordonnées A(x,y) ou A(x; y)
 
-        ) && !/\bfonction\b|\btableau?\b|\bsigne\b|\bvariation\b|\bdérivée?\b/i.test(inputLower);
+        ) && !/\bfonction\b|\btableau?\b|\bsigne\b|\bvariation\b|\bdérivée?\b/i.test(inputLower)
+          && !/\b(probabilit[eé]s?|proba|binomiale?|tirage|urne|boule|pile|face|bernoulli|arbre\s+de\s+proba)\b/i.test(inputLower);
 
         if (wantsGeometry) {
             try {
@@ -2465,10 +2466,15 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
         // HANDLER ARBRES DE PROBABILITÉS
         // Détecte les demandes d'arbres et injecte un prompt dédié.
         // ═══════════════════════════════════════════════════════════
-        const hasProba = /\b(probabilit[eé]s?|proba|d[eé]|pièce|tirage|urne|boule)\b/i.test(inputLower);
+        const hasProba = /\b(probabilit[eé]s?|proba|d[eé]|pièce|tirage|urne|boule|binomiale?|bernoulli|loi\s+b)\b/i.test(inputLower);
         const hasSchema = /\b(sch[eé]ma|dessin|diagramme|arbre)\b/i.test(inputLower);
         const wantsTree = (hasProba && hasSchema) || /\b(arbre\s+pond[eé]r[eé]|arbre\s+de\s+proba|arbre\s+probabilit)\b/i.test(inputLower)
-            || (/\b(sch[eé]ma|dessin)\b/i.test(inputLower) && /\b(probabilit[eé]s?|proba|d[eé]|lance|tirage|pile\b|\bface\b|boules?|urnes?)\b/i.test(inputLower));
+            || (/\b(sch[eé]ma|dessin)\b/i.test(inputLower) && /\b(probabilit[eé]s?|proba|d[eé]|lance|tirage|pile\b|\bface\b|boules?|urnes?|binomiale?)\b/i.test(inputLower));
+
+        // Détecter si c'est une loi binomiale (n répétitions identiques)
+        const nRepMatch = inputLower.match(/\bn\s*=\s*(\d+)|(\d+)\s*(?:fois|répétitions?|lancers?|tirages?|épreuves?)\b/i);
+        const nRep = nRepMatch ? parseInt(nRepMatch[1] || nRepMatch[2] || '0', 10) : 0;
+        const isBinomialLargeN = nRep >= 4;
 
         if (wantsTree) {
             const treeSystemPrompt = `[SYSTÈME ARBRE DE PROBABILITÉS]
@@ -2492,7 +2498,16 @@ RÈGLES :
 - Pour le complémentaire, utilise la barre Unicode : Ā, B̄ (pas A' ni \\bar{A})
 - NE mets PAS de résultats aux feuilles (pas de P(A∩B) = ...)
 - La somme des branches d'un même nœud = 1
-- ⛔ ATTENTION: Si l'expérience probabiliste comporte un très grand nombre de branches (ex: binomiale n > 3, n=5 répétitions), NE DESSINE PAS l'arbre entier (trop gigantesque). Trace UNIQUEMENT les 2 ou 3 premiers niveaux pour illustrer le mécanisme avec un arbre partiel !
+
+⛔⛔⛔ RÈGLE CRITIQUE POUR LES GRANDES EXPÉRIENCES (n répétitions) ⛔⛔⛔
+${isBinomialLargeN ? `
+🚨 DÉTECTÉ : n = ${nRep} répétitions → L'arbre COMPLET aurait ${Math.pow(2, nRep)} feuilles — IMPOSSIBLE à afficher.
+👉 Tu DOIS dessiner UNIQUEMENT un arbre partiel des 3 PREMIERS NIVEAUX (= 3 lancers).
+👉 Écris clairement dans ton explication : "L'arbre complet a ${nRep} niveaux. On illustre ici les 3 premiers."
+👉 Pour les probabilités : utilise la même probabilité p à chaque niveau (épreuves indépendantes).
+` : `
+- Si l'expérience comporte n ≥ 4 répétitions identiques (loi binomiale, lancers de pièce, tirages avec remise n≥4), NE DESSINE PAS l'arbre entier. Trace UNIQUEMENT les 3 premiers niveaux et indique "arbre partiel".
+`}
 
 EXEMPLE pour "arbre avec P(A) = 0.4, P(B|A) = 0.3, P(B|Ā) = 0.5" :
 @@@
@@ -2505,7 +2520,26 @@ A->B̄, 0.7
 Ā->B̄, 0.5
 @@@
 
-AUTRE EXEMPLE pour tirage avec remise :
+EXEMPLE LANCER DE PIÈCE 3 FOIS (arbre partiel pour n=5) :
+@@@
+arbre: Lancer de pièce — 3 premiers niveaux (arbre partiel)
+P, 0.5
+F, 0.5
+P->P, 0.5
+P->F, 0.5
+F->P, 0.5
+F->F, 0.5
+P->P->P, 0.5
+P->P->F, 0.5
+P->F->P, 0.5
+P->F->F, 0.5
+F->P->P, 0.5
+F->P->F, 0.5
+F->F->P, 0.5
+F->F->F, 0.5
+@@@
+
+EXEMPLE pour tirage avec remise :
 @@@
 arbre: Tirage avec remise
 R, 3/5

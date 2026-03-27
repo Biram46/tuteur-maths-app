@@ -87,9 +87,12 @@ function layoutTree(root: HNode, width: number, height: number) {
         for (const c of n.children) sum += countLeaves(c);
         return sum;
     }
-    const totalLeaves = countLeaves(root);
+    countLeaves(root);
 
-    const leafSpacing = height / (totalLeaves + 1);
+    // Caper les feuilles pour le spacing vertical (arbres binomiaux très larges)
+    const MAX_LAYOUT_LEAVES = 16;
+    const effectiveLeafCount = Math.min(leafCount, MAX_LAYOUT_LEAVES);
+    const leafSpacing = height / (effectiveLeafCount + 1);
 
     // Positionner les feuilles puis remonter
     let leafIndex = 0;
@@ -97,7 +100,9 @@ function layoutTree(root: HNode, width: number, height: number) {
         n.y = n.depth * levelSpacing;
         if (n.children.length === 0) {
             leafIndex++;
-            n.x = leafIndex * leafSpacing;
+            // Clamp leafIndex pour éviter le débordement sur grands arbres
+            const cappedIndex = Math.min(leafIndex, effectiveLeafCount);
+            n.x = cappedIndex * leafSpacing;
         } else {
             for (const c of n.children) position(c);
             // Parent au centre de ses enfants
@@ -115,6 +120,9 @@ export default function MathTree({ data, title }: MathTreeProps) {
     // Dimensions adaptatives selon la profondeur
     const hierarchy = useMemo(() => buildHierarchy(data), [data]);
 
+    // ─── MAX feuilles rendues (évite les débordements pour binomiale n≥4) ───
+    const MAX_LEAVES = 16;
+
     const dims = useMemo(() => {
         if (!hierarchy) return { w: 600, h: 350, margin: { t: 50, r: 60, b: 30, l: 60 } };
         let maxDepth = 0, leafCount = 0;
@@ -124,9 +132,13 @@ export default function MathTree({ data, title }: MathTreeProps) {
             for (const c of n.children) scan(c);
         }
         scan(hierarchy);
-        const h = Math.max(350, leafCount * 70 + 100);
-        const w = Math.max(550, maxDepth * 220 + 180);
-        return { w, h, margin: { t: 50, r: 60, b: 30, l: 60 } };
+        // Caper les feuilles pour l'affichage (arbres binomiaux très profonds)
+        const effectiveLeaves = Math.min(leafCount, MAX_LEAVES);
+        const leafH = Math.max(55, Math.min(70, 600 / (effectiveLeaves + 1)));
+        const h = Math.max(350, Math.min(900, effectiveLeaves * leafH + 120));
+        const levelW = Math.max(160, Math.min(220, 900 / (maxDepth + 1)));
+        const w = Math.max(550, maxDepth * levelW + 180);
+        return { w, h, margin: { t: 50, r: 80, b: 30, l: 60 } };
     }, [hierarchy]);
 
     useEffect(() => {
