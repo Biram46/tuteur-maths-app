@@ -43,22 +43,45 @@ function applyRepereHeuristic(scene: GeoScene): GeoScene {
     return scene;
 }
 
+// ─── Patch anti-hallucination vecteurs ───────────────────────────────────────
+// Si le titre du bloc geo contient "vecteur(s) AB et AC", convertit
+// les lignes "segment: AB" en "vecteur: AB" avant le parsing.
+function patchVecteurs(raw: string): string {
+    const titleLine = raw.split(/[\n|]/).find(l => l.toLowerCase().startsWith('title:')) || '';
+    if (!/vecteurs?\b/i.test(titleLine)) return raw;
+
+    // Extraire tous les noms de vecteurs du titre (paires de majuscules : AB, AC, etc.)
+    const vecNames: string[] = [];
+    const fromTitle = titleLine.match(/\b[A-Z]{2}\b/g) || [];
+    fromTitle.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
+
+    let patched = raw;
+    vecNames.forEach(vecName => {
+        const p = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
+        patched = patched.replace(
+            new RegExp(`(?:segment|seg):\\s*${p}(?:\\s|$)`, 'gi'),
+            `vecteur: ${vecName}\n`
+        );
+    });
+    if (patched !== raw) console.log('[Géomètre] vecteur patch applied:', vecNames);
+    return patched;
+}
+
 // ─── Parser la payload reçue depuis le BroadcastChannel ──────────────────────
-// Accepte 3 sources (par priorité) :
-//  1. raw: string  — texte brut geo à parser
+// Accepte 3 sources (par priorité) :\n//  1. raw: string  — texte brut geo à parser
 //  2. scene: string — GeoScene JSON sérialisé (envoyé par la carte inline)
 //  3. key: string   — clé localStorage (fallback)
 function parsePayload(payload: { raw?: string; scene?: string; key?: string }): GeoScene | null {
     try {
         // Priorité 1 : texte brut geo
         if (payload.raw) {
-            return applyRepereHeuristic(parseGeoScene(payload.raw));
+            return applyRepereHeuristic(parseGeoScene(patchVecteurs(payload.raw)));
         }
         // Priorité 2 : scène JSON complète (plus fiable que localStorage)
         if (payload.scene) {
             try {
                 const parsed = JSON.parse(payload.scene);
-                if (parsed.raw) return applyRepereHeuristic(parseGeoScene(parsed.raw));
+                if (parsed.raw) return applyRepereHeuristic(parseGeoScene(patchVecteurs(parsed.raw)));
                 if (parsed.objects) return applyRepereHeuristic(parsed as GeoScene);
             } catch { /* JSON invalide, continuer */ }
         }
@@ -69,7 +92,7 @@ function parsePayload(payload: { raw?: string; scene?: string; key?: string }): 
                 try {
                     const parsed = JSON.parse(stored);
                     localStorage.removeItem(payload.key); // nettoyage après lecture
-                    if (parsed.raw) return applyRepereHeuristic(parseGeoScene(parsed.raw));
+                    if (parsed.raw) return applyRepereHeuristic(parseGeoScene(patchVecteurs(parsed.raw)));
                     return applyRepereHeuristic(parsed as GeoScene);
                 } catch { /* JSON invalide */ }
             }
