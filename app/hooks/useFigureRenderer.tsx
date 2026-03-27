@@ -53,32 +53,29 @@ export function useFigureRenderer() {
                 try {
                     // ── Parser la scène + heuristique repère ──────────────────────────
                     // ── Patch anti-hallucination vecteurs avant parsing ──────────────
-                    // Si le titre dit "vecteur(s)" ou si le bloc a des segment: AB
-                    // correspondant à des vecteurs nommés dans le titre → forcer vecteur:
+                    // Logique : si le titre contient 'vecteur', convertir TOUS les
+                    // segment: XY (2 majuscules) en vecteur: XY, sauf ceux qui font
+                    // partie d'un triangle: ou polygon: (qui gardent leurs segments).
                     let rawToParse = raw;
-                    const titleLine = raw.split(/[\n|]/).find(l => l.toLowerCase().startsWith('title:')) || '';
+                    const rawLines = raw.split(/[\n|]/);
+                    const titleLine = rawLines.find(l => l.toLowerCase().startsWith('title:')) || '';
                     const titleHasVectors = /vecteurs?\b/i.test(titleLine);
-                    if (titleHasVectors) {
-                        // Extraire les noms de vecteurs du titre (ex: "AB et AC" → ["AB","AC"])
-                        const vecNamesInTitle: string[] = [];
-                        const vecMatches = [...titleLine.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
-                        vecMatches.forEach(m => {
-                            const all = m[1].match(/[A-Z]{2}/g) || [];
-                            all.forEach(v => { if (!vecNamesInTitle.includes(v)) vecNamesInTitle.push(v); });
-                        });
-                        // Aussi extraire toutes paires XX dans le titre
-                        const allPairs = titleLine.match(/\b[A-Z]{2}\b/g) || [];
-                        allPairs.forEach(v => { if (!vecNamesInTitle.includes(v)) vecNamesInTitle.push(v); });
+                    const hasTriangle = /^\s*triangle\s*:/im.test(raw);
+                    const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
-                        // Remplacer segment: XY → vecteur: XY pour chaque vecteur du titre
-                        vecNamesInTitle.forEach(vecName => {
-                            const p = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
-                            rawToParse = rawToParse.replace(
-                                new RegExp(`(?:segment|seg):\\s*${p}(?:\\s|$)`, 'gi'),
-                                `vecteur: ${vecName}\n`
-                            );
-                        });
-                        console.log('[Geo] vecteur patch applied, vecNames:', vecNamesInTitle);
+                    if (titleHasVectors && !hasTriangle && !hasPolygon) {
+                        // Convertir tous les "segment: XY" (2 lettres) en "vecteur: XY"
+                        // car dans ce contexte, les segments SONT des vecteurs
+                        rawToParse = raw.replace(
+                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
+                            (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+                        );
+                        // Aussi "segment: A, B" → "vecteur: AB"
+                        rawToParse = rawToParse.replace(
+                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
+                            (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                        );
+                        console.log('[Geo] vecteur patch applied (title mode)');
                     }
                     const parsedScene = parseGeoScene(rawToParse);
                     // Si l'IA a mis repere: → on respecte.
@@ -463,15 +460,19 @@ export function useFigureRenderer() {
                     }
 
                     // Stratégie 2: utiliser les points dans leur ordre d'insertion (fallback)
-                    // Activé si type:coordinates OU si des coordonnées numériques explicites sont présentes
+                    // ⚠️ UNIQUEMENT si un triangle: ou polygon: est explicitement dans le bloc
+                    // (eviter le périmètre automatique quand l'élève demande juste des points/vecteurs)
                     if (polyVertices.length < 3) {
-                        const ptIds = objects
-                            .filter(o => o.kind === 'point')
-                            .map(o => (o as any).id as string)
-                            .filter(id => id in pointMap);
-                        const hasExplicitCoords = ptIds.length >= 3;
-                        if (hasExplicitCoords && (figureType === 'coordinates' || rawLower.includes('coordinates'))) {
-                            polyVertices = ptIds;
+                        const hasExplicitPolygon = /\btriangle\s*:|\bpolygon[eo]?\s*:/i.test(rawLower);
+                        if (hasExplicitPolygon) {
+                            const ptIds = objects
+                                .filter(o => o.kind === 'point')
+                                .map(o => (o as any).id as string)
+                                .filter(id => id in pointMap);
+                            const hasExplicitCoords = ptIds.length >= 3;
+                            if (hasExplicitCoords && (figureType === 'coordinates' || rawLower.includes('coordinates'))) {
+                                polyVertices = ptIds;
+                            }
                         }
                     }
 

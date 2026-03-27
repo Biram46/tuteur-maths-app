@@ -44,26 +44,27 @@ function applyRepereHeuristic(scene: GeoScene): GeoScene {
 }
 
 // ─── Patch anti-hallucination vecteurs ───────────────────────────────────────
-// Si le titre du bloc geo contient "vecteur(s) AB et AC", convertit
-// les lignes "segment: AB" en "vecteur: AB" avant le parsing.
+// Si le titre du bloc geo contient "vecteur(s)", convertit TOUS les
+// "segment: XY" (2 majuscules) en "vecteur: XY", SAUF si le bloc
+// contient un triangle: ou polygon: (qui ont légitimement des segments).
 function patchVecteurs(raw: string): string {
     const titleLine = raw.split(/[\n|]/).find(l => l.toLowerCase().startsWith('title:')) || '';
     if (!/vecteurs?\b/i.test(titleLine)) return raw;
 
-    // Extraire tous les noms de vecteurs du titre (paires de majuscules : AB, AC, etc.)
-    const vecNames: string[] = [];
-    const fromTitle = titleLine.match(/\b[A-Z]{2}\b/g) || [];
-    fromTitle.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
+    // Ne pas toucher aux triangles/polygones (leurs segments sont légitimes)
+    if (/^\s*triangle\s*:/im.test(raw) || /^\s*polygon[eo]?\s*:/im.test(raw)) return raw;
 
-    let patched = raw;
-    vecNames.forEach(vecName => {
-        const p = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
-        patched = patched.replace(
-            new RegExp(`(?:segment|seg):\\s*${p}(?:\\s|$)`, 'gi'),
-            `vecteur: ${vecName}\n`
-        );
-    });
-    if (patched !== raw) console.log('[Géomètre] vecteur patch applied:', vecNames);
+    // Convertir "segment: AB" → "vecteur: AB" (2 lettres majuscules consécutives)
+    let patched = raw.replace(
+        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
+        (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+    );
+    // Convertir "segment: A, B" → "vecteur: AB"
+    patched = patched.replace(
+        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
+        (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+    );
+    if (patched !== raw) console.log('[Géomètre] vecteur patch applied (title mode)');
     return patched;
 }
 
