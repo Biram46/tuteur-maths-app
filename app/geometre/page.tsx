@@ -44,17 +44,20 @@ function applyRepereHeuristic(scene: GeoScene): GeoScene {
 }
 
 // ─── Patch anti-hallucination vecteurs ───────────────────────────────────────
-// Si le titre du bloc geo contient "vecteur(s)", convertit TOUS les
-// "segment: XY" (2 majuscules) en "vecteur: XY", SAUF si le bloc
-// contient un triangle: ou polygon: (qui ont légitimement des segments).
+// Déclenché si le titre OU la ligne 'context: vecteurs' (injectée par le routeur)
+// contient "vecteur(s)". Convertit TOUS les "segment: XY" en "vecteur: XY"
+// sauf si triangle: ou polygon: sont présents dans le bloc.
 function patchVecteurs(raw: string): string {
-    const titleLine = raw.split(/[\n|]/).find(l => l.toLowerCase().startsWith('title:')) || '';
-    if (!/vecteurs?\b/i.test(titleLine)) return raw;
+    const lines = raw.split(/[\n|]/);
+    const titleLine = lines.find(l => l.toLowerCase().startsWith('title:')) || '';
+    const contextLine = lines.find(l => l.toLowerCase().startsWith('context:')) || '';
+    const hasVectorIntent = /vecteurs?\b/i.test(titleLine) || /vecteurs?\b/i.test(contextLine);
+    if (!hasVectorIntent) return raw;
 
-    // Ne pas toucher aux triangles/polygones (leurs segments sont légitimes)
+    // Ne pas toucher aux triangles/polygones
     if (/^\s*triangle\s*:/im.test(raw) || /^\s*polygon[eo]?\s*:/im.test(raw)) return raw;
 
-    // Convertir "segment: AB" → "vecteur: AB" (2 lettres majuscules consécutives)
+    // Convertir "segment: AB" → "vecteur: AB"
     let patched = raw.replace(
         /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
         (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
@@ -64,7 +67,7 @@ function patchVecteurs(raw: string): string {
         /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
         (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
     );
-    if (patched !== raw) console.log('[Géomètre] vecteur patch applied (title mode)');
+    if (patched !== raw) console.log('[Géomètre] vecteur patch applied (context:', contextLine || titleLine, ')');
     return patched;
 }
 

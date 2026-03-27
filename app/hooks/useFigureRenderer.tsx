@@ -53,29 +53,27 @@ export function useFigureRenderer() {
                 try {
                     // ── Parser la scène + heuristique repère ──────────────────────────
                     // ── Patch anti-hallucination vecteurs avant parsing ──────────────
-                    // Logique : si le titre contient 'vecteur', convertir TOUS les
-                    // segment: XY (2 majuscules) en vecteur: XY, sauf ceux qui font
-                    // partie d'un triangle: ou polygon: (qui gardent leurs segments).
+                    // Déclenché si : (1) titre contient 'vecteur', OU (2) bloc a une ligne
+                    // 'context: vecteurs' injectée par useMathRouter (source la plus fiable)
                     let rawToParse = raw;
                     const rawLines = raw.split(/[\n|]/);
                     const titleLine = rawLines.find(l => l.toLowerCase().startsWith('title:')) || '';
-                    const titleHasVectors = /vecteurs?\b/i.test(titleLine);
+                    const contextLine = rawLines.find(l => l.toLowerCase().startsWith('context:')) || '';
+                    const titleHasVectors = /vecteurs?\b/i.test(titleLine) || /vecteurs?\b/i.test(contextLine);
                     const hasTriangle = /^\s*triangle\s*:/im.test(raw);
                     const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
                     if (titleHasVectors && !hasTriangle && !hasPolygon) {
                         // Convertir tous les "segment: XY" (2 lettres) en "vecteur: XY"
-                        // car dans ce contexte, les segments SONT des vecteurs
                         rawToParse = raw.replace(
                             /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
                             (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
                         );
-                        // Aussi "segment: A, B" → "vecteur: AB"
                         rawToParse = rawToParse.replace(
                             /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
                             (match, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
                         );
-                        console.log('[Geo] vecteur patch applied (title mode)');
+                        console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
                     }
                     const parsedScene = parseGeoScene(rawToParse);
                     // Si l'IA a mis repere: → on respecte.

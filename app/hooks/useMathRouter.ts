@@ -2379,11 +2379,11 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                 block = blockLines.join('\n');
                                             }
                                             
-                                            // Anti-hallucination vecteurs : matcher singulier ET pluriel ("vecteur AB" et "vecteurs AB et AC")
-                                            if (/\bvecteurs?\b/i.test(inputCleaned)) {
-                                                // Extraire tous les noms de vecteurs (2 lettres consécutives ou séparées)
+                                            // Anti-hallucination vecteurs : matcher singulier ET pluriel
+                                            const wantsVectors = /\bvecteurs?\b/i.test(inputCleaned);
+                                            if (wantsVectors) {
+                                                // ── 1. Extraire les noms de vecteurs (depuis l'input utilisateur) ──
                                                 const vecNames: string[] = [];
-                                                // Pattern 1 : "vecteur(s) AB" ou "vecteur(s) AB et AC"
                                                 const afterVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
                                                 afterVec.forEach(m => {
                                                     m[1].split(/\s+et\s+/i).forEach(v => {
@@ -2391,17 +2391,49 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                         if (name.length === 2) vecNames.push(name);
                                                     });
                                                 });
-                                                // Pattern 2 : "vecteur(s) AB, AC et AD" (virgule + et)
                                                 const commaVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
                                                 commaVec.forEach(m => {
                                                     const all = m[1].match(/[A-Z]{2}/g) || [];
                                                     all.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
                                                 });
 
-                                                vecNames.forEach(vecName => {
-                                                    const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
-                                                    block = block.replace(new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'), `vecteur: ${vecName}\n`);
-                                                });
+                                                // ── 2. Conversion inconditionnelle : segment: XY → vecteur: XY ──
+                                                // Approche robuste : on remplace TOUS les segment: 2-lettres
+                                                // et aussi ceux dont le nom est dans vecNames
+                                                const blockHasTriangle = /^\s*triangle\s*:/im.test(block);
+                                                const blockHasPolygon = /^\s*polygon[eo]?\s*:/im.test(block);
+                                                if (!blockHasTriangle && !blockHasPolygon) {
+                                                    // Remplacer segment: AB (2 lettres majuscules) → vecteur: AB
+                                                    block = block.replace(
+                                                        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z]{2})\s*(?=\n|$)/gim,
+                                                        (m, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+                                                    );
+                                                    // Remplacer segment: A, B → vecteur: AB
+                                                    block = block.replace(
+                                                        /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([A-Z])\s*,\s*([A-Z])\s*(?=\n|$)/gim,
+                                                        (m, indent, a, b) => `\n${indent}vecteur: ${a.toUpperCase()}${b.toUpperCase()}`
+                                                    );
+                                                } else if (vecNames.length > 0) {
+                                                    // Triangle/polygone présent : patcher uniquement les vecteurs nommés
+                                                    vecNames.forEach(vecName => {
+                                                        const pattern = `\\[?\\s*${vecName[0]}\\s*,?\\s*${vecName[1]}\\s*\\]?`;
+                                                        block = block.replace(
+                                                            new RegExp(`(?:segment|droite|demi-droite):\\s*${pattern}(?:\\s|$)`, 'gi'),
+                                                            `vecteur: ${vecName}\n`
+                                                        );
+                                                    });
+                                                }
+
+                                                // ── 3. Injecter 'context: vecteurs' pour les renderers ──
+                                                // Cela permet à useFigureRenderer et geometre/page.tsx
+                                                // de recoriger si nécessaire (double sécurité)
+                                                if (!/^\s*context\s*:/im.test(block)) {
+                                                    const blockLines2 = block.split('\n');
+                                                    const insertAt = blockLines2.findIndex(l => l.toLowerCase().startsWith('title:')) + 1;
+                                                    blockLines2.splice(insertAt > 0 ? insertAt : 1, 0,
+                                                        `context: vecteurs${vecNames.length > 0 ? ', ' + vecNames.join(', ') : ''}`);
+                                                    block = blockLines2.join('\n');
+                                                }
                                             }
 
                                             // Anti-hallucination angle_droit : forcer le bon sommet si "rectangle en X"
