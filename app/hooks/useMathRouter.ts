@@ -2383,19 +2383,36 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                             const wantsVectors = /\bvecteurs?\b/i.test(inputCleaned);
                                             if (wantsVectors) {
                                                 // ── 1. Extraire les noms de vecteurs (depuis l'input utilisateur) ──
+                                                // On cherche dans DEUX sources :
+                                                //   a) inputCleaned : LaTeX déjà converti ("vecteur AB")
+                                                //   b) inputText brut : LaTeX original (\vec{AB}, \overrightarrow{AB})
+                                                // Cela couvre le cas où deLatexInput produit "vecteur vecteur AB"
                                                 const vecNames: string[] = [];
-                                                const afterVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
+                                                const addVecName = (name: string) => {
+                                                    const n = name.trim().toUpperCase();
+                                                    // Filtrer les mots comme "VE", "EC", "CT" issus de "vecteur" mal découpé
+                                                    if (n.length === 2 && /^[A-Z]{2}$/.test(n) && !vecNames.includes(n)) vecNames.push(n);
+                                                };
+                                                // a) Via inputCleaned ("vecteur AB", "les vecteurs AB et AC")
+                                                //    Gérer doublon "vecteur vecteur AB" → skip le 1er mot si c'est aussi "vecteur"
+                                                const cleanedForVec = inputCleaned.replace(/\bvecteurs?\s+vecteurs?\s+/gi, 'vecteur ');
+                                                const afterVec = [...cleanedForVec.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
                                                 afterVec.forEach(m => {
-                                                    m[1].split(/\s+et\s+/i).forEach(v => {
-                                                        const name = v.trim().toUpperCase();
-                                                        if (name.length === 2) vecNames.push(name);
-                                                    });
+                                                    m[1].split(/\s+et\s+/i).forEach(v => addVecName(v));
                                                 });
-                                                const commaVec = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
+                                                const commaVec = [...cleanedForVec.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
                                                 commaVec.forEach(m => {
-                                                    const all = m[1].match(/[A-Z]{2}/g) || [];
-                                                    all.forEach(v => { if (!vecNames.includes(v)) vecNames.push(v); });
+                                                    (m[1].match(/[A-Z]{2}/g) || []).forEach(v => addVecName(v));
                                                 });
+                                                // b) Via inputText brut : \vec{AB}, \overrightarrow{AB}
+                                                const rawLatexVecs = [...inputText.matchAll(/\\(?:vec|overrightarrow)\s*\{([A-Z]{1,2})([A-Z]{1,2})?\}/g)];
+                                                rawLatexVecs.forEach(m => {
+                                                    if (m[2]) addVecName(m[1] + m[2]); // \vec{A}{B} → AB
+                                                    else if (m[1].length === 2) addVecName(m[1]); // \vec{AB}
+                                                });
+                                                // c) Via inputText brut simple : \vec AB, \overrightarrow AB
+                                                const rawLatexVecs2 = [...inputText.matchAll(/\\(?:vec|overrightarrow)\s+([A-Z]{2})\b/g)];
+                                                rawLatexVecs2.forEach(m => addVecName(m[1]));
 
                                                 // ── 2. Conversion robuste : segment: [tout format] → vecteur: XY ──
                                                 // Gère : "AB", "[AB]", "A, B", "A(0,0), B(3,1)", "AB, bleu"...
@@ -2548,18 +2565,27 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         // Anti-hallucination vecteurs (bloc final) : singulier ET pluriel + multi-noms
                         if (/\bvecteurs?\b/i.test(inputCleaned)) {
                             const vecNamesFinal: string[] = [];
-                            const afterVecF = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
+                            const addVecNameF = (name: string) => {
+                                const n = name.trim().toUpperCase();
+                                if (n.length === 2 && /^[A-Z]{2}$/.test(n) && !vecNamesFinal.includes(n)) vecNamesFinal.push(n);
+                            };
+                            const cleanedForVecF = inputCleaned.replace(/\bvecteurs?\s+vecteurs?\s+/gi, 'vecteur ');
+                            const afterVecF = [...cleanedForVecF.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:\s+et\s+[A-Z]{2})*)/gi)];
                             afterVecF.forEach(m => {
-                                m[1].split(/\s+et\s+/i).forEach(v => {
-                                    const name = v.trim().toUpperCase();
-                                    if (name.length === 2) vecNamesFinal.push(name);
-                                });
+                                m[1].split(/\s+et\s+/i).forEach(v => addVecNameF(v));
                             });
-                            const commaVecF = [...inputCleaned.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
+                            const commaVecF = [...cleanedForVecF.matchAll(/\bvecteurs?\s+([A-Z]{2}(?:[,\s]+(?:et\s+)?[A-Z]{2})*)/gi)];
                             commaVecF.forEach(m => {
-                                const all = m[1].match(/[A-Z]{2}/g) || [];
-                                all.forEach(v => { if (!vecNamesFinal.includes(v)) vecNamesFinal.push(v); });
+                                (m[1].match(/[A-Z]{2}/g) || []).forEach(v => addVecNameF(v));
                             });
+                            // Aussi depuis le LaTeX brut
+                            const rawLatexVecsF = [...inputText.matchAll(/\\(?:vec|overrightarrow)\s*\{([A-Z]{1,2})([A-Z]{1,2})?\}/g)];
+                            rawLatexVecsF.forEach(m => {
+                                if (m[2]) addVecNameF(m[1] + m[2]);
+                                else if (m[1].length === 2) addVecNameF(m[1]);
+                            });
+                            const rawLatexVecs2F = [...inputText.matchAll(/\\(?:vec|overrightarrow)\s+([A-Z]{2})\b/g)];
+                            rawLatexVecs2F.forEach(m => addVecNameF(m[1]));
 
                             const finalHasTriangle = /^\s*triangle\s*:/im.test(filteredInner);
                             const finalHasPolygon = /^\s*polygon[eo]?\s*:/im.test(filteredInner);

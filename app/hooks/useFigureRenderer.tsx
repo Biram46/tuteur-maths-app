@@ -83,10 +83,28 @@ export function useFigureRenderer() {
                                 return name ? `\n${indent}vecteur: ${name}` : match;
                             }
                         );
-                        // Normaliser les notations LaTeX dans les lignes "vecteur:"
+                        // Normaliser les notations LaTeX dans les lignes "vecteur:" :
+                        // Couvre : $\vec{AB}$, \overrightarrow{AB}, $\overrightarrow{A B}$, \vec AB, etc.
                         rawToParse = rawToParse.replace(
-                            /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*\$?\\?(?:overrightarrow|vec)\s*\{?\s*([A-Z]{2})\s*\}?\$?\s*(?=\n|$)/gim,
-                            (match, indent, name) => `\n${indent}vecteur: ${name.toUpperCase()}`
+                            /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*([^\n]+)/gim,
+                            (match, indent, content) => {
+                                const cleaned = content
+                                    .replace(/\$\$?/g, '')
+                                    .replace(/\\overrightarrow\s*\{([^}]*)\}/g, '$1')
+                                    .replace(/\\overrightarrow\s*/g, '')
+                                    .replace(/\\vec\s*\{([^}]*)\}/g, '$1')
+                                    .replace(/\\vec\s*/g, '')
+                                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                                    .replace(/[{}]/g, ' ')
+                                    .replace(/\[|\]/g, ' ')
+                                    .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
+                                    .trim();
+                                const twoM = cleaned.match(/\b([A-Z])([A-Z])\b/);
+                                if (twoM) return `\n${indent}vecteur: ${twoM[1]}${twoM[2]}`;
+                                const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
+                                if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
+                                return match;
+                            }
                         );
                         // ── Synthèse vecteurs manquants ────────────────────────────────
                         // Si l'IA a généré les points mais oublié les vecteurs (fréquent avec coords

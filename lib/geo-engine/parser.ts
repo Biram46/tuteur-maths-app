@@ -86,6 +86,9 @@ export function parseGeoScene(raw: string): GeoScene {
             case 'geo': // ligne d'en-tête, skip
                 break;
 
+            case 'context': // ligne de contexte injectée par useMathRouter, skip (pas d'objet à créer)
+                break;
+
             case 'title':
                 title = rest;
                 break;
