@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useCallback } from 'react';
 import { FigureErrorBoundary } from '@/app/components/FigureErrorBoundary';
@@ -52,9 +52,7 @@ export function useFigureRenderer() {
             if (firstToken === 'geo' || firstToken.startsWith('geo ')) {
                 try {
                     // ── Parser la scène + heuristique repère ──────────────────────────
-                    // ── Patch anti-hallucination vecteurs avant parsing ──────────────
-                    // Déclenché si : (1) titre contient 'vecteur', OU (2) bloc a une ligne
-                    // 'context: vecteurs' injectée par useMathRouter (source la plus fiable)
+                    // Patch anti-hallucination vecteurs avant parsing
                     let rawToParse = raw;
                     const rawLines = raw.split(/[\n|]/);
                     const titleLine = rawLines.find(l => l.toLowerCase().startsWith('title:')) || '';
@@ -63,8 +61,34 @@ export function useFigureRenderer() {
                     const hasTriangle = /^\s*triangle\s*:/im.test(raw);
                     const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
+                    // ── NORMALISATION INCONDITIONNELLE :
+                    // Normaliser les lignes "vecteur:" contenant du LaTeX, TOUJOURS
+                    // (indépendamment du titre), car l'IA peut générer $\vec{AB}$
+                    // même dans des figures sans titre explicite "vecteur".
+                    rawToParse = rawToParse.replace(
+                        /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*([^\n]+)/gim,
+                        (match, indent, content) => {
+                            const cleaned = content
+                                .replace(/\$\$?/g, '')
+                                .replace(/\\overrightarrow\s*\{([^}]*)\}/g, '$1')
+                                .replace(/\\overrightarrow\s*/g, '')
+                                .replace(/\\vec\s*\{([^}]*)\}/g, '$1')
+                                .replace(/\\vec\s*/g, '')
+                                .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                                .replace(/[{}]/g, ' ')
+                                .replace(/\[|\]/g, ' ')
+                                .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
+                                .trim();
+                            const twoM = cleaned.match(/\b([A-Z])([A-Z])\b/);
+                            if (twoM) return `\n${indent}vecteur: ${twoM[1]}${twoM[2]}`;
+                            const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
+                            if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
+                            return match;
+                        }
+                    );
+
                     if (titleHasVectors && !hasTriangle && !hasPolygon) {
-                        // Conversion robuste : segment: [tout format] → vecteur: XY
+                        // Conversion : segment: [tout format] → vecteur: XY
                         const segToVec = (content: string): string | null => {
                             const clean = content
                                 .replace(/\$\$?/g, '')
@@ -76,39 +100,14 @@ export function useFigureRenderer() {
                             const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
                             return letters.length === 2 ? `${letters[0]}${letters[1]}` : null;
                         };
-                        rawToParse = raw.replace(
+                        rawToParse = rawToParse.replace(
                             /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
                             (match, indent, content) => {
                                 const name = segToVec(content);
                                 return name ? `\n${indent}vecteur: ${name}` : match;
                             }
                         );
-                        // Normaliser les notations LaTeX dans les lignes "vecteur:" :
-                        // Couvre : $\vec{AB}$, \overrightarrow{AB}, $\overrightarrow{A B}$, \vec AB, etc.
-                        rawToParse = rawToParse.replace(
-                            /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*([^\n]+)/gim,
-                            (match, indent, content) => {
-                                const cleaned = content
-                                    .replace(/\$\$?/g, '')
-                                    .replace(/\\overrightarrow\s*\{([^}]*)\}/g, '$1')
-                                    .replace(/\\overrightarrow\s*/g, '')
-                                    .replace(/\\vec\s*\{([^}]*)\}/g, '$1')
-                                    .replace(/\\vec\s*/g, '')
-                                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
-                                    .replace(/[{}]/g, ' ')
-                                    .replace(/\[|\]/g, ' ')
-                                    .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
-                                    .trim();
-                                const twoM = cleaned.match(/\b([A-Z])([A-Z])\b/);
-                                if (twoM) return `\n${indent}vecteur: ${twoM[1]}${twoM[2]}`;
-                                const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
-                                if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
-                                return match;
-                            }
-                        );
-                        // ── Synthèse vecteurs manquants ────────────────────────────────
-                        // Si l'IA a généré les points mais oublié les vecteurs (fréquent avec coords
-                        // explicites), on les reconstruit depuis context: vecteurs, AB, AC
+                        // ── Synthèse vecteurs manquants ──
                         const hasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(rawToParse);
                         if (!hasVecLines && contextLine) {
                             const ctxContent = contextLine.replace(/^context\s*:\s*/i, '').replace(/\bvecteurs?\b/i, '').trim();

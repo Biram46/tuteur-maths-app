@@ -2262,13 +2262,15 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                 if (now - lastGeoUpdate > 200) {
                                     lastGeoUpdate = now;
                                     // Garder le bloc @@@ dans le message → renderFigure le rend inline
-                                    // On sépare le bloc @@@ du texte explicatif pour l'affichage
+                                    // Priorité : filteredGeoBlock (patché) > bloc brut de l'IA
                                     const geoMatchStream = aiText.match(/@@@[\s\S]*?@@@/);
                                     const textAfterBlock = aiText.replace(/@@@[\s\S]*?@@@/g, '').trim();
                                     const fixedText = fixLatexContent(textAfterBlock).content;
-                                    // Si le bloc est complet, le mettre en premier; sinon afficher le texte
-                                    const streamContent = geoMatchStream
-                                        ? `${geoMatchStream[0]}\n\n${fixedText}`.trim()
+                                    // Si filteredGeoBlock est déjà disponible (le patch a été appliqué),
+                                    // l'utiliser pour éviter d'afficher le bloc brut (sans vecteurs patchés)
+                                    const blockToDisplay = filteredGeoBlock || (geoMatchStream ? geoMatchStream[0] : null);
+                                    const streamContent = blockToDisplay
+                                        ? `${blockToDisplay}\n\n${fixedText}`.trim()
                                         : fixedText;
                                     setMessages(prev => {
                                         const u = [...prev];
@@ -2540,9 +2542,9 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                     const cleanFinalText = aiText.replace(/@@@[\s\S]*?@@@/g, '').trim();
                     const finalFixed = fixLatexContent(patchMarkdownTables(cleanFinalText)).content;
 
-                    // Appliquer le filtre repère déterministe sur le bloc final
-                    // (même logique que dans le streaming, pour garantir la cohérence)
-                    let geoBlockDisplay = filteredGeoBlock; // préférer le bloc déjà filtré
+                    // Construire le contenu final
+                    // Priorité : filteredGeoBlock (patché + déterministe) > bloc brut
+                    let geoBlockDisplay: string | null = filteredGeoBlock;
                     if (!geoBlockDisplay && geoBlockMatch) {
                         // filteredGeoBlock vide (timing) → filtrer le brut maintenant
                         const rawBlock = geoBlockMatch[0];
