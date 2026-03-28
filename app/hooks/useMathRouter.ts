@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback } from 'react';
 import type { ChatMessage } from '@/lib/perplexity';
@@ -1317,7 +1317,7 @@ RÈGLES ABSOLUES :
                 || /\bcourbe\b|\bgraphe\b|\bgraphique\b|\bplot\b/i.test(inputNormV)
                 || /represent/i.test(inputNormV)
                 || /visualise|affiche|montre/i.test(inputNormV)
-            ) && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteur|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
+            ) && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteurs?|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
 
             if (expr && expr.includes('x') && expr.length > 1) {
                 console.log(`[MathEngine] 🎯 Tableau de variations pour: "${expr}"`);
@@ -1448,7 +1448,7 @@ RÈGLES ABSOLUES :
             || /lecture\s+graphique/i.test(inputNorm)
         ) && !/signe|variation/i.test(inputNorm)
             // Exclure les demandes géométriques pour éviter un double traitement
-            && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteur|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
+            && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteurs?|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
         const wantsAddCurve = (
             // Mots-clés explicites : "ajoute", "rajoute", "superpose"
             (/ajoute|rajoute|superpose/i.test(inputNorm) && /courbe|fonction|graph|f\s*\(|g\s*\(|h\s*\(/i.test(inputNorm))
@@ -1463,7 +1463,7 @@ RÈGLES ABSOLUES :
         const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
             && /graphi|graphement|graphique|graphiquement|courbe/i.test(inputNorm);
         const wantsTangente = /tangente|tangent/i.test(inputNorm)
-            && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteur|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
+            && !/\b(triangle|rectangle|carr[eé]|polygone|cercle|droite(?!\s+d)|segment|demi-droite|vecteurs?|angle|médiatrice|bissectrice|hauteur|médiane|parallèle|perpendiculaire)\b/i.test(inputLower);
         const wantsEffacerGraph = /efface.*graph|reset.*graph|nettoie.*graph|efface.*courbe|reset.*courbe/i.test(inputNorm);
         const wantsGraphAction = wantsGraph || wantsAddCurve || wantsIntersection || wantsResolve || wantsTangente || wantsEffacerGraph;
 
@@ -2010,7 +2010,8 @@ RÈGLES ABSOLUES :
         // la fenêtre /geometre via BroadcastChannel + sessionStorage.
         // ═══════════════════════════════════════════════════════════
         const wantsGeometry = (
-            /\b(triangle|rectangle|carr[eé]|polygone|cercle|droite|segment|demi-droite|vecteur|angle)\b/i.test(inputLower)
+            /\b(triangle|rectangle|carr[eé]|polygone|cercle|droite|segment|demi-droite|vecteurs?|angle)\b/i.test(inputLower)
+            || /\b(repr[eé]sente|dessine|trace|montre|place)\b.*\bvecteurs?\b/i.test(inputLower)
             || /\b(constru|trac[eé]|repr[eé]sente|dessine|place)\b.*\b(point|figure|géo|geo)\b/i.test(inputLower)
             || /\b(figure géo|figure géométrique|construction géométrique|médiatrice|bissectrice|hauteur|médiane)\b/i.test(inputLower)
             || /\b[A-Z]\s*\(\s*-?\d/.test(inputText) // Coordonnées A(x,y) ou A(x; y)
@@ -2113,8 +2114,14 @@ RÈGLES STRICTES SUR LE REPÈRE :
 - Le bloc @@@ DOIT commencer par "geo" sur la première ligne
 - Respecte les conventions EN France : [AB] pour segments, (d) pour droites, [AB) pour demi-droites
 - Pour un vecteur canonique, utilise OBLIGATOIREMENT : vecteur: AB
-  ⛔ JAMAIS "segment: AB" si l'élève demande le vecteur $\\vec{AB}$ — utilise toujours "vecteur: AB"
+  ⛔ JAMAIS "segment: AB" si l'élève demande un vecteur — utilise toujours "vecteur: AB"
   ⛔ Si l'élève demande "les vecteurs AB et AC", écris DEUX lignes : "vecteur: AB" ET "vecteur: AC"
+  ⛔ VECTEURS NOMMÉS : si l'élève dit "le vecteur u de A vers B" ou "vecteur u", utilise :
+    vecteur: AB, u   (le 3e argument = nom affiché sur la figure)
+  ⛔⛔⛔ INTERDIT ABSOLU : NE JAMAIS demander les coordonnées à l'élève !
+    - Si les coordonnées ne sont PAS données → TU les choisis immédiatement (A(0,0), B(3,1), etc.)
+    - Si les coordonnées SONT données (ex: A(0;0), B(3;2)) → utilise-les directement
+    - Dans les deux cas : ⛔ JAMAIS de question, JAMAIS "pouvez-vous me donner les coordonnées"
 - Pour un angle droit :
   ⛔⛔ SYNTAXE EXACTE : angle_droit: [bras1], [SOMMET], [bras2] — le SOMMET est TOUJOURS au MILIEU !
   ⛔ "triangle rectangle en A" → tu DOIS écrire : angle_droit: B, A, C  (A est au milieu !)

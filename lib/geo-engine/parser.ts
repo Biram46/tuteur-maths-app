@@ -254,15 +254,18 @@ export function parseGeoScene(raw: string): GeoScene {
                     const COLOR_NAMES = /^(rouge|bleu|vert|orange|violet|rose|noir|blanc|gris|jaune|cyan|magenta|red|blue|green|yellow|purple|pink|black|white|gray|grey)$/i;
                     const possibleColors = parts.filter(p => /^#/.test(p) || COLOR_NAMES.test(p.trim()));
                     if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
-                    // Label : uniquement si c'est une LaTeX expression ou un chiffre (pas un point A-Z)
+                    // Label : nom du vecteur (ex: u, v, w) ou expression LaTeX
+                    // ⚠️ On accepte les lettres minuscules (u, v, w) comme noms de vecteurs
+                    // mais on rejette les majuscules isolées qui sont des identifiants de points (A, B, C...)
                     const possibleLabels = parts.filter(p => {
                         const t = p.trim();
                         if (!t || COLOR_NAMES.test(t)) return false;
                         if (/^#/.test(t)) return false;
-                        if (/^[A-Z]{1,2}$/.test(t)) return false; // identifiant de point seul
+                        if (/^[A-Z]{1,2}$/.test(t)) return false; // identifiant de point MAJ seul → pas un label
+                        // Lettre minuscule seule (u, v, w, i, j, k...) → nom de vecteur valide
                         return true;
                     });
-                    if (possibleLabels.length > 1) label = possibleLabels[1];
+                    if (possibleLabels.length > 0) label = possibleLabels[0];
                 }
                 
                 if (a && b) {
