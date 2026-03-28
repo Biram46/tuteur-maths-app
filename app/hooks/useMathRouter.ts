@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback } from 'react';
 import type { ChatMessage } from '@/lib/perplexity';
@@ -2467,24 +2467,55 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                     block = blockLines2.join('\n');
                                                 }
 
-                                                // ── 4. Synthèse vecteurs manquants ──────────────────────────────
-                                                // Si l'IA a généré les points MAIS oublié les lignes vecteur:
-                                                // (cas fréquent quand les coordonnées sont explicites), on les ajoute.
+                                                // Step 4: Synthesis + auto-generate missing points
                                                 if (!blockHasTriangle && !blockHasPolygon && vecNames.length > 0) {
                                                     const blockHasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(block);
                                                     if (!blockHasVecLines) {
-                                                        const toAdd = vecNames.filter(name => {
-                                                            // Vérifier que les 2 points du vecteur sont déclarés dans le bloc
-                                                            const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(block);
-                                                            const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(block);
-                                                            return hasA && hasB;
+                                                        const toAdd: string[] = [];
+                                                        const autoOff = [[-1,2],[2,-1],[-2,-1],[1,3],[-3,1]];
+                                                        vecNames.forEach((name, idx) => {
+                                                            const hA = new RegExp(
+`^\\\\s*point\\\\s*:.*\\\\b${name[0]}\\\\b`
+, 'im').test(block);
+                                                            const hB = new RegExp(
+`^\\\\s*point\\\\s*:.*\\\\b${name[1]}\\\\b`
+, 'im').test(block);
+                                                            if (hA && hB) { toAdd.push(name); }
+                                                            else if (hA && !hB) {
+                                                                const aM = block.match(new RegExp(
+`^\\\\s*point\\\\s*:\\\\s*${name[0]}\\\\s*,\\\\s*(-?[\\\\d.]+)\\\\s*,\\\\s*(-?[\\\\d.]+)`
+, 'im'));
+                                                                const ax = aM ? parseFloat(aM[1]) : 0;
+                                                                const ay = aM ? parseFloat(aM[2]) : 0;
+                                                                const [ox,oy] = autoOff[idx % autoOff.length];
+                                                                block += 
+`\npoint: ${name[1]}, ${ax+ox}, ${ay+oy}`;
+                                                                toAdd.push(name);
+                                                            }
                                                         });
                                                         if (toAdd.length > 0) {
-                                                            block += '\n' + toAdd.map(n => `vecteur: ${n}`).join('\n');
-                                                            console.log('[Geo] Vecteurs synthétisés (IA les avait omis):', toAdd);
+                                                            block += '\n' + toAdd.map(n => 
+`vecteur: ${n}`)
+.join('\n');
+                                                            console.log('[Geo] Vecteurs synthétisés:', toAdd);
                                                         }
                                                     }
                                                 }
+                                                // Step 5: Named vector labels (vecteur u de A vers B)
+                                                const namedVecMap = new Map<string, string>();
+                                                const nvP1 = [...inputText.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
+                                                nvP1.forEach(m => namedVecMap.set(
+`${m[2].toUpperCase()}${m[3].toUpperCase()}`
+, m[1]));
+                                                const nvP2 = [...inputText.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
+                                                nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+                                                namedVecMap.forEach((lbl, pts) => {
+                                                    block = block.replace(new RegExp(
+`^([ \t]*vecteur:\\s*${pts})[ \t]*$`
+, 'gim'), 
+`$1, ${lbl}`
+);
+                                                });
                                             }
 
                                             // Anti-hallucination angle_droit : forcer le bon sommet si "rectangle en X"
