@@ -227,17 +227,24 @@ export function parseGeoScene(raw: string): GeoScene {
                     .replace(/[{}]/g, ' ')                              // accolades
                     .replace(/\[|\]/g, ' ')                             // crochets
                     .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b|\bOVERRIGHTARROW\b/gi, ' ');
-                // Chercher d'abord 2 lettres MAJ consécutives (AB, BC...) — cas le plus fiable
-                const twoLettersVecMatch = cleanVecRest.match(/\b([A-Z])([A-Z])\b/);
+                // Chercher d'abord 2 lettres MAJ adjacentes (AB, BC...) — cas le plus fiable
+                const twoLettersVecMatch = cleanVecRest.match(/\b([A-Z]{2})\b/);
                 let a: string, b: string;
                 if (twoLettersVecMatch) {
-                    a = twoLettersVecMatch[1];
-                    b = twoLettersVecMatch[2];
+                    a = twoLettersVecMatch[1][0];
+                    b = twoLettersVecMatch[1][1];
                 } else {
-                    // Fallback : extraire les 2 premières lettres MAJ isolées
-                    const letters = (cleanVecRest.toUpperCase().match(/[A-Z]/g) || []).slice(0, 2);
-                    a = letters[0] || '';
-                    b = letters[1] || '';
+                    // Deuxième essai : 2 lettres MAJ séparées par un espace ("A B")
+                    const spacedMatch = cleanVecRest.match(/\b([A-Z])\b[\s,]+\b([A-Z])\b/);
+                    if (spacedMatch) {
+                        a = spacedMatch[1];
+                        b = spacedMatch[2];
+                    } else {
+                        // Fallback : extraire les 2 premières lettres MAJ isolées
+                        const letters = (cleanVecRest.toUpperCase().match(/[A-Z]/g) || []).slice(0, 2);
+                        a = letters[0] || '';
+                        b = letters[1] || '';
+                    }
                 }
                 let label: string | undefined;
                 let color: string | undefined;

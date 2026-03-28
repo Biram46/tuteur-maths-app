@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback } from 'react';
 import type { ChatMessage } from '@/lib/perplexity';
@@ -2429,8 +2429,10 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                                 .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
                                                                 .replace(/[{}]/g, ' ')
                                                                 .replace(/\[|\]/g, ' ');
-                                                            const two = clean.match(/\b([A-Z])([A-Z])\b/);
-                                                            if (two) return `\n${indent}vecteur: ${two[1]}${two[2]}`;
+                                                            const twoAdj = clean.match(/\b([A-Z]{2})\b/);
+                                                            if (twoAdj) return `\n${indent}vecteur: ${twoAdj[1][0]}${twoAdj[1][1]}`;
+                                                            const twoSpc = clean.match(/\b([A-Z])\b[\s,]+\b([A-Z])\b/);
+                                                            if (twoSpc) return `\n${indent}vecteur: ${twoSpc[1]}${twoSpc[2]}`;
                                                             const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
                                                             if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
                                                             return m; // Impossible à convertir → garder
@@ -2601,8 +2603,10 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                             .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
                                             .replace(/[{}]/g, ' ')
                                             .replace(/\[|\]/g, ' ');
-                                        const two = clean.match(/\b([A-Z])([A-Z])\b/);
-                                        if (two) return `\n${indent}vecteur: ${two[1]}${two[2]}`;
+                                        const twoAdj = clean.match(/\b([A-Z]{2})\b/);
+                                        if (twoAdj) return `\n${indent}vecteur: ${twoAdj[1][0]}${twoAdj[1][1]}`;
+                                        const twoSpc = clean.match(/\b([A-Z])\b[\s,]+\b([A-Z])\b/);
+                                        if (twoSpc) return `\n${indent}vecteur: ${twoSpc[1]}${twoSpc[2]}`;
                                         const letters = (clean.match(/[A-Z]/g) || []).slice(0, 2);
                                         if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
                                         return m;

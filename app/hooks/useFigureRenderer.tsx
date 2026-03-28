@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useCallback } from 'react';
 import { FigureErrorBoundary } from '@/app/components/FigureErrorBoundary';
@@ -58,6 +58,14 @@ export function useFigureRenderer() {
                     const titleLine = rawLines.find(l => l.toLowerCase().startsWith('title:')) || '';
                     const contextLine = rawLines.find(l => l.toLowerCase().startsWith('context:')) || '';
                     const titleHasVectors = /vecteurs?\b/i.test(titleLine) || /vecteurs?\b/i.test(contextLine);
+                    // Extraire les noms de vecteurs depuis le contexte (ex: "context: vecteurs, AB, AC")
+                    const ctxVecNames: string[] = [];
+                    if (contextLine) {
+                        const ctxBody = contextLine.replace(/^context\s*:\s*/i, '');
+                        (ctxBody.match(/\b([A-Z])([A-Z])\b/g) || []).forEach(v => {
+                            if (!ctxVecNames.includes(v)) ctxVecNames.push(v);
+                        });
+                    }
                     const hasTriangle = /^\s*triangle\s*:/im.test(raw);
                     const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
@@ -79,7 +87,11 @@ export function useFigureRenderer() {
                                 .replace(/\[|\]/g, ' ')
                                 .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
                                 .trim();
-                            const twoM = cleaned.match(/\b([A-Z])([A-Z])\b/);
+                            // Chercher 2 lettres MAJ adjacentes ("AB") en priorité
+                            const twoMAdj = cleaned.match(/\b([A-Z]{2})\b/);
+                            if (twoMAdj) return `\n${indent}vecteur: ${twoMAdj[1][0]}${twoMAdj[1][1]}`;
+                            // Sinon chercher 2 lettres MAJ séparées ("A B")
+                            const twoM = cleaned.match(/\b([A-Z])\b[\s,]*\b([A-Z])\b/);
                             if (twoM) return `\n${indent}vecteur: ${twoM[1]}${twoM[2]}`;
                             const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
                             if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
@@ -108,11 +120,20 @@ export function useFigureRenderer() {
                             }
                         );
                         // ── Synthèse vecteurs manquants ──
-                        const hasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(rawToParse);
-                        if (!hasVecLines && contextLine) {
+                        // Extraire les noms de vecteurs attendus depuis le contexte
+                        const vecNamesFR = ctxVecNames.length > 0 ? ctxVecNames : [];
+                        if (vecNamesFR.length === 0 && contextLine) {
+                            // Fallback : extraire depuis le contextLine brut
                             const ctxContent = contextLine.replace(/^context\s*:\s*/i, '').replace(/\bvecteurs?\b/i, '').trim();
-                            const vecNamesCtx = (ctxContent.match(/\b[A-Z]{2}\b/g) || []).filter((n, i, arr) => arr.indexOf(n) === i);
-                            const toAdd = vecNamesCtx.filter(name => {
+                            (ctxContent.match(/\b[A-Z]{2}\b/g) || []).forEach(v => {
+                                if (!vecNamesFR.includes(v)) vecNamesFR.push(v);
+                            });
+                        }
+                        if (vecNamesFR.length > 0) {
+                            // Vérifier quels vecteurs sont effectivement absents du bloc
+                            const toAdd = vecNamesFR.filter(name => {
+                                const alreadyPresent = new RegExp(`^\\s*(?:vecteur|vector|vec)\\s*:\\s*${name}\\s*$`, 'im').test(rawToParse);
+                                if (alreadyPresent) return false;
                                 const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(rawToParse);
                                 const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(rawToParse);
                                 return hasA && hasB;
@@ -120,6 +141,12 @@ export function useFigureRenderer() {
                             if (toAdd.length > 0) {
                                 rawToParse += '\n' + toAdd.map(n => `vecteur: ${n}`).join('\n');
                                 console.log('[Geo] Vecteurs synthétisés (IA les avait omis):', toAdd);
+                            }
+                        } else {
+                            // Si pas de noms contextuels, vérifier juste si aucun vecteur n'existe
+                            const hasVecLines = /^\s*(?:vecteur|vector|vec)\s*:/im.test(rawToParse);
+                            if (!hasVecLines) {
+                                console.log('[Geo] Aucun vecteur détecté mais titleHasVectors est true — pas de synthèse possible sans noms de vecteurs');
                             }
                         }
                         console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
