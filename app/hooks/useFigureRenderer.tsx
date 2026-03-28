@@ -149,6 +149,20 @@ export function useFigureRenderer() {
                                 console.log('[Geo] Aucun vecteur détecté mais titleHasVectors est true — pas de synthèse possible sans noms de vecteurs');
                             }
                         }
+                        
+                        // ── 5. Labels nommés (vecteur u de A vers B) ────────────────────
+                        if (contextLine) {
+                            const namedVecMap = new Map<string, string>();
+                            const nvP1 = [...contextLine.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
+                            nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
+                            const nvP2 = [...contextLine.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
+                            nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+                            namedVecMap.forEach((lbl, pts) => {
+                                const pattern = `\\[?\\s*${pts[0]}\\s*,?\\s*${pts[1]}\\s*\\]?`;
+                                rawToParse = rawToParse.replace(new RegExp(`^([ \\t]*(?:vecteur|vector|vec)\\s*:\\s*${pattern})\\s*$`, 'gim'), `$1, ${lbl}`);
+                            });
+                        }
+                        
                         console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
                     }
                     const parsedScene = parseGeoScene(rawToParse);

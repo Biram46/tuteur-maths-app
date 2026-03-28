@@ -2497,9 +2497,9 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                                                 }
                                                 // ── 5. Labels nommés (vecteur u de A vers B) ────────────────────
                                                 const namedVecMap = new Map<string, string>();
-                                                const nvP1 = [...inputText.matchAll(/\\bvecteurs?\\s+([a-z](?:')?)\\s+(?:de\\s+)?([A-Z])\\s*(?:vers|->)\\s*([A-Z])/gi)];
+                                                const nvP1 = [...inputText.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
                                                 nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
-                                                const nvP2 = [...inputText.matchAll(/\\bvecteurs?\\s+([a-z](?:')?)[=\\s]+([A-Z]{2})\\b/gi)];
+                                                const nvP2 = [...inputText.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                                                 nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
                                                 namedVecMap.forEach((lbl, pts) => {
                                                     // FIX: \\s*$ instead of [ \\t]*$ allows matching \\r and \\n correctly without failing
