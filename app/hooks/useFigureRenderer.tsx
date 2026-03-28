@@ -113,7 +113,7 @@ export function useFigureRenderer() {
                             return letters.length === 2 ? `${letters[0]}${letters[1]}` : null;
                         };
                         rawToParse = rawToParse.replace(
-                            /(?:^|\n)(\s*)(?:segment|seg)\s*:\s*([^\n]+)/gim,
+                            /(?:^|\n)(\s*)(?:segment|seg|droite|demi[- ]?droite)\s*:\s*([^\n]+)/gim,
                             (match, indent, content) => {
                                 const name = segToVec(content);
                                 return name ? `\n${indent}vecteur: ${name}` : match;
@@ -132,7 +132,7 @@ export function useFigureRenderer() {
                         if (vecNamesFR.length > 0) {
                             // Vérifier quels vecteurs sont effectivement absents du bloc
                             const toAdd = vecNamesFR.filter(name => {
-                                const alreadyPresent = new RegExp(`^\\s*(?:vecteur|vector|vec)\\s*:\\s*${name}\\s*$`, 'im').test(rawToParse);
+                                const alreadyPresent = new RegExp(`^\\s*(?:vecteur|vector|vec)\\s*:\\s*.*\\b${name}\\b.*\\s*$`, 'im').test(rawToParse);
                                 if (alreadyPresent) return false;
                                 const hasA = new RegExp(`^\\s*point\\s*:.*\\b${name[0]}\\b`, 'im').test(rawToParse);
                                 const hasB = new RegExp(`^\\s*point\\s*:.*\\b${name[1]}\\b`, 'im').test(rawToParse);
