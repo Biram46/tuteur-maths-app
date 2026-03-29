@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback } from 'react';
 import type { ChatMessage } from '@/lib/perplexity';
@@ -34,9 +34,9 @@ function patchMarkdownTables(content: string): string {
                     if (cells.length < 2) continue;
                     const label = cells[0];
                     const values = cells.slice(1).map((v: string) =>
-                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
+                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf').replace(/↗/g, 'nearrow').replace(/↘/g, 'searrow')
                     ).join(', ');
-                    const isVariation = /nearrow|searrow/.test(values) || /(croissante|décroissante)/i.test(label);
+                    const isVariation = /nearrow|searrow/.test(values) || /(croissante|décroissante|variation)/i.test(label) || /^f\s*\(\s*x\s*\)$/i.test(label);
                     tableBlock += `${isVariation ? 'var' : 'sign'}: ${label} : ${values} |\n`;
                 }
                 patched = patched.replace(match, `@@@\n${tableBlock}@@@`);
@@ -429,6 +429,13 @@ export function useMathRouter({
                     setLoading(true);
                     setIsTalking(true);
 
+                    // ── Extraire le domaine (intervalle) s'il est spécifié ──
+                    const vOptions: any = {};
+                    const intMatch = cleanedInput.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
+                    if (intMatch) {
+                        vOptions.searchDomain = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
+                    }
+
                     // ── 3. Pré-calculer tous les résultats déterministes ──
                     let signTableBlock = '';
                     let variationTableBlock = '';
@@ -441,7 +448,7 @@ export function useMathRouter({
                                 const res = await fetch('/api/math-engine', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ type: 'sign_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                                    body: JSON.stringify({ type: 'sign_table', expression: exprClean, niveau: resolveNiveau(inputText), options: vOptions }),
                                 });
                                 const data = await res.json();
                                 if (data.success && data.aaaBlock) {
@@ -513,9 +520,7 @@ export function useMathRouter({
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         type: 'sign_table',
-                                        expression: exprClean,
-                                        niveau: resolveNiveau(inputText),
-                                    }),
+                                        expression: exprClean, niveau: resolveNiveau(inputText), options: vOptions }),
                                 });
                                 const data = await res.json();
                                 if (data.success && data.aaaBlock) {
@@ -537,7 +542,7 @@ export function useMathRouter({
                                 const res = await fetch('/api/math-engine', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ type: 'variation_table', expression: exprClean, niveau: resolveNiveau(inputText) }),
+                                    body: JSON.stringify({ type: 'variation_table', expression: exprClean, niveau: resolveNiveau(inputText), options: vOptions }),
                                 });
                                 const data = await res.json();
                                 if (data.success && data.aaaBlock) {
