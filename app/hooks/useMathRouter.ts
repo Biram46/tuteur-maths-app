@@ -34,7 +34,10 @@ function patchMarkdownTables(content: string): string {
                     if (cells.length < 2) continue;
                     const label = cells[0];
                     const values = cells.slice(1).map((v: string) =>
-                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf').replace(/↗/g, 'nearrow').replace(/↘/g, 'searrow')
+                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf')
+                         .replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
+                         .replace(/↗|\\nearrow\b|\bcroissante?\b|\bmonte\b/gi, 'nearrow')
+                         .replace(/↘|\\searrow\b|\bd[eé]croissante?\b|\bdescend\b/gi, 'searrow')
                     ).join(', ');
                     const isVariation = /nearrow|searrow/.test(values) || /(croissante|décroissante|variation)/i.test(label) || /^f\s*\(\s*x\s*\)$/i.test(label);
                     tableBlock += `${isVariation ? 'var' : 'sign'}: ${label} : ${values} |\n`;
