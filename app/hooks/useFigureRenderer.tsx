@@ -69,7 +69,7 @@ export function useFigureRenderer() {
                     const hasTriangle = /^\s*triangle\s*:/im.test(raw);
                     const hasPolygon = /^\s*polygon[eo]?\s*:/im.test(raw);
 
-                    // ── NORMALISATION INCONDITIONNELLE :
+                    // NORMALISATION INCONDITIONNELLE :
                     // Normaliser les lignes "vecteur:" contenant du LaTeX, TOUJOURS
                     // (indépendamment du titre), car l'IA peut générer $\vec{AB}$
                     // même dans des figures sans titre explicite "vecteur".
@@ -87,14 +87,35 @@ export function useFigureRenderer() {
                                 .replace(/\[|\]/g, ' ')
                                 .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
                                 .trim();
-                            // Chercher 2 lettres MAJ adjacentes ("AB") en priorité
+
+                            let pts = '';
                             const twoMAdj = cleaned.match(/\b([A-Z]{2})\b/);
-                            if (twoMAdj) return `\n${indent}vecteur: ${twoMAdj[1][0]}${twoMAdj[1][1]}`;
-                            // Sinon chercher 2 lettres MAJ séparées ("A B")
-                            const twoM = cleaned.match(/\b([A-Z])\b[\s,]*\b([A-Z])\b/);
-                            if (twoM) return `\n${indent}vecteur: ${twoM[1]}${twoM[2]}`;
-                            const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
-                            if (letters.length === 2) return `\n${indent}vecteur: ${letters[0]}${letters[1]}`;
+                            if (twoMAdj) pts = twoMAdj[1];
+                            else {
+                                const twoM = cleaned.match(/\b([A-Z])\b[\s,]*\b([A-Z])\b/);
+                                if (twoM) pts = twoM[1] + twoM[2];
+                                else {
+                                    const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
+                                    if (letters.length === 2) pts = letters[0] + letters[1];
+                                }
+                            }
+                            
+                            if (pts) {
+                                const parts = content.split(',').map((s: string) => s.trim());
+                                const otherParts = parts.filter((p: string) => {
+                                    const cleanP = p.replace(/[^a-zA-Z]/g, '');
+                                    if (cleanP === pts) return false;
+                                    if (cleanP === pts[0] && p.length <= 2) return false;
+                                    if (cleanP === pts[1] && p.length <= 2) return false;
+                                    if (p.includes('vec') || p.includes('rightarrow') || p.includes('overrightarrow')) return false;
+                                    return true;
+                                });
+                                
+                                if (otherParts.length > 0) {
+                                    return `\n${indent}vecteur: ${pts}, ${otherParts.join(', ')}`;
+                                }
+                                return `\n${indent}vecteur: ${pts}`;
+                            }
                             return match;
                         }
                     );

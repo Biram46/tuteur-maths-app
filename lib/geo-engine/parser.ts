@@ -257,7 +257,7 @@ export function parseGeoScene(raw: string): GeoScene {
                     // Label : nom du vecteur (ex: u, v, w) ou expression LaTeX
                     // ⚠️ On accepte les lettres minuscules (u, v, w) comme noms de vecteurs
                     // mais on rejette les majuscules isolées qui sont des identifiants de points (A, B, C...)
-                    const possibleLabels = parts.filter(p => {
+                    const possibleLabels = parts.slice(1).filter(p => {
                         const t = p.trim();
                         if (!t || COLOR_NAMES.test(t)) return false;
                         if (/^#/.test(t)) return false;
