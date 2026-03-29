@@ -833,7 +833,8 @@ RÈGLES ABSOLUES :
         // Programme Éducation Nationale : domaine → parité → limites → dérivée → variations → courbe
         // ═══════════════════════════════════════════════════════════
         const wantsStudyFunction = /(?:étudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
-            || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower);
+            || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower)
+            || (/(?:sign\w*|étud\w*|etud\w*).+dérivée/i.test(inputLower) && /variation/i.test(inputLower));
 
         if (wantsStudyFunction && !isMultiExpr) {
             try {
