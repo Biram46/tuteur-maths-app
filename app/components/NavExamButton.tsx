@@ -10,10 +10,10 @@ export default function NavExamButton() {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="nav-tab flex items-center gap-2 hover:bg-red-50 group transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] md:text-xs rounded-lg shadow-lg shadow-red-600/30 transition-all hover:scale-105 active:scale-95"
             >
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse group-hover:scale-125"></span>
-                <span className="text-red-600 font-bold text-[10px] md:text-xs">EPREUVE ANTICIPEE 1ère MATHS 2026</span>
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                <span>ÉPREUVE ANTICIPÉE 1ère MATHS 2026</span>
             </button>
             <ExamInfoModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
         </>

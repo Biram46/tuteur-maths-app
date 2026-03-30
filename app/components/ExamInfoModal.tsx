@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Tab = "epreuve" | "automatismes" | "programmes" | "veille";
 
@@ -36,6 +37,24 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                         <span className="hidden sm:block text-[10px] text-slate-500 font-mono uppercase">Vérifié le {lastVerified}</span>
                         <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all flex items-center justify-center border border-white/5">✕</button>
                     </div>
+                </div>
+
+                {/* Boutons d'action */}
+                <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-white/5 flex flex-wrap justify-center gap-4">
+                    <Link
+                        href="/entraine-toi"
+                        onClick={onClose}
+                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <span>🏋️</span> Entraîne-toi (QCM)
+                    </Link>
+                    <Link
+                        href="/sujets"
+                        onClick={onClose}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <span>📄</span> Sujets et Corrigés
+                    </Link>
                 </div>
 
                 {/* Tabs */}
