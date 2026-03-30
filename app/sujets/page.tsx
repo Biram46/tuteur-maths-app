@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabaseAction';
 import Link from 'next/link';
+import { EAMSujet, EAM_NIVEAUX } from '@/lib/eam-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,41 +8,75 @@ export default async function SujetsPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Sujets disponibles (à enrichir avec Supabase plus tard)
-    const sujets = [
+    // Récupérer les sujets EAM depuis Supabase
+    const { data: sujets, error } = await supabase
+        .from('eam_sujets')
+        .select('*')
+        .order('date_sujet', { ascending: false });
+
+    // Si la table n'existe pas encore, utiliser des données de démo
+    const demoSujets: EAMSujet[] = [
         {
-            id: 1,
-            titre: "Bac Blanc n°1 - Épreuve Anticipée",
-            date: "Mars 2026",
-            description: "Sujet complet avec automatismes et problèmes",
-            corrige: true,
-            niveau: "1ère Spécialité"
+            id: 'demo-1',
+            titre: 'Bac Blanc n°1 - Épreuve Anticipée',
+            description: 'Sujet complet avec automatismes et problèmes',
+            date_sujet: '2026-03-15',
+            niveau: '1ere_specialite',
+            sujet_pdf_url: '/eam/sujets/bac_blanc_1_sujet.pdf',
+            sujet_latex_url: '/eam/sujets/bac_blanc_1_sujet.tex',
+            corrige_pdf_url: '/eam/sujets/bac_blanc_1_corrige.pdf',
+            corrige_latex_url: '/eam/sujets/bac_blanc_1_corrige.tex',
+            corrige_disponible: true,
+            created_at: '2026-03-01',
+            updated_at: '2026-03-01'
         },
         {
-            id: 2,
-            titre: "Sujet A - Épreuve Anticipée",
-            date: "Avril 2026",
-            description: "12 questions d'automatismes + exercices",
-            corrige: true,
-            niveau: "1ère GT"
+            id: 'demo-2',
+            titre: 'Sujet A - Épreuve Anticipée',
+            description: '12 questions d\'automatismes + exercices',
+            date_sujet: '2026-04-01',
+            niveau: '1ere_gt',
+            sujet_pdf_url: '/eam/sujets/sujet_a_sujet.pdf',
+            sujet_latex_url: '/eam/sujets/sujet_a_sujet.tex',
+            corrige_pdf_url: null,
+            corrige_latex_url: null,
+            corrige_disponible: false,
+            created_at: '2026-04-01',
+            updated_at: '2026-04-01'
         },
         {
-            id: 3,
-            titre: "Sujet B - Épreuve Anticipée",
-            date: "Mai 2026",
-            description: "Sujet type bac avec corrections détaillées",
-            corrige: false,
-            niveau: "1ère Spécialité"
-        },
-        {
-            id: 4,
-            titre: "QCM Probabilités - Pablo Picasso",
-            date: "2026",
-            description: "10 questions sur les probabilités",
-            corrige: true,
-            niveau: "1ère GT"
+            id: 'demo-3',
+            titre: 'QCM Probabilités - Pablo Picasso',
+            description: '10 questions sur les probabilités',
+            date_sujet: '2026-01-15',
+            niveau: '1ere_gt',
+            sujet_pdf_url: '/eam/sujets/qcm_probabilites.pdf',
+            sujet_latex_url: '/eam/sujets/qcm_probabilites.tex',
+            corrige_pdf_url: '/eam/sujets/qcm_probabilites_corrige.pdf',
+            corrige_latex_url: '/eam/sujets/qcm_probabilites_corrige.tex',
+            corrige_disponible: true,
+            created_at: '2026-01-01',
+            updated_at: '2026-01-01'
         }
     ];
+
+    const displaySujets = error ? demoSujets : (sujets as EAMSujet[]) || demoSujets;
+
+    const getNiveauLabel = (niveau: string) => {
+        const found = EAM_NIVEAUX.find(n => n.value === niveau);
+        return found?.label || niveau;
+    };
+
+    const formatDate = (dateStr: string) => {
+        try {
+            return new Date(dateStr).toLocaleDateString('fr-FR', {
+                month: 'long',
+                year: 'numeric'
+            });
+        } catch {
+            return dateStr;
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#020617] text-slate-100">
@@ -73,50 +108,119 @@ export default async function SujetsPage() {
                     </Link>
                     <h1 className="text-3xl font-black text-white uppercase tracking-tight flex items-center gap-3">
                         <span className="text-4xl">📄</span>
-                        Sujets et Corrigés
+                        Sujets et Corrigés EAM
                     </h1>
                     <p className="text-slate-400 mt-2">
                         Épreuve Anticipée de Mathématiques 1ère - Session 2026
                     </p>
                 </div>
 
+                {/* Légende */}
+                <div className="flex flex-wrap gap-4 mb-8 p-4 rounded-xl bg-slate-800/30 border border-white/5">
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                        <span className="text-slate-400">Sujet PDF</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                        <span className="text-slate-400">Source LaTeX</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span className="text-slate-400">Corrigé PDF</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 rounded-full bg-slate-500"></span>
+                        <span className="text-slate-400">Corrigé à venir</span>
+                    </div>
+                </div>
+
                 {/* Grille des sujets */}
-                <div className="grid gap-6 md:grid-cols-2">
-                    {sujets.map((sujet) => (
+                <div className="space-y-6">
+                    {displaySujets.map((sujet) => (
                         <div
                             key={sujet.id}
                             className="p-6 rounded-2xl bg-slate-800/50 border border-white/10 hover:border-blue-500/30 transition-all group"
                         >
-                            <div className="flex items-start justify-between mb-4">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                                 <div>
                                     <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                                        {sujet.niveau}
+                                        {getNiveauLabel(sujet.niveau)}
                                     </span>
                                     <h3 className="text-lg font-bold text-white mt-1 group-hover:text-blue-400 transition-colors">
                                         {sujet.titre}
                                     </h3>
+                                    {sujet.description && (
+                                        <p className="text-sm text-slate-400 mt-1">
+                                            {sujet.description}
+                                        </p>
+                                    )}
                                 </div>
-                                <span className="text-xs text-slate-500 font-mono">
-                                    {sujet.date}
+                                <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
+                                    {formatDate(sujet.date_sujet)}
                                 </span>
                             </div>
 
-                            <p className="text-sm text-slate-400 mb-4">
-                                {sujet.description}
-                            </p>
-
-                            <div className="flex gap-3">
-                                <button className="flex-1 py-2 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
-                                    <span>👁️</span> Voir le sujet
-                                </button>
-                                {sujet.corrige ? (
-                                    <button className="flex-1 py-2 px-4 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
-                                        <span>✅</span> Corrigé
-                                    </button>
+                            {/* Boutons de téléchargement */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {/* Sujet PDF */}
+                                {sujet.sujet_pdf_url ? (
+                                    <a
+                                        href={sujet.sujet_pdf_url}
+                                        target="_blank"
+                                        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-sm transition-all"
+                                    >
+                                        <span>📄</span> Sujet PDF
+                                    </a>
                                 ) : (
-                                    <button className="flex-1 py-2 px-4 rounded-lg bg-slate-700/50 text-slate-500 font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm">
+                                        <span>📄</span> Sujet PDF
+                                    </div>
+                                )}
+
+                                {/* Sujet LaTeX */}
+                                {sujet.sujet_latex_url ? (
+                                    <a
+                                        href={sujet.sujet_latex_url}
+                                        target="_blank"
+                                        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white font-bold text-sm transition-all"
+                                    >
+                                        <span>📝</span> Sujet .tex
+                                    </a>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm">
+                                        <span>📝</span> Sujet .tex
+                                    </div>
+                                )}
+
+                                {/* Corrigé PDF */}
+                                {sujet.corrige_disponible && sujet.corrige_pdf_url ? (
+                                    <a
+                                        href={sujet.corrige_pdf_url}
+                                        target="_blank"
+                                        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold text-sm transition-all"
+                                    >
+                                        <span>✅</span> Corrigé PDF
+                                    </a>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm">
                                         <span>⏳</span> Corrigé à venir
-                                    </button>
+                                    </div>
+                                )}
+
+                                {/* Corrigé LaTeX */}
+                                {sujet.corrige_disponible && sujet.corrige_latex_url ? (
+                                    <a
+                                        href={sujet.corrige_latex_url}
+                                        target="_blank"
+                                        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-400 hover:text-white font-bold text-sm transition-all"
+                                    >
+                                        <span>📝</span> Corrigé .tex
+                                    </a>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm">
+                                        <span>📝</span> Corrigé .tex
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -142,6 +246,13 @@ export default async function SujetsPage() {
                         </Link>
                     </div>
                 </div>
+
+                {/* Info Admin */}
+                {error && (
+                    <div className="mt-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm">
+                        ⚠️ Mode démo activé. Créez la table <code className="bg-black/30 px-1 rounded">eam_sujets</code> dans Supabase pour activer le stockage des sujets.
+                    </div>
+                )}
 
                 {/* Info */}
                 <div className="mt-8 p-6 rounded-2xl bg-slate-800/30 border border-white/5 text-center">
