@@ -86,7 +86,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                 {/* 1. Sidebar NIVEAUX & CHAPITRES (Glassmorphism) */}
                 <aside className="w-80 flex flex-col gap-6 p-6 border-r border-white/5 bg-white/5 backdrop-blur-xl transition-all h-full overflow-y-auto">
 
-                    {/* Header Logo & Actions Buttons */}
+                    {/* Header Logo */}
                     <div className="flex flex-col gap-3 mb-6">
                         <div className="flex items-center gap-3 px-2 mb-2">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -97,18 +97,6 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 <p className="text-xs text-slate-400 font-medium tracking-wider">ESPACE ÉLÈVE</p>
                             </div>
                         </div>
-                        
-                        <Link href="/assistant" target="_blank" className="mx-2 flex items-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-white font-semibold text-sm transition-all group">
-                            <span className="text-lg">🤖</span>
-                            <span>Module Assistant</span>
-                            <span className="opacity-70 group-hover:opacity-100 transition-opacity ml-auto text-xs">↗</span>
-                        </Link>
-
-                        <Link href="/entraine-toi" className="mx-2 flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-white font-semibold text-sm transition-all group">
-                            <span className="text-lg">🎯</span>
-                            <span>Entraîne-toi (QCM Épreuve anticipée de maths 1ère)</span>
-                            <span className="opacity-70 group-hover:opacity-100 transition-opacity ml-auto text-xs">→</span>
-                        </Link>
                     </div>
 
                     {/* Section Niveaux */}
