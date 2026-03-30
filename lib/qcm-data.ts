@@ -72,6 +72,546 @@ export const qcmDatabase: QcmQuestion[] = [
         correctAnswerIndex: 2
     },
 
+    // --- EAM 1ère - Sujet 1 - Calcul numérique et algébrique ---
+    {
+        id: "eam1-calc-1",
+        category: "Calcul numérique et algébrique",
+        question: "Mettre $\\dfrac{1}{3}-\\dfrac{2-x}{2}$ sous la forme $\\dfrac{a+bx}{c}$.",
+        options: [
+            "$\\dfrac{-1+x}{1}$",
+            "$\\dfrac{2-3x}{6}$",
+            "$\\dfrac{3-x}{5}$",
+            "$\\dfrac{-4+3x}{6}$"
+        ],
+        correctAnswerIndex: 3
+    },
+    {
+        id: "eam1-calc-2",
+        category: "Calcul numérique et algébrique",
+        question: "Calculer $B = \\dfrac{a}{c} + \\dfrac{1/2}{b}$ pour $a = \\dfrac{1}{6}, b = \\dfrac{1}{2}, c = \\dfrac{1}{3}$.",
+        options: [
+            "$\\dfrac{1}{6}$",
+            "$\\dfrac{3}{2}$",
+            "$\\dfrac{1}{2}$",
+            "$1$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "eam1-calc-3",
+        category: "Calcul numérique et algébrique",
+        question: "Soit la relation $C = \\dfrac{2}{x} + \\dfrac{3}{y}$. On peut alors affirmer que :",
+        options: [
+            "$x = 2\\left(\\dfrac{1}{C} - \\dfrac{y}{3}\\right)$",
+            "$x = \\dfrac{2y}{Cy-3}$",
+            "$x = \\dfrac{5-Cy}{C}$",
+            "$x = \\dfrac{Cy-3}{2y}$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "eam1-calc-4",
+        category: "Calcul numérique et algébrique",
+        question: "Factoriser l'expression $x^2 - 16$.",
+        options: [
+            "$(x-8)^2$",
+            "$(x-4)^2$",
+            "$(x-4)(x+4)$",
+            "$x(x-16)$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "eam1-calc-5",
+        category: "Calcul numérique et algébrique",
+        question: "Résoudre l'équation $3x + 4 = 0$.",
+        options: [
+            "$x = \\dfrac{4}{3}$",
+            "$x = -\\dfrac{4}{3}$",
+            "$x = -\\dfrac{3}{4}$",
+            "$x = \\dfrac{3}{4}$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- EAM 1ère - Sujet 1 - Évolutions ---
+    {
+        id: "eam1-evol-1",
+        category: "Évolutions et variations",
+        question: "Une baisse de 30\\% suivie d'une baisse de 20\\% correspond à une baisse globale de :",
+        options: [
+            "$10\\%$",
+            "$56\\%$",
+            "$44\\%$",
+            "$60\\%$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "eam1-evol-2",
+        category: "Évolutions et variations",
+        question: "Quel est le coefficient multiplicateur d'une hausse de $0,5\\%$ ?",
+        options: [
+            "$1,5$",
+            "$1,05$",
+            "$1,005$",
+            "$0,5$"
+        ],
+        correctAnswerIndex: 2
+    },
+
+    // --- EAM 1ère - Sujet 1 - Fonctions ---
+    {
+        id: "eam1-fonc-1",
+        category: "Fonctions",
+        question: "Résoudre graphiquement $f(x) \\le 5$ pour $f(x) = -x^2 + 10$.",
+        options: [
+            "$[-\\sqrt{5} ; \\sqrt{5}]$",
+            "$]-\\infty ; -\\sqrt{5}] \\cup [\\sqrt{5} ; +\\infty[$",
+            "$x \\ge \\sqrt{5}$",
+            "$x \\le -\\sqrt{5}$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "eam1-fonc-2",
+        category: "Fonctions",
+        question: "L'image de $-1$ par la fonction $g(x) = 2x^2 - 3x + 1$ est :",
+        options: [
+            "$0$",
+            "$6$",
+            "$-4$",
+            "$2$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- EAM 1ère - Sujet 1 - Statistiques ---
+    {
+        id: "eam1-stat-1",
+        category: "Statistiques",
+        question: "Soit la série statistique suivante : Note 10 (coef 1), Note 7 (coef 2), Note $X$ (coef 2). Que doit valoir $X$ pour que la moyenne soit égale à 12 ?",
+        options: [
+            "$17$",
+            "$18$",
+            "$19$",
+            "$20$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- EAM 1ère - Sujet 1 - Proportions ---
+    {
+        id: "eam1-prop-1",
+        category: "Proportions et pourcentages",
+        question: "Un débit de $36 \\text{ m}^3\\cdot\\text{h}^{-1}$ correspond en $\\text{L}\\cdot\\text{s}^{-1}$ à :",
+        options: [
+            "$3600$",
+            "$10$",
+            "$100$",
+            "$1000$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- EAM 1ère - Sujet A - Calcul numérique ---
+    {
+        id: "eamA-calc-1",
+        category: "Calcul numérique et algébrique",
+        question: "On peut affirmer que :",
+        options: [
+            "$\\dfrac{5}{6} < \\dfrac{6}{7}$",
+            "$\\dfrac{5}{6} > \\dfrac{6}{7}$",
+            "$\\dfrac{5}{6} = \\dfrac{6}{7}$",
+            "On ne peut pas comparer ces deux nombres"
+        ],
+        correctAnswerIndex: 0
+    },
+    {
+        id: "eamA-calc-2",
+        category: "Calcul numérique et algébrique",
+        question: "$1\\ \\text{m}^2$ correspond à :",
+        options: [
+            "$0,0001\\ \\text{cm}^2$",
+            "$0,01\\ \\text{cm}^2$",
+            "$100\\ \\text{cm}^2$",
+            "$10\\,000\\ \\text{cm}^2$"
+        ],
+        correctAnswerIndex: 3
+    },
+    {
+        id: "eamA-calc-3",
+        category: "Calcul numérique et algébrique",
+        question: "L'équation $x^2 = 9$ a pour solutions :",
+        options: [
+            "$x = 3$ seulement",
+            "$x = -3$ seulement",
+            "$x = 3$ ou $x = -3$",
+            "$x = \\sqrt{3}$ ou $x = -\\sqrt{3}$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "eamA-calc-4",
+        category: "Calcul numérique et algébrique",
+        question: "La forme factorisée de $(x+3)^2 - 4(x+3)$ est :",
+        options: [
+            "$(x+3)(x-1)$",
+            "$(x+3)(x+1)$",
+            "$(x-3)(x+1)$",
+            "$(x-3)(x-1)$"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- EAM 1ère - Sujet A - Proportions ---
+    {
+        id: "eamA-prop-1",
+        category: "Proportions et pourcentages",
+        question: "Dans une classe de 30 élèves, 40\\% sont des filles. Le nombre de filles est :",
+        options: [
+            "$12$",
+            "$15$",
+            "$18$",
+            "$20$"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- EAM 1ère - Sujet A - Évolutions ---
+    {
+        id: "eamA-evol-1",
+        category: "Évolutions et variations",
+        question: "Le prix d'un article subit une augmentation de 20\\% puis une augmentation de 10\\%. Le taux d'évolution global est :",
+        options: [
+            "$30\\%$",
+            "$32\\%$",
+            "$22\\%$",
+            "$35\\%$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- EAM 1ère - Sujet A - Fonctions ---
+    {
+        id: "eamA-fonc-1",
+        category: "Fonctions",
+        question: "On donne la courbe représentative d'une fonction $f$ définie par $f(x) = -0,5(x-2)^2+3$. On lit graphiquement que $f(2)$ est égal à :",
+        options: [
+            "$0$",
+            "$1$",
+            "$2$",
+            "$3$"
+        ],
+        correctAnswerIndex: 3
+    },
+    {
+        id: "eamA-fonc-2",
+        category: "Fonctions",
+        question: "Soit $f$ la fonction définie sur $\\mathbb{R}$ par $f(x)=2x-4$. Le tableau de signes de $f$ est :",
+        options: [
+            "Négatif sur $]-\\infty ; 2[$, nul en $2$, positif sur $]2 ; +\\infty[$",
+            "Positif sur $]-\\infty ; 2[$, nul en $2$, négatif sur $]2 ; +\\infty[$",
+            "Négatif sur $]-\\infty ; 0[$, nul en $0$, positif sur $]0 ; +\\infty[$",
+            "Positif sur $]-\\infty ; 0[$, nul en $0$, négatif sur $]0 ; +\\infty[$"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- EAM 1ère - Sujet A - Statistiques ---
+    {
+        id: "eamA-stat-1",
+        category: "Statistiques",
+        question: "La répartition des élèves d'un lycée selon leur âge est : 16 ans (25), 17 ans (40), 18 ans (30), 19 ans (5). La médiane de cette série est :",
+        options: [
+            "$17$",
+            "$17,5$",
+            "$18$",
+            "$18,5$"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- EAM 1ère - Sujet A - Probabilités ---
+    {
+        id: "eamA-prob-1",
+        category: "Probabilités",
+        question: "On lance trois fois de suite un dé truqué. La probabilité d'obtenir un 6 à chaque lancer est $0,2$. La probabilité d'obtenir au moins un 6 est :",
+        options: [
+            "$0,512$",
+            "$0,488$",
+            "$0,6$",
+            "$0,8$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "eamA-prob-2",
+        category: "Probabilités",
+        question: "Pour tout événement, la probabilité $p$ d'un événement vérifie :",
+        options: [
+            "$-1 \\le p \\le 1$",
+            "$0 \\le p \\le 1$",
+            "$p \\ge 0$",
+            "$p \\le 1$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- Série Probabilités Spécifique (Pablo Picasso) ---
+    {
+        id: "prob-spec-1",
+        category: "Probabilités",
+        question: "Une probabilité est nécessairement un nombre compris entre :",
+        options: [
+            "$-1$ et $1$",
+            "$0$ et $100$",
+            "$0$ et $1$",
+            "$0$ et $10$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "prob-spec-2",
+        category: "Probabilités",
+        question: "Si la probabilité d'un événement $A$ est $P(A) = 0,34$, alors la probabilité de son événement contraire est :",
+        options: [
+            "$0,66$",
+            "$-0,34$",
+            "$1,34$",
+            "$0,34$"
+        ],
+        correctAnswerIndex: 0
+    },
+    {
+        id: "prob-spec-3",
+        category: "Probabilités",
+        question: "Dans une situation d'équiprobabilité, la probabilité d'un événement $A$ se calcule par :",
+        options: [
+            "$P(A) = \\text{Card}(A) \\times \\text{Card}(\\Omega)$",
+            "$P(A) = \\dfrac{\\text{Card}(A)}{\\text{Card}(\\Omega)}$",
+            "$P(A) = \\dfrac{\\text{Card}(\\Omega)}{\\text{Card}(A)}$",
+            "$P(A) = \\text{Card}(A) + \\text{Card}(\\Omega)$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "prob-spec-4",
+        category: "Probabilités",
+        question: "On lance un dé équilibré à 6 faces. La probabilité d'obtenir un nombre pair est :",
+        options: [
+            "$\\dfrac{1}{6}$",
+            "$\\dfrac{1}{2}$",
+            "$\\dfrac{2}{3}$",
+            "$\\dfrac{1}{3}$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "prob-spec-5",
+        category: "Probabilités",
+        question: "Si deux événements $A$ et $B$ sont tels que $P(A) = 0,2$ et $P(B) = 0,5$, et qu'ils sont incompatibles, alors $P(A \\cup B)$ est :",
+        options: [
+            "$0,1$",
+            "$0,7$",
+            "$0,3$",
+            "$0,35$"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "prob-spec-6",
+        category: "Probabilités",
+        question: "Dans un tableau croisé d'effectifs, la probabilité conditionnelle $P_A(B)$ se calcule en divisant l'effectif de $A \\cap B$ par :",
+        options: [
+            "L'effectif total",
+            "L'effectif de l'événement $B$",
+            "L'effectif de l'événement $A$",
+            "L'effectif de $A \\cup B$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "prob-spec-7",
+        category: "Probabilités",
+        question: "Sur un arbre pondéré, la probabilité d'un chemin est égale à :",
+        options: [
+            "La somme des probabilités des branches du chemin",
+            "Le produit des probabilités des branches du chemin",
+            "La moyenne des probabilités des branches du chemin",
+            "Le quotient des probabilités"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "prob-spec-8",
+        category: "Probabilités",
+        question: "La notation $P(A \\cap B)$ désigne la probabilité que :",
+        options: [
+            "$A$ ou $B$ se réalise",
+            "$A$ et $B$ se réalisent simultanément",
+            "$B$ se réalise sachant que $A$ est réalisé",
+            "Ni $A$ ni $B$ ne se réalise"
+        ],
+        correctAnswerIndex: 1
+    },
+    {
+        id: "prob-spec-9",
+        category: "Probabilités",
+        question: "Si on sait que l'événement $A$ est réalisé, la probabilité que l'événement $B$ se réalise se note :",
+        options: [
+            "$P(A \\cap B)$",
+            "$P(B \\cap A)$",
+            "$P_A(B)$",
+            "$P_B(A)$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "prob-spec-10",
+        category: "Probabilités",
+        question: "Dans une classe de 30 élèves, 12 étudient l'espagnol. La probabilité qu'un élève choisi au hasard étudie l'espagnol est :",
+        options: [
+            "$0,3$",
+            "$0,4$",
+            "$0,5$",
+            "$0,6$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Calcul numérique ---
+    {
+        id: "bac2-calc-1",
+        category: "Calcul numérique et algébrique",
+        question: "On considère la relation $M = x + \\dfrac{y - z}{2t}$. Lorsque $x = -1,\\; y = 5,\\; z = 1,\\; t = -2$, la valeur de $M$ est égale à :",
+        options: [
+            "$-2$",
+            "$0$",
+            "$2$",
+            "$-3$"
+        ],
+        correctAnswerIndex: 0
+    },
+    {
+        id: "bac2-calc-2",
+        category: "Calcul numérique et algébrique",
+        question: "On considère trois fonctions : $k_1(x) = (2x-1)^2 - (x+1)(2x-1)$, $k_2(x) = 3x - \\left(5 - \\dfrac{x}{2}\\right)$, $k_3(x) = \\dfrac{4x^2 - (2x-3)^2}{2}$. Parmi ces trois fonctions, lesquelles sont des fonctions affines ?",
+        options: [
+            "Aucune",
+            "Toutes",
+            "Uniquement $k_2$",
+            "Uniquement $k_2$ et $k_3$"
+        ],
+        correctAnswerIndex: 3
+    },
+    {
+        id: "bac2-calc-3",
+        category: "Calcul numérique et algébrique",
+        question: "$\\dfrac{4^3 \\times 3^2}{6^2} = $",
+        options: [
+            "$4$",
+            "$8$",
+            "$16$",
+            "$2$"
+        ],
+        correctAnswerIndex: 2
+    },
+    {
+        id: "bac2-calc-4",
+        category: "Calcul numérique et algébrique",
+        question: "L'expression développée réduite de $(5x+4)^2$ est :",
+        options: [
+            "$25x^2 + 8x + 16$",
+            "$10x^2 + 20x + 16$",
+            "$25x^2 + 16x + 4$",
+            "$25x^2 + 40x + 16$"
+        ],
+        correctAnswerIndex: 3
+    },
+    {
+        id: "bac2-calc-5",
+        category: "Calcul numérique et algébrique",
+        question: "L'ordre de grandeur de $(3\\pi)^2 \\times 120$ (avec $\\pi \\approx 3,14$) est :",
+        options: [
+            "$1\\,000$",
+            "$10\\,000$",
+            "$100\\,000$",
+            "$1\\,000\\,000$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Proportions ---
+    {
+        id: "bac2-prop-1",
+        category: "Proportions et pourcentages",
+        question: "Un boulanger observe que sur 260 viennoiseries vendues, 85 sont des pains au chocolat. Les pains au chocolat représentent (en pourcentage, arrondi à l'unité) :",
+        options: [
+            "$25\\%$",
+            "$33\\%$",
+            "$75\\%$",
+            "$35\\%$"
+        ],
+        correctAnswerIndex: 1
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Évolutions ---
+    {
+        id: "bac2-evol-1",
+        category: "Évolutions et variations",
+        question: "Une bactérie de $0,8$ g voit sa masse diminuer de $25\\%$. La nouvelle masse est égale à :",
+        options: [
+            "$0,6$ g",
+            "$1$ g",
+            "$0,75$ g",
+            "$0,2$ g"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Fonctions ---
+    {
+        id: "bac2-fonc-1",
+        category: "Fonctions",
+        question: "La fonction $f$ définie sur $\\mathbb{R}$ par $f(x) = 3x - 1$ admet pour tableau de signes :",
+        options: [
+            "Négatif sur $]-\\infty ; \\frac{1}{3}[$, nul en $\\frac{1}{3}$, positif sur $]\\frac{1}{3} ; +\\infty[$",
+            "Positif sur $]-\\infty ; \\frac{1}{3}[$, nul en $\\frac{1}{3}$, négatif sur $]\\frac{1}{3} ; +\\infty[$",
+            "Négatif sur $]-\\infty ; 0[$, nul en $0$, positif sur $]0 ; +\\infty[$",
+            "Positif sur $]-\\infty ; 0[$, nul en $0$, négatif sur $]0 ; +\\infty[$"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Statistiques ---
+    {
+        id: "bac2-stat-1",
+        category: "Statistiques",
+        question: "Deux séries statistiques sont représentées par des boîtes à moustaches. Série 1 : médiane 9, Q1=7, Q3=13, min=5, max=15. Série 2 : médiane 9, Q1=7, Q3=13, min=3, max=19. On peut affirmer que :",
+        options: [
+            "Dans la série 1, la médiane est égale à 9",
+            "Dans la série 2, au moins $75\\%$ des valeurs sont inférieures ou égales à 13",
+            "Les deux séries ont la même étendue",
+            "L'écart interquartile est plus grand pour la série 1"
+        ],
+        correctAnswerIndex: 0
+    },
+
+    // --- Bac Blanc 2 - Sujet A - Sciences ---
+    {
+        id: "bac2-sci-1",
+        category: "Calcul numérique et algébrique",
+        question: "La loi d'interaction gravitationnelle est $F = G\\dfrac{m_1 m_2}{d^2}$. L'expression de $d$ est :",
+        options: [
+            "$d = \\dfrac{F - G}{2m_1 m_2}$",
+            "$d = \\sqrt{\\dfrac{G m_1 m_2}{F}}$",
+            "$d = \\dfrac{G m_1 m_2}{F^2}$",
+            "$d = \\sqrt{\\dfrac{F}{G m_1 m_2}}$"
+        ],
+        correctAnswerIndex: 1
+    },
+
     // --- Proportions et pourcentages ---
     {
         id: "prop-1",
