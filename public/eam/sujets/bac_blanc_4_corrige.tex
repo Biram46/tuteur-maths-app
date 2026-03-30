@@ -1,0 +1,84 @@
+% CORRECTION SUJET 1 – ÉPREUVE ANTICIPÉE
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tkz-tab}
+
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{Corrigé du sujet 1 – Épreuve anticipée}\end{center}
+
+\section*{Partie 1 : Automatismes – QCM}
+
+\paragraph{Question 1}
+$\dfrac{5}{6} - \dfrac{6}{7} = \dfrac{35-36}{42} = -\dfrac{1}{42} < 0$ donc $\dfrac{5}{6} < \dfrac{6}{7}$. \textbf{Réponse A}.
+
+\paragraph{Question 2}
+$1\ \text{m} = 100\ \text{cm}$ donc $1\ \text{m}^2 = (100\ \text{cm})^2 = 10\,000\ \text{cm}^2$. \textbf{Réponse D}.
+
+\paragraph{Question 3}
+$30 \times \dfrac{40}{100} = 30 \times 0,4 = 12$. \textbf{Réponse A}.
+
+\paragraph{Question 4}
+Augmentation de 20\% : coefficient $1,2$ ; puis de 10\% : coefficient $1,1$. Global : $1,2\times 1,1 = 1,32$ soit $+32\%$. \textbf{Réponse B}.
+
+\paragraph{Question 5}
+Sur le graphique, le point d’abscisse $2$ a pour ordonnée $3$ (le sommet de la parabole). \textbf{Réponse D}.
+
+\paragraph{Question 6}
+Probabilité de n’obtenir aucun 6 : $(1-0,2)^3 = 0,8^3 = 0,512$. Donc au moins un 6 : $1-0,512=0,488$. \textbf{Réponse B}.
+
+\paragraph{Question 7}
+Effectifs : 16 ans : 25, 17 ans : 40, 18 ans : 30, 19 ans : 5. Effectif total $100$. La médiane est la valeur de la 50\ieme{} observation. La 50\ieme{} se trouve dans la classe 17 ans (car 25 < 50 $\le$ 65). Médiane = 17. \textbf{Réponse A}.
+
+\paragraph{Question 8}
+$x^2 = 9 \iff x = 3$ ou $x = -3$. \textbf{Réponse C}.
+
+\paragraph{Question 9}
+$f(x)=2x-4$ s’annule en $x=2$ ; coefficient $2>0$ donc $f$ négative avant $2$, positive après. \textbf{Réponse A}.
+
+\paragraph{Question 10}
+$(x+3)^2 - 4(x+3) = (x+3)[(x+3)-4] = (x+3)(x-1)$. \textbf{Réponse A}.
+
+\paragraph{Question 11}
+Baisse de 20\% : coefficient $0,8$. Pour retrouver le prix initial, il faut multiplier par $1/0,8 = 1,25$, soit une hausse de 25\%. \textbf{Réponse B}.
+
+\paragraph{Question 12}
+$y=3x$ : pour $x=2$, $y=6$ donc $A(2;6)$ appartient à la droite. \textbf{Réponse A}.
+
+\section*{Partie 2 : Exercices}
+
+\subsection*{Exercice 1}
+\begin{enumerate}
+    \item $u_1 = \dfrac12\times 10 + 2 = 5+2=7$ ; $u_2 = \dfrac12\times 7 + 2 = 3,5+2 = 5,5$.
+    \item $u_1-u_0 = -3$ ; $u_2-u_1 = -1,5$ : différences non constantes $\Rightarrow$ pas arithmétique. $\dfrac{u_1}{u_0}=0,7$ ; $\dfrac{u_2}{u_1}\approx 0,7857$ : rapports non constants $\Rightarrow$ pas géométrique.
+    \item \begin{enumerate}
+        \item $v_{n+1} = u_{n+1}-4 = \left(\dfrac12 u_n+2\right)-4 = \dfrac12 u_n -2 = \dfrac12 (u_n-4) = \dfrac12 v_n$. Donc $(v_n)$ est géométrique de raison $\dfrac12$ et $v_0 = u_0-4 = 6$.
+        \item $v_n = v_0 \times \left(\dfrac12\right)^n = 6\times \dfrac{1}{2^n}$. Alors $u_n = v_n+4 = 4 + \dfrac{6}{2^n}$.
+    \end{enumerate}
+    \item $u_{n+1}-u_n = \left(4+\dfrac{6}{2^{n+1}}\right) - \left(4+\dfrac{6}{2^n}\right) = \dfrac{6}{2^{n+1}} - \dfrac{12}{2^{n+1}} = -\dfrac{6}{2^{n+1}} <0$. Donc $(u_n)$ strictement décroissante.
+    \item $\lim_{n\to+\infty} \dfrac{6}{2^n}=0$, donc $\lim u_n = 4$.
+\end{enumerate}
+
+\subsection*{Exercice 2}
+\begin{enumerate}
+    \item Hauteur initiale : $h(0) = 1$ m.
+    \item $h(t) = -5t^2+20t+1$ est un trinôme du second degré avec $a=-5<0$, donc $h$ admet un maximum en $t_m = -\dfrac{b}{2a} = -\dfrac{20}{2\times(-5)} = 2$ s.
+    \item $h(2) = -5\times 4 + 20\times 2 + 1 = -20+40+1 = 21$ m.
+    \item Résolution de $-5t^2+20t+1=0$. $\Delta = 20^2 -4\times(-5)\times1 = 400+20=420$. $\sqrt{\Delta}=\sqrt{420}=2\sqrt{105}$. Les racines : $t_1 = \dfrac{-20-2\sqrt{105}}{-10} = 2+\dfrac{\sqrt{105}}{5}$ (positive) ; $t_2 = 2-\dfrac{\sqrt{105}}{5}$ (négative). La solution positive exacte : $t_1 = 2+\dfrac{\sqrt{105}}{5}$. Approximativement $\sqrt{105}\approx 10,247$, donc $t_1\approx 2+2,0494 = 4,05$ s.
+    \item Tableau de variations sur $[0;+\infty[$ : $h$ croissante sur $[0;2]$, décroissante sur $[2;+\infty[$.
+\end{enumerate}
+
+\end{document}
