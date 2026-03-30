@@ -61,13 +61,13 @@ export default async function SujetsPage() {
         {
             id: 'demo-4',
             titre: 'Bac Blanc n°5 - Deep',
-            description: 'Corrigé disponible',
+            description: 'Sujet complet avec automatismes et problèmes',
             date_sujet: '2026-03-30',
             niveau: '1ere_specialite',
-            sujet_pdf_url: null,
+            sujet_pdf_url: '/eam/sujets/bac_blanc_5_sujet.pdf',
             sujet_latex_url: null,
             corrige_pdf_url: '/eam/sujets/bac_blanc_5_corrige.pdf',
-            corrige_latex_url: null,
+            corrige_latex_url: '/eam/sujets/bac_blanc_5_corrige.tex',
             corrige_disponible: true,
             created_at: '2026-03-30',
             updated_at: '2026-03-30'

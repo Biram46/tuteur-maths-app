@@ -1,0 +1,83 @@
+% CORRECTION SUJET 2 – ÉPREUVE ANTICIPÉE
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tkz-tab}
+\usepackage{eurosym}
+
+\geometry{top=2cm,bottom=2cm,left=2cm,right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{Corrigé du sujet 2 – Épreuve anticipée}\end{center}
+
+\section*{Partie 1 : Automatismes – QCM}
+
+\paragraph{Question 1}
+$(2x-1)^2 = (2x)^2 - 2\cdot 2x\cdot 1 + 1^2 = 4x^2-4x+1$. \textbf{Réponse A}.
+
+\paragraph{Question 2}
+Réduction de 15\% : coefficient $1-0,15=0,85$. Nouveau prix : $120\times 0,85 = 102$\,\euro. \textbf{Réponse B}.
+
+\paragraph{Question 3}
+Sommet d’une parabole $ax^2+bx+c$ : $x_S = -\frac{b}{2a} = -\frac{-4}{2}=2$, $y_S = f(2)=4-8+3=-1$. \textbf{Réponse A}.
+
+\paragraph{Question 4}
+Nombre pair : 2,4,6 soit 3 cas sur 6 : $\frac{3}{6}=\frac12$. \textbf{Réponse C}.
+
+\paragraph{Question 5}
+Moyenne : $\frac{8\times3 + 10\times5 + 12\times4 + 14\times2}{3+5+4+2} = \frac{24+50+48+28}{14} = \frac{150}{14} = 10,714\approx 10,8$. \textbf{Réponse C}.
+
+\paragraph{Question 6}
+Équation $y = -2x+3$ : coefficient directeur $-2$. \textbf{Réponse B}.
+
+\paragraph{Question 7}
+Hausse de 30\% : coefficient $1,3$ ; baisse de 30\% : coefficient $0,7$. Global : $1,3\times 0,7 = 0,91$, soit une baisse de $9\%$. \textbf{Réponse B}.
+
+\paragraph{Question 8}
+$g(x)=\frac{2x+1}{x+1} = 2 - \frac{1}{x+1}$. Quand $x\to +\infty$, $\frac{1}{x+1}\to 0$ donc $g(x)\to 2$. \textbf{Réponse B}.
+
+\paragraph{Question 9}
+$\frac{x}{3} = \frac{4}{5} \iff x = 3\times \frac{4}{5} = \frac{12}{5}$. \textbf{Réponse A}.
+
+\paragraph{Question 10}
+$x^2-9 = (x-3)(x+3)$. \textbf{Réponse B}.
+
+\paragraph{Question 11}
+4 as dans 32 cartes : probabilité $\frac{4}{32} = \frac18$. \textbf{Réponse C}.
+
+\paragraph{Question 12}
+7 valeurs, médiane = 4\ieme{} valeur : $7$. \textbf{Réponse C}.
+
+\section*{Partie 2 : Exercices}
+
+\subsection*{Exercice 1}
+\begin{enumerate}
+    \item $P_1 = 0,8\times 50 + 10 = 40+10=50$ ; $P_2 = 0,8\times 50 + 10 = 40+10=50$.
+    \item \begin{enumerate}
+        \item $Q_{n+1} = P_{n+1}-50 = (0,8P_n+10)-50 = 0,8P_n-40 = 0,8(P_n-50) = 0,8 Q_n$. Donc $(Q_n)$ géométrique de raison $0,8$ et $Q_0 = P_0-50 = 0$.
+        \item $Q_n = 0 \times (0,8)^n = 0$ pour tout $n$. Alors $P_n = Q_n+50 = 50$.
+    \end{enumerate}
+    \item $\lim P_n = 50$. Interprétation : la production se stabilise à 50 centaines par jour.
+\end{enumerate}
+
+\subsection*{Exercice 2}
+\begin{enumerate}
+    \item $\overrightarrow{AB} = (2-0;\,1-0) = (2;1)$ ; $\overrightarrow{AC} = (1-0;\,3-0) = (1;3)$.
+    \item Si $A$, $B$, $C$ étaient alignés, $\overrightarrow{AB}$ et $\overrightarrow{AC}$ seraient colinéaires. Or $2\times 3 - 1\times 1 = 6-1=5 \neq 0$, donc non colinéaires.
+    \item $\overrightarrow{AD} = \overrightarrow{AB} + \overrightarrow{AC} = (2+1;\,1+3) = (3;4)$. Donc $D = A + (3;4) = (3;4)$.
+    \item Pour $ABDC$ (ordre $A$, $B$, $D$, $C$) : $\overrightarrow{AB} = (2;1)$ et $\overrightarrow{DC} = C-D = (1-3;3-4) = (-2;-1) = -\overrightarrow{AB}$. On a $\overrightarrow{AB} = -\overrightarrow{DC}$ ; de plus $\overrightarrow{BD} = D-B = (3-2;4-1)=(1;3)=\overrightarrow{AC}$. Ainsi les côtés opposés sont parallèles et de même longueur : $AB \parallel CD$ et $BD \parallel AC$. Donc $ABDC$ est un parallélogramme.
+    \item $\overrightarrow{AB}(2;1)$ est vecteur directeur de $(AB)$. Une équation cartésienne : $1x - 2y + c = 0$ (car le vecteur normal $(1;-2)$ est orthogonal à $(2;1)$). En $A(0;0)$ : $0-0+c=0 \Rightarrow c=0$. Donc $(AB): x - 2y = 0$.
+\end{enumerate}
+
+\end{document}
