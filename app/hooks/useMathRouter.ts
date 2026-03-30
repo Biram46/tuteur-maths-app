@@ -4,50 +4,42 @@ import { useCallback } from 'react';
 import type { ChatMessage } from '@/lib/perplexity';
 import type { NiveauLycee } from '@/lib/niveaux';
 import { fixLatexContent } from '@/lib/latex-fixer';
+// Modules extraits du routeur mathématique
+import {
+    patchMarkdownTables,
+    cleanExprForGraph,
+    prettifyMath,
+    deLatexInput,
+    cleanMathExpr,
+    stripDdx,
+    prettifyExpr,
+} from '@/lib/math-router/math-text-utils';
+import {
+    buildSignTableInstructions,
+    buildProbabilitySystemPrompt,
+} from '@/lib/math-router/prompt-builders';
+import {
+    sanitizeExprForMathJS,
+    sanitizeExprForGraph,
+    prettifyExprForDisplay,
+    parseExerciseQuestions,
+    extractVectorNames,
+    parseInterval,
+    detectRepereType,
+    detectQuestionType,
+    createSingleCurveGraphState,
+    extractIntervalFromText,
+    AUTO_POINT_OFFSETS,
+    GRAPH_COLORS,
+    type ExerciseQuestion,
+    type QuestionType,
+    type GraphState,
+} from '@/lib/math-router/handlers-utils';
 
 // Référence globale à la fenêtre géomètre pour éviter les doublons
 let _geoWindowRef: Window | null = null;
 
 //  Utilitaire local ─────
-function patchMarkdownTables(content: string): string {
-    if (content.includes('@@@')) return content;
-    const mdTableRegex = /(\|[^\n]+\|\n\|[-| :]+\|\n(?:\|[^\n]+\|\n?)+)/g;
-    const matches = content.match(mdTableRegex);
-    if (!matches) return content;
-    let patched = content;
-    for (const match of matches) {
-        try {
-            const lines = match.trim().split('\n').filter((l: string) => l.trim());
-            if (lines.length < 3) continue;
-            const headers = lines[0].split('|').map((h: string) => h.trim()).filter((h: string) => h.length > 0);
-            const dataLines = lines.slice(2);
-            if (!headers[0]) continue;
-            if (headers[0].toLowerCase() === 'x') {
-                const xValues = headers.slice(1).map((v: string) =>
-                    v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf').replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
-                ).join(', ');
-                let tableBlock = `table |\nx: ${xValues} |\n`;
-                for (const dl of dataLines) {
-                    // Protéger les || avant le split !
-                    const protectedDl = dl.replace(/\|\|/g, '___DOUBLE_BAR___');
-                    const cells = protectedDl.split('|').map((c: string) => c.trim().replace(/___DOUBLE_BAR___/g, '||')).filter((c: string) => c.length > 0);
-                    if (cells.length < 2) continue;
-                    const label = cells[0];
-                    const values = cells.slice(1).map((v: string) =>
-                        v.replace(/-\s*\\?inft?y?|-?\s*infini?/gi, '-inf')
-                         .replace(/\+?\s*\\?inft?y?|\+?\s*infini?/gi, '+inf')
-                         .replace(/↗|\\nearrow\b|\bcroissante?\b|\bmonte\b/gi, 'nearrow')
-                         .replace(/↘|\\searrow\b|\bd[eé]croissante?\b|\bdescend\b/gi, 'searrow')
-                    ).join(', ');
-                    const isVariation = /nearrow|searrow/.test(values) || /(croissante|décroissante|variation)/i.test(label) || /^f\s*\(\s*x\s*\)$/i.test(label);
-                    tableBlock += `${isVariation ? 'var' : 'sign'}: ${label} : ${values} |\n`;
-                }
-                patched = patched.replace(match, `@@@\n${tableBlock}@@@`);
-            }
-        } catch (e) { console.warn('[patchMarkdownTables]', e); }
-    }
-    return patched;
-}
 
 //  Interface 
 
@@ -245,43 +237,7 @@ export function useMathRouter({
     // ═══════════════════════════════════════════════════════════════════
     const handleSendMessageWithText = async (inputText: string, newMessages: ChatMessage[]) => {
         // ── Pré-traitement LaTeX : convertir les notations LaTeX de l'élève ──
-        // pour que les extracteurs d'expression fonctionnent correctement
-        const deLatexInput = (s: string): string => s
-            // Supprimer les délimiteurs LaTeX $...$, $$...$$, \(...\), \[...\]
-            .replace(/\\\[|\\\]/g, '')
-            .replace(/\\\(|\\\)/g, '')
-            .replace(/\$\$/g, '').replace(/\$/g, '')
-            // \frac{a}{b} → (a)/(b)
-            .replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
-            .replace(/\\dfrac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
-            .replace(/\\tfrac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
-            // \sqrt{a} → sqrt(a)
-            .replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)')
-            .replace(/\\sqrt\s*([a-zA-Z0-9])/g, 'sqrt($1)')
-            // Inégalités et symboles mathématiques
-            .replace(/\\ge(q)?\b/g, '>=')
-            .replace(/\\le(q)?\b/g, '<=')
-            .replace(/\\ne(q)?\b/g, '!=')
-            .replace(/\\pi\b/g, 'pi')
-            .replace(/\\infty\b/g, 'Infinity')
-            .replace(/\\to\b/g, '->')
-            // Vecteurs : garder le nom explicite avant de supprimer les accolades
-            .replace(/\\vec\s*\{([^{}]+)\}/g, 'vecteur $1')
-            .replace(/\\overrightarrow\s*\{([^{}]+)\}/g, 'vecteur $1')
-            .replace(/\\vec\s*([a-zA-Z0-9]{1,2})/g, 'vecteur $1')
-            .replace(/\\overrightarrow\s*([a-zA-Z0-9]{1,2})/g, 'vecteur $1')
-            // Accolades LaTeX → parenthèses
-            .replace(/\{/g, '(').replace(/\}/g, ')')
-            // \cdot, \times → *
-            .replace(/\\cdot\b/g, '*').replace(/\\times\b/g, '*')
-            // \left, \right → supprimé
-            .replace(/\\left\b/g, '').replace(/\\right\b/g, '')
-            // Conserver les fonctions mathématiques standards (enlever juste le \)
-            .replace(/\\(ln|log|exp|sin|cos|tan|arcsin|arccos|arctan)\b/g, '$1')
-            // Commandes résiduelles → supprimées
-            .replace(/\\[a-zA-Z]+/g, '')
-            .trim();
-
+        // (fonction importée de math-text-utils.ts)
         const inputCleaned = deLatexInput(inputText);
         // Utiliser inputCleaned pour les détections et extractions, inputText pour l'affichage/IA
         const inputLower = inputCleaned.toLowerCase();
@@ -325,55 +281,8 @@ export function useMathRouter({
                         .trim();
                 }
 
-                const cleanMathExpr = (e: string) => {
-                    let t = e;
-                    // Retirer f(x) =
-                    t = t.replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '');
-                    // Retirer toute inéquation ou équation à droite (ex: > 0, = 0, ≥ 0)
-                    t = t.replace(/\s*(?:>|<|>=|<=|=|≥|≤)\s*.*$/, '');
-                    // Retirer $ et \\ (double backslash LaTeX)
-                    t = t.replace(/\$/g, '').replace(/\\\\/g, '');
-                    // Unicode → ASCII
-                    t = t.replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4');
-                    t = t.replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/');
-                    // LaTeX fractions (plusieurs passes pour les imbriqués)
-                    for (let pass = 0; pass < 3; pass++) {
-                        t = t.replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
-                    }
-                    // LaTeX racines
-                    t = t.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '$1rt($2)');
-                    t = t.replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)');
-                    // LaTeX commandes courantes
-                    t = t.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
-                    t = t.replace(/\\left/g, '').replace(/\\right/g, '');
-                    t = t.replace(/\\infty/g, 'Infinity');
-                    t = t.replace(/\\pi/g, 'pi');
-                    // Nettoyer les accolades résiduelles
-                    t = t.replace(/\{/g, '(').replace(/\}/g, ')');
-                    // Traduction française (et math) avant la suppression des macros
-                    t = t.replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)');
-                    t = t.replace(/\\?ln\s*\(/gi, 'log(');
-                    t = t.replace(/\\?log\s*\(/gi, 'log(');
-                    // ⛔ Supprimer TOUTE commande LaTeX restante (\xxx)
-                    t = t.replace(/\\[a-zA-Z]+/g, '');
-                    // Multiplication implicite
-                    t = t.replace(/(\d)([a-zA-Z])/g, '$1*$2');   // 2x → 2*x
-                    t = t.replace(/(\d)\(/g, '$1*(');             // 3( → 3*(
-                    t = t.replace(/\)(\w)/g, ')*$1');             // )x → )*x
-                    t = t.replace(/\)\(/g, ')*(');                // )( → )*(
-                    // Filet de sécurité : texte français résiduel
-                    t = t.replace(/,\s*(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\b.*$/i, '');
-                    t = t.replace(/\s+(?:et|on|sa|où|avec|pour|dont|dans|sur|qui|elle|il|ses|son|la|le|les|nous|c'est|cette)\s+.*$/i, '');
-                    return t.replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '').trim();
-                };
-
-                const prettifyExpr = (ex: string): string => ex
-                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                    .replace(/\blog\(/g, 'ln(')
-                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
-
                 // ── 2. Parser les questions numérotées ──
+                // (cleanMathExpr et prettifyExpr sont importés de math-text-utils.ts)
                 interface ExQ { num: string; text: string; type: 'sign_table' | 'sign_table_f' | 'variation_table' | 'graph' | 'solve' | 'parity' | 'limits' | 'derivative_sign' | 'ai'; }
                 const questions: ExQ[] = [];
                 const qRegex = /(\d+)\s*[).]\s*(.+?)(?=\n\s*\d+\s*[).]|\s*$)/g;
@@ -557,15 +466,7 @@ export function useMathRouter({
                             console.log(`[ExerciceMode] 📊 Handler GRAPH déclenché, exprClean="${exprClean}"`);
                             try {
                                 const { compile: compileExpr } = await import('mathjs');
-                                const san = (e2: string) => e2
-                                    .replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                                    .replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log')
-                                    .replace(/−/g, '-')
-                                    .replace(/(\d)([a-zA-Z])/g, '$1*$2')
-                                    .replace(/(\d)\(/g, '$1*(')
-                                    .replace(/\)(\w)/g, ')*$1')
-                                    .replace(/\)\(/g, ')*(');
-                                const sanExpr = san(exprClean);
+                                const sanExpr = sanitizeExprForMathJS(exprClean);
                                 console.log(`[ExerciceMode] 📊 Expression sanitisée: "${sanExpr}"`);
                                 const compiled = compileExpr(sanExpr);
                                 const xVals = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
@@ -586,12 +487,7 @@ export function useMathRouter({
 
                             // Stocker les données du graphe pour ouverture via lien cliquable
                             try {
-                                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
-                                const prettyName = exprClean
-                                    .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                                    .replace(/\blog\(/g, 'ln(')
-                                    .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                                    .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                                const prettyName = prettifyExprForDisplay(exprClean);
                                 const gs = {
                                     curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
                                     intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
@@ -745,17 +641,7 @@ RÈGLES ABSOLUES :
                         const decoder = new TextDecoder();
                         let aiText = '';
                         let lastUpdate = 0;
-                        // ⛔ Fonction pour supprimer la notation d/dx (Leibniz → Lagrange)
-                        // SÉCURISÉE : ne touche PAS au LaTeX normal (\frac{a}{b}, etc.)
-                        const stripDdx = (t: string) => t
-                            // Plaintext exact : d(expr)/dx → (expr)'
-                            .replace(/\bd\(([^)]+)\)\/dx\b/gi, "($1)'")
-                            // Plaintext exact : df/dx → f'(x)
-                            .replace(/\bdf\/dx\b/gi, "f'(x)")
-                            // Plaintext exact : d/dx → (supprimé)
-                            .replace(/\bd\/dx\b/gi, "")
-                            // d²f/dx² → f''(x)
-                            .replace(/\bd[²2]f?\/dx[²2]/gi, "f''(x)");
+                        // stripDdx est importé de math-text-utils.ts
                         let lineBuffer = ''; // Buffer pour les lignes incomplètes
                         while (true) {
                             const { done, value } = await reader.read();
@@ -796,12 +682,7 @@ RÈGLES ABSOLUES :
                         // Toujours ajouter le graphe pour un exercice sur une fonction
                         // (même si pas de question 'graph' explicite dans l'OCR)
                         try {
-                            const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
-                            const prettyName = exprClean
-                                .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                                .replace(/\blog\(/g, 'ln(')
-                                .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                                .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                            const prettyName = prettifyExprForDisplay(exprClean);
                             const gs = {
                                 curves: [{ id: 'curve-0', expression: exprClean, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: [-10, 10] as [number, number] }],
                                 intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
@@ -1096,87 +977,7 @@ RÈGLES ABSOLUES :
                         // ANTI-REGRESSION: JSON purge empêche les rôles 'user' consécutifs qui faisaient planter l'API Anthropic.
                         const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
                         if (enrichedMessages.length > 0) {
-                            enrichedMessages[enrichedMessages.length - 1].content += '\n\n' + (() => {
-                                const parts: string[] = [];
-                                parts.push(`[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] ⚠️ Le tableau de signes de f(x) = ${expr} est DÉJÀ AFFICHÉ au-dessus. NE GÉNÈRE AUCUN tableau.`);
-                                parts.push(`\n**VOICI LE TABLEAU EXACT GÉNÉRÉ PAR LE MOTEUR (blocs @@@) :**\n${tableBlock}\n`);
-
-                                    // Factorisation SymPy
-                                    let factorizationStr = '';
-                                    if (engineData.factors?.length) {
-                                        const numFactors = engineData.factors.filter((f: any) => f.type === 'numerator').map((f: any) => f.label);
-                                        const denFactors = engineData.factors.filter((f: any) => f.type === 'denominator').map((f: any) => f.label);
-                                        const constPart = engineData.effectiveConst && Math.abs(engineData.effectiveConst - 1) > 1e-10 && Math.abs(engineData.effectiveConst + 1) > 1e-10
-                                            ? `${engineData.effectiveConst} × ` : '';
-                                        if (numFactors.length > 0) {
-                                            factorizationStr = `${constPart}${numFactors.map((f: string) => `(${f})`).join(' × ')}`;
-                                            // Ne l'appeler "FACTORISATION" que s'il y a vraiment plusieurs facteurs
-                                            if (numFactors.length > 1 || constPart) {
-                                                parts.push(`\n📌 FORME À UTILISER : f(x) = ${factorizationStr}`);
-                                            }
-                                        }
-                                        if (denFactors.length > 0) {
-                                            parts.push(`📌 DÉNOMINATEUR : ${denFactors.map((f: string) => `(${f})`).join(' × ')}`);
-                                        }
-                                    }
-
-                                    // INTERDICTION EXPLICITE
-                                    parts.push(`\n⛔⛔⛔ INTERDICTIONS ABSOLUES ⛔⛔⛔`);
-                                    parts.push(`- NE FACTORISE JAMAIS LES TRINÔMES pour faire un tableau ! (ex: on n'utilise jamais (x-1)(x+1) pour faire deux lignes dans un tableau, on garde la ligne x²-1).`);
-                                    parts.push(`- NE DESSINE STRICTEMENT AUCUN TABLEAU (pas de markdown genre |x|...|, pas de LaTeX, pas de tirets). Le tableau est déjà codé dans l'application et s'affiche au-dessus de ta réponse !`);
-                                    parts.push(`- Ne donne QU'UNE SEULE ET UNIQUE méthode de résolution (celle avec le discriminant si c'est un degré 2). Il est STRICTEMENT INTERDIT de proposer une seconde méthode (ni racines évidentes, ni factorisation).`);
-
-                                    // Étapes discriminant Δ
-                                    if (engineData.discriminantSteps?.length) {
-                                        parts.push(`\n📐 MÉTHODE DU DISCRIMINANT OBLIGATOIRE pour l'explication :`);
-                                        parts.push(`⚠️ INTERDICTION STRICTE DE FACTORISER DAVANTAGE CES TRINÔMES (pas d'identités remarquables) ! Garde le trinôme entier et étudie son signe avec le signe de 'a'.`);
-                                        for (const s of engineData.discriminantSteps) {
-                                            parts.push(`\n▸ Pour le facteur ${s.factor} :`);
-                                            for (const step of s.steps) {
-                                                parts.push(`  ${step}`);
-                                            }
-                                        }
-                                    }
-
-                                    if (engineData.fxValues && engineData.fxValues.length > 0) {
-                                        parts.push(`\n📌 **AIDE INFAILLIBLE FOURNIE PAR LE SYSTÈME** 📌`);
-                                        parts.push(`Le système a calculé formellement les signes de f(x) sur les intervalles séparés par les racines (de gauche à droite) :`);
-                                        
-                                        const xMatch = (engineData.aaaBlock || '').match(/x:\s*([^|]+)/);
-                                        const xStr = xMatch ? xMatch[1].trim() : '';
-                                        const xArr = xStr ? xStr.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0) : [];
-                                        
-                                        if (xArr.length >= 2 && engineData.fxValues.length === 2 * xArr.length - 3) {
-                                            for (let i = 0; i < xArr.length - 1; i++) {
-                                                const left = xArr[i];
-                                                const right = xArr[i + 1];
-                                                const sign = engineData.fxValues[2 * i];
-                                                parts.push(`- Sur l'intervalle ]${left}; ${right}[ : l'expression est de signe ${sign}`);
-                                                if (i < xArr.length - 2) {
-                                                    const ptSign = engineData.fxValues[2 * i + 1];
-                                                    parts.push(`- En x = ${right} : l'expression vaut ${ptSign === '||' ? 'NON DÉFINIE (||)' : ptSign}`);
-                                                }
-                                            }
-                                        } else {
-                                            // Fallback
-                                            if (xArr.length > 0) parts.push(`- Valeurs de x : ${xArr.join(' ; ')}`);
-                                            parts.push(`- Signes successifs de f(x) : ${engineData.fxValues.join(' puis ')}`);
-                                        }
-                                        parts.push(`Tu DOIS ABSOLUMENT te calquer sur ces signes pour justifier le résultat et trouver l'ensemble de solutions S, ne propose pas une autre méthode.`);
-                                    }
-
-                                    parts.push(`\n**CONCLUSION ATTENDUE :**`);
-                                    if (inputText.match(/>|<|≥|≤|>=|<=/)) {
-                                        parts.push(`Avant de donner la solution, TU DOIS IMPÉRATIVEMENT prendre le temps de lister chaque intervalle du tableau avec son signe correspondant (ex: Sur ]-inf, 2[, f(x) est -). C'est crucial pour ne pas te tromper.`);
-                                        parts.push(`Ensuite seulement, déduis logiquement la solution finale et termine par LA SOLUTION EXACTE de l'inéquation en tapant : **S = ...**`);
-                                    } else if (inputText.match(/(?:équa|equation|résoud|solution)/i)) {
-                                        parts.push(`Termine simplement par l'ensemble exact des solutions de l'équation en tapant : S = { ... }`);
-                                    } else {
-                                        parts.push(`⛔ NE DONNE SURTOUT PAS d'ensemble de solution S=... à la fin ! On t'a simplement demandé le tableau ou l'étude de signe, pas de résoudre une inéquation.`);
-                                    }
-
-                                    return parts.join('\n');
-                                })();
+                            enrichedMessages[enrichedMessages.length - 1].content += '\n\n' + buildSignTableInstructions(engineData, expr, tableBlock, inputText);
                         }
                         const tablePrefix = tableBlock + '\n\n';
                         // AJOUTER un nouveau message assistant (pas remplacer !)
@@ -1333,12 +1134,7 @@ RÈGLES ABSOLUES :
 
                 if (wantsGraphAlongWithTable) {
                     try {
-                        const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
-                        const prettyName = expr
-                            .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                            .replace(/\blog\(/g, 'ln(')
-                            .replace(/\^2(?![0-9])/g, '²').replace(/\^3(?![0-9])/g, '³')
-                            .replace(/\*/g, '×').replace(/\bpi\b/g, 'π');
+                        const prettyName = prettifyExprForDisplay(expr);
                         const gs = {
                             curves: [{ id: 'curve-0', expression: expr, name: `f(x) = ${prettyName}`, color: GRAPH_COLORS[0], interval: vOptions.searchDomain || [-10, 10] }],
                             intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
@@ -1585,7 +1381,6 @@ RÈGLES ABSOLUES :
         if (wantsGraphAction) {
             try {
                 // ── Fonctions utilitaires ──
-                const GRAPH_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#c084fc', '#fb923c'];
 
                 // Extraction de l'intervalle
                 let gInterval: [number, number] = [-10, 10];
@@ -1595,72 +1390,8 @@ RÈGLES ABSOLUES :
                 if (intMatch2) gInterval = [parseFloat(intMatch2[1]), parseFloat(intMatch2[2])];
 
                 // Formater une expression mathjs en notation lisible (pour affichage)
-                const prettifyMath = (expr: string): string => {
-                    return expr
-                        // sqrt(expr) → √(expr)
-                        .replace(/\bsqrt\(([^)]+)\)/g, '√($1)')
-                        .replace(/\bsqrt\b/g, '√')
-                        // log(x) → ln(x) en notation française
-                        .replace(/\blog\(/g, 'ln(')
-                        // e^(x) → eˣ — on laisse e^(...) pour lisibilité
-                        // Puissances : ^2 → ², ^3 → ³, ^4 → ⁴
-                        .replace(/\^2(?![0-9])/g, '²')
-                        .replace(/\^3(?![0-9])/g, '³')
-                        .replace(/\^4(?![0-9])/g, '⁴')
-                        // Multiplication : * → ×
-                        .replace(/\*/g, '×')
-                        // pi → π
-                        .replace(/\bpi\b/g, 'π')
-                        // Espaces autour des opérateurs
-                        .replace(/([^\s])([+\-])/g, '$1 $2')
-                        .replace(/([+\-])([^\s])/g, '$1 $2')
-                        // Nettoyage doubles espaces
-                        .replace(/\s+/g, ' ').trim();
-                };
 
                 // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
-                const cleanExpr = (e: string) => {
-                    let c = e
-                        .replace(/\$/g, '')
-                        // Retirer f(x)=, g(x)=, y= etc.
-                        .replace(/[fghk]\s*\(x\)\s*=?\s*/gi, '')
-                        .replace(/^\s*y\s*=\s*/i, '')
-                        // LaTeX : \frac{a}{b} → (a)/(b)
-                        .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '($1)/($2)')
-                        // LaTeX : \sqrt{expr} → sqrt(expr)
-                        .replace(/\\sqrt\s*\{([^}]*)\}/g, 'sqrt($1)')
-                        .replace(/\\sqrt\s+(\w+)/g, 'sqrt($1)')
-                        // LaTeX : \left( \right) → ( )
-                        .replace(/\\left\s*[([]/g, '(').replace(/\\right\s*[)\]]/g, ')')
-                        // LaTeX : \cdot \times → *
-                        .replace(/\\cdot/g, '*').replace(/\\times/g, '*')
-                        // LaTeX : \text{...} → contenu
-                        .replace(/\\text\s*\{([^}]*)\}/g, '$1')
-                        // LaTeX : backslashes restants
-                        .replace(/\\[,;:!]\s*/g, ' ')
-                        .replace(/\\quad/g, ' ').replace(/\\qquad/g, ' ')
-                        // Unicode : ², ³
-                        .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-                        // Symboles
-                        .replace(/·/g, '*').replace(/×/g, '*').replace(/−/g, '-').replace(/÷/g, '/')
-                        // Multiplications implicites
-                        .replace(/(\d)\s*([a-zA-Z(])/g, '$1*$2')
-                        .replace(/([xX])\s*([a-zA-Z(])/g, '$1*$2')
-                        .replace(/\)\s*([a-zA-Z(])/g, ')*$1')
-                        // Français : racine carrée de → sqrt
-                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
-                        .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
-                        // Valeur absolue
-                        .replace(/\|([^|]+)\|/g, 'abs($1)')
-                        // ln → log pour mathjs
-                        .replace(/\bln\s*\(/g, 'log(')
-                        // exp(x) → e^(x)
-                        .replace(/\bexp\s*\(/g, 'e^(')
-                        // Ponctuation finale
-                        .replace(/\s+$/g, '').replace(/[.!?]+$/g, '')
-                        .trim();
-                    return c;
-                };
 
                 // Charger l'état précédent du graphe
                 let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
@@ -1707,8 +1438,8 @@ RÈGLES ABSOLUES :
                     for (const op of ops) {
                         const idx = mathPart.indexOf(op);
                         if (idx > 0) {
-                            lhs = cleanExpr(mathPart.substring(0, idx));
-                            rhs = cleanExpr(mathPart.substring(idx + op.length));
+                            lhs = cleanExprForGraph(mathPart.substring(0, idx));
+                            rhs = cleanExprForGraph(mathPart.substring(idx + op.length));
                             operator = opMap[op] || '=';
                             break;
                         }
@@ -1770,10 +1501,10 @@ RÈGLES ABSOLUES :
                     // Extraire l'expression (si fournie)
                     let tangExpr = '';
                     const tangEqMatch = inputText.match(/(?:tangente\s+(?:de\s+|à\s+)?)?(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*(.+?)(?:\s+en\s|$)/i);
-                    if (tangEqMatch) tangExpr = cleanExpr(tangEqMatch[1]);
+                    if (tangEqMatch) tangExpr = cleanExprForGraph(tangEqMatch[1]);
                     if (!tangExpr) {
                         const tangVerbMatch = inputText.match(/tangente\s+(?:de\s+|à\s+)?(.+?)(?:\s+en\s|$)/i);
-                        if (tangVerbMatch) tangExpr = cleanExpr(tangVerbMatch[1]);
+                        if (tangVerbMatch) tangExpr = cleanExprForGraph(tangVerbMatch[1]);
                     }
 
                     // Si pas d'expression, utiliser la dernière courbe
@@ -1800,8 +1531,7 @@ RÈGLES ABSOLUES :
                     // Calculer la tangente numériquement (f'(x0) par différence finie)
                     try {
                         const { compile } = await import('mathjs');
-                        const sanitize = (e: string) => e.replace(/\*\*/g, '^').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/\bln\b/g, 'log');
-                        const compiled = compile(sanitize(tangExpr));
+                        const compiled = compile(sanitizeExprForGraph(tangExpr));
                         const evalF = (xv: number) => {
                             try { const r = compiled.evaluate({ x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
                         };
@@ -1895,7 +1625,7 @@ RÈGLES ABSOLUES :
                             // m[0] = "f(x) = x^2", m[1] = "x^2"
                             const nameMatch = m[0].match(/([fghFGH])/i);
                             const name = nameMatch ? nameMatch[1].toLowerCase() : `f${idx+1}`;
-                            return { name, expr: cleanExpr(m[1].trim()) };
+                            return { name, expr: cleanExprForGraph(m[1].trim()) };
                         });
                     } else {
                         // Fallback simple ou verbes
@@ -1912,7 +1642,7 @@ RÈGLES ABSOLUES :
                                     .replace(/[.!?]+$/, '');
                             }
                         }
-                        gExpr = cleanExpr(gExpr);
+                        gExpr = cleanExprForGraph(gExpr);
                         if (gExpr) {
                             const nameMatch = inputText.match(/([fghFGH])\s*\(\s*x\s*\)/);
                             gExprs.push({ name: nameMatch ? nameMatch[1] : (wantsAddCurve ? 'g' : 'f'), expr: gExpr });
@@ -2729,83 +2459,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
         const isBinomialLargeN = nRep >= 4;
 
         if (wantsTree) {
-            const treeSystemPrompt = `[SYSTÈME ARBRE DE PROBABILITÉS]
-L'élève demande un arbre de probabilités. Tu DOIS inclure un bloc @@@...@@@ au format arbre.
-
-FORMAT OBLIGATOIRE du bloc @@@:
-@@@
-arbre: [titre de l'arbre]
-[chemin avec ->], [probabilité NUMÉRIQUE]
-@@@
-
-RÈGLES :
-- Première ligne après @@@ : "arbre: Titre"
-- NE PAS écrire la ligne "Ω, 1" — la racine Ω est automatique
-- Chaque ligne = un chemin complet depuis la racine : A, 0.3 ou A->B, 0.4
-- Le chemin utilise -> pour séparer les niveaux : A->B signifie "B sachant A"
-- La probabilité DOIT être un NOMBRE (décimal ou fraction) : 0.3, 0.7, 1/3, 2/5
-- ⛔⛔ JAMAIS de P(B|A), P(B), P_A(B) comme valeur — uniquement des NOMBRES !
-- ⛔⛔ JAMAIS de | (pipe) dans les valeurs — ça casse le parser !
-- Si une probabilité est inconnue, écris "?" 
-- Pour le complémentaire, utilise la barre Unicode : Ā, B̄ (pas A' ni \\bar{A})
-- NE mets PAS de résultats aux feuilles (pas de P(A∩B) = ...)
-- La somme des branches d'un même nœud = 1
-
-⛔⛔⛔ RÈGLE CRITIQUE POUR LES GRANDES EXPÉRIENCES (n répétitions) ⛔⛔⛔
-${isBinomialLargeN ? `
-🚨 DÉTECTÉ : n = ${nRep} répétitions → L'arbre COMPLET aurait ${Math.pow(2, nRep)} feuilles — IMPOSSIBLE à afficher.
-👉 Tu DOIS dessiner UNIQUEMENT un arbre partiel des 3 PREMIERS NIVEAUX (= 3 lancers).
-👉 Écris clairement dans ton explication : "L'arbre complet a ${nRep} niveaux. On illustre ici les 3 premiers."
-👉 Pour les probabilités : utilise la même probabilité p à chaque niveau (épreuves indépendantes).
-` : `
-- Si l'expérience comporte n ≥ 4 répétitions identiques (loi binomiale, lancers de pièce, tirages avec remise n≥4), NE DESSINE PAS l'arbre entier. Trace UNIQUEMENT les 3 premiers niveaux et indique "arbre partiel".
-`}
-
-EXEMPLE pour "arbre avec P(A) = 0.4, P(B|A) = 0.3, P(B|Ā) = 0.5" :
-@@@
-arbre: Expérience aléatoire
-A, 0.4
-Ā, 0.6
-A->B, 0.3
-A->B̄, 0.7
-Ā->B, 0.5
-Ā->B̄, 0.5
-@@@
-
-EXEMPLE LANCER DE PIÈCE 3 FOIS (arbre partiel pour n=5) :
-@@@
-arbre: Lancer de pièce — 3 premiers niveaux (arbre partiel)
-P, 0.5
-F, 0.5
-P->P, 0.5
-P->F, 0.5
-F->P, 0.5
-F->F, 0.5
-P->P->P, 0.5
-P->P->F, 0.5
-P->F->P, 0.5
-P->F->F, 0.5
-F->P->P, 0.5
-F->P->F, 0.5
-F->F->P, 0.5
-F->F->F, 0.5
-@@@
-
-EXEMPLE pour tirage avec remise :
-@@@
-arbre: Tirage avec remise
-R, 3/5
-V, 2/5
-R->R, 3/5
-R->V, 2/5
-V->R, 3/5
-V->V, 2/5
-@@@
-
-⛔ Si tu oublies le bloc @@@ ou que le format est faux, l'arbre ne s'affichera PAS !
-⛔ Chaque probabilité doit être un NOMBRE : 0.3, 1/3, 0.7 — JAMAIS P(X), P_A(B), P(B|A) !
-
-Après le bloc @@@, explique brièvement l'arbre et les propriétés utilisées.`;
+            const treeSystemPrompt = buildProbabilitySystemPrompt(isBinomialLargeN, nRep);
 
             const treeMessages: ChatMessage[] = [
                 ...newMessages,
