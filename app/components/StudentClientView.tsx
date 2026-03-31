@@ -5,6 +5,7 @@ import { Level, Chapter, Resource } from "@/lib/data";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MobileMenu from "./MobileMenu";
+import NavExamButton from "./NavExamButton";
 
 type Props = {
     levels: Level[];
@@ -83,23 +84,55 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse delay-1000"></div>
             </div>
 
-            <div className="relative z-10 flex h-screen overflow-hidden">
+            {/* Top Navigation Bar */}
+            <nav className="relative z-50 flex items-center justify-between px-4 py-3 md:px-6 border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
+                {/* Left: Logo + Mobile Menu */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="md:hidden w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                        aria-label="Ouvrir le menu"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl">📐</span>
+                        <span className="font-bold text-white hidden sm:inline">Tuteur Maths</span>
+                    </div>
+                </div>
+
+                {/* Center: Navigation Tabs (Desktop) */}
+                <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+                    <Link href="/" className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm">
+                        Espace élèves
+                    </Link>
+                    <Link href="/assistant" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-all">
+                        Module Assistant
+                    </Link>
+                    <Link href="/admin" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-all">
+                        Espace prof
+                    </Link>
+                </div>
+
+                {/* Right: EAM Button + User */}
+                <div className="flex items-center gap-3">
+                    <NavExamButton />
+                    <a
+                        href="/api/auth/logout"
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 font-medium text-sm transition-all"
+                    >
+                        <span>🚪</span>
+                        <span>Quitter</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div className="relative z-10 flex h-[calc(100vh-60px)] overflow-hidden">
 
                 {/* 1. Sidebar NIVEAUX & CHAPITRES (Glassmorphism) - Hidden on mobile */}
                 <aside className="hidden md:flex w-80 flex-col gap-6 p-6 border-r border-white/5 bg-white/5 backdrop-blur-xl transition-all h-full overflow-y-auto">
-
-                    {/* Header Logo */}
-                    <div className="flex flex-col gap-3 mb-6">
-                        <div className="flex items-center gap-3 px-2 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <span className="text-xl">📐</span>
-                            </div>
-                            <div>
-                                <h1 className="font-bold text-lg leading-tight text-white tracking-wide">Tuteur Maths</h1>
-                                <p className="text-xs text-slate-400 font-medium tracking-wider">ESPACE ÉLÈVE</p>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Section Niveaux */}
                     <div className="space-y-3">
@@ -149,31 +182,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
                     {/* Header Content */}
                     <header className="px-4 md:px-8 py-4 md:py-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
-                        <div className="flex items-center gap-3">
-                            {/* Mobile menu button */}
-                            <button
-                                onClick={() => setIsMobileMenuOpen(true)}
-                                className="md:hidden w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                                aria-label="Ouvrir le menu"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
-                            <div>
-                                {activeChapter ? (
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
-                                            <span>{activeLevel?.label}</span>
-                                            <span>•</span>
-                                            <span>Chapitre {visibleChapters.findIndex(c => c.id === activeChapter.id) + 1}</span>
-                                        </div>
-                                        <h2 className="text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
+                        <div>
+                            {activeChapter ? (
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                        <span>{activeLevel?.label}</span>
+                                        <span>•</span>
+                                        <span>Chapitre {visibleChapters.findIndex(c => c.id === activeChapter.id) + 1}</span>
                                     </div>
-                                ) : (
-                                    <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
-                                )}
-                            </div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
+                                </div>
+                            ) : (
+                                <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
+                            )}
                         </div>
                         <div className="hidden md:flex items-center gap-3">
                             <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
