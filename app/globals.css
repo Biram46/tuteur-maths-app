@@ -652,3 +652,66 @@ svg foreignObject .katex * {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OPTIMIZATION UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Minimum touch target size (44x44px Apple HIG standard) */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Prevent iOS double-tap zoom and remove tap highlight */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom horizontal scrollbar for tables */
+.custom-scrollbar-horizontal {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  .main-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .logo h1 {
+    font-size: 1rem;
+  }
+
+  .main-nav {
+    display: none;
+  }
+
+  .header-actions {
+    display: none;
+  }
+}

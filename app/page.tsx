@@ -77,33 +77,6 @@ export default async function Home() {
 
     return (
         <>
-            {/* En-tête Global */}
-            <header className="main-header">
-                <div className="logo flex items-center gap-2">
-                    <span className="text-2xl">📐</span>
-                    <h1 className="text-xl font-bold">Tuteur Maths</h1>
-                </div>
-
-                <nav className="main-nav">
-                    <button className="nav-tab nav-tab-active">
-                        Espace élèves
-                    </button>
-                    <Link href="/assistant" className="nav-tab">
-                        Module Assistant
-                    </Link>
-                    <Link href="/admin" className="nav-tab">
-                        Espace prof
-                    </Link>
-                    <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block"></div>
-                    <NavExamButton />
-                </nav>
-
-                <div className="header-actions">
-                    {user && <UserAuthButton user={user} />}
-                </div>
-            </header>
-
-
             {/* Vue Client : Interactive */}
             <StudentClientView
                 levels={levels}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Orbitron, Inter, Exo_2 } from "next/font/google";
 import "./globals.css";
 import 'katex/dist/katex.min.css'; // ← GLOBAL : garantit le rendu KaTeX sur toutes les pages
@@ -50,6 +50,14 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#0f172a',
 };
 
 export default function RootLayout({

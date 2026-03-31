@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Level, Chapter, Resource } from "@/lib/data";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import MobileMenu from "./MobileMenu";
 
 type Props = {
     levels: Level[];
@@ -19,6 +20,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         levels.length > 0 ? levels[0].id : null
     );
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Mettre à jour le chapitre sélectionné quand on change de niveau
     useEffect(() => {
@@ -83,8 +85,8 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
             <div className="relative z-10 flex h-screen overflow-hidden">
 
-                {/* 1. Sidebar NIVEAUX & CHAPITRES (Glassmorphism) */}
-                <aside className="w-80 flex flex-col gap-6 p-6 border-r border-white/5 bg-white/5 backdrop-blur-xl transition-all h-full overflow-y-auto">
+                {/* 1. Sidebar NIVEAUX & CHAPITRES (Glassmorphism) - Hidden on mobile */}
+                <aside className="hidden md:flex w-80 flex-col gap-6 p-6 border-r border-white/5 bg-white/5 backdrop-blur-xl transition-all h-full overflow-y-auto">
 
                     {/* Header Logo */}
                     <div className="flex flex-col gap-3 mb-6">
@@ -146,8 +148,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                 <section className="flex-1 flex flex-col h-full overflow-hidden relative">
 
                     {/* Header Content */}
-                    <header className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
-                        <div>
+                    <header className="px-4 md:px-8 py-4 md:py-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            {/* Mobile menu button */}
+                            <button
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className="md:hidden w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                                aria-label="Ouvrir le menu"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div>
                             {activeChapter ? (
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
@@ -325,6 +338,18 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
                 {/* (AssistantSidebar is removed per user request) */}
             </div>
+
+            {/* Mobile Menu */}
+            <MobileMenu
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+                levels={levels}
+                chapters={chapters}
+                selectedLevelId={selectedLevelId}
+                selectedChapterId={selectedChapterId}
+                onLevelSelect={setSelectedLevelId}
+                onChapterSelect={setSelectedChapterId}
+            />
 
         </main>
     );
