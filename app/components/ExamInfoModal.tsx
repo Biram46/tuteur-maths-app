@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 
 type Tab = "epreuve" | "automatismes" | "programmes" | "veille";
 
 export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [lastVerified] = useState("7 février 2026");
     const [activeTab, setActiveTab] = useState<Tab>("epreuve");
+    const [mounted, setMounted] = useState(false);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
+    const modalContent = isOpen ? (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md" onClick={onClose}>
+            <div
+                className="w-full max-w-5xl bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border-t-blue-500/50"
+                onClick={(e) => e.stopPropagation()}
+            >
             <div className="w-full max-w-5xl bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border-t-blue-500/50">
 
                 {/* Header Officiel Style */}
@@ -272,5 +280,9 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                 </div>
             </div>
         </div>
-    );
+    ) : null;
+
+    if (!mounted) return null;
+
+    return createPortal(modalContent, document.body);
 }
