@@ -161,18 +161,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 </svg>
                             </button>
                             <div>
-                            {activeChapter ? (
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
-                                        <span>{activeLevel?.label}</span>
-                                        <span>•</span>
-                                        <span>Chapitre {visibleChapters.findIndex(c => c.id === activeChapter.id) + 1}</span>
+                                {activeChapter ? (
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                            <span>{activeLevel?.label}</span>
+                                            <span>•</span>
+                                            <span>Chapitre {visibleChapters.findIndex(c => c.id === activeChapter.id) + 1}</span>
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
-                                </div>
-                            ) : (
-                                <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
-                            )}
+                                ) : (
+                                    <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
+                                )}
+                            </div>
                         </div>
                         <div className="hidden md:flex items-center gap-3">
                             <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
