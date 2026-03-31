@@ -21,7 +21,6 @@ export default function ExamInfoModal({ isOpen, onClose }: { isOpen: boolean; on
                 className="w-full max-w-5xl bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border-t-blue-500/50"
                 onClick={(e) => e.stopPropagation()}
             >
-            <div className="w-full max-w-5xl bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border-t-blue-500/50">
 
                 {/* Header Officiel Style */}
                 <div className="p-6 border-b border-white/10 bg-slate-900 flex justify-between items-center">
