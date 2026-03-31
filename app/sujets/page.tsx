@@ -18,59 +18,73 @@ export default async function SujetsPage() {
     const demoSujets: EAMSujet[] = [
         {
             id: 'demo-1',
-            titre: 'Bac Blanc n°2 - Deep',
+            titre: 'Bac Blanc n°1',
             description: 'Sujet complet avec automatismes et problèmes',
-            date_sujet: '2026-03-29',
+            date_sujet: '2026-03-31',
             niveau: '1ere_specialite',
-            sujet_pdf_url: '/eam/sujets/bac_blanc_2_sujet.pdf',
-            sujet_latex_url: '/eam/sujets/bac_blanc_2_sujet.tex',
-            corrige_pdf_url: null,
-            corrige_latex_url: null,
-            corrige_disponible: false,
-            created_at: '2026-03-29',
-            updated_at: '2026-03-29'
+            sujet_pdf_url: '/eam/sujets/bac_blanc_1_sujet.pdf',
+            sujet_latex_url: '/eam/sujets/bac_blanc_1_sujet.tex',
+            corrige_pdf_url: '/eam/sujets/bac_blanc_1_corrige.pdf',
+            corrige_latex_url: '/eam/sujets/bac_blanc_1_corrige.tex',
+            corrige_disponible: true,
+            created_at: '2026-03-31',
+            updated_at: '2026-03-31'
         },
         {
             id: 'demo-2',
-            titre: 'Bac Blanc n°3 - Gem',
+            titre: 'Bac Blanc n°2',
             description: 'Sujet complet avec automatismes et problèmes',
-            date_sujet: '2026-03-29',
+            date_sujet: '2026-03-31',
+            niveau: '1ere_specialite',
+            sujet_pdf_url: '/eam/sujets/bac_blanc_2_sujet.pdf',
+            sujet_latex_url: '/eam/sujets/bac_blanc_2_sujet.tex',
+            corrige_pdf_url: '/eam/sujets/bac_blanc_2_corrige.pdf',
+            corrige_latex_url: '/eam/sujets/bac_blanc_2_corrige.tex',
+            corrige_disponible: true,
+            created_at: '2026-03-31',
+            updated_at: '2026-03-31'
+        },
+        {
+            id: 'demo-3',
+            titre: 'Bac Blanc n°3',
+            description: 'Sujet complet avec automatismes et problèmes',
+            date_sujet: '2026-03-31',
             niveau: '1ere_specialite',
             sujet_pdf_url: '/eam/sujets/bac_blanc_3_sujet.pdf',
             sujet_latex_url: '/eam/sujets/bac_blanc_3_sujet.tex',
             corrige_pdf_url: '/eam/sujets/bac_blanc_3_corrige.pdf',
             corrige_latex_url: '/eam/sujets/bac_blanc_3_corrige.tex',
             corrige_disponible: true,
-            created_at: '2026-03-29',
-            updated_at: '2026-03-29'
+            created_at: '2026-03-31',
+            updated_at: '2026-03-31'
         },
         {
-            id: 'demo-3',
-            titre: 'Bac Blanc n°4 - Deep',
+            id: 'demo-4',
+            titre: 'Bac Blanc n°4',
             description: 'Sujet complet avec automatismes et problèmes',
-            date_sujet: '2026-03-30',
+            date_sujet: '2026-03-31',
             niveau: '1ere_specialite',
             sujet_pdf_url: '/eam/sujets/bac_blanc_4_sujet.pdf',
             sujet_latex_url: '/eam/sujets/bac_blanc_4_sujet.tex',
             corrige_pdf_url: '/eam/sujets/bac_blanc_4_corrige.pdf',
             corrige_latex_url: '/eam/sujets/bac_blanc_4_corrige.tex',
             corrige_disponible: true,
-            created_at: '2026-03-30',
-            updated_at: '2026-03-30'
+            created_at: '2026-03-31',
+            updated_at: '2026-03-31'
         },
         {
-            id: 'demo-4',
-            titre: 'Bac Blanc n°5 - Deep',
+            id: 'demo-5',
+            titre: 'Bac Blanc n°5',
             description: 'Sujet complet avec automatismes et problèmes',
-            date_sujet: '2026-03-30',
+            date_sujet: '2026-03-31',
             niveau: '1ere_specialite',
             sujet_pdf_url: '/eam/sujets/bac_blanc_5_sujet.pdf',
-            sujet_latex_url: null,
+            sujet_latex_url: '/eam/sujets/bac_blanc_5_sujet.tex',
             corrige_pdf_url: '/eam/sujets/bac_blanc_5_corrige.pdf',
             corrige_latex_url: '/eam/sujets/bac_blanc_5_corrige.tex',
             corrige_disponible: true,
-            created_at: '2026-03-30',
-            updated_at: '2026-03-30'
+            created_at: '2026-03-31',
+            updated_at: '2026-03-31'
         }
     ];
 
