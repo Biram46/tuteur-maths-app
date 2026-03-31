@@ -1,84 +1,287 @@
-% CORRECTION SUJET 1 – ÉPREUVE ANTICIPÉE
-\documentclass[a4paper, 12pt]{article}
+\documentclass[a4paper,12pt]{article}
 
 \usepackage[french]{babel}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{amsmath, amssymb}
 \usepackage{geometry}
-\usepackage{graphicx}
 \usepackage{array}
-\usepackage{enumitem}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
-\usepackage{tkz-tab}
 
 \geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
 
 \begin{document}
 
-\begin{center}\Large\textbf{Corrigé du sujet 1 – Épreuve anticipée}\end{center}
+\begin{center}\Large\textbf{CORRIGÉ DU SUJET 4}\end{center}
 
-\section*{Partie 1 : Automatismes – QCM}
+\section*{PREMIÈRE PARTIE : AUTOMATISMES -- QCM}
 
-\paragraph{Question 1}
-$\dfrac{5}{6} - \dfrac{6}{7} = \dfrac{35-36}{42} = -\dfrac{1}{42} < 0$ donc $\dfrac{5}{6} < \dfrac{6}{7}$. \textbf{Réponse A}.
+\subsection*{Question 1}
+\[
+\frac{11}{12} - \frac{12}{13} = \frac{11 \times 13 - 12^2}{12 \times 13} = \frac{143 - 144}{12 \times 13} = -\frac{1}{12 \times 13} < 0
+\]
+Donc $\dfrac{11}{12} < \dfrac{12}{13}$.
 
-\paragraph{Question 2}
-$1\ \text{m} = 100\ \text{cm}$ donc $1\ \text{m}^2 = (100\ \text{cm})^2 = 10\,000\ \text{cm}^2$. \textbf{Réponse D}.
+\boxed{\text{Réponse A}}
 
-\paragraph{Question 3}
-$30 \times \dfrac{40}{100} = 30 \times 0,4 = 12$. \textbf{Réponse A}.
+\emph{Astuces : pour comparer deux nombres, on peut étudier le signe de leur différence.}
 
-\paragraph{Question 4}
-Augmentation de 20\% : coefficient $1,2$ ; puis de 10\% : coefficient $1,1$. Global : $1,2\times 1,1 = 1,32$ soit $+32\%$. \textbf{Réponse B}.
+\subsection*{Question 2}
+1 m = 100 cm donc 1 m$^2$ = 100 $\times$ 100 = 10 000 cm$^2$.
+Ainsi 2 m$^2$ = 20 000 cm$^2$.
 
-\paragraph{Question 5}
-Sur le graphique, le point d’abscisse $2$ a pour ordonnée $3$ (le sommet de la parabole). \textbf{Réponse D}.
+\boxed{\text{Réponse D}}
 
-\paragraph{Question 6}
-Probabilité de n’obtenir aucun 6 : $(1-0,2)^3 = 0,8^3 = 0,512$. Donc au moins un 6 : $1-0,512=0,488$. \textbf{Réponse B}.
+\subsection*{Question 3}
+$20 \times 0,3 = 2 \times 10 \times 0,3 = 2 \times 3 = 6$.
 
-\paragraph{Question 7}
-Effectifs : 16 ans : 25, 17 ans : 40, 18 ans : 30, 19 ans : 5. Effectif total $100$. La médiane est la valeur de la 50\ieme{} observation. La 50\ieme{} se trouve dans la classe 17 ans (car 25 < 50 $\le$ 65). Médiane = 17. \textbf{Réponse A}.
+\boxed{\text{Réponse A}}
 
-\paragraph{Question 8}
-$x^2 = 9 \iff x = 3$ ou $x = -3$. \textbf{Réponse C}.
+\subsection*{Question 4}
+Le coefficient multiplicatif associé à une hausse de $30\%$ est $1 + \dfrac{30}{100} = 1,3$.
+De plus : $12 \times 1,3 = 12 \times 1 + 12 \times 0,3 = 12 + 3,6 = 15,6$.
 
-\paragraph{Question 9}
-$f(x)=2x-4$ s’annule en $x=2$ ; coefficient $2>0$ donc $f$ négative avant $2$, positive après. \textbf{Réponse A}.
+\boxed{\text{Réponse C}}
 
-\paragraph{Question 10}
-$(x+3)^2 - 4(x+3) = (x+3)[(x+3)-4] = (x+3)(x-1)$. \textbf{Réponse A}.
+\subsection*{Question 5}
+Pour déterminer graphiquement les antécédents de 1, on trace la droite horizontale $y = 1$. Elle coupe la courbe aux points d'abscisses $-3$ et $3$.
 
-\paragraph{Question 11}
-Baisse de 20\% : coefficient $0,8$. Pour retrouver le prix initial, il faut multiplier par $1/0,8 = 1,25$, soit une hausse de 25\%. \textbf{Réponse B}.
+\boxed{\text{Réponse C}}
 
-\paragraph{Question 12}
-$y=3x$ : pour $x=2$, $y=6$ donc $A(2;6)$ appartient à la droite. \textbf{Réponse A}.
+\emph{Méthode : pour déterminer graphiquement les antécédents d'un réel $\alpha$ par une fonction $f$, on trace la droite d'équation $y = \alpha$, on repère les éventuels points d'intersection avec la courbe et on lit les abscisses de ces points.}
 
-\section*{Partie 2 : Exercices}
+\subsection*{Question 6}
+Une probabilité est un nombre compris entre 0 et 1. $\dfrac{20}{19} \approx 1,05 > 1$ donc ce nombre ne peut pas être une probabilité.
+
+\boxed{\text{Réponse B}}
+
+\subsection*{Question 7}
+Le diagramme montre les effectifs par classe d'âge :
+- [0;20[ : 5 adhérents
+- [20;40[ : 15 adhérents
+- [40;60[ : 20 adhérents
+- [60;80[ : 15 adhérents
+Total : $5 + 15 + 20 + 15 = 55$ adhérents.
+
+On ne peut pas calculer l'âge moyen exact, mais 27 ans est une valeur possible. La proposition A n'est donc pas assurément fausse.
+
+L'effectif de la classe [60;80[ est 15, donc certains adhérents ont plus de 70 ans. La proposition B est vraie.
+
+La moitié des adhérents correspond à $55 \div 2 = 27,5$. L'effectif cumulé jusqu'à [20;40[ est $5 + 15 = 20$, donc la médiane se situe dans la classe [40;60[. La proposition C « La moitié des adhérents a entre 20 et 40 ans » est fausse car seulement 15 adhérents (sur 55) sont dans cette classe.
+
+\boxed{\text{Réponse C}}
+
+\subsection*{Question 8}
+Pour tout réel $a$ :
+\[
+(a+1)^2 - 3(a+1) = (a+1)\big[(a+1) - 3\big] = (a+1)(a-2)
+\]
+
+\boxed{\text{Réponse C}}
+
+\subsection*{Question 9}
+Le coefficient multiplicatif associé à une baisse de $20\%$ est $1 - \dfrac{20}{100} = 0,8$.
+Le coefficient $c'$ associé à l'évolution réciproque est donc $c' = \dfrac{1}{0,8} = \dfrac{10}{8} = \dfrac{5}{4} = 1,25$.
+Le pourcentage d'évolution réciproque est $t' = (1,25 - 1) \times 100 = 25\%$.
+
+\boxed{\text{Réponse B}}
+
+\subsection*{Question 10}
+Une fonction affine non constante est de la forme $f(x) = ax + b$ avec $a \neq 0$. Sa représentation graphique est une droite non horizontale et non verticale, c'est-à-dire une droite oblique.
+
+\boxed{\text{Réponse C}}
+
+\subsection*{Question 11}
+L'événement « obtenir un nombre inférieur ou égal à 4 » est réalisé par les issues 1, 2, 3 et 4.
+Sa probabilité est la somme des probabilités élémentaires :
+\[
+0,1 + 0,1 + 0,25 + 0,3 = 0,75
+\]
+
+\boxed{\text{Réponse D}}
+
+\newpage
+
+\section*{DEUXIÈME PARTIE}
 
 \subsection*{Exercice 1}
+
 \begin{enumerate}
-    \item $u_1 = \dfrac12\times 10 + 2 = 5+2=7$ ; $u_2 = \dfrac12\times 7 + 2 = 3,5+2 = 5,5$.
-    \item $u_1-u_0 = -3$ ; $u_2-u_1 = -1,5$ : différences non constantes $\Rightarrow$ pas arithmétique. $\dfrac{u_1}{u_0}=0,7$ ; $\dfrac{u_2}{u_1}\approx 0,7857$ : rapports non constants $\Rightarrow$ pas géométrique.
-    \item \begin{enumerate}
-        \item $v_{n+1} = u_{n+1}-4 = \left(\dfrac12 u_n+2\right)-4 = \dfrac12 u_n -2 = \dfrac12 (u_n-4) = \dfrac12 v_n$. Donc $(v_n)$ est géométrique de raison $\dfrac12$ et $v_0 = u_0-4 = 6$.
-        \item $v_n = v_0 \times \left(\dfrac12\right)^n = 6\times \dfrac{1}{2^n}$. Alors $u_n = v_n+4 = 4 + \dfrac{6}{2^n}$.
-    \end{enumerate}
-    \item $u_{n+1}-u_n = \left(4+\dfrac{6}{2^{n+1}}\right) - \left(4+\dfrac{6}{2^n}\right) = \dfrac{6}{2^{n+1}} - \dfrac{12}{2^{n+1}} = -\dfrac{6}{2^{n+1}} <0$. Donc $(u_n)$ strictement décroissante.
-    \item $\lim_{n\to+\infty} \dfrac{6}{2^n}=0$, donc $\lim u_n = 4$.
+\item \textbf{Volume au printemps 2027 :}
+\[
+u_1 = 0,8 \times u_0 + 40 = 0,8 \times 1000 + 40 = 800 + 40 = 840 \text{ m}^3
+\]
+
+\item \textbf{Justification de la relation :}
+\begin{itemize}
+\item Perte de $20\%$ : on multiplie par $0,8$.
+\item On ajoute ensuite $40$ m$^3$.
+\item Donc $u_{n+1} = 0,8 u_n + 40$.
+\end{itemize}
+
+\item \textbf{La suite n'est pas arithmétique :}
+\[
+u_1 - u_0 = 840 - 1000 = -160
+\]
+\[
+u_2 = 0,8 \times 840 + 40 = 672 + 40 = 712
+\]
+\[
+u_2 - u_1 = 712 - 840 = -128 \neq -160
+\]
+La différence n'est pas constante, donc $(u_n)$ n'est pas arithmétique.
+
+\item \textbf{Étude de la suite auxiliaire :}
+\begin{enumerate}
+\item $v_n = u_n - 200$
+\[
+v_{n+1} = u_{n+1} - 200 = (0,8 u_n + 40) - 200 = 0,8 u_n - 160
+\]
+\[
+v_{n+1} = 0,8(u_n - 200) = 0,8 v_n
+\]
+Donc $(v_n)$ est géométrique de raison $q = 0,8$.
+
+\item $v_0 = u_0 - 200 = 1000 - 200 = 800$
+\[
+v_n = v_0 \times q^n = 800 \times (0,8)^n
+\]
+
+\item $u_n = v_n + 200 = 800 \times 0,8^n + 200$
 \end{enumerate}
 
-\subsection*{Exercice 2}
+\item \textbf{Analyse des valeurs :}
 \begin{enumerate}
-    \item Hauteur initiale : $h(0) = 1$ m.
-    \item $h(t) = -5t^2+20t+1$ est un trinôme du second degré avec $a=-5<0$, donc $h$ admet un maximum en $t_m = -\dfrac{b}{2a} = -\dfrac{20}{2\times(-5)} = 2$ s.
-    \item $h(2) = -5\times 4 + 20\times 2 + 1 = -20+40+1 = 21$ m.
-    \item Résolution de $-5t^2+20t+1=0$. $\Delta = 20^2 -4\times(-5)\times1 = 400+20=420$. $\sqrt{\Delta}=\sqrt{420}=2\sqrt{105}$. Les racines : $t_1 = \dfrac{-20-2\sqrt{105}}{-10} = 2+\dfrac{\sqrt{105}}{5}$ (positive) ; $t_2 = 2-\dfrac{\sqrt{105}}{5}$ (négative). La solution positive exacte : $t_1 = 2+\dfrac{\sqrt{105}}{5}$. Approximativement $\sqrt{105}\approx 10,247$, donc $t_1\approx 2+2,0494 = 4,05$ s.
-    \item Tableau de variations sur $[0;+\infty[$ : $h$ croissante sur $[0;2]$, décroissante sur $[2;+\infty[$.
+\item D'après le tableau, lorsque $n$ augmente, $u_n$ diminue et se rapproche de $200$. On peut conjecturer que la suite $(u_n)$ converge vers $200$ lorsque $n$ tend vers $+\infty$.
+
+\item Le volume d'eau dans le bassin se stabilise autour de $200$ m$^3$ au bout de plusieurs années. Le bassin atteint un équilibre où les pertes sont compensées par l'apport annuel.
 \end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\subsection*{Exercice 2}
+
+\begin{enumerate}
+\item \textbf{Calcul de la dérivée :}
+\[
+f(x) = \frac{3x - 3}{2x + 1}
+\]
+Forme $\dfrac{u}{v}$ avec $u(x) = 3x - 3$, $u'(x) = 3$, $v(x) = 2x + 1$, $v'(x) = 2$.
+\[
+f'(x) = \frac{u'v - uv'}{v^2} = \frac{3(2x+1) - (3x-3) \times 2}{(2x+1)^2}
+\]
+\[
+f'(x) = \frac{6x + 3 - (6x - 6)}{(2x+1)^2} = \frac{6x + 3 - 6x + 6}{(2x+1)^2} = \frac{9}{(2x+1)^2}
+\]
+
+\item \textbf{Variations de $f$ :}
+\[
+f'(x) = \frac{9}{(2x+1)^2} > 0 \text{ pour tout } x \neq -\frac{1}{2}
+\]
+Donc $f$ est strictement croissante sur $]-\infty ; -\frac{1}{2}[$ et sur $]-\frac{1}{2} ; +\infty[$.
+
+\item \textbf{Tangentes de coefficient directeur 1 :}
+\begin{enumerate}
+\item On résout $f'(x) = 1$ :
+\[
+\frac{9}{(2x+1)^2} = 1 \iff (2x+1)^2 = 9
+\]
+\[
+2x+1 = 3 \quad \text{ou} \quad 2x+1 = -3
+\]
+\[
+2x = 2 \implies x = 1 \quad \text{ou} \quad 2x = -4 \implies x = -2
+\]
+Deux solutions distinctes, donc exactement deux tangentes.
+
+\item \textbf{Équations des tangentes :}
+Formule : $y = f'(x_0)(x - x_0) + f(x_0)$
+
+Pour $x_0 = 1$ :
+\[
+f(1) = \frac{3 \times 1 - 3}{2 \times 1 + 1} = \frac{0}{3} = 0
+\]
+\[
+y = 1 \times (x - 1) + 0 = x - 1
+\]
+
+Pour $x_0 = -2$ :
+\[
+f(-2) = \frac{3 \times (-2) - 3}{2 \times (-2) + 1} = \frac{-6 - 3}{-4 + 1} = \frac{-9}{-3} = 3
+\]
+\[
+y = 1 \times (x + 2) + 3 = x + 5
+\]
+
+Les deux tangentes ont pour équations : $y = x - 1$ et $y = x + 5$.
+\end{enumerate}
+
+\item \textbf{Graphique :}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.6]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -5, xmax = 5,
+        ymin = -5, ymax = 5,
+        xtick = {-4,-3,-2,-1,0,1,2,3,4},
+        ytick = {-4,-3,-2,-1,0,1,2,3,4},
+        grid = both,
+        grid style = {gray!30},
+        width = 12cm,
+        height = 12cm,
+        samples = 100,
+        smooth,
+        clip = false
+    ]
+        % Asymptote verticale
+        \addplot[dashed] coordinates {(-0.5,-5) (-0.5,5)};
+        
+        % Courbe de f
+        \addplot[thick, domain=-5:-0.6] {(3*x-3)/(2*x+1)};
+        \addplot[thick, domain=-0.4:5] {(3*x-3)/(2*x+1)};
+        
+        % Tangentes
+        \addplot[blue, thick, domain=-5:5] {x-1};
+        \addplot[blue, thick, domain=-5:5] {x+5};
+        
+        % Points de tangence
+        \addplot[only marks, mark=*, mark size=2, red] coordinates {(1,0) (-2,3)};
+        
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+\end{enumerate}
+
+\vspace{1cm}
+
+\textbf{Barème indicatif :}
+\begin{itemize}
+\item Automatismes : 6 points (0,5 pt par question)
+\item Exercice 1 : 7 points
+  \begin{itemize}
+  \item 1) 1 pt
+  \item 2) 1 pt
+  \item 3) 1 pt
+  \item 4a) 1 pt
+  \item 4b) 1 pt
+  \item 4c) 1 pt
+  \item 5a) 0,5 pt
+  \item 5b) 0,5 pt
+  \end{itemize}
+\item Exercice 2 : 7 points
+  \begin{itemize}
+  \item 1) 2 pts
+  \item 2) 1,5 pts
+  \item 3a) 1,5 pts
+  \item 3b) 2 pts
+  \end{itemize}
+\end{itemize}
 
 \end{document}

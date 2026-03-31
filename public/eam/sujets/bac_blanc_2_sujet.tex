@@ -1,7 +1,3 @@
-% SUJET BAC BLANC – ÉPREUVE ANTICIPÉE (PREMIÈRE GT & STMG)
-% Inspiré du fichier Bac blanc n°2.pdf
-% Conforme au modèle modele_ndiayeAI.tex
-
 \documentclass[a4paper,12pt]{article}
 
 \usepackage[french]{babel}
@@ -17,15 +13,13 @@
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{statistics}
-\usepackage{newunicodechar}
-\newunicodechar{ }{\,}
 
 \geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
 
 % Configuration
-\newcommand{\sujet}{A}
+\newcommand{\sujet}{2}
 \newcommand{\matiere}{Mathématiques}
-\newcommand{\classe}{Première Générale et Technologique}
+\newcommand{\classe}{Première Générale spécialité maths}
 \newcommand{\duree}{1 heure}
 \newcommand{\datedevoir}{Mars 2026}
 \newcommand{\theme}{Bac blanc -- Épreuve anticipée}
@@ -40,12 +34,12 @@
 
 \begin{document}
 
-\begin{center}\Large\textbf{Devoir Surveillé - Sujet \sujet}\end{center}
+\begin{center}\Large\textbf{Épreuve anticipée de maths - Sujet \sujet}\end{center}
 
-\begin{tabular}{|p{8cm}|p{8cm}|}
+\begin{tabular}{|p{7.5cm}|p{7.5cm}|}
 \hline
 \textbf{Nom et Prénom :} & \textbf{Date : \datedevoir} \\
-\framebox[7.5cm]{\hspace{0.1cm}\begin{minipage}{7.3cm}\vspace{1.5cm}\end{minipage}} & \\
+\framebox[7cm]{\hspace{0.1cm}\begin{minipage}{6.8cm}\vspace{1.5cm}\end{minipage}} & \\
 \hline
 \end{tabular}
 
@@ -82,17 +76,17 @@ Parmi ces trois fonctions, lesquelles sont des fonctions affines ?
 \[
 \begin{array}{|c|c|c|c|c|}
 \hline
-\text{Note} & 12 & 9 & 18 & x \\
+\text{Note} & 12 & 8 & 15 & a \\
 \hline
-\text{Coefficient} & 1 & 3 & x & 1 \\
+\text{Coefficient} & 1 & 1 & 2 & 1 \\
 \hline
 \end{array}
 \]
-On note \(m\) la moyenne. Que doit valoir \(x\) pour que \(m = 14\) ?
+On note \(m\) la moyenne. Que doit valoir \(a\) pour que \(m = 12\) ?
 \begin{itemize}
 \item[A.] \(7\)
 \item[B.] \(1\)
-\item[C.] \(4\)
+\item[C.] \(10\)
 \item[D.] \(4{,}25\)
 \end{itemize}
 
@@ -293,8 +287,12 @@ f(x) = \frac{3x - 3}{2x + 1}.
 f'(x) = \frac{9}{(2x+1)^2}.
 \] \reponse
 \item En déduire les variations de \(f\) sur son ensemble de définition. \reponse
-\item On note \(\mathcal{C}\) la courbe représentative de \(f\). Montrer que \(\mathcal{C}\) admet exactement deux tangentes de coefficients directeurs égaux à \(1\). \reponse
+\item On note \(\mathcal{C}\) la courbe représentative de \(f\). 
+\begin{enumerate}
+\item Montrer que \(\mathcal{C}\) admet exactement deux tangentes de coefficients directeurs égaux à \(1\).
+\textit{Indication : Résoudre \(f'(x) = 1\).} \reponse
 \item Déterminer l'équation réduite de chacune de ces tangentes. \reponse
+\end{enumerate}
 \end{enumerate}
 
 \vspace{1cm}
