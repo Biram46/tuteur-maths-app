@@ -1,6 +1,27 @@
 import { createClient } from '@/lib/supabaseAction';
 import Link from 'next/link';
 import { EAMSujet, EAM_NIVEAUX } from '@/lib/eam-types';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "Sujets et Annales Bac | Mathématiques Première Terminale",
+    description: "Annales du Bac de mathématiques, sujets corrigés et bac blancs pour la Première et Terminale. Préparez l'épreuve finale avec des sujets conformes au programme officiel.",
+    keywords: [
+        "annales bac maths",
+        "sujets bac mathématiques",
+        "bac blanc maths",
+        "corrigés bac maths",
+        "sujets première maths",
+        "sujets terminale maths",
+        "préparation bac",
+        "épreuve maths bac",
+    ],
+    openGraph: {
+        title: "Sujets et Annales Bac Maths | Tuteur Maths",
+        description: "Retrouvez tous les sujets et corrigés du Bac de mathématiques. Première et Terminale.",
+        url: 'https://aimaths.fr/sujets',
+    },
+};
 
 export const dynamic = 'force-dynamic';
 

@@ -1,6 +1,25 @@
 import { createClient } from '@/lib/supabaseAction';
 import QcmModule from '@/app/components/QcmModule';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "Entraîne-toi | Quiz et Exercices Interactifs de Maths",
+    description: "Exercez-vous avec nos quiz interactifs de mathématiques. Questions à choix multiples sur les suites, fonctions, probabilités, nombres complexes. Préparez le Bac avec des centaines d'exercices corrigés.",
+    keywords: [
+        "quiz maths",
+        "exercices interactifs maths",
+        "QCM mathématiques",
+        "test maths en ligne",
+        "révision maths interactive",
+        "questions maths bac",
+    ],
+    openGraph: {
+        title: "Entraîne-toi | Quiz Maths Interactifs - Tuteur Maths",
+        description: "Testez vos connaissances en maths avec nos quiz interactifs. Suites, fonctions, probabilités et plus encore.",
+        url: 'https://aimaths.fr/entraine-toi',
+    },
+};
 
 export const dynamic = 'force-dynamic';
 
