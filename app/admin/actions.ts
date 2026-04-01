@@ -376,3 +376,108 @@ export async function deleteEAMSujet(formData: FormData) {
     revalidatePath("/sujets");
     redirect("/admin");
 }
+
+/**
+ * Upload tous les fichiers EAM et crée le sujet en une seule opération
+ * @param data - { titre, description, niveau, date_sujet, corrige_disponible }
+ * @param files - { sujet_pdf, sujet_latex, corrige_pdf, corrige_latex }
+ */
+export async function createEAMSujetWithFiles(
+    data: {
+        titre: string;
+        description?: string | null;
+        niveau: string;
+        date_sujet: string;
+        corrige_disponible: boolean;
+    },
+    files: {
+        sujet_pdf?: File | null;
+        sujet_latex?: File | null;
+        corrige_pdf?: File | null;
+        corrige_latex?: File | null;
+    }
+): Promise<{ success: boolean; sujet?: any; error?: string }> {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) {
+        return { success: false, error: "Bucket non configuré" };
+    }
+
+    try {
+        const timestamp = Date.now();
+        const urls: Record<string, string | null> = {
+            sujet_pdf_url: null,
+            sujet_latex_url: null,
+            corrige_pdf_url: null,
+            corrige_latex_url: null,
+        };
+
+        // Upload chaque fichier
+        for (const [key, file] of Object.entries(files)) {
+            if (!file) continue;
+
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filePath = `eam/sujets/${timestamp}-${safeName}`;
+
+            const buffer = await file.arrayBuffer();
+
+            // Détection du type MIME
+            const ext = file.name.toLowerCase().split('.').pop();
+            const mimeTypes: Record<string, string> = {
+                'tex': 'text/x-latex',
+                'latex': 'text/x-latex',
+                'pdf': 'application/pdf',
+            };
+            const contentType = mimeTypes[ext || ''] || file.type || 'application/octet-stream';
+
+            const { error: uploadError } = await supabaseServer.storage
+                .from(bucketName)
+                .upload(filePath, buffer, {
+                    contentType,
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error(`Erreur upload ${key}:`, uploadError);
+                continue; // Continue avec les autres fichiers
+            }
+
+            const { data: { publicUrl } } = supabaseServer.storage
+                .from(bucketName)
+                .getPublicUrl(filePath);
+
+            // Mapper le nom du fichier à l'URL
+            if (key === 'sujet_pdf') urls.sujet_pdf_url = publicUrl;
+            else if (key === 'sujet_latex') urls.sujet_latex_url = publicUrl;
+            else if (key === 'corrige_pdf') urls.corrige_pdf_url = publicUrl;
+            else if (key === 'corrige_latex') urls.corrige_latex_url = publicUrl;
+        }
+
+        // Créer l'entrée dans la base de données
+        const payload = {
+            titre: data.titre,
+            description: data.description || null,
+            date_sujet: data.date_sujet,
+            niveau: data.niveau,
+            corrige_disponible: data.corrige_disponible,
+            ...urls,
+        };
+
+        const { data: sujet, error: dbError } = await supabaseServer
+            .from("eam_sujets")
+            .insert([payload])
+            .select()
+            .single();
+
+        if (dbError) {
+            return { success: false, error: "Erreur base de données: " + dbError.message };
+        }
+
+        revalidatePath("/admin");
+        revalidatePath("/sujets");
+
+        return { success: true, sujet };
+    } catch (err: any) {
+        console.error("Erreur createEAMSujetWithFiles:", err);
+        return { success: false, error: err.message || "Erreur inconnue" };
+    }
+}

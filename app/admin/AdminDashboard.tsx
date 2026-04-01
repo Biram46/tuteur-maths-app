@@ -1224,23 +1224,41 @@ export default function AdminDashboard({ initialData }: Props) {
                                     </form>
                                 </div>
 
-                                {/* Upload Direct EAM */}
+                                {/* Upload Complet EAM - Tous les fichiers en une fois */}
                                 <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-3xl border-2 border-dashed border-emerald-500/20 p-8 shadow-2xl relative overflow-hidden group/upload">
                                     <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/upload:opacity-100 transition-opacity pointer-events-none"></div>
                                     <h3 className="text-lg font-bold font-['Orbitron'] text-emerald-100 mb-6 uppercase tracking-wider flex items-center gap-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                                         </svg>
-                                        Upload Fichier Sujet EAM
+                                        Upload Complet - Nouveau Sujet EAM
                                     </h3>
 
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
                                         const formData = new FormData(e.currentTarget);
-                                        const file = formData.get("file") as File;
-                                        const fileType = formData.get("file_type") as string; // "sujet_pdf", "sujet_latex", "corrige_pdf", "corrige_latex"
 
-                                        if (!file || !fileType) return;
+                                        const titre = formData.get("titre") as string;
+                                        const description = formData.get("description") as string;
+                                        const niveau = formData.get("niveau") as string;
+                                        const date_sujet = formData.get("date_sujet") as string;
+                                        const corrige_disponible = formData.get("corrige_disponible") === "on";
+
+                                        const sujet_pdf = (formData.get("sujet_pdf") as File) || null;
+                                        const sujet_latex = (formData.get("sujet_latex") as File) || null;
+                                        const corrige_pdf = (formData.get("corrige_pdf") as File) || null;
+                                        const corrige_latex = (formData.get("corrige_latex") as File) || null;
+
+                                        if (!titre || !niveau || !date_sujet) {
+                                            alert("Titre, niveau et date sont obligatoires.");
+                                            return;
+                                        }
+
+                                        const hasFiles = sujet_pdf?.size || sujet_latex?.size || corrige_pdf?.size || corrige_latex?.size;
+                                        if (!hasFiles) {
+                                            alert("Veuillez sélectionner au moins un fichier.");
+                                            return;
+                                        }
 
                                         const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
                                         const originalText = btn.innerText;
@@ -1249,48 +1267,22 @@ export default function AdminDashboard({ initialData }: Props) {
                                         btn.style.opacity = "0.7";
 
                                         try {
-                                            const { createBrowserClient } = require('@supabase/ssr');
-                                            const supabase = createBrowserClient(
-                                                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                                                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                                            const { createEAMSujetWithFiles } = require("./actions");
+
+                                            const result = await createEAMSujetWithFiles(
+                                                { titre, description, niveau, date_sujet, corrige_disponible },
+                                                { sujet_pdf, sujet_latex, corrige_pdf, corrige_latex }
                                             );
-                                            const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET!;
 
-                                            const timestamp = Date.now();
-                                            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                                            const filePath = `eam/sujets/${timestamp}-${safeName}`;
-
-                                            const { getSignedUploadUrl } = require("./actions");
-
-                                            const signedResult = await getSignedUploadUrl(filePath);
-                                            const { token, path } = signedResult || {};
-                                            if (!token || !path) {
-                                                throw new Error("Impossible d'obtenir le token d'upload.");
+                                            if (result.success) {
+                                                alert("Sujet EAM créé avec succès !");
+                                                window.location.reload();
+                                            } else {
+                                                throw new Error(result.error || "Erreur inconnue");
                                             }
 
-                                            // Détection du type MIME
-                                            const ext = file.name.toLowerCase().split('.').pop();
-                                            const mimeTypes: Record<string, string> = {
-                                                'tex': 'text/x-latex',
-                                                'latex': 'text/x-latex',
-                                                'pdf': 'application/pdf',
-                                            };
-                                            let contentType = mimeTypes[ext || ''] || file.type || 'application/octet-stream';
-
-                                            const { error: uploadError } = await supabase.storage
-                                                .from(bucketName)
-                                                .uploadToSignedUrl(path, token, file, { contentType });
-
-                                            if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
-
-                                            const { data: { publicUrl } } = supabase.storage
-                                                .from(bucketName)
-                                                .getPublicUrl(filePath);
-
-                                            alert("Fichier uploadé avec succès !\n\nURL publique:\n" + publicUrl + "\n\nCopiez cette URL dans le formulaire ci-dessus.");
-
                                         } catch (err: any) {
-                                            console.error("Erreur upload:", err);
+                                            console.error("Erreur upload complet:", err);
                                             alert("Erreur: " + (err.message || JSON.stringify(err)));
                                         } finally {
                                             btn.disabled = false;
@@ -1298,26 +1290,109 @@ export default function AdminDashboard({ initialData }: Props) {
                                             btn.style.opacity = "1";
                                         }
                                     }} className="space-y-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Type de fichier</label>
-                                            <select name="file_type" required className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all">
-                                                <option value="sujet_pdf">Sujet PDF</option>
-                                                <option value="sujet_latex">Sujet LaTeX (.tex)</option>
-                                                <option value="corrige_pdf">Corrigé PDF</option>
-                                                <option value="corrige_latex">Corrigé LaTeX (.tex)</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="relative group/file">
-                                            <input type="file" name="file" accept=".pdf,.tex" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                            <div className="border-2 border-dashed border-slate-700 bg-slate-950/40 rounded-2xl p-10 text-center group-hover/file:border-emerald-500/40 transition-all">
-                                                <p className="text-slate-400 text-xs font-['Exo_2'] mb-1">Cliquer ou glisser le fichier ici</p>
-                                                <p className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.2em]">PDF ou LaTeX (.tex)</p>
+                                        {/* Métadonnées */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Titre *</label>
+                                                <input
+                                                    type="text"
+                                                    name="titre"
+                                                    placeholder="Ex: Bac Blanc n°6"
+                                                    required
+                                                    className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Niveau *</label>
+                                                <select name="niveau" required className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all">
+                                                    <option value="1ere_specialite">1ère Spécialité Maths</option>
+                                                    <option value="1ere_gt">1ère GT (sans spé)</option>
+                                                    <option value="1ere_techno">1ère Technologique</option>
+                                                </select>
                                             </div>
                                         </div>
 
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Description</label>
+                                                <input
+                                                    type="text"
+                                                    name="description"
+                                                    placeholder="Ex: Suites, fonctions, probabilités"
+                                                    className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Date *</label>
+                                                <input
+                                                    type="date"
+                                                    name="date_sujet"
+                                                    required
+                                                    className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Fichiers */}
+                                        <div className="space-y-4 pt-4 border-t border-emerald-500/20">
+                                            <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Fichiers Sujet</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">PDF Sujet</label>
+                                                    <input
+                                                        type="file"
+                                                        name="sujet_pdf"
+                                                        accept=".pdf"
+                                                        className="w-full bg-slate-950/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-emerald-600/20 file:text-emerald-400 file:text-xs hover:file:bg-emerald-600/30 transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">LaTeX Sujet</label>
+                                                    <input
+                                                        type="file"
+                                                        name="sujet_latex"
+                                                        accept=".tex"
+                                                        className="w-full bg-slate-950/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-purple-600/20 file:text-purple-400 file:text-xs hover:file:bg-purple-600/30 transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Fichiers Corrigé</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">PDF Corrigé</label>
+                                                    <input
+                                                        type="file"
+                                                        name="corrige_pdf"
+                                                        accept=".pdf"
+                                                        className="w-full bg-slate-950/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-emerald-600/20 file:text-emerald-400 file:text-xs hover:file:bg-emerald-600/30 transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">LaTeX Corrigé</label>
+                                                    <input
+                                                        type="file"
+                                                        name="corrige_latex"
+                                                        accept=".tex"
+                                                        className="w-full bg-slate-950/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-pink-600/20 file:text-pink-400 file:text-xs hover:file:bg-pink-600/30 transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <label className="flex items-center gap-3 cursor-pointer group pt-2">
+                                                <div className="relative">
+                                                    <input type="checkbox" name="corrige_disponible" defaultChecked={true} className="sr-only peer" />
+                                                    <div className="w-10 h-6 bg-slate-800 rounded-full border border-emerald-900 peer-checked:bg-emerald-500/50 peer-checked:border-emerald-400 shadow-inner transition-all"></div>
+                                                    <div className="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all"></div>
+                                                </div>
+                                                <span className="text-[10px] uppercase tracking-widest text-slate-400 group-hover:text-emerald-400 transition-colors">Corrigé disponible</span>
+                                            </label>
+                                        </div>
+
                                         <button type="submit" className="w-full bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-95 transition-all text-xs uppercase tracking-[0.2em] mt-4">
-                                            Uploader le fichier
+                                            Uploader et Créer le Sujet
                                         </button>
                                     </form>
                                 </div>
