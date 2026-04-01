@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Level, Chapter, Resource } from "@/lib/data";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MobileMenu from "./MobileMenu";
 import NavExamButton from "./NavExamButton";
+import { logout } from "../auth/actions";
 
 type Props = {
     levels: Level[];
@@ -15,6 +16,7 @@ type Props = {
 
 export default function StudentClientView({ levels, chapters, resources }: Props) {
     const router = useRouter();
+    const [isPending, startTransition] = useTransition();
 
     // États pour la navigation
     const [selectedLevelId, setSelectedLevelId] = useState<string | null>(
@@ -119,13 +121,14 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                 {/* Right: EAM Button + User */}
                 <div className="flex items-center gap-3">
                     <NavExamButton />
-                    <a
-                        href="/api/auth/logout"
+                    <button
+                        onClick={() => startTransition(() => logout())}
+                        disabled={isPending}
                         className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 font-medium text-sm transition-all"
                     >
                         <span>🚪</span>
-                        <span>Quitter</span>
-                    </a>
+                        <span>{isPending ? "Dégagement..." : "Quitter"}</span>
+                    </button>
                 </div>
             </nav>
 
