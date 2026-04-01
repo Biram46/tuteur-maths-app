@@ -209,21 +209,34 @@ export async function deleteResource(formData: FormData) {
 /**
  * Génère une URL signée pour upload (Bypass RLS)
  */
-export async function getSignedUploadUrlAction(path: string) {
+export async function getSignedUploadUrl(path: string) {
+    console.log("[getSignedUploadUrl] Starting for path:", path);
+
     const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
-    if (!bucketName) throw new Error("Bucket non configuré");
+    console.log("[getSignedUploadUrl] Bucket name:", bucketName);
 
-    const { data, error } = await supabaseServer
-        .storage
-        .from(bucketName)
-        .createSignedUploadUrl(path);
-
-    if (error) {
-        console.error("Signed URL Error:", error);
-        throw new Error(error.message);
+    if (!bucketName) {
+        console.error("[getSignedUploadUrl] ERROR: Bucket non configuré");
+        throw new Error("Bucket non configuré");
     }
 
-    return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+    try {
+        const { data, error } = await supabaseServer
+            .storage
+            .from(bucketName)
+            .createSignedUploadUrl(path);
+
+        if (error) {
+            console.error("[getSignedUploadUrl] Supabase error:", error);
+            throw new Error("Erreur Supabase: " + error.message);
+        }
+
+        console.log("[getSignedUploadUrl] Success - token generated:", !!data?.token);
+        return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+    } catch (err: any) {
+        console.error("[getSignedUploadUrl] Exception:", err);
+        throw err;
+    }
 }
 
 /**

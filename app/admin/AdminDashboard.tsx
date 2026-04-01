@@ -532,21 +532,50 @@ export default function AdminDashboard({ initialData }: Props) {
                                             const filePath = `resources/${timestamp}-${safeName}`;
 
                                             // 3. RECUPERER UNE URL SIGNEE (Privilège Serveur) via Server Action
-                                            const { getSignedUploadUrlAction, createResourceEntry } = require("./actions");
+                                            const { getSignedUploadUrl, createResourceEntry } = require("./actions");
 
                                             console.log("Asking for signed url for:", filePath);
                                             // Appel Server Action
-                                            const { token, path } = await getSignedUploadUrlAction(filePath);
+                                            let signedResult;
+                                            try {
+                                                signedResult = await getSignedUploadUrl(filePath);
+                                                console.log("Signed URL result:", signedResult);
+                                            } catch (actionErr: any) {
+                                                console.error("Erreur getSignedUploadUrl:", actionErr);
+                                                throw new Error("Erreur lors de la génération de l'URL signée: " + actionErr.message);
+                                            }
 
-                                            if (!token) throw new Error("Impossible d'obtenir le token d'upload.");
+                                            const { token, path } = signedResult || {};
+                                            if (!token || !path) {
+                                                console.error("Missing token or path:", { token: !!token, path: !!path });
+                                                throw new Error("Impossible d'obtenir le token d'upload.");
+                                            }
 
                                             // 4. UPLOAD AVEC TOKEN (Direct Browser -> Supabase)
                                             btn.innerText = "Upload en cours...";
 
+                                            // Détection du type MIME correct pour les fichiers .tex
+                                            // On force la détection par extension car les navigateurs renvoient souvent
+                                            // application/octet-stream ou vide pour les fichiers .tex
+                                            const ext = file.name.toLowerCase().split('.').pop();
+                                            const mimeTypes: Record<string, string> = {
+                                                'tex': 'text/x-latex',
+                                                'latex': 'text/x-latex',
+                                                'pdf': 'application/pdf',
+                                                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                                'doc': 'application/msword',
+                                                'html': 'text/html',
+                                                'htm': 'text/html',
+                                                'md': 'text/markdown',
+                                                'txt': 'text/plain',
+                                            };
+                                            // Utiliser le type détecté par extension, ou le type du fichier, ou octet-stream
+                                            let contentType = mimeTypes[ext || ''] || file.type || 'application/octet-stream';
+
                                             const { error: uploadError } = await supabase.storage
                                                 .from(bucketName)
                                                 .uploadToSignedUrl(path, token, file, {
-                                                    contentType: file.type // Force le type MIME du fichier (ex: text/html)
+                                                    contentType: contentType
                                                 });
 
                                             if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
@@ -566,11 +595,19 @@ export default function AdminDashboard({ initialData }: Props) {
                                             window.location.reload();
 
                                         } catch (err: any) {
-                                            console.error(err);
-                                            alert("❌ Erreur: " + err.message);
+                                            console.error("Erreur complète:", err);
+                                            console.error("Stack:", err.stack);
+                                            alert("❌ Erreur: " + (err.message || JSON.stringify(err)));
                                             btn.disabled = false;
                                             btn.innerText = originalText;
                                             btn.style.opacity = "1";
+                                        } finally {
+                                            // Reset button state in case of unexpected flow
+                                            if (btn.disabled) {
+                                                btn.disabled = false;
+                                                btn.innerText = originalText;
+                                                btn.style.opacity = "1";
+                                            }
                                         }
                                     }} className="space-y-6">
                                         <div className="space-y-2">
