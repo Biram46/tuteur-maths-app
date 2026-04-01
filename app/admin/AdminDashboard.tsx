@@ -1088,139 +1088,239 @@ export default function AdminDashboard({ initialData }: Props) {
                             </div>
 
                             {/* Formulaire d'ajout/modification */}
-                            <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none"></div>
-                                <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">
-                                    {editingEAMSujet ? 'Modifier le sujet' : 'Nouveau sujet EAM'}
-                                </h3>
-                                <form action={createOrUpdateEAMSujet} key={editingEAMSujet?.id || 'new_eam'} className="space-y-6">
-                                    <input type="hidden" name="id" value={editingEAMSujet?.id || ""} />
+                            <div className="space-y-8">
+                                <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none"></div>
+                                    <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">
+                                        {editingEAMSujet ? 'Modifier le sujet' : 'Nouveau sujet EAM'}
+                                    </h3>
+                                    <form action={createOrUpdateEAMSujet} key={editingEAMSujet?.id || 'new_eam'} className="space-y-6">
+                                        <input type="hidden" name="id" value={editingEAMSujet?.id || ""} />
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Titre du sujet</label>
-                                        <input
-                                            type="text"
-                                            name="titre"
-                                            placeholder="Ex: Bac Blanc n°6"
-                                            defaultValue={editingEAMSujet?.titre || ""}
-                                            required
-                                            className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-700 focus:outline-none focus:border-cyan-400 transition-all"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Description</label>
-                                        <input
-                                            type="text"
-                                            name="description"
-                                            placeholder="Ex: Suites, fonctions, probabilités"
-                                            defaultValue={editingEAMSujet?.description || ""}
-                                            className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-700 focus:outline-none focus:border-cyan-400 transition-all"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Niveau</label>
-                                            <select
-                                                name="niveau"
-                                                defaultValue={editingEAMSujet?.niveau || "1ere_specialite"}
-                                                required
-                                                className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-400 transition-all"
-                                            >
-                                                <option value="1ere_specialite">1ère Spécialité Maths</option>
-                                                <option value="1ere_gt">1ère GT (sans spé)</option>
-                                                <option value="1ere_techno">1ère Technologique</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Date</label>
+                                            <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Titre du sujet</label>
                                             <input
-                                                type="date"
-                                                name="date_sujet"
-                                                defaultValue={editingEAMSujet?.date_sujet?.split('T')[0] || ""}
+                                                type="text"
+                                                name="titre"
+                                                placeholder="Ex: Bac Blanc n°6"
+                                                defaultValue={editingEAMSujet?.titre || ""}
                                                 required
-                                                className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-400 transition-all"
+                                                className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-700 focus:outline-none focus:border-cyan-400 transition-all"
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="space-y-4 pt-4 border-t border-cyan-500/10">
-                                        <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider">📁 Fichiers Sujet</h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">PDF Sujet</label>
-                                                <input
-                                                    type="text"
-                                                    name="sujet_pdf_url"
-                                                    placeholder="/eam/sujets/...pdf"
-                                                    defaultValue={editingEAMSujet?.sujet_pdf_url || ""}
-                                                    className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">LaTeX Sujet</label>
-                                                <input
-                                                    type="text"
-                                                    name="sujet_latex_url"
-                                                    placeholder="/eam/sujets/...tex"
-                                                    defaultValue={editingEAMSujet?.sujet_latex_url || ""}
-                                                    className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
-                                                />
-                                            </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Description</label>
+                                            <input
+                                                type="text"
+                                                name="description"
+                                                placeholder="Ex: Suites, fonctions, probabilités"
+                                                defaultValue={editingEAMSujet?.description || ""}
+                                                className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-700 focus:outline-none focus:border-cyan-400 transition-all"
+                                            />
                                         </div>
-                                    </div>
 
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">✅ Fichiers Corrigé</h4>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">PDF Corrigé</label>
-                                                <input
-                                                    type="text"
-                                                    name="corrige_pdf_url"
-                                                    placeholder="/eam/sujets/...pdf"
-                                                    defaultValue={editingEAMSujet?.corrige_pdf_url || ""}
-                                                    className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
-                                                />
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Niveau</label>
+                                                <select
+                                                    name="niveau"
+                                                    defaultValue={editingEAMSujet?.niveau || "1ere_specialite"}
+                                                    required
+                                                    className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-400 transition-all"
+                                                >
+                                                    <option value="1ere_specialite">1ère Spécialité Maths</option>
+                                                    <option value="1ere_gt">1ère GT (sans spé)</option>
+                                                    <option value="1ere_techno">1ère Technologique</option>
+                                                </select>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">LaTeX Corrigé</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest ml-1">Date</label>
                                                 <input
-                                                    type="text"
-                                                    name="corrige_latex_url"
-                                                    placeholder="/eam/sujets/...tex"
-                                                    defaultValue={editingEAMSujet?.corrige_latex_url || ""}
-                                                    className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
+                                                    type="date"
+                                                    name="date_sujet"
+                                                    defaultValue={editingEAMSujet?.date_sujet?.split('T')[0] || ""}
+                                                    required
+                                                    className="w-full bg-slate-950 border border-cyan-500/30 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-400 transition-all"
                                                 />
                                             </div>
                                         </div>
 
-                                        <label className="flex items-center gap-3 cursor-pointer group pt-2">
-                                            <div className="relative">
-                                                <input type="checkbox" name="corrige_disponible" defaultChecked={editingEAMSujet ? editingEAMSujet.corrige_disponible : true} className="sr-only peer" />
-                                                <div className="w-10 h-6 bg-slate-800 rounded-full border border-cyan-900 peer-checked:bg-emerald-500/50 peer-checked:border-emerald-400 shadow-inner transition-all"></div>
-                                                <div className="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all"></div>
+                                        <div className="space-y-4 pt-4 border-t border-cyan-500/10">
+                                            <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Fichiers Sujet</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">PDF Sujet</label>
+                                                    <input
+                                                        type="text"
+                                                        name="sujet_pdf_url"
+                                                        placeholder="/eam/sujets/...pdf"
+                                                        defaultValue={editingEAMSujet?.sujet_pdf_url || ""}
+                                                        className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">LaTeX Sujet</label>
+                                                    <input
+                                                        type="text"
+                                                        name="sujet_latex_url"
+                                                        placeholder="/eam/sujets/...tex"
+                                                        defaultValue={editingEAMSujet?.sujet_latex_url || ""}
+                                                        className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
+                                                    />
+                                                </div>
                                             </div>
-                                            <span className="text-[10px] uppercase tracking-widest text-slate-400 group-hover:text-emerald-400 transition-colors">Corrigé disponible</span>
-                                        </label>
-                                    </div>
+                                        </div>
 
-                                    <div className="flex gap-3 pt-4">
-                                        <button type="submit" className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest">
-                                            {editingEAMSujet ? 'Mettre à jour' : 'Ajouter le sujet'}
-                                        </button>
-                                        {editingEAMSujet && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditingEAMSujet(null)}
-                                                className="px-6 border border-slate-700 hover:border-slate-500 text-slate-400 transition-all rounded-xl text-[10px] uppercase tracking-widest"
-                                            >
-                                                Annuler
+                                        <div className="space-y-4">
+                                            <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Fichiers Corrigé</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">PDF Corrigé</label>
+                                                    <input
+                                                        type="text"
+                                                        name="corrige_pdf_url"
+                                                        placeholder="/eam/sujets/...pdf"
+                                                        defaultValue={editingEAMSujet?.corrige_pdf_url || ""}
+                                                        className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-mono text-slate-500 uppercase tracking-widest ml-1">LaTeX Corrigé</label>
+                                                    <input
+                                                        type="text"
+                                                        name="corrige_latex_url"
+                                                        placeholder="/eam/sujets/...tex"
+                                                        defaultValue={editingEAMSujet?.corrige_latex_url || ""}
+                                                        className="w-full bg-slate-950 border border-cyan-500/10 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all font-mono"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <label className="flex items-center gap-3 cursor-pointer group pt-2">
+                                                <div className="relative">
+                                                    <input type="checkbox" name="corrige_disponible" defaultChecked={editingEAMSujet ? editingEAMSujet.corrige_disponible : true} className="sr-only peer" />
+                                                    <div className="w-10 h-6 bg-slate-800 rounded-full border border-cyan-900 peer-checked:bg-emerald-500/50 peer-checked:border-emerald-400 shadow-inner transition-all"></div>
+                                                    <div className="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all"></div>
+                                                </div>
+                                                <span className="text-[10px] uppercase tracking-widest text-slate-400 group-hover:text-emerald-400 transition-colors">Corrigé disponible</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="flex gap-3 pt-4">
+                                            <button type="submit" className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest">
+                                                {editingEAMSujet ? 'Mettre à jour' : 'Ajouter le sujet'}
                                             </button>
-                                        )}
-                                    </div>
-                                </form>
+                                            {editingEAMSujet && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditingEAMSujet(null)}
+                                                    className="px-6 border border-slate-700 hover:border-slate-500 text-slate-400 transition-all rounded-xl text-[10px] uppercase tracking-widest"
+                                                >
+                                                    Annuler
+                                                </button>
+                                            )}
+                                        </div>
+                                    </form>
+                                </div>
+
+                                {/* Upload Direct EAM */}
+                                <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-3xl border-2 border-dashed border-emerald-500/20 p-8 shadow-2xl relative overflow-hidden group/upload">
+                                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/upload:opacity-100 transition-opacity pointer-events-none"></div>
+                                    <h3 className="text-lg font-bold font-['Orbitron'] text-emerald-100 mb-6 uppercase tracking-wider flex items-center gap-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                                        </svg>
+                                        Upload Fichier Sujet EAM
+                                    </h3>
+
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        const formData = new FormData(e.currentTarget);
+                                        const file = formData.get("file") as File;
+                                        const fileType = formData.get("file_type") as string; // "sujet_pdf", "sujet_latex", "corrige_pdf", "corrige_latex"
+
+                                        if (!file || !fileType) return;
+
+                                        const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
+                                        const originalText = btn.innerText;
+                                        btn.disabled = true;
+                                        btn.innerText = "Upload en cours...";
+                                        btn.style.opacity = "0.7";
+
+                                        try {
+                                            const { createBrowserClient } = require('@supabase/ssr');
+                                            const supabase = createBrowserClient(
+                                                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                                                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                                            );
+                                            const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET!;
+
+                                            const timestamp = Date.now();
+                                            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                                            const filePath = `eam/sujets/${timestamp}-${safeName}`;
+
+                                            const { getSignedUploadUrl } = require("./actions");
+
+                                            const signedResult = await getSignedUploadUrl(filePath);
+                                            const { token, path } = signedResult || {};
+                                            if (!token || !path) {
+                                                throw new Error("Impossible d'obtenir le token d'upload.");
+                                            }
+
+                                            // Détection du type MIME
+                                            const ext = file.name.toLowerCase().split('.').pop();
+                                            const mimeTypes: Record<string, string> = {
+                                                'tex': 'text/x-latex',
+                                                'latex': 'text/x-latex',
+                                                'pdf': 'application/pdf',
+                                            };
+                                            let contentType = mimeTypes[ext || ''] || file.type || 'application/octet-stream';
+
+                                            const { error: uploadError } = await supabase.storage
+                                                .from(bucketName)
+                                                .uploadToSignedUrl(path, token, file, { contentType });
+
+                                            if (uploadError) throw new Error("Erreur Storage: " + uploadError.message);
+
+                                            const { data: { publicUrl } } = supabase.storage
+                                                .from(bucketName)
+                                                .getPublicUrl(filePath);
+
+                                            alert("Fichier uploadé avec succès !\n\nURL publique:\n" + publicUrl + "\n\nCopiez cette URL dans le formulaire ci-dessus.");
+
+                                        } catch (err: any) {
+                                            console.error("Erreur upload:", err);
+                                            alert("Erreur: " + (err.message || JSON.stringify(err)));
+                                        } finally {
+                                            btn.disabled = false;
+                                            btn.innerText = originalText;
+                                            btn.style.opacity = "1";
+                                        }
+                                    }} className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Type de fichier</label>
+                                            <select name="file_type" required className="w-full bg-slate-950/80 border border-emerald-500/20 rounded-xl px-4 py-3 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all">
+                                                <option value="sujet_pdf">Sujet PDF</option>
+                                                <option value="sujet_latex">Sujet LaTeX (.tex)</option>
+                                                <option value="corrige_pdf">Corrigé PDF</option>
+                                                <option value="corrige_latex">Corrigé LaTeX (.tex)</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="relative group/file">
+                                            <input type="file" name="file" accept=".pdf,.tex" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                            <div className="border-2 border-dashed border-slate-700 bg-slate-950/40 rounded-2xl p-10 text-center group-hover/file:border-emerald-500/40 transition-all">
+                                                <p className="text-slate-400 text-xs font-['Exo_2'] mb-1">Cliquer ou glisser le fichier ici</p>
+                                                <p className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.2em]">PDF ou LaTeX (.tex)</p>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" className="w-full bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-95 transition-all text-xs uppercase tracking-[0.2em] mt-4">
+                                            Uploader le fichier
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
