@@ -127,6 +127,39 @@ export default async function SujetsPage() {
         }
     };
 
+    // Grouper les sujets par niveau
+    const sujetsByNiveau = displaySujets.reduce((acc, sujet) => {
+        const niveau = sujet.niveau || '1ere_specialite';
+        if (!acc[niveau]) acc[niveau] = [];
+        acc[niveau].push(sujet);
+        return acc;
+    }, {} as Record<string, EAMSujet[]>);
+
+    // Ordre d'affichage des niveaux
+    const niveauOrder = ['1ere_specialite', '1ere_gt', '1ere_techno'];
+
+    // Couleurs par niveau
+    const niveauColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+        '1ere_specialite': {
+            bg: 'from-blue-600/20 to-cyan-600/10',
+            border: 'border-blue-500/30',
+            text: 'text-blue-400',
+            badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+        },
+        '1ere_gt': {
+            bg: 'from-emerald-600/20 to-green-600/10',
+            border: 'border-emerald-500/30',
+            text: 'text-emerald-400',
+            badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+        },
+        '1ere_techno': {
+            bg: 'from-amber-600/20 to-orange-600/10',
+            border: 'border-amber-500/30',
+            text: 'text-amber-400',
+            badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#020617] text-slate-100">
             {/* Header Mobile-Friendly */}
@@ -193,96 +226,122 @@ export default async function SujetsPage() {
                     </div>
                 </div>
 
-                {/* Grille des sujets */}
-                <div className="space-y-6">
-                    {displaySujets.map((sujet) => (
-                        <div
-                            key={sujet.id}
-                            className="p-6 rounded-2xl bg-slate-800/50 border border-white/10 hover:border-blue-500/30 transition-all group"
-                        >
-                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-                                <div>
-                                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                                        {getNiveauLabel(sujet.niveau)}
-                                    </span>
-                                    <h3 className="text-lg font-bold text-white mt-1 group-hover:text-blue-400 transition-colors">
-                                        {sujet.titre}
-                                    </h3>
-                                    {sujet.description && (
-                                        <p className="text-sm text-slate-400 mt-1">
-                                            {sujet.description}
+                {/* Sujets groupés par niveau */}
+                <div className="space-y-10">
+                    {niveauOrder.map((niveau) => {
+                        const sujetsDuNiveau = sujetsByNiveau[niveau];
+                        if (!sujetsDuNiveau || sujetsDuNiveau.length === 0) return null;
+
+                        const colors = niveauColors[niveau] || niveauColors['1ere_specialite'];
+
+                        return (
+                            <div key={niveau} className="space-y-4">
+                                {/* Header du niveau */}
+                                <div className={`flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r ${colors.bg} border ${colors.border}`}>
+                                    <div className={`w-10 h-10 rounded-lg ${colors.badge} flex items-center justify-center font-bold text-lg`}>
+                                        {niveau === '1ere_specialite' ? 'S' : niveau === '1ere_gt' ? 'G' : 'T'}
+                                    </div>
+                                    <div>
+                                        <h2 className={`text-lg font-bold ${colors.text}`}>
+                                            {getNiveauLabel(niveau)}
+                                        </h2>
+                                        <p className="text-xs text-slate-400">
+                                            {sujetsDuNiveau.length} sujet{sujetsDuNiveau.length > 1 ? 's' : ''} disponible{sujetsDuNiveau.length > 1 ? 's' : ''}
                                         </p>
-                                    )}
+                                    </div>
                                 </div>
-                                <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
-                                    {formatDate(sujet.date_sujet)}
-                                </span>
+
+                                {/* Liste des sujets de ce niveau */}
+                                <div className="space-y-4 pl-4 border-l-2 border-slate-800">
+                                    {sujetsDuNiveau.map((sujet) => (
+                                        <div
+                                            key={sujet.id}
+                                            className="p-5 rounded-xl bg-slate-800/50 border border-white/10 hover:border-white/20 transition-all group"
+                                        >
+                                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 mb-4">
+                                                <div>
+                                                    <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors">
+                                                        {sujet.titre}
+                                                    </h3>
+                                                    {sujet.description && (
+                                                        <p className="text-sm text-slate-400 mt-1">
+                                                            {sujet.description}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
+                                                    {formatDate(sujet.date_sujet)}
+                                                </span>
+                                            </div>
+
+                                            {/* Boutons de téléchargement */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                {/* Sujet PDF */}
+                                                {sujet.sujet_pdf_url ? (
+                                                    <a
+                                                        href={sujet.sujet_pdf_url}
+                                                        target="_blank"
+                                                        className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
+                                                    >
+                                                        <span>📄</span> Sujet PDF
+                                                    </a>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[40px]">
+                                                        <span>📄</span> Sujet PDF
+                                                    </div>
+                                                )}
+
+                                                {/* Sujet LaTeX */}
+                                                {sujet.sujet_latex_url ? (
+                                                    <a
+                                                        href={sujet.sujet_latex_url}
+                                                        target="_blank"
+                                                        className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
+                                                    >
+                                                        <span>📝</span> .tex
+                                                    </a>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[40px]">
+                                                        <span>📝</span> .tex
+                                                    </div>
+                                                )}
+
+                                                {/* Corrigé PDF */}
+                                                {sujet.corrige_disponible && sujet.corrige_pdf_url ? (
+                                                    <a
+                                                        href={sujet.corrige_pdf_url}
+                                                        target="_blank"
+                                                        className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
+                                                    >
+                                                        <span>✅</span> Corrigé PDF
+                                                    </a>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[40px]">
+                                                        <span>⏳</span> À venir
+                                                    </div>
+                                                )}
+
+                                                {/* Corrigé LaTeX */}
+                                                {sujet.corrige_disponible && sujet.corrige_latex_url ? (
+                                                    <a
+                                                        href={sujet.corrige_latex_url}
+                                                        target="_blank"
+                                                        className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
+                                                    >
+                                                        <span>📝</span> .tex
+                                                    </a>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[40px]">
+                                                        <span>📝</span> .tex
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-
-                            {/* Boutons de téléchargement */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {/* Sujet PDF */}
-                                {sujet.sujet_pdf_url ? (
-                                    <a
-                                        href={sujet.sujet_pdf_url}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-sm transition-all min-h-[44px]"
-                                    >
-                                        <span>📄</span> Sujet PDF
-                                    </a>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[44px]">
-                                        <span>📄</span> Sujet PDF
-                                    </div>
-                                )}
-
-                                {/* Sujet LaTeX */}
-                                {sujet.sujet_latex_url ? (
-                                    <a
-                                        href={sujet.sujet_latex_url}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white font-bold text-sm transition-all min-h-[44px]"
-                                    >
-                                        <span>📝</span> Sujet .tex
-                                    </a>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[44px]">
-                                        <span>📝</span> Sujet .tex
-                                    </div>
-                                )}
-
-                                {/* Corrigé PDF */}
-                                {sujet.corrige_disponible && sujet.corrige_pdf_url ? (
-                                    <a
-                                        href={sujet.corrige_pdf_url}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold text-sm transition-all min-h-[44px]"
-                                    >
-                                        <span>✅</span> Corrigé PDF
-                                    </a>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[44px]">
-                                        <span>⏳</span> Corrigé à venir
-                                    </div>
-                                )}
-
-                                {/* Corrigé LaTeX */}
-                                {sujet.corrige_disponible && sujet.corrige_latex_url ? (
-                                    <a
-                                        href={sujet.corrige_latex_url}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-400 hover:text-white font-bold text-sm transition-all min-h-[44px]"
-                                    >
-                                        <span>📝</span> Corrigé .tex
-                                    </a>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-2 py-3 md:py-2.5 px-4 rounded-lg bg-slate-700/30 text-slate-500 text-sm min-h-[44px]">
-                                        <span>📝</span> Corrigé .tex
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Section Entraîne-toi */}
