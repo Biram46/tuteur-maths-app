@@ -15,7 +15,23 @@
       "Bash(sleep:*)",
       "Bash(cd sympy-api:*)",
       "Bash(cd:*)",
-      "Bash(curl:*)"
-    ]
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(powershell -Command \"wc -l 'C:\\\\Users\\\\HP\\\\Documents\\\\projet\\\\tuteur-maths-app\\\\app\\\\hooks\\\\useMathRouter.ts'\")",
+      "Read(//c/Users/HP/Documents/projet/EAM/**)",
+      "Bash(cp \"Bac blanc n°2 deep.pdf\" \"C:\\\\Users\\\\HP\\\\Documents\\\\projet\\\\tuteur-maths-app\\\\public\\\\eam\\\\sujets\\\\bac_blanc_2_sujet.pdf\")",
+      "Bash(cp \"Bac blanc n°2 deep.tex\" \"C:\\\\Users\\\\HP\\\\Documents\\\\projet\\\\tuteur-maths-app\\\\public\\\\eam\\\\sujets\\\\bac_blanc_2_sujet.tex\")",
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(npm run:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Skill(update-config)",
+      "Bash(npx tsc:*)",
+      "Bash(dir:*)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
