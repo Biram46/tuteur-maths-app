@@ -55,8 +55,8 @@ export async function signup(formData: FormData) {
         redirect('/login?error=' + encodeURIComponent(error.message))
     }
 
-    revalidatePath('/', 'layout')
-    redirect('/')
+    // Ne pas rediriger vers / car l'utilisateur doit confirmer son email
+    redirect('/login?message=' + encodeURIComponent('🎉 Compte créé ! Vérifiez votre boîte email pour confirmer votre inscription.'))
 }
 
 export async function adminLogin(formData: FormData) {
