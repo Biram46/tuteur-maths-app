@@ -7,6 +7,7 @@ import { logout } from "@/app/auth/actions";
 import { cookies } from "next/headers";
 import { checkTrustedDevice, generateDeviceFingerprint, create2FASession } from "@/lib/admin2fa";
 import { headers } from "next/headers";
+import { getEAMSujets } from "./actions";
 
 export default async function AdminPage() {
     // Check Authentication
@@ -67,8 +68,10 @@ export default async function AdminPage() {
 
     // Diagnostics / Data Fetching
     let data;
+    let eamSujets = [];
     try {
         data = await getEducationalData();
+        eamSujets = await getEAMSujets();
     } catch (error: any) {
         console.error("ADMIN PAGE LOAD ERROR:", error);
         return (
@@ -131,7 +134,7 @@ export default async function AdminPage() {
             </header>
 
             <main className="relative z-20 max-w-[1600px] mx-auto p-12 h-[calc(100vh-100px)] flex flex-col gap-8">
-                <AdminDashboard initialData={data} />
+                <AdminDashboard initialData={{ ...data, eamSujets }} />
             </main>
 
             {/* Futuristic Footer Overlay */}

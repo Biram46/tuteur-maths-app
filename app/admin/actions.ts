@@ -272,3 +272,107 @@ export async function createResourceEntry(chapterId: string, kind: string, publi
     revalidatePath("/admin");
     return { success: true };
 }
+
+// --- ACTIONS POUR LES SUJETS EAM (Épreuve Anticipée de Mathématiques) ---
+
+export type EAMNiveau = '1ere_specialite' | '1ere_gt' | '1ere_techno';
+
+export interface EAMSujet {
+    id: string;
+    titre: string;
+    description: string | null;
+    date_sujet: string;
+    niveau: EAMNiveau;
+    sujet_pdf_url: string | null;
+    sujet_latex_url: string | null;
+    corrige_pdf_url: string | null;
+    corrige_latex_url: string | null;
+    corrige_disponible: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * Récupère tous les sujets EAM
+ */
+export async function getEAMSujets(): Promise<EAMSujet[]> {
+    const { data, error } = await supabaseServer
+        .from('eam_sujets')
+        .select('*')
+        .order('date_sujet', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching EAM sujets:", error);
+        return [];
+    }
+
+    return (data || []) as EAMSujet[];
+}
+
+/**
+ * Crée ou met à jour un sujet EAM
+ */
+export async function createOrUpdateEAMSujet(formData: FormData) {
+    const id = formData.get("id") as string | null;
+    const titre = (formData.get("titre") as string)?.trim();
+    const description = (formData.get("description") as string)?.trim() || null;
+    const date_sujet = formData.get("date_sujet") as string;
+    const niveau = formData.get("niveau") as EAMNiveau;
+    const sujet_pdf_url = (formData.get("sujet_pdf_url") as string)?.trim() || null;
+    const sujet_latex_url = (formData.get("sujet_latex_url") as string)?.trim() || null;
+    const corrige_pdf_url = (formData.get("corrige_pdf_url") as string)?.trim() || null;
+    const corrige_latex_url = (formData.get("corrige_latex_url") as string)?.trim() || null;
+    const corrige_disponible = formData.get("corrige_disponible") === "on";
+
+    if (!titre || !date_sujet || !niveau) {
+        throw new Error("Titre, date et niveau sont obligatoires.");
+    }
+
+    const payload = {
+        titre,
+        description,
+        date_sujet,
+        niveau,
+        sujet_pdf_url,
+        sujet_latex_url,
+        corrige_pdf_url,
+        corrige_latex_url,
+        corrige_disponible,
+    };
+
+    if (id) {
+        const { error } = await supabaseServer
+            .from("eam_sujets")
+            .update(payload)
+            .eq("id", id);
+        if (error) throw new Error(error.message);
+    } else {
+        const { error } = await supabaseServer
+            .from("eam_sujets")
+            .insert([payload]);
+        if (error) throw new Error(error.message);
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/sujets");
+    redirect("/admin");
+}
+
+/**
+ * Supprime un sujet EAM
+ */
+export async function deleteEAMSujet(formData: FormData) {
+    const id = formData.get("id") as string;
+    if (!id) throw new Error("ID requis pour la suppression.");
+
+    const { error } = await supabaseServer
+        .from("eam_sujets")
+        .delete()
+        .eq("id", id);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin");
+    revalidatePath("/sujets");
+    redirect("/admin");
+}
