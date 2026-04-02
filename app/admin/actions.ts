@@ -481,3 +481,18 @@ export async function createEAMSujetWithFiles(
         return { success: false, error: err.message || "Erreur inconnue" };
     }
 }
+
+/**
+ * Supprime tous les résultats QCM de la base de données (purge)
+ */
+export async function deleteAllQcmResults() {
+    const { error } = await supabaseServer
+        .from("qcm_results")
+        .delete()
+        .not("id", "is", null);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin");
+    redirect("/admin");
+}

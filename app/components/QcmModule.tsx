@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css';
 import { useRouter } from 'next/navigation';
 import MathTable from './MathTable';
 import MathGraph from './MathGraph';
+import { fixLatexContent } from '@/lib/latex-fixer';
 
 export default function QcmModule({ userName }: { userName: string }) {
     const router = useRouter();
@@ -176,6 +177,13 @@ export default function QcmModule({ userName }: { userName: string }) {
                         </div>
                     </div>
 
+                    <button 
+                        onClick={startNewSession}
+                        className="mb-8 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold"
+                    >
+                        Effacer mes notes et recommencer
+                    </button>
+
                     <div className="w-full text-left pt-12 border-t border-slate-700/50">
                         <h3 className="text-2xl font-bold text-white mb-8 text-center flex items-center justify-center gap-3">
                             <span>🔍</span> Correction détaillée
@@ -195,7 +203,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             <div className="flex-1">
                                                 <div className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Question {idx + 1}</div>
                                                 <div className="text-lg text-slate-100 font-medium prose prose-invert max-w-none math-prose">
-                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.question}</ReactMarkdown>
+                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.question).content}</ReactMarkdown>
                                                 </div>
                                             </div>
                                         </div>
@@ -217,7 +225,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 <div className="text-slate-200 prose prose-invert math-prose">
                                                     {hasUserAnswered ? (
                                                         <>
-                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[userAnswerIdx]}</ReactMarkdown>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
                                                             {q.optionsTableData?.[userAnswerIdx] && (
                                                                 <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
                                                             )}
@@ -232,7 +240,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
                                                 <div className="text-xs text-green-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse</div>
                                                 <div className="text-green-100 prose prose-invert math-prose">
-                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[q.correctAnswerIndex]}</ReactMarkdown>
+                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
                                                     {q.optionsTableData?.[q.correctAnswerIndex] && (
                                                         <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
                                                     )}
@@ -246,7 +254,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                         {q.explanation && (
                                             <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-100 prose prose-invert math-prose text-sm">
                                                 <span className="font-bold text-blue-400 block mb-1">Explication :</span>
-                                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.explanation).content}</ReactMarkdown>
                                             </div>
                                         )}
                                     </div>
@@ -279,7 +287,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                     remarkPlugins={[remarkMath]}
                                     rehypePlugins={[rehypeKatex]}
                                 >
-                                    {currentQuestion.question}
+                                    {fixLatexContent(currentQuestion.question).content}
                                 </ReactMarkdown>
                             </div>
 
@@ -321,7 +329,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                     remarkPlugins={[remarkMath]}
                                                     rehypePlugins={[rehypeKatex]}
                                                 >
-                                                    {opt}
+                                                    {fixLatexContent(opt).content}
                                                 </ReactMarkdown>
                                                 
                                                 {hasTable && (
