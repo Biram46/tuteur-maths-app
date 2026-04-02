@@ -201,12 +201,12 @@ export default function QcmModule({ userName }: { userName: string }) {
                                         </div>
 
                                         {q.questionTableData && (
-                                            <div className="mb-6 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
+                                            <div className="mb-6 w-full max-w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
                                                 <MathTable data={q.questionTableData} />
                                             </div>
                                         )}
                                         {q.questionGraphData && (
-                                            <div className="mb-6 flex justify-center w-full">
+                                            <div className="mb-6 w-full max-w-full overflow-x-auto">
                                                 <MathGraph {...q.questionGraphData} />
                                             </div>
                                         )}
@@ -219,10 +219,10 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                         <>
                                                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[userAnswerIdx]}</ReactMarkdown>
                                                             {q.optionsTableData?.[userAnswerIdx] && (
-                                                                <div className="mt-4 overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
+                                                                <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
                                                             )}
                                                             {q.optionsGraphData?.[userAnswerIdx] && (
-                                                                <div className="mt-4"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
+                                                                <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
                                                             )}
                                                         </>
                                                     ) : <span className="text-slate-500 italic">Aucune réponse</span>}
@@ -234,10 +234,10 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 <div className="text-green-100 prose prose-invert math-prose">
                                                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.options[q.correctAnswerIndex]}</ReactMarkdown>
                                                     {q.optionsTableData?.[q.correctAnswerIndex] && (
-                                                        <div className="mt-4 overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
+                                                        <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
                                                     )}
                                                     {q.optionsGraphData?.[q.correctAnswerIndex] && (
-                                                        <div className="mt-4"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
+                                                        <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
                                                     )}
                                                 </div>
                                             </div>
@@ -284,13 +284,13 @@ export default function QcmModule({ userName }: { userName: string }) {
                             </div>
 
                             {currentQuestion.questionTableData && (
-                                <div className="mt-6 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
+                                <div className="mt-6 w-full max-w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
                                     <MathTable data={currentQuestion.questionTableData} />
                                 </div>
                             )}
 
                             {currentQuestion.questionGraphData && (
-                                <div className="mt-6 flex justify-center w-full">
+                                <div className="mt-6 w-full max-w-full overflow-x-auto">
                                     <MathGraph {...currentQuestion.questionGraphData} />
                                 </div>
                             )}
@@ -325,13 +325,13 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 </ReactMarkdown>
                                                 
                                                 {hasTable && (
-                                                    <div className="mt-4 flex justify-center w-full overflow-x-auto bg-slate-50 p-2 rounded-xl">
+                                                    <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl">
                                                         <MathTable data={hasTable} />
                                                     </div>
                                                 )}
                                                 
                                                 {hasGraph && (
-                                                    <div className="mt-4 flex justify-center w-full">
+                                                    <div className="mt-4 w-full max-w-full overflow-x-auto">
                                                         <MathGraph {...hasGraph} />
                                                     </div>
                                                 )}
@@ -384,6 +384,12 @@ const GlobalStyles = () => (
             overflow-y: hidden;
             padding-bottom: 0.5rem;
             margin: 0;
+        }
+        .math-prose table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
         }
     `}</style>
 )

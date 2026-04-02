@@ -215,7 +215,35 @@ export function parseGeoScene(raw: string): GeoScene {
             case 'vecteur':
             case 'vector':
             case 'vec': {
-                // Nettoyage robuste du LaTeX généré par l'IA :
+                // 1. Chercher des coordonnées explicites, ex: vecteur: u(2,3) ou u=(2, 3)
+                // On accepte les minuscules ou majuscules, ex: u(2,3), AB(2,3)
+                const coordMatch = rest.match(/\b([a-zA-Z][a-zA-Z0-9_]*)\s*[\(=:]\s*\+?([+-]?[\d.]+)\s*[,;]\s*\+?([+-]?[\d.]+)/);
+                if (coordMatch) {
+                    const vName = coordMatch[1];
+                    const vx = parseNumber(coordMatch[2]);
+                    const vy = parseNumber(coordMatch[3]);
+                    let color = parts.length > 1 ? parts[parts.length - 1] : undefined;
+                    if (color && !/^#/.test(color) && !/^(rouge|bleu|vert|orange|violet|rose|noir|blanc|gris|jaune|cyan|magenta|red|blue|green|yellow|purple|pink|black|white|gray|grey)$/i.test(color)) {
+                        color = undefined;
+                    }
+                    if (!isNaN(vx) && !isNaN(vy)) {
+                        const ptOriginId = uid('O_v');
+                        const ptDestId = uid('M_v');
+                        pointMap.set(ptOriginId, { x: 0, y: 0 });
+                        pointMap.set(ptDestId, { x: vx, y: vy });
+                        objects.push({ kind: 'point', id: ptOriginId, x: 0, y: 0, style: 'none' });
+                        objects.push({ kind: 'point', id: ptDestId, x: vx, y: vy, style: 'none' });
+                        objects.push({
+                            kind: 'vector', id: uid('vec'),
+                            from: ptOriginId, to: ptDestId,
+                            label: vName.length === 1 ? `\\vec{${vName}}` : `\\overrightarrow{${vName}}`,
+                            color
+                        });
+                        break;
+                    }
+                }
+
+                // 2. Nettoyage robuste du LaTeX généré par l'IA :
                 // ex: "\vec{AB}", "$\overrightarrow{AB}$", "[AB]"
                 const cleanVecRest = rest
                     .replace(/\$\$?/g, '')                              // $ et $$
@@ -229,7 +257,7 @@ export function parseGeoScene(raw: string): GeoScene {
                     .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b|\bOVERRIGHTARROW\b/gi, ' ');
                 // Chercher d'abord 2 lettres MAJ adjacentes (AB, BC...) — cas le plus fiable
                 const twoLettersVecMatch = cleanVecRest.match(/\b([A-Z]{2})\b/);
-                let a: string, b: string;
+                let a: string = "", b: string = "";
                 if (twoLettersVecMatch) {
                     a = twoLettersVecMatch[1][0];
                     b = twoLettersVecMatch[1][1];
@@ -242,8 +270,10 @@ export function parseGeoScene(raw: string): GeoScene {
                     } else {
                         // Fallback : extraire les 2 premières lettres MAJ isolées
                         const letters = (cleanVecRest.toUpperCase().match(/[A-Z]/g) || []).slice(0, 2);
-                        a = letters[0] || '';
-                        b = letters[1] || '';
+                        if (letters.length === 2) {
+                             a = letters[0];
+                             b = letters[1];
+                        }
                     }
                 }
                 let label: string | undefined;
@@ -275,6 +305,24 @@ export function parseGeoScene(raw: string): GeoScene {
                         label: label || `\\vec{${a}${b}}`,
                         color,
                     });
+                } else if (!a && !b) {
+                    // 3. Fallback : Vecteur libre défini uniquement par une lettre (ex: "vecteur: u")
+                    const singleLetterMatch = cleanVecRest.match(/\b([a-z])\b/);
+                    if (singleLetterMatch) {
+                        const vName = singleLetterMatch[1];
+                        const ptOriginId = uid('O_vgen');
+                        const ptDestId = uid('M_vgen');
+                        pointMap.set(ptOriginId, { x: 0, y: 0 });
+                        pointMap.set(ptDestId, { x: 3, y: 2 }); // Vecteur générique arbitraire (3, 2)
+                        objects.push({ kind: 'point', id: ptOriginId, x: 0, y: 0, style: 'none' });
+                        objects.push({ kind: 'point', id: ptDestId, x: 3, y: 2, style: 'none' });
+                        objects.push({
+                            kind: 'vector', id: uid('vec'),
+                            from: ptOriginId, to: ptDestId,
+                            label: `\\vec{${vName}}`,
+                            color
+                        });
+                    }
                 }
                 break;
             }

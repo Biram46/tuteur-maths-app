@@ -22,6 +22,344 @@ export interface QcmQuestion {
 }
 
 export const qcmDatabase: QcmQuestion[] = [
+    // --- AI IMPORTED FROM LATEX ---
+    {
+    "question": "On considère la relation \\(M = x + \\dfrac{y - z}{2t}\\). Lorsque \\(x = -1,\\; y = 5,\\; z = 1,\\; t = -2\\), la valeur de \\(M\\) est égale à :",
+    "options": [
+        "\\(-2\\)",
+        "\\(0\\)",
+        "\\(2\\)",
+        "\\(-3\\)"
+    ],
+    "id": "bac_blanc_2-qcm-1",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 0,
+    "explanation": "\\(-2\\)\n\n\\[\nM = -1 + \\frac{5 - 1}{2 \\times (-2)} = -1 + \\frac{4}{-4} = -1 - 1 = -2\n\\]"
+},
+    {
+    "question": "On considère trois fonctions définies sur \\(\\mathbb{R}\\) :\n\\[k_1(x) = (2x-1)^2 - (x+1)(2x-1),\\quad\nk_2(x) = 3x - \\left(5 - \\frac{x}{2}\\right),\\quad\nk_3(x) = \\frac{4x^2 - (2x-3)^2}{2}\\]\nParmi ces trois fonctions, lesquelles sont des fonctions affines ?",
+    "options": [
+        "aucune",
+        "toutes",
+        "uniquement \\(k_2\\)",
+        "uniquement \\(k_2\\) et \\(k_3\\)"
+    ],
+    "id": "bac_blanc_2-qcm-2",
+    "category": "Fonctions",
+    "correctAnswerIndex": 3,
+    "explanation": "uniquement \\(k_2\\) et \\(k_3\\)\n\n\\[\nk_1(x) = (2x-1)^2 - (x+1)(2x-1) = (2x-1)[(2x-1)-(x+1)] = (2x-1)(x-2)\n\\]\n\\[\nk_1(x) = 2x^2 -5x +2 \\text{ (non affine)}\n\\]\n\\[\nk_2(x) = 3x - 5 + \\frac{x}{2} = \\frac{6x + x}{2} - 5 = \\frac{7x}{2} - 5 \\text{ (affine)}\n\\]\n\\[\nk_3(x) = \\frac{4x^2 - (4x^2 - 12x + 9)}{2} = \\frac{4x^2 - 4x^2 + 12x - 9}{2} = \\frac{12x - 9}{2} = 6x - 4,5 \\text{ (affine)}\n\\]"
+},
+    {
+    "question": "Voici une série de notes avec coefficients :\n\\[\n\\begin{array}{|c|c|c|c|c|}\n\\hline\n\\text{Note} & 12 & 8 & 15 & a \\\\\n\\hline\n\\text{Coefficient} & 1 & 1 & 2 & 1 \\\\\n\\hline\n\\end{array}\n\\]\nOn note \\(m\\) la moyenne. Que doit valoir \\(a\\) pour que \\(m = 12\\) ?",
+    "options": [
+        "\\(7\\)",
+        "\\(1\\)",
+        "\\(10\\)",
+        "\\(4{,}25\\)"
+    ],
+    "id": "bac_blanc_2-qcm-3",
+    "category": "Statistiques",
+    "correctAnswerIndex": 2,
+    "explanation": "\\(10\\)"
+},
+    {
+    "question": "Un boulanger observe que sur 260 viennoiseries vendues, 85 sont des pains au chocolat. Les pains au chocolat représentent alors (en pourcentage des ventes, arrondi à l'unité) :",
+    "options": [
+        "\\(25\\%\\)",
+        "\\(33\\%\\)",
+        "\\(75\\%\\)",
+        "\\(35\\%\\)"
+    ],
+    "id": "bac_blanc_2-qcm-4",
+    "category": "Évolutions et variations",
+    "correctAnswerIndex": 1,
+    "explanation": "\\(33\\%\\)\n\n\\[\n\\frac{85}{260} \\times 100 \\approx 32,69\\% \\approx 33\\%\n\\]"
+},
+    {
+    "question": "On a représenté ci-dessous les boîtes à moustaches de deux séries statistiques. On peut affirmer que :",
+    "questionGraphData": {
+        "domain": { "x": [0, 20], "y": [0, 3] },
+        "boxplots": [
+            { "min": 5, "q1": 7, "median": 9, "q3": 13, "max": 15, "label": "Série 1", "color": "#60a5fa" },
+            { "min": 3, "q1": 7, "median": 9, "q3": 13, "max": 19, "label": "Série 2", "color": "#f472b6" }
+        ]
+    },
+    "options": [
+        "Dans la série 1, la médiane est égale à 9.",
+        "Dans la série 2, au moins \\(75\\%\\) des valeurs sont inférieures ou égales à 13.",
+        "Les deux séries ont la même étendue.",
+        "L'écart interquartile est plus grand pour la série 1 que pour la série 2."
+    ],
+    "id": "bac_blanc_2-qcm-5",
+    "category": "Statistiques",
+    "correctAnswerIndex": 1,
+    "explanation": "Dans la série 2, au moins \\(75\\%\\) des valeurs sont inférieures ou égales à 13.\n\nAnalyse :\n- A : Médiane série 1 = 9 (vrai, mais pas la seule affirmation vraie)\n- B : Q3 = 13, donc 75\\% des valeurs \\(\\leq\\) 13 (vrai)\n- C : Étendue série 1 = 10, série 2 = 16 (faux)\n- D : Écart interquartile série 1 = 6, série 2 = 6 (faux, ils sont égaux)"
+},
+    {
+    "question": "Aide au calcul : \\(\\pi \\approx 3{,}14\\). L'ordre de grandeur de \\((3\\pi)^2 \\times 120\\) est :",
+    "options": [
+        "\\(1000\\)",
+        "\\(10\\,000\\)",
+        "\\(100\\,000\\)",
+        "\\(1\\,000\\,000\\)"
+    ],
+    "id": "bac_blanc_2-qcm-6",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 1,
+    "explanation": "\\(10\\,000\\)\n\n\\[\n(3\\pi)^2 \\times 120 = 9\\pi^2 \\times 120 = 1080 \\times \\pi^2\n\\]\n\\(\\pi^2 \\approx 9,86\\), donc \\(1080 \\times 9,86 \\approx 10\\,648 \\approx 10^4\\)"
+},
+    {
+    "question": "\\(\\displaystyle \\frac{4^3 \\times 3^2}{6^2} =\\)",
+    "options": [
+        "\\(4\\)",
+        "\\(8\\)",
+        "\\(16\\)",
+        "\\(2\\)"
+    ],
+    "id": "bac_blanc_2-qcm-7",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 2,
+    "explanation": "\\(16\\)\n\n\\[\n\\frac{4^3 \\times 3^2}{6^2} = \\frac{64 \\times 9}{36} = \\frac{576}{36} = 16\n\\]"
+},
+    {
+    "question": "La fonction \\(f\\) définie sur \\(\\mathbb{R}\\) par \\(f(x) = 3x - 1\\) admet pour tableau de signe :",
+    "options": [
+        "$\\begin{array}{c|ccc}\nx & -\\infty & \\frac{1}{3} & +\\infty \\\\ \\hline\nf(x) & - & 0 & +\n\\end{array}$",
+        "$\\begin{array}{c|ccc}\nx & -\\infty & \\frac{1}{3} & +\\infty \\\\ \\hline\nf(x) & + & 0 & -\n\\end{array}$",
+        "$\\begin{array}{c|ccc}\nx & -\\infty & 0 & +\\infty \\\\ \\hline\nf(x) & - & 0 & +\n\\end{array}$",
+        "$\\begin{array}{c|ccc}\nx & -\\infty & 0 & +\\infty \\\\ \\hline\nf(x) & + & 0 & -\n\\end{array}$"
+    ],
+    "id": "bac_blanc_2-qcm-8",
+    "category": "Fonctions",
+    "correctAnswerIndex": 0,
+    "explanation": "\\(f(x) = 3x - 1\\) s'annule en \\(x = \\frac{1}{3}\\), coefficient directeur \\(3 > 0\\) donc négative avant, positive après."
+},
+    {
+    "question": "Une bactérie de \\(0{,}8\\)\\,g voit sa masse diminuer de \\(25\\%\\). La nouvelle masse est égale à :",
+    "options": [
+        "\\(0{,}6\\)\\,g",
+        "\\(1\\)\\,g",
+        "\\(0{,}75\\)\\,g",
+        "\\(0{,}2\\)\\,g"
+    ],
+    "id": "bac_blanc_2-qcm-9",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 0,
+    "explanation": "\\(0,6\\) g\n\nDiminuer de 25\\% revient à multiplier par \\(0,75\\) : \\(0,8 \\times 0,75 = 0,6\\)"
+},
+    {
+    "question": "La loi d'interaction gravitationnelle entre deux corps \\(C_1\\) et \\(C_2\\) est\n\\(F = G\\dfrac{m_1 m_2}{d^2}\\) où \\(m_1, m_2\\) sont les masses, \\(d\\) la distance et \\(G\\) la constante gravitationnelle. On a :",
+    "options": [
+        "\\(d = \\dfrac{F - G}{2m_1 m_2}\\)",
+        "\\(d = \\sqrt{\\dfrac{G m_1 m_2}{F}}\\)",
+        "\\(d = \\dfrac{G m_1 m_2}{F^2}\\)",
+        "\\(d = \\sqrt{\\dfrac{F}{G m_1 m_2}}\\)"
+    ],
+    "id": "bac_blanc_2-qcm-10",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 1,
+    "explanation": "\\(d = \\sqrt{\\dfrac{G m_1 m_2}{F}}\\)\n\n\\[\nF = G\\frac{m_1 m_2}{d^2} \\implies d^2 = \\frac{G m_1 m_2}{F} \\implies d = \\sqrt{\\frac{G m_1 m_2}{F}}\n\\]"
+},
+    {
+    "question": "L'expression développée réduite de \\((5x+4)^2\\) est :",
+    "options": [
+        "\\(25x^2 + 8x + 16\\)",
+        "\\(10x^2 + 20x + 16\\)",
+        "\\(25x^2 + 16x + 4\\)",
+        "\\(25x^2 + 40x + 16\\)"
+    ],
+    "id": "bac_blanc_2-qcm-11",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": 3,
+    "explanation": "\\(25x^2 + 40x + 16\\)\n\n\\[\n(5x+4)^2 = 25x^2 + 2 \\times 5x \\times 4 + 16 = 25x^2 + 40x + 16\n\\]"
+},
+    {
+    "question": "On considère un groupe d'élèves dont la répartition suivant la LV2 choisie et le sexe est donnée ci-dessous :\n\\[\n\\begin{array}{|c|c|c|c|}\n\\hline\n& \\text{Allemand} & \\text{Espagnol} & \\text{Total} \\\\\n\\hline\n\\text{Filles} & 30 & 20 & 50 \\\\\n\\hline\n\\text{Garçons} & 40 & 30 & 70 \\\\\n\\hline\n\\text{Total} & 70 & 50 & 120 \\\\\n\\hline\n\\end{array}\n\\]\nOn choisit un élève au hasard. Quelle est la probabilité que l'élève suive allemand sachant que c'est une fille ?",
+    "options": [
+        "\\(0{,}25\\)",
+        "\\(0{,}6\\)",
+        "\\(\\dfrac{3}{7}\\)",
+        "\\(\\dfrac{4}{7}\\)"
+    ],
+    "id": "bac_blanc_2-qcm-12",
+    "category": "Probabilités",
+    "correctAnswerIndex": 1,
+    "explanation": "\\(0,6\\)\n\n\\(P(\\text{Allemand} \\mid \\text{Fille}) = \\dfrac{30}{50} = 0,6 = \\dfrac{3}{5}\\)"
+},
+    {
+    "question": "On peut affirmer que :",
+    "options": [
+        "$\\dfrac{5}{6} < \\dfrac{6}{7}$",
+        "$\\dfrac{5}{6} > \\dfrac{6}{7}$",
+        "$\\dfrac{5}{6} = \\dfrac{6}{7}$",
+        "On ne peut pas comparer ces deux nombres."
+    ],
+    "id": "bac_blanc_5-qcm-1",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "$1\\ \\text{m}^2$ correspond à :",
+    "options": [
+        "$0,0001\\ \\text{cm}^2$",
+        "$0,01\\ \\text{cm}^2$",
+        "$100\\ \\text{cm}^2$",
+        "$10\\,000\\ \\text{cm}^2$"
+    ],
+    "id": "bac_blanc_5-qcm-2",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "Dans une classe de 30 élèves, 40\\% sont des filles. Le nombre de filles est :",
+    "options": [
+        "12",
+        "15",
+        "18",
+        "20"
+    ],
+    "id": "bac_blanc_5-qcm-3",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "Le prix d’un article subit une augmentation de 20\\,\\% puis une augmentation de 10\\,\\%. Le taux d’évolution global est :",
+    "options": [
+        "30\\%",
+        "32\\%",
+        "22\\%",
+        "35\\%"
+    ],
+    "id": "bac_blanc_5-qcm-4",
+    "category": "Évolutions et variations",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "On donne ci-contre la courbe représentative d’une fonction $f$. On lit graphiquement que $f(2)$ est égal à :",
+    "questionGraphData": {
+        "domain": { "x": [-1, 5], "y": [-2, 4] },
+        "functions": [{ "fn": "-0.5*(x-2)^2+3", "color": "#f43f5e" }]
+    },
+    "options": [
+        "0",
+        "1",
+        "2",
+        "3"
+    ],
+    "id": "bac_blanc_5-qcm-5",
+    "category": "Fonctions",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "On lance deux fois de suite un dé truqué. La probabilité d’obtenir un 6 à chaque lancer est $0,2$. La probabilité d’obtenir  deux  6 est :",
+    "options": [
+        "$0,512$",
+        "$0,488$",
+        "$0,04$",
+        "$0,8$"
+    ],
+    "id": "bac_blanc_5-qcm-6",
+    "category": "Probabilités",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "Le diagramme en barres ci-dessous donne la répartition des élèves d’un lycée selon leur âge. La médiane de cette série est :",
+    "questionGraphData": {
+        "domain": { "x": [15, 20], "y": [0, 60] },
+        "barcharts": [
+            { "coords": [{ "x": 16, "y": 25 }, { "x": 17, "y": 40 }, { "x": 18, "y": 30 }, { "x": 19, "y": 5 }], "color": "#8b5cf6" }
+        ],
+        "title": "Âge des élèves"
+    },
+    "options": [
+        "17",
+        "17,5",
+        "18",
+        "18,5"
+    ],
+    "id": "bac_blanc_5-qcm-7",
+    "category": "Statistiques",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "L’équation $x^2 = 9$ a pour solutions :",
+    "options": [
+        "$x = 3$ seulement",
+        "$x = -3$ seulement",
+        "$x = 3$ ou $x = -3$",
+        "$x = \\sqrt{3}$ ou $x = -\\sqrt{3}$"
+    ],
+    "id": "bac_blanc_5-qcm-8",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "Soit $f$ la fonction définie sur $\\mathbb{R}$ par $f(x)=2x-4$. Le tableau de signes de $f$ est :",
+    "options": [
+        "Tableau 1",
+        "Tableau 2",
+        "Tableau 3",
+        "Tableau 4"
+    ],
+    "optionsTableData": [
+        { "headers": ["x", "-\\infty", "2", "+\\infty"], "rows": [["f(x)", "", "-", "0", "+", ""]] },
+        { "headers": ["x", "-\\infty", "2", "+\\infty"], "rows": [["f(x)", "", "+", "0", "-", ""]] },
+        { "headers": ["x", "-\\infty", "0", "+\\infty"], "rows": [["f(x)", "", "-", "0", "+", ""]] },
+        { "headers": ["x", "-\\infty", "0", "+\\infty"], "rows": [["f(x)", "", "+", "0", "-", ""]] }
+    ],
+    "id": "bac_blanc_5-qcm-9",
+    "category": "Fonctions",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "La forme factorisée de $(x+3)^2 - 4(x+3)$ est :",
+    "options": [
+        "$(x+3)(x-1)$",
+        "$(x+3)(x+1)$",
+        "$(x-3)(x+1)$",
+        "$(x-3)(x-1)$"
+    ],
+    "id": "bac_blanc_5-qcm-10",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "Le prix d’un article a baissé de 20\\,\\%. Pour retrouver son prix initial, il faut l’augmenter de :",
+    "options": [
+        "20\\%",
+        "25\\%",
+        "30\\%",
+        "40\\%"
+    ],
+    "id": "bac_blanc_5-qcm-11",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+    {
+    "question": "La droite d’équation $y=3x$ passe par le point :",
+    "options": [
+        "$A(2;6)$",
+        "$B(3;6)$",
+        "$C(1;4)$",
+        "$D(0;3)$"
+    ],
+    "id": "bac_blanc_5-qcm-12",
+    "category": "Calcul numérique et algébrique",
+    "correctAnswerIndex": -1,
+    "explanation": ""
+},
+
     // --- Calcul numérique et algébrique ---
     {
         id: "calc-1",
@@ -981,9 +1319,12 @@ export function generateRandomQcmSession(numberOfQuestions: number = 12): QcmQue
     // Pour chaque catégorie, on pioche un mix
     for (const cat of categories) {
         const catQuestions = [...questionsByCategory[cat]].sort(() => Math.random() - 0.5);
+        // Trier pour donner priorité aux questions avec graph
+        catQuestions.sort((a,b) => (b.questionGraphData ? 1 : 0) - (a.questionGraphData ? 1 : 0));
+        
         for (let i = 0; i < questionsPerCategory; i++) {
-            // 70% de généré procéduralement, 30% issu de la base fixe
-            if (Math.random() < 0.7 || i >= catQuestions.length) {
+            // 30% de généré procéduralement, 70% issu de la base fixe (pour favoriser l'apparition des diagrammes en test)
+            if (Math.random() < 0.3 || i >= catQuestions.length) {
                 selected.push(generateProceduralQuestion(cat as QcmCategory));
             } else {
                 selected.push(catQuestions[i]);
@@ -997,6 +1338,12 @@ export function generateRandomQcmSession(numberOfQuestions: number = 12): QcmQue
         selected.push(generateProceduralQuestion(randomCat));
     }
 
-    // Mélanger le résultat final
-    return selected.sort(() => Math.random() - 0.5);
+    // Filtrer pour toujours afficher les questions avec graphiques en premier lors de la phase de test
+    const finalSelection = [
+        ...selected.filter(q => q.questionGraphData || q.category === 'Statistiques'),
+        ...selected.filter(q => !q.questionGraphData && q.category !== 'Statistiques')
+    ];
+
+    // Ne pas mélanger globalement si on veut observer les statistiques d'abord
+    return finalSelection.slice(0, numberOfQuestions);
 }
