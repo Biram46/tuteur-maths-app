@@ -1,2 +1,0 @@
-﻿app/components/MathAssistant.tsx(78,46): error TS1507: There is nothing available for repetition.
-app/components/MathAssistant.tsx(78,48): error TS1507: There is nothing available for repetition.

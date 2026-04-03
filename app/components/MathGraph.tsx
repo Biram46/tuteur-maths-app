@@ -40,6 +40,9 @@ export interface MathGraphProps {
     title?: string;
     hideAxes?: boolean;
     asymptotes?: number[];
+    boxplots?: { min: number, q1: number, median: number, q3: number, max: number, label: string, color?: string }[];
+    barcharts?: { coords: { x: number, y: number }[], color?: string }[];
+    piecharts?: { data: { label: string, value: number, color?: string }[] }[];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -282,7 +285,10 @@ export default function MathGraph({
     domain: domainProp = { x: [-5, 5], y: [-4, 4] },
     title,
     hideAxes = false,
-    asymptotes = []
+    asymptotes = [],
+    boxplots = [],
+    barcharts = [],
+    piecharts = []
 }: MathGraphProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -328,6 +334,16 @@ export default function MathGraph({
         if (functions.length > 0) {
             const autoY = autoComputeYDomain(functions, xDomain, computedAsymptotes);
             yDomain = autoY;
+        }
+        else if (barcharts && barcharts.length > 0) {
+            let maxY = 0;
+            barcharts.forEach(b => {
+                b.coords.forEach(pt => { if (pt.y > maxY) maxY = pt.y; });
+            });
+            yDomain = [0, Math.ceil(maxY * 1.2)];
+        }
+        else if (boxplots && boxplots.length > 0) {
+            yDomain = [0, boxplots.length + 1];
         }
         // Même sans fonctions, adapter le Y aux points si on en a assez
         else if (points.length > 2) {
@@ -458,8 +474,10 @@ export default function MathGraph({
         // ─────────────────── GRADUATIONS π OU NORMALES ───────────────────
         const piTicks = hasTrigFunctions ? generatePiTicks(domain.x[0], domain.x[1], isMobile) : [];
         const usesPiTicks = piTicks.length > 0;
+        const hasPie = piecharts && piecharts.length > 0;
+        const autoHideAxes = hideAxes || hasPie;
 
-        if (!hideAxes) {
+        if (!autoHideAxes) {
             // ── GRILLES ──
             if (usesPiTicks) {
                 // Grilles verticales alignées sur les multiples de π
@@ -751,9 +769,116 @@ export default function MathGraph({
             });
         }
 
+        // ── BARCHARTS ──
+        if (barcharts && barcharts.length > 0) {
+            const chartGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
+            barcharts.forEach(bar => {
+                const color = bar.color || '#3b82f6';
+                const dx = xScale(1) - xScale(0);
+                const bw = Math.abs(dx * 0.6);
+                bar.coords.forEach(pt => {
+                    const py = yScale(pt.y);
+                    const p0 = yScale(0);
+                    const bh = Math.max(0, p0 - py);
+                    chartGroup.append('rect')
+                        .attr('x', xScale(pt.x) - bw/2)
+                        .attr('y', py)
+                        .attr('width', bw)
+                        .attr('height', bh)
+                        .attr('fill', color)
+                        .attr('opacity', 0)
+                        .attr('rx', 2)
+                        .transition()
+                        .delay(400)
+                        .duration(800)
+                        .attr('opacity', 0.8);
+                });
+            });
+        }
+
+        // ── BOXPLOTS ──
+        if (boxplots && boxplots.length > 0 && !hasPie) {
+            const boxGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
+            boxplots.forEach((box, i) => {
+                const yPos = boxplots.length === 1 ? (domain.y[0] + domain.y[1])/2 : domain.y[0] + (i + 1) * (domain.y[1] - domain.y[0]) / (boxplots.length + 1);
+                const sy = yScale(yPos);
+                const dh = 15; // half height
+                const color = box.color || '#10b981';
+
+                const grp = boxGroup.append('g').style('opacity', 0);
+                grp.transition().delay(i * 300).duration(800).style('opacity', 1);
+
+                // Ligne de moustache
+                grp.append('line').attr('x1', xScale(box.min)).attr('x2', xScale(box.max)).attr('y1', sy).attr('y2', sy).attr('stroke', color).attr('stroke-width', 2);
+                
+                // Moustaches bouts
+                grp.append('line').attr('x1', xScale(box.min)).attr('x2', xScale(box.min)).attr('y1', sy-dh/2).attr('y2', sy+dh/2).attr('stroke', color).attr('stroke-width', 2);
+                grp.append('line').attr('x1', xScale(box.max)).attr('x2', xScale(box.max)).attr('y1', sy-dh/2).attr('y2', sy+dh/2).attr('stroke', color).attr('stroke-width', 2);
+                
+                // Boîte
+                grp.append('rect')
+                    .attr('x', xScale(box.q1)).attr('y', sy-dh)
+                    .attr('width', xScale(box.q3) - xScale(box.q1)).attr('height', dh*2)
+                    .attr('fill', color).attr('fill-opacity', 0.3)
+                    .attr('stroke', color).attr('stroke-width', 2);
+                    
+                // Médiane
+                grp.append('line').attr('x1', xScale(box.median)).attr('x2', xScale(box.median)).attr('y1', sy-dh).attr('y2', sy+dh).attr('stroke', color).attr('stroke-width', 3);
+                
+                // Label au-dessus de la boîte, centré sur la médiane
+                grp.append('text').attr('x', xScale(box.median)).attr('y', sy - dh - 8)
+                    .attr('fill', 'white').style('font-size', '13px').attr('text-anchor', 'middle').text(box.label);
+            });
+        }
+
+        // ── PIECHARTS (Camemberts) ──
+        if (hasPie) {
+            const pieGroup = g.append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
+            const radius = Math.min(width, height) / 2 * 0.8;
+            
+            const pieGen = d3.pie<any>().value(d => d.value).sort(null);
+            const arcGen = d3.arc<any>().innerRadius(0).outerRadius(radius);
+            const labelArcGen = d3.arc<any>().innerRadius(radius * 0.6).outerRadius(radius * 0.6);
+            
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            piecharts.forEach((pie, pieIdx) => {
+                const pieData = pieGen(pie.data);
+                
+                const arcs = pieGroup.selectAll('.arc')
+                    .data(pieData)
+                    .enter().append('g')
+                    .attr('class', 'arc');
+                    
+                arcs.append('path')
+                    .attr('d', arcGen)
+                    .attr('fill', (d, i) => d.data.color || colorScale(i.toString()))
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', '2px')
+                    .attr('opacity', 0)
+                    .transition()
+                    .delay((d, i) => i * 200)
+                    .duration(500)
+                    .attr('opacity', 0.9);
+                    
+                arcs.append('text')
+                    .attr('transform', d => `translate(${labelArcGen.centroid(d)})`)
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', 'white')
+                    .style('font-size', isMobile ? '10px' : '12px')
+                    .style('font-weight', 'bold')
+                    .text(d => d.data.label)
+                    .attr('opacity', 0)
+                    .transition()
+                    .delay((d, i) => i * 200 + 400)
+                    .duration(500)
+                    .attr('opacity', 1);
+            });
+        }
+
         // ── TITRE ──
         // (Rendu en HTML au lieu du SVG pour gérer le LaTeX/KaTeX proprement)
-    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions]);
+    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions, boxplots, barcharts, piecharts]);
 
     useEffect(() => {
         renderGraph();

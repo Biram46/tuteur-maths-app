@@ -120,7 +120,11 @@ async function callMathEngine(
                 });
                 if (!res.ok) return { mathBlock: null, textSummary: null, error: `HTTP ${res.status}` };
                 const data = await res.json();
-                return { mathBlock: data.aaaBlock ?? null, textSummary: null, error: data.error };
+                let aiContext;
+                if (intent.intent === 'factorize' && niveau !== 'seconde') {
+                    aiContext = "⚠️ EXIGENCE PÉDAGOGIQUE : Si l'expression est un polynôme du second degré ax² + bx + c ou s'y ramène, tu DOIS ABSOLUMENT détailler le calcul du discriminant Δ = b² - 4ac, puis calculer les racines x1 et x2, avant de conclure sur la forme factorisée a(x-x1)(x-x2). N'utilise JAMAIS les racines évidentes ou les formules directes sans montrer le passage par Δ.";
+                }
+                return { mathBlock: data.aaaBlock ?? null, aiContext, textSummary: null, error: data.error };
             }
 
             default:

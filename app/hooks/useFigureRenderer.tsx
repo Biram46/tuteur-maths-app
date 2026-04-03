@@ -44,7 +44,14 @@ export function useFigureRenderer() {
         };
         try {
             // Remplacement des tirets longs et espaces insécables
-            const raw = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
+            let raw = rawBlock.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
+
+            // ⚠️ ANTI-HALLUCINATION: Si le LLM a utilisé @@@ figure pour des stats (boxplot, etc.), on convertit en @@@ graph
+            if (raw.toLowerCase().includes('boxplot:') || raw.toLowerCase().includes('barchart:') || raw.toLowerCase().includes('piechart:')) {
+                if (raw.toLowerCase().startsWith('figure') || raw.toLowerCase().startsWith('geo')) {
+                    raw = raw.replace(/^(?:figure|geo)\s*[|:]?/i, 'graph |');
+                }
+            }
 
             // ─── CAS GEO : Bloc géométrique (généré par mimimaths@ai) ───────────
             // Format : "geo | title: ... | point: A, 0, 0 | segment: AB | ..."
@@ -74,7 +81,7 @@ export function useFigureRenderer() {
                     // (indépendamment du titre), car l'IA peut générer $\vec{AB}$
                     // même dans des figures sans titre explicite "vecteur".
                     rawToParse = rawToParse.replace(
-                        /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*([^\n]+)/gim,
+                        /(?:^|\n)(\s*)(?:vecteurs?|vectors?|vecs?)\s*:\s*([^\n]+)/gim,
                         (match, indent, content) => {
                             const cleaned = content
                                 .replace(/\$\$?/g, '')
@@ -88,33 +95,28 @@ export function useFigureRenderer() {
                                 .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
                                 .trim();
 
-                            let pts = '';
-                            const twoMAdj = cleaned.match(/\b([A-Z]{2})\b/);
-                            if (twoMAdj) pts = twoMAdj[1];
-                            else {
-                                const twoM = cleaned.match(/\b([A-Z])\b[\s,]*\b([A-Z])\b/);
-                                if (twoM) pts = twoM[1] + twoM[2];
-                                else {
-                                    const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
-                                    if (letters.length === 2) pts = letters[0] + letters[1];
-                                }
-                            }
-                            
-                            if (pts) {
-                                const parts = content.split(',').map((s: string) => s.trim());
-                                const otherParts = parts.filter((p: string) => {
-                                    const cleanP = p.replace(/[^a-zA-Z]/g, '');
-                                    if (cleanP === pts) return false;
-                                    if (cleanP === pts[0] && p.length <= 2) return false;
-                                    if (cleanP === pts[1] && p.length <= 2) return false;
+                            let output = '';
+                            const pairsMatch = cleaned.match(/\b([A-Z])\s*([A-Z])\b/g);
+
+                            if (pairsMatch && pairsMatch.length > 0) {
+                                const parts = content.split(/[,=]/).map((s: string) => s.trim());
+                                const validOthers = parts.filter((p: string) => {
+                                    const cleanP = p.replace(/[^a-zA-Z0-9#]/g, '');
+                                    if (/^[A-Z]{1,2}$/.test(cleanP)) return false;
                                     if (p.includes('vec') || p.includes('rightarrow') || p.includes('overrightarrow')) return false;
+                                    if (p.includes('+') || p.includes('-')) return false;
                                     return true;
                                 });
-                                
-                                if (otherParts.length > 0) {
-                                    return `\n${indent}vecteur: ${pts}, ${otherParts.join(', ')}`;
-                                }
-                                return `\n${indent}vecteur: ${pts}`;
+
+                                pairsMatch.forEach((pair: string) => {
+                                    const pts = pair.replace(/\s+/g, '');
+                                    if (validOthers.length > 0) {
+                                        output += `\n${indent}vecteur: ${pts}, ${validOthers.join(', ')}`;
+                                    } else {
+                                        output += `\n${indent}vecteur: ${pts}`;
+                                    }
+                                });
+                                return output;
                             }
                             return match;
                         }
@@ -366,6 +368,10 @@ export function useFigureRenderer() {
                 let graphAsym: number[] = [];
                 let graphTitle = sections[0].includes(':') ? sections[0].split(':').slice(1).join(':').trim() : '';
 
+                const graphBoxplots: any[] = [];
+                const graphBarcharts: any[] = [];
+                const graphPiecharts: any[] = [];
+
                 sections.slice(1).forEach(sec => {
                     const low = sec.toLowerCase().trim();
                     if (low.startsWith('function:')) {
@@ -385,10 +391,46 @@ export function useFigureRenderer() {
                             const m = pt.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
                             if (m) graphPoints.push({ x: parseFloat(m[1]), y: parseFloat(m[2]) });
                         });
+                    } else if (low.startsWith('boxplot:')) {
+                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                        const parts = argStr.split(',').map(s => s.trim());
+                        if (parts.length >= 5) {
+                            graphBoxplots.push({
+                                min: parseFloat(parts[0]), q1: parseFloat(parts[1]),
+                                median: parseFloat(parts[2]), q3: parseFloat(parts[3]),
+                                max: parseFloat(parts[4]), label: parts[5] || 'Série',
+                                color: parts[6] || graphFnColors[graphBoxplots.length % graphFnColors.length]
+                            });
+                        }
+                    } else if (low.startsWith('barchart:')) {
+                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                        const parts = argStr.split(',').map(s => s.trim());
+                        const coords = [];
+                        let color = undefined;
+                        for (const p of parts) {
+                            if (p.startsWith('#')) color = p;
+                            else if (p.includes(':')) {
+                                const [x, y] = p.split(':').map(Number);
+                                if (!isNaN(x) && !isNaN(y)) coords.push({ x, y });
+                            }
+                        }
+                        if (coords.length > 0) graphBarcharts.push({ coords, color: color || graphFnColors[graphBarcharts.length % graphFnColors.length] });
+                    } else if (low.startsWith('piechart:')) {
+                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                        const parts = argStr.split(',').map(s => s.trim());
+                        const data = [];
+                        for (const p of parts) {
+                            const segments = p.split(':').map(s => s.trim());
+                            if (segments.length >= 2) {
+                                const value = parseFloat(segments[1]);
+                                if (!isNaN(value)) data.push({ label: segments[0], value, color: segments[2] && segments[2].startsWith('#') ? segments[2] : undefined });
+                            }
+                        }
+                        if (data.length > 0) graphPiecharts.push({ data });
                     }
                 });
 
-                if (graphFns.length > 0) {
+                if (graphFns.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0 || graphPoints.length > 0) {
                     return _cacheAndReturn(
                         <div key={rawBlock} className="w-full math-figure-container my-6">
                             <div className="animate-in zoom-in duration-700">
@@ -398,6 +440,9 @@ export function useFigureRenderer() {
                                     domain={graphDomain}
                                     title={graphTitle || undefined}
                                     asymptotes={graphAsym}
+                                    boxplots={graphBoxplots}
+                                    barcharts={graphBarcharts}
+                                    piecharts={graphPiecharts}
                                 />
                             </div>
                         </div>
@@ -476,6 +521,20 @@ export function useFigureRenderer() {
                             const m = c.match(/cercle\s*\(\s*([A-Z][A-Z0-9]?)\s*,\s*([\d.]+)\s*\)/);
                             if (m) objects.push({ kind: 'circle', id: `circ${i}`, center: m[1], radiusValue: parseFloat(m[2]) });
                         });
+                    } else if (low.startsWith('angle_droit:') || low.startsWith('right_angle:')) {
+                        const parts = sec.substring(sec.indexOf(':') + 1).split(',').map(p => p.trim());
+                        if (parts.length >= 3) {
+                            const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase());
+                            objects.push({ kind: 'angle', id: `ang${objects.length}`, vertex, from: p1, to: p2, label: '90°', value: 90, square: true, color: '#34d399' } as any);
+                        }
+                    } else if (low.startsWith('angle:')) {
+                        const parts = sec.substring(sec.indexOf(':') + 1).split(',').map(p => p.trim());
+                        if (parts.length >= 3) {
+                            const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase());
+                            const label = parts[3] || `\\widehat{${p1}${vertex}${p2}}`;
+                            const color = parts[4] || '#fbbf24';
+                            objects.push({ kind: 'angle', id: `ang${objects.length}`, vertex, from: p1, to: p2, label, color } as any);
+                        }
                     } else if (low.startsWith('compute:')) {
                         // Calcule le périmètre ou une distance
                         const expr = sec.substring(sec.indexOf(':') + 1).trim();
@@ -895,11 +954,22 @@ export function useFigureRenderer() {
             }
 
             // --- CAS 2 : GRAPHIQUE OU GÉOMÉTRIE ---
-            const title = (sections[0]?.includes(',') || sections[0]?.includes(':') || sections[0]?.includes('domain:')) ? "Analyse Graphique" : sections[0];
+            let title = "Analyse graphique";
+            if (sections[0] && !sections[0].includes(',') && !sections[0].includes(':') && !sections[0].includes('domain:')) {
+                const rawT = sections[0].trim();
+                // Si la première ligne n'est ni "graph" ni "figure", on l'adopte comme titre
+                if (rawT.toLowerCase() !== 'graph' && rawT.toLowerCase() !== 'figure') {
+                    title = rawT;
+                }
+            }
+            
             const points: GraphPoint[] = [];
             const entities: any[] = [];
             const graphFunctions: { fn: string; color: string; domain?: [number, number] }[] = [];
             let graphAsymptotes: number[] = [];
+            const graphBoxplots: { min: number, q1: number, median: number, q3: number, max: number, label: string, color?: string }[] = [];
+            const graphBarcharts: { coords: { x: number, y: number }[], color?: string }[] = [];
+            const graphPiecharts: { data: { label: string, value: number, color?: string }[] }[] = [];
             let domain = { x: [-5, 5] as [number, number], y: [-4, 4] as [number, number] };
             let hideAxesValue = false;
 
@@ -910,6 +980,9 @@ export function useFigureRenderer() {
             sections.forEach(sec => {
                 const low = sec.toLowerCase().trim();
                 if (low === 'pure' || low === 'hideaxes' || low === 'geometry') hideAxesValue = true;
+                else if (low.startsWith('title:')) {
+                    title = sec.substring(sec.indexOf(':') + 1).trim();
+                }
                 else if (low.startsWith('domain:')) {
                     const d = low.replace('domain:', '').trim().split(',').map(Number);
                     if (d.length >= 4) domain = { x: [d[0], d[1]], y: [d[2], d[3]] };
@@ -940,6 +1013,54 @@ export function useFigureRenderer() {
                 } else if (low.startsWith('point:')) {
                     const p = sec.split(':')[1].split(',');
                     if (p.length >= 3) entities.push({ type: 'point', name: p[0].trim(), x1: parseFloat(p[1]), y1: parseFloat(p[2]) });
+                } else if (low.startsWith('boxplot:')) {
+                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                    const parts = argStr.split(',').map(s => s.trim());
+                    if (parts.length >= 5) {
+                        graphBoxplots.push({
+                            min: parseFloat(parts[0]),
+                            q1: parseFloat(parts[1]),
+                            median: parseFloat(parts[2]),
+                            q3: parseFloat(parts[3]),
+                            max: parseFloat(parts[4]),
+                            label: parts[5] || 'Série',
+                            color: parts[6] || fnColors[graphBoxplots.length % fnColors.length]
+                        });
+                    }
+                } else if (low.startsWith('barchart:')) {
+                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                    const parts = argStr.split(',').map(s => s.trim());
+                    const coords = [];
+                    let color = undefined;
+                    for (const p of parts) {
+                        if (p.startsWith('#')) {
+                            color = p;
+                        } else if (p.includes(':')) {
+                            const [x, y] = p.split(':').map(Number);
+                            if (!isNaN(x) && !isNaN(y)) coords.push({ x, y });
+                        }
+                    }
+                    if (coords.length > 0) {
+                        graphBarcharts.push({ coords, color: color || fnColors[graphBarcharts.length % fnColors.length] });
+                    }
+                } else if (low.startsWith('piechart:')) {
+                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                    const parts = argStr.split(',').map(s => s.trim());
+                    const data = [];
+                    for (const p of parts) {
+                        const segments = p.split(':').map(s => s.trim());
+                        if (segments.length >= 2) {
+                            const label = segments[0];
+                            const value = parseFloat(segments[1]);
+                            const color = segments[2] && segments[2].startsWith('#') ? segments[2] : undefined;
+                            if (!isNaN(value)) {
+                                data.push({ label, value, color });
+                            }
+                        }
+                    }
+                    if (data.length > 0) {
+                        graphPiecharts.push({ data });
+                    }
                 }
             });
 
@@ -996,7 +1117,7 @@ export function useFigureRenderer() {
 
             // Ancienne règle supprimée : if (entities.length > 0 && points.length === 0) hideAxesValue = true;
 
-            if (points.length > 0 || entities.length > 0 || graphFunctions.length > 0) {
+            if (points.length > 0 || entities.length > 0 || graphFunctions.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0) {
                 return _cacheAndReturn(
                     <div key={rawBlock} className="w-full math-figure-container my-6">
                         <div className="animate-in zoom-in duration-700">
@@ -1008,6 +1129,9 @@ export function useFigureRenderer() {
                                 title={title}
                                 hideAxes={hideAxesValue}
                                 asymptotes={graphAsymptotes}
+                                boxplots={graphBoxplots}
+                                barcharts={graphBarcharts}
+                                piecharts={graphPiecharts}
                             />
                         </div>
                     </div>

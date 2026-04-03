@@ -418,7 +418,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         const ux = dx / len, uy = dy / len;
 
         // Pointe de flèche sur le segment (triangle)
-        const arrowLen = 14, arrowW = 6;
+        const arrowLen = 12, arrowW = 5;
         const tipX = x2, tipY = y2;
         const baseX = x2 - ux * arrowLen, baseY = y2 - uy * arrowLen;
         const leftX = baseX - uy * arrowW, leftY = baseY + ux * arrowW;
@@ -435,15 +435,17 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         labelText = labelText.replace(/^(?:vecteur|vector)\s+/i, '');
         const textWidth = labelText.length * 8; // estimation largeur texte
 
-
-        // Décalage perpendiculaire au vecteur (toujours au-dessus)
-        const perpX = -uy; // perpendiculaire normalisée
-        const perpY = ux;
-        const offset = 18; // pixels au-dessus du segment
-        // S'assurer que le label est toujours "au-dessus" visuellement
-        const sign = perpY < 0 ? 1 : -1;
-        const lx = mx + perpX * offset * sign;
-        const ly = my + perpY * offset * sign;
+        // Décalage perpendiculaire au vecteur (garantit que le texte est dans le demi-plan supérieur visuel)
+        let nx = -uy;
+        let ny = ux;
+        // L'axe Y du SVG vers le bas : on veut que la normale pointe vers le "haut" (ny < 0)
+        if (ny > 0 || (Math.abs(ny) < 1e-5 && nx < 0)) {
+            nx = -nx;
+            ny = -ny;
+        }
+        const offset = 20; // pixels au-dessus du segment
+        const lx = mx + nx * offset;
+        const ly = my + ny * offset;
 
         return (
             <g key={`vec${i}`}>

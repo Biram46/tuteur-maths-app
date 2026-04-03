@@ -655,6 +655,29 @@ function extractParenProductFactors(expr: string, domain: [number, number]): Fac
 }
 
 /**
+ * Vérifie si une expression est une somme au niveau 0 (top-level).
+ * Ignore les signes unaires au début de l'expression ou après un opérateur.
+ */
+function hasTopLevelAddSub(expr: string): boolean {
+    let depth = 0;
+    const s = expr.replace(/\s+/g, '');
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+        else if (depth === 0 && (ch === '+' || ch === '-')) {
+            if (i > 0) {
+                const prev = s[i - 1];
+                if (prev !== '*' && prev !== '/' && prev !== '^' && prev !== '(' && prev !== 'e' && prev !== 'E') {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/**
  * Décompose une expression en facteurs (séparés par *)
  * et les classifie (affine, trinôme, sqrt, exp, ln, générique).
  *
@@ -670,7 +693,10 @@ function parseProductFactors(expr: string, role: 'numerator' | 'denominator', do
     const hasMultiplication = remaining.includes('*');
     const hasFunctionWrapper = /^(sqrt|ln|log|exp)\(/.test(remaining) || /^e\^/.test(remaining);
     const hasParenProduct = /\)\s*\(/.test(remaining);
-    if (!hasMultiplication && !hasFunctionWrapper && !hasParenProduct) {
+    const isSum = hasTopLevelAddSub(remaining);
+
+    // Si c'est techniquement une somme (ex: x^2 - 4*x + 4), on ne le sépare pas
+    if (isSum || (!hasMultiplication && !hasFunctionWrapper && !hasParenProduct)) {
         factors.push(classifyFactor(remaining, remaining, role, domain));
         return factors;
     }

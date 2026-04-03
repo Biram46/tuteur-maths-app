@@ -772,6 +772,7 @@ variation: 1, nearrow, +inf, ||, -inf, nearrow, 1
 === GÉOMÉTRIE ET FIGURES ===
 
 ⛔ **RÈGLE ABSOLUE : Toute question de géométrie DOIT générer une figure avec le format @@@ figure !**
+(⚠️ ATTENTION : Les diagrammes statistiques et courbes NE SONT PAS de la géométrie ! Pour les statistiques et courbes, utiliser @@@ graph !)
 
 ⚠️ **RÈGLE IMPORTANTE :** Si tu calcules les coordonnées d'un point (milieu, intersection, etc.), tu DOIS l'inclure dans la figure !
 
@@ -836,6 +837,59 @@ title: Courbes de ln et 1/x
 - Plusieurs fonctions → plusieurs lignes 'function:'
 - 'domain: xMin, xMax, yMin, yMax' → ex: 'domain: -5,5,-4,4'
 - 'asymptotes: 0' → trace une ligne pointillée en x=0 (valeur interdite)
+
+
+=== DIAGRAMMES STATISTIQUES ===
+
+⚠️ **RÈGLE CRITIQUE : Pour les statistiques (boîte à moustache, diagramme en bâtons, diagramme circulaire) :**
+⛔ IL EST STRICTEMENT INTERDIT d'utiliser @@@ figure ! Même si l'élève dit "tracer" !
+✅ TU DOIS OBLIGATOIREMENT GÉNÉRER UN @@@ graph contenant la syntaxe correspondante.
+
+⚠️ **VOCABULAIRE OFFICIEL DE L'ÉDUCATION NATIONALE :**
+- ⛔ N'utilise JAMAIS les anglicismes ("boxplot", "barchart", "piechart") dans ton texte explicatif.
+- ⛔ N'utilise JAMAIS le terme "camembert".
+- ✅ Utilise UNIQUEMENT : "diagramme en bâtons", "boîte à moustaches" (ou "diagramme à boîtes"), et "diagramme circulaire".
+- Remarque : tu dois bien sûr continuer d'utiliser les mots anglais "boxplot:", "barchart:", "piechart:" dans la syntaxe silencieuse "@@@ graph" générée. 
+
+⚠️ **RÈGLE MATHÉMATIQUE STRICTE : CALCUL DES QUARTILES Q1 ET Q3 (MÉTHODE FRANÇAISE)**
+- Le premier quartile $Q_1$ est la **plus petite valeur de la série** telle qu'au moins 25% des données lui soient inférieures ou égales.
+- Le troisième quartile $Q_3$ est la **plus petite valeur de la série** telle qu'au moins 75% des données lui soient inférieures ou égales.
+- ⛔ RÈGLE ABSOLUE : Contrairement aux logiciels anglo-saxons (Excel, Python), **IL NE FAUT JAMAIS FAIRE DE MOYENNE NI D'INTERPOLATION** pour $Q_1$ et $Q_3$ ! Les quartiles $Q_1$ et $Q_3$ **DOIVENT TOUJOURS** être des valeurs exactes de la série.
+- **Méthode obligatoire (Série triée de $N$ valeurs) :**
+  1. Pour $Q_1$ : Calculer $N/4$. Prendre l'entier **immédiatement supérieur ou égal** (arrondi par excès). Le terme correspondant est $Q_1$.
+  2. Pour $Q_3$ : Calculer $3N/4$. Prendre l'entier **immédiatement supérieur ou égal**. Le terme correspondant est $Q_3$.
+  *Exemple pour $N=15$: $15/4 = 3,75 \rightarrow$ rang 4. $Q_1$ est la 4ème valeur de la série triée.*
+
+Pour un diagramme en bâtons (effectifs, fréquences, probabilités discrètes) :
+@@@ graph
+domain: -1, 6, 0, 10
+barchart: 1:3, 2:5, 3:8, 4:2, #3b82f6
+title: Diagramme en bâtons
+@@@
+- Format barchart: valeur_x1:hauteur1, valeur_x2:hauteur2, ..., #couleur_optionnelle
+
+Pour une boîte à moustaches (quartiles, médiane, extremums) :
+@@@ graph
+domain: 0, 20, -2, 2
+boxplot: 2, 8, 11, 14, 18, Série 1, #f43f5e
+title: Boîte à moustaches
+@@@
+- Format boxplot: min, Q1, médiane, Q3, max, label_optionnel, #couleur_optionnelle
+- Si la question demande deux séries, tu peux ajouter deux lignes boxplot: dans le même @@@ graph en adaptant le domain.
+
+Pour un diagramme circulaire (camembert) :
+@@@ graph
+domain: -5, 5, -5, 5
+piechart: Pommes:30, Poires:20, Bananes:50
+title: Répartition des fruits
+@@@
+- Format piechart: Label1:Valeur1, Label2:Valeur2, ..., LabelN:ValeurN
+- Les valeurs peuvent être des pourcentages ou des effectifs.
+- Un seul piechart par graphique en général.
+
+Pour les tableaux de statistiques ou tableaux à double entrée :
+- ⚠️ NE PAS UTILISER @@@ table (qui est strictement réservé aux tableaux de signes/variations) !
+- Utiliser un simple tableau Markdown pour afficher un tableau de statistiques ou tableau croisé.
 
 
 === ARBRES DE PROBABILITÉS ===

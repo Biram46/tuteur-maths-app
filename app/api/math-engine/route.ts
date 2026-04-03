@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
                     }
                     if (!derivativeExprForSympy) {
                         // Fallback mathjs si l'API Python n'est pas dispo
-                        const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                        const { computeDerivative } = await import('@/lib/math-engine/expression-parser');
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
                             console.log(`[MathEngine] Variation: MathJS f'(x) = ${derivativeExprForSympy}`);
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
                         }
                     }
                     if (!derivativeExprForSympy) {
-                        const { computeDerivative } = require('@/lib/math-engine/expression-parser');
+                        const { computeDerivative } = await import('@/lib/math-engine/expression-parser');
                         derivativeExprForSympy = computeDerivative(expression);
                         if (derivativeExprForSympy) {
                             const sympyDerivSign = await callSignTableSympy(derivativeExprForSympy!, niveau, expression);

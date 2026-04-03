@@ -54,6 +54,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
             /signe\s+de\s+[fg]/i,
             /étude\s+(?:du|des)\s+signe/i,
             /analyse\s+(?:du|des)\s+signe/i,
+            /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe/i
         ],
     },
     {
@@ -65,6 +66,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
             /dresser\s+un\s+tableau\s+de\s+vari/i,
             /vari(?:ation|ations)\s+de\s+[fg]/i,
             /tableau\s+des\s+vari/i,
+            /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i
         ],
     },
     {
@@ -109,6 +111,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
             /nombre\s+dérivé/i,
             /[fg][']\s*\([^)]*\)/i,
             /dériver\s+[fg]/i,
+            /calculer?\s+(?:la\s+)?d[eé]riv[eé]e\s+(?:de\s+)?[fghk]\s*\(|d[eé]terminer\s+[fghk]'\s*\(|^[fghk]'\s*\([^)]*\)\s*$|^d[eé]riv[eé]e\s+de\s+[fghk]\s*\(/i
         ],
     },
     {
@@ -124,7 +127,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
     {
         intent: 'limits',
         patterns: [
-            /limit(?:e|es)\s+en/i,
+            /limit(?:e|es)/i,
             /lim\s*[({]/i,
             /lim\s+[fg]/i,
             /comportement\s+(?:en|à)\s+l'infini/i,
@@ -159,7 +162,15 @@ export function extractExpression(text: string): string | null {
         .replace(/⁴/g, '^4')
         .replace(/−/g, '-')
         .replace(/×/g, '*')
-        .replace(/\u00d7/g, '*');
+        .replace(/\u00d7/g, '*')
+        .replace(/\\ln\b/gi, 'ln')
+        .replace(/\\exp\b/gi, 'exp')
+        .replace(/\\cos\b/gi, 'cos')
+        .replace(/\\sin\b/gi, 'sin')
+        .replace(/\\tan\b/gi, 'tan')
+        .replace(/\\frac/gi, '')
+        .replace(/\\left/gi, '')
+        .replace(/\\right/gi, '');
 
     // Pattern 1: f(x) = <expression>
     const funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r?!]+)/i;
@@ -171,8 +182,9 @@ export function extractExpression(text: string): string | null {
     m = normalized.match(keywordPattern);
     if (m) {
         let candidate = m[1].trim();
-        // Remove leading words like "l'expression", "la fonction"
-        candidate = candidate.replace(/^(?:l['’]expression|la fonction|l['’]équation|les?|des?|l['’]|la|le)\s*/i, '').trim();
+        // Remove leading words like "l'expression", "la fonction", "suivante :"
+        candidate = candidate.replace(/^(?:l['’]expression|la fonction|l['’]équation|les?|des?|l['’]|la|le|du|de la)\s*/gi, '').trim();
+        candidate = candidate.replace(/^(?:suivante|ci-dessous)?\s*:?\s*/gi, '').trim();
         // Remove trailing spaces or words
         candidate = candidate.replace(/[a-zA-ZÀ-ÿ]{2,}\s*$/g, '').trim();
         if (candidate.includes('x') && candidate.length > 2) return candidate;
@@ -256,9 +268,10 @@ export function analyzeQuestion(
 
     for (const sub of subquestions) {
         let detected = false;
+        const foundIntents = new Set<MathIntent>();
 
         for (const { intent, patterns } of INTENT_PATTERNS) {
-            if (patterns.some(p => p.test(sub.text))) {
+            if (!foundIntents.has(intent) && patterns.some(p => p.test(sub.text))) {
                 // Chercher l'expression dans la sous-question d'abord, puis global
                 const localExpr = extractExpression(sub.text);
                 const expr = localExpr ?? globalExpression;
@@ -277,7 +290,7 @@ export function analyzeQuestion(
                 });
 
                 detected = true;
-                break; // Une seule intention par sous-question
+                foundIntents.add(intent);
             }
         }
 

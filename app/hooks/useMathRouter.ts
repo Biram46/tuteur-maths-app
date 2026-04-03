@@ -14,6 +14,9 @@ import {
     stripDdx,
     prettifyExpr,
 } from '@/lib/math-router/math-text-utils';
+import { streamPerplexityResponse } from '@/lib/math-router/stream-handler';
+import { analyzeQuestion } from '@/lib/math-router/intent-detector';
+
 import {
     buildSignTableInstructions,
     buildProbabilitySystemPrompt,
@@ -96,138 +99,16 @@ export function useMathRouter({
         // On pré-ajoute le message de l'assistant (vide pour le stream)
         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-        try {
-            const response = await fetch('/api/perplexity', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: msgs, context: baseContext }),
-            });
-
-            if (!response.ok) {
-                let errMsg = `Erreur API (HTTP ${response.status})`;
-                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
-                console.error('[useMathRouter] /api/perplexity error:', errMsg);
-                throw new Error(errMsg);
-            }
-
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error('Reader non disponible');
-
-            const decoder = new TextDecoder();
-            let fullText = "";
-            let currentSentence = "";
-            let inMathBlock = false;
-            let lastUpdate = Date.now();
-            let rafPending = false;
-            let lineBuffer = ""; // Buffer pour les lignes incomplètes entre chunks
-
-            // Référence stable pour accéder à fullText dans le RAF
-            const fullTextRef = { current: "" };
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const rawChunk = decoder.decode(value, { stream: true });
-
-                // Accumuler le chunk dans le buffer et séparer les lignes complètes
-                lineBuffer += rawChunk;
-                const lines = lineBuffer.split('\n');
-
-                // Le dernier élément peut être incomplet, le garder pour le prochain chunk
-                lineBuffer = lines.pop() || "";
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.substring(6);
-                        if (jsonStr === '[DONE]') break;
-                        try {
-                            const json = JSON.parse(jsonStr);
-                            const content = json.choices[0]?.delta?.content || "";
-                            if (content) {
-                                fullText += content;
-                                fullTextRef.current = fullText;
-                                currentSentence += content;
-
-                                // Mise à jour UI : utiliser le texte brut pendant le streaming
-                                // Le fixer complet sera appliqué à la fin (ligne ~214)
-                                // Cela évite les problèmes d'encapsulation de fractions incomplètes
-                                setMessages(prev => {
-                                    const updated = [...prev];
-                                    updated[updated.length - 1] = {
-                                        role: 'assistant',
-                                        content: fullText  // Texte brut pendant le streaming
-                                    };
-                                    return updated;
-                                });
-
-                                // Détection de fin de phrase pour le TTS
-                                // On évite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
-                                if (content.includes('@@@')) inMathBlock = !inMathBlock;
-                                if (content.includes('$$')) inMathBlock = !inMathBlock;
-
-                                if (!inMathBlock && isVoiceEnabled) {
-                                    const sentenceEndings = /[.!?](\s|$)/;
-                                    if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
-                                        // On nettoie un peu la phrase avant de l'ajouter à la queue
-                                        const sentenceToSpeak = currentSentence.trim();
-                                        speechQueue.current.push(sentenceToSpeak);
-                                        currentSentence = "";
-                                        processSpeechQueue();
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            // Erreur de parsing JSON - log pour debug
-                            console.warn('[Stream] JSON parse error on line:', line.slice(0, 100));
-                        }
-                    }
-                }
-            }
-
-            // Traiter le buffer résiduel si non vide
-            if (lineBuffer.startsWith('data: ')) {
-                const jsonStr = lineBuffer.substring(6);
-                if (jsonStr !== '[DONE]') {
-                    try {
-                        const json = JSON.parse(jsonStr);
-                        const content = json.choices[0]?.delta?.content || "";
-                        if (content) {
-                            fullText += content;
-                            fullTextRef.current = fullText;
-                        }
-                    } catch (e) {
-                        console.warn('[Stream] Residual buffer parse error');
-                    }
-                }
-            }
-
-            // Fin du stream : application du fixFinal et lecture du reste
-            // patchMarkdownTables : si l'IA a généré un tableau Markdown au lieu de @@@,
-            // on le convertit automatiquement (garde-fou non-déterminisme)
-            const finalFixed = patchMarkdownTables(fixLatexContent(fullText).content);
-            setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
-                return updated;
-            });
-
-            if (currentSentence.trim().length > 0 && isVoiceEnabled) {
-                speechQueue.current.push(currentSentence.trim());
-                processSpeechQueue();
-            }
-
-        } catch (error) {
-            console.error('Erreur Assistant:', error);
-            setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: "Désolé, une erreur est survenue lors de la communication." };
-                return updated;
-            });
-            setIsTalking(false);
-        } finally {
-            setLoading(false);
-        }
+        await streamPerplexityResponse({
+            messages: msgs,
+            baseContext,
+            setMessages,
+            setLoading,
+            setIsTalking,
+            isVoiceEnabled,
+            speechQueue,
+            processSpeechQueue
+        });
     };
 
 
@@ -241,8 +122,12 @@ export function useMathRouter({
         const inputCleaned = deLatexInput(inputText);
         // Utiliser inputCleaned pour les détections et extractions, inputText pour l'affichage/IA
         const inputLower = inputCleaned.toLowerCase();
-        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|étudier?\s*(le\s*)?signe|in[eé]quation/i.test(inputLower);
-        const wantsVariationTable = /variation|tableau\s*de\s*variation|étudier?\s*(les?\s*)?variation/i.test(inputLower);
+        // ── Phase B.1: Délégation des 'Basic Intents' au détecteur ──
+        const analysis = analyzeQuestion(inputCleaned, resolveNiveau(inputText));
+        
+        // On mappe les résultats de l'analyseur propre vers les flags locaux
+        const wantsSignTable = analysis.intents.some(i => i.intent === 'sign_table' || i.intent === 'solve_inequality');
+        const wantsVariationTable = analysis.intents.some(i => i.intent === 'variation_table');
         // Détection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
         const isMultiExpr = /(?:^|[\n;.!?\s])\s*\d+\s*[).]\s+[\s\S]+?(?:[\n;.!?\s])\s*\d+\s*[).]\s+/.test(inputText);
 
@@ -624,63 +509,6 @@ RÈGLES ABSOLUES :
                     const header = `📝 **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
                     setMessages(prev => [...prev, { role: 'assistant', content: header + '⏳ *Résolution en cours...*' }]);
 
-                    try {
-                        const response = await fetch('/api/perplexity', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
-                        });
-                        if (!response.ok) {
-                            let errMsg = `Erreur API (HTTP ${response.status})`;
-                            try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
-                            console.error('[ExerciceMode] /api/perplexity error:', errMsg);
-                            throw new Error(errMsg);
-                        }
-                        const reader = response.body?.getReader();
-                        if (!reader) throw new Error('Reader non disponible');
-                        const decoder = new TextDecoder();
-                        let aiText = '';
-                        let lastUpdate = 0;
-                        // stripDdx est importé de math-text-utils.ts
-                        let lineBuffer = ''; // Buffer pour les lignes incomplètes
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            lineBuffer += decoder.decode(value, { stream: true });
-                            const lines = lineBuffer.split('\n');
-                            lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
-                            for (const ln of lines) {
-                                if (!ln.startsWith('data: ')) continue;
-                                const js = ln.substring(6);
-                                if (js === '[DONE]') break;
-                                try {
-                                    const c = JSON.parse(js).choices?.[0]?.delta?.content || '';
-                                    if (c) {
-                                        aiText += c;
-                                        // Throttle : max 1 update / 400ms pour éviter 'Maximum update depth exceeded'
-                                        const now = Date.now();
-                                        if (now - lastUpdate > 400) {
-                                            lastUpdate = now;
-                                            let disp = aiText
-                                                .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
-                                                .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
-                                            const fixedDisp = patchMarkdownTables(fixLatexContent(header + disp).content);
-                                            requestAnimationFrame(() => {
-                                                setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
-                                            });
-                                        }
-                                    }
-                                } catch { }
-                            }
-                        }
-                        let finalText = aiText
-                            .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
-                            .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
-                        if (tableOfValues && !finalText.includes('| x | f(x) |')) {
-                            finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
-                        }
-                        // Toujours ajouter le graphe pour un exercice sur une fonction
-                        // (même si pas de question 'graph' explicite dans l'OCR)
                         try {
                             const prettyName = prettifyExprForDisplay(exprClean);
                             const gs = {
@@ -695,16 +523,29 @@ RÈGLES ABSOLUES :
                             } catch { /* ignore */ }
                             console.log(`[ExerciceMode] 📊 graphState stocké pour ${exprClean}`);
                         } catch { /* ignore */ }
-                        finalText += '\n\n---\n\n📊 Clique sur le bouton ci-dessous pour voir la courbe.';
-                        finalText = stripDdx(finalText);
-                        const finalContent = patchMarkdownTables(fixLatexContent(header + finalText).content);
-                        setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: finalContent }; return u; });
-                    } catch (error) {
-                        console.error('[ExerciceMode] Erreur streaming:', error);
-                    } finally {
-                        setLoading(false);
-                        setIsTalking(false);
-                    }
+
+                        await streamPerplexityResponse({
+                            messages: enrichedMessages,
+                            baseContext,
+                            setMessages,
+                            setLoading,
+                            setIsTalking,
+                            isVoiceEnabled,
+                            speechQueue,
+                            processSpeechQueue,
+                            prependText: header,
+                            applyStripDdx: true,
+                            postProcess: (text) => {
+                                let proc = text
+                                    .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
+                                    .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
+                                if (tableOfValues && !proc.includes('| x | f(x) |')) {
+                                    proc += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
+                                }
+                                proc += '\n\n---\n\n📊 Clique sur le bouton ci-dessous pour voir la courbe.';
+                                return proc;
+                            }
+                        });
                     return;
                 }
             } catch (err) {
@@ -718,7 +559,8 @@ RÈGLES ABSOLUES :
         // ═══════════════════════════════════════════════════════════
         const wantsStudyFunction = /(?:étudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
             || /(?:étude\s+(?:complète|de\s+la\s+fonction))/i.test(inputLower)
-            || (/(?:sign\w*|étud\w*|etud\w*).+dérivée/i.test(inputLower) && /variation/i.test(inputLower));
+            || (/(?:sign\w*|étud\w*|etud\w*).+(?:dérivée|fonction)/i.test(inputLower) && /variation/i.test(inputLower))
+            || (/signe/i.test(inputLower) && /variation/i.test(inputLower));
 
         if (wantsStudyFunction && !isMultiExpr) {
             try {
@@ -765,9 +607,7 @@ RÈGLES ABSOLUES :
         // ═══════════════════════════════════════════════════════════
         // HANDLER "CALCULER UNE DÉRIVÉE EXACTE" (Module Dérivation)
         // ═══════════════════════════════════════════════════════════
-        const wantsDerivative = /(?:calculer?|donne-?moi|calcule|déterminer?|determiner?|quelle\s+est|trouve[rz]?)\s+(?:la\s+)?(?:dérivée?|derivée?)\s*(?:de|du|d'un|d'une|des)?\s*(?:[fghk]|cette|l'expression|la\s+fonction|trin[ôo]me|polyn[ôo]me|quotient|produit|fraction)/i.test(inputLower)
-            || /(?:c'est\s+quoi\s+la\s+dérivée|quelle\s+est\s+la\s+dérivée)/i.test(inputLower)
-            || /^[fghk]'\s*\(\s*x\s*\)/i.test(inputLower);
+        const wantsDerivative = analysis.intents.some(i => i.intent === 'derivative');
 
         // Bloquer si c'est une étude complète ou un tableau (les autres handlers s'en chargent)
         if (wantsDerivative && !wantsStudyFunction && !wantsVariationTable && !wantsSignTable && !isMultiExpr) {
@@ -802,58 +642,17 @@ RÈGLES ABSOLUES :
                             enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS]\n${engineData.aiContext}`;
                         }
 
-                        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-                        setLoading(true);
-                        setIsTalking(true);
-                        const response = await fetch('/api/perplexity', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+                        await streamPerplexityResponse({
+                            messages: enrichedMessages,
+                            baseContext,
+                            setMessages,
+                            setLoading,
+                            setIsTalking,
+                            isVoiceEnabled,
+                            speechQueue,
+                            processSpeechQueue,
+                            prependText: ''
                         });
-                        
-                        if (!response.ok) throw new Error(`Erreur API deriv (HTTP ${response.status})`);
-                        const reader = response.body?.getReader();
-                        if (!reader) throw new Error('Reader non disponible');
-                        const decoder = new TextDecoder();
-                        let aiText = '';
-                        let lastUpdate = 0;
-                        let lineBuffer = '';
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            lineBuffer += decoder.decode(value, { stream: true });
-                            const lines = lineBuffer.split('\n');
-                            lineBuffer = lines.pop() || '';
-                            for (const line of lines) {
-                                if (!line.startsWith('data: ')) continue;
-                                const jsonStr = line.substring(6);
-                                if (jsonStr === '[DONE]') break;
-                                try {
-                                    const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
-                                    if (c) {
-                                        aiText += c;
-                                        const now = Date.now();
-                                        if (now - lastUpdate > 250) {
-                                            lastUpdate = now;
-                                            const fixedClean = fixLatexContent(aiText).content;
-                                            setMessages(prev => {
-                                                const u = [...prev];
-                                                u[u.length - 1] = { role: 'assistant', content: fixedClean };
-                                                return u;
-                                            });
-                                        }
-                                    }
-                                } catch { }
-                            }
-                        }
-                        const finalFixed = fixLatexContent(aiText).content;
-                        setMessages(prev => {
-                            const u = [...prev];
-                            u[u.length - 1] = { role: 'assistant', content: finalFixed };
-                            return u;
-                        });
-                        setLoading(false);
-                        setIsTalking(false);
                         return;
                     } else if (!engineData.success) {
                         console.warn('[MathEngine] Module dérivation: API a retourné success=false:', engineData.error);
@@ -980,72 +779,25 @@ RÈGLES ABSOLUES :
                             enrichedMessages[enrichedMessages.length - 1].content += '\n\n' + buildSignTableInstructions(engineData, expr, tableBlock, inputText);
                         }
                         const tablePrefix = tableBlock + '\n\n';
-                        // AJOUTER un nouveau message assistant (pas remplacer !)
-                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
-
+                        
                         setLoading(true);
                         setIsTalking(true);
                         try {
                             console.log('[DEBUG PROMPT IA COMPLET]:', JSON.stringify(enrichedMessages, null, 2));
-                            const response = await fetch('/api/perplexity', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
-                            });
-                            if (!response.ok) {
-                                let errMsg = `Erreur API sign_table (HTTP ${response.status})`;
-                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
-                                console.error('[SignTable] /api/perplexity error:', errMsg);
-                                throw new Error(errMsg);
-                            }
-                            const reader = response.body?.getReader();
-                            if (!reader) throw new Error('Reader non disponible');
-                            const decoder = new TextDecoder();
-                            let aiText = '';
-                            let lastSignUpdate = 0;
-                            let lineBuffer = ''; // Buffer pour les lignes incomplètes
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                lineBuffer += decoder.decode(value, { stream: true });
-                                const lines = lineBuffer.split('\n');
-                                lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
-                                for (const line of lines) {
-                                    if (!line.startsWith('data: ')) continue;
-                                    const jsonStr = line.substring(6);
-                                    if (jsonStr === '[DONE]') break;
-                                    try {
-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
-                                        if (c) {
-                                            aiText += c;
-                                            // Throttle : max 1 update / 250ms pour éviter 'Maximum update depth exceeded'
-                                            const now = Date.now();
-                                            if (now - lastSignUpdate > 250) {
-                                                lastSignUpdate = now;
-                                                const clean = aiText
-                                                    .replace(/@@@[\s\S]*?@@@/g, '')
-                                                    .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')
-                                                    .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');
-                                                const fixedClean = patchMarkdownTables(fixLatexContent(tablePrefix + clean).content);
-                                                setMessages(prev => {
-                                                    const u = [...prev];
-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
-                                                    return u;
-                                                });
-                                            }
-                                        }
-                                    } catch { }
-                                }
-                            }
-                            const cleanFinal = aiText
-                                .replace(/@@@[\s\S]*?@@@/g, '')
-                                .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')  // Supprimer tableaux LaTeX générés par l'IA
-                                .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');  // Supprimer tableaux markdown de signes
-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
-                            setMessages(prev => {
-                                const u = [...prev];
-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
-                                return u;
+                            await streamPerplexityResponse({
+                                messages: enrichedMessages,
+                                baseContext,
+                                setMessages,
+                                setLoading,
+                                setIsTalking,
+                                isVoiceEnabled,
+                                speechQueue,
+                                processSpeechQueue,
+                                prependText: tablePrefix,
+                                postProcess: (text) => text
+                                    .replace(/@@@[\s\S]*?@@@/g, '')
+                                    .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')
+                                    .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '')
                             });
                         } catch (error) {
                             console.error('Erreur streaming:', error);
@@ -1173,59 +925,17 @@ RÈGLES ABSOLUES :
                         setLoading(true);
                         setIsTalking(true);
                         try {
-                            const response = await fetch('/api/perplexity', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
-                            });
-                            if (!response.ok) {
-                                let errMsg = `Erreur API variation_table (HTTP ${response.status})`;
-                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
-                                console.error('[VarTable] /api/perplexity error:', errMsg);
-                                throw new Error(errMsg);
-                            }
-                            const reader = response.body?.getReader();
-                            if (!reader) throw new Error('Reader non disponible');
-                            const decoder = new TextDecoder();
-                            let aiText = '';
-                            let lastVarUpdate = 0;
-                            let lineBuffer = ''; // Buffer pour les lignes incomplètes
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                lineBuffer += decoder.decode(value, { stream: true });
-                                const lines = lineBuffer.split('\n');
-                                lineBuffer = lines.pop() || ''; // Garder la dernière ligne incomplète
-                                for (const line of lines) {
-                                    if (!line.startsWith('data: ')) continue;
-                                    const jsonStr = line.substring(6);
-                                    if (jsonStr === '[DONE]') break;
-                                    try {
-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
-                                        if (c) {
-                                            aiText += c;
-                                            // Throttle : max 1 update / 200ms pour éviter 'Maximum update depth exceeded'
-                                            const now = Date.now();
-                                            if (now - lastVarUpdate > 200) {
-                                                lastVarUpdate = now;
-                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
-                                                setMessages(prev => {
-                                                    const u = [...prev];
-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
-                                                    return u;
-                                                });
-                                            }
-                                        }
-                                    } catch { }
-                                }
-                            }
-                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
-                            setMessages(prev => {
-                                const u = [...prev];
-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
-                                return u;
+                            await streamPerplexityResponse({
+                                messages: enrichedMessages,
+                                baseContext,
+                                setMessages,
+                                setLoading,
+                                setIsTalking,
+                                isVoiceEnabled,
+                                speechQueue,
+                                processSpeechQueue,
+                                prependText: tablePrefix,
+                                postProcess: (text) => text.replace(/@@@[\s\S]*?@@@/g, '')
                             });
                         } catch (error) {
                             console.error('Erreur streaming:', error);
