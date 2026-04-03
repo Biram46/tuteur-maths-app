@@ -1,0 +1,54 @@
+{
+  "success": true,
+  "tableSpec": {
+    "xValues": [
+      "-3",
+      "-1",
+      "1",
+      "3"
+    ],
+    "rows": [
+      {
+        "label": "f'(x)",
+        "type": "sign",
+        "values": [
+          "+",
+          "0",
+          "-",
+          "0",
+          "+"
+        ]
+      },
+      {
+        "label": "f(x)",
+        "type": "variation",
+        "values": [
+          "-16",
+          "nearrow",
+          "4",
+          "searrow",
+          "0",
+          "nearrow",
+          "20"
+        ]
+      }
+    ],
+    "title": "Tableau de variations de f(x) = x^3 - 3*x + 2"
+  },
+  "aaaBlock": "@@@\ntable |\nx: -3, -1, 1, 3 |\nsign: f'(x) : +, 0, -, 0, + |\nvariation: f(x) : -16, nearrow, 4, searrow, 0, nearrow, 20 |\n@@@",
+  "derivativeExpr": "3 * x ^ 2 - 3",
+  "method": "Cas général : f'(x) = 3 * x ^ 2 - 3",
+  "extrema": [
+    {
+      "x": -1,
+      "y": 4,
+      "type": "max"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "type": "min"
+    }
+  ],
+  "aiContext": "Niveau : Terminale Spécialité Maths.\n⛔ INTERDICTIONS ABSOLUES :\n- NE GÉNÈRE AUCUN bloc @@@.\n- NE DESSINE AUCUN tableau de variations (ni en texte, ni en markdown, ni en ASCII, ni avec des barres |, ni avec des flèches ↗↘).\n- Le tableau est DÉJÀ affiché au-dessus par le moteur de calcul. Tu ne dois PAS le reproduire.\n- Fais UNIQUEMENT les explications pédagogiques des étapes (dérivée, signe, conclusion).\n- Ton rôle est d'expliquer la méthode, pas de refaire le tableau.\n- ⛔ INTERDICTION STRICTE d'utiliser la notation différentielle 'd/dx' ou '\\frac{d}{dx}'. Tu seras pénalisé si tu l'utilises.\nMéthode : étude du signe de la dérivée.\nf'(x) = 3 * x ^ 2 - 3.\nExplique : calcul de f'(x), résolution de f'(x)=0, signe de f'(x) sur chaque intervalle, variation de f.\nInclus l'étude des limites en ±∞.\nExtremums : maximum en x=-1, f(x)=4 ; minimum en x=1, f(x)=0."
+}

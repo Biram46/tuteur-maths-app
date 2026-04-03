@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "C:\Users\HP\Documents\projet\tuteur-maths-app\python-api\app.py", line 1290, in solve_equation
+    sol = sp.Rational(-bv2, av2)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Roaming\Python\Python311\site-packages\sympy\core\cache.py", line 72, in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Roaming\Python\Python311\site-packages\sympy\core\numbers.py", line 1356, in __new__
+    q = Rational(q)
+        ^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Roaming\Python\Python311\site-packages\sympy\core\cache.py", line 72, in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Roaming\Python\Python311\site-packages\sympy\core\numbers.py", line 1342, in __new__
+    raise TypeError('invalid input: %s' % p)
+TypeError: invalid input: zoo

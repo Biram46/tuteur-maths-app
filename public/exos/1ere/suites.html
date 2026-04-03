@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suites Numériques : Explorateur de Termes</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #a21caf;
+            --secondary: #06b6d4;
+            --bg: #020617;
+            --card: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #f1f5f9;
+            font-family: 'Exo 2', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(162, 28, 175, 0.2);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            letter-spacing: 0.2rem;
+        }
+
+        .suite-def {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border-left: 4px solid var(--primary);
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-cols: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+        }
+
+        input {
+            width: 100%;
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-family: 'Orbitron';
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            filter: brightness(1.2);
+            transform: scale(1.02);
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Explorateur de Suites</h1>
+
+        <div class="suite-def" id="suite-text">
+            u<sub>n</sub> = 3n + 5
+        </div>
+
+        <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1.5rem;">Calcule les premiers termes de cette suite
+            :</p>
+
+        <div class="input-grid">
+            <div>
+                <label>u<sub>0</sub></label>
+                <input type="number" id="u0-input">
+            </div>
+            <div>
+                <label>u<sub>1</sub></label>
+                <input type="number" id="u1-input">
+            </div>
+            <div>
+                <label>u<sub>2</sub></label>
+                <input type="number" id="u2-input">
+            </div>
+            <div>
+                <label>u<sub>10</sub></label>
+                <input type="number" id="u10-input">
+            </div>
+        </div>
+
+        <button id="verify-btn">Vérifier la Séquence</button>
+        <div id="feedback" class="result"></div>
+    </div>
+
+    <script>
+        let type = 'arithmetic'; // or 'geometric' or 'explicit'
+        let a, b;
+
+        function init() {
+            a = Math.floor(Math.random() * 5) + 2;
+            b = Math.floor(Math.random() * 10);
+            document.getElementById('suite-text').innerHTML = `u<sub>n</sub> = ${a}n + ${b}`;
+        }
+
+        document.getElementById('verify-btn').onclick = function () {
+            const u0 = parseInt(document.getElementById('u0-input').value);
+            const u1 = parseInt(document.getElementById('u1-input').value);
+            const u2 = parseInt(document.getElementById('u2-input').value);
+            const u10 = parseInt(document.getElementById('u10-input').value);
+
+            const f = document.getElementById('feedback');
+            f.style.display = 'block';
+
+            if (u0 === b && u1 === a + b && u2 === 2 * a + b && u10 === 10 * a + b) {
+                f.innerHTML = "✓ C'est parfait ! Tu maîtrises le calcul de termes.";
+                f.style.color = "#4ade80";
+                f.style.background = "rgba(34, 197, 94, 0.1)";
+
+                // Envoi du score au parent
+                window.parent.postMessage({
+                    type: 'QUIZ_RESULT',
+                    score: 20,
+                    total: 20,
+                    chapter: 'Suites Numériques'
+                }, '*');
+            } else {
+                f.innerHTML = "× Certains termes sont incorrects. Vérifie tes calculs.";
+                f.style.color = "#f87171";
+                f.style.background = "rgba(239, 68, 68, 0.1)";
+            }
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

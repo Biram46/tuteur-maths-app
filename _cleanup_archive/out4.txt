@@ -1,0 +1,16 @@
+
+--- e^x / x ---
+@@@
+table |
+x: -inf, 0, 1, +inf |
+sign: f'(x) : -, ||, -, 0, + |
+variation: f(x) : 0, searrow, -inf, ||, +inf, searrow, 2.72, nearrow, +inf |
+@@@
+
+--- ln(x) ---
+@@@
+table |
+x: ]0, +inf |
+sign: f'(x) : + |
+variation: f(x) : ?, nearrow, +inf |
+@@@

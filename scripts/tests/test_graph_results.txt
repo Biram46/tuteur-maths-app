@@ -1,0 +1,179 @@
+
+======================================================================
+TEST: Tableau de signes
+DATE: 2026-02-18T13:34:11.882Z
+======================================================================
+
+Niveau: Seconde
+Question: Peux-tu m'aider à dresser le tableau de signes de la fonction f(x) = (x-2)(x+3) ?
+
+Envoi de la requête à Perplexity (Modèle: sonar)...
+
+
+✅ RÉPONSE DU TUTEUR :
+
+Je vais t'aider à dresser le tableau de signes de f(x) = (x-2)(x+3)[6].
+
+## Étape 1 : Trouver les valeurs qui annulent chaque facteur
+
+Pour **(x-2)** : x - 2 = 0 ⟹ **x = 2**
+
+Pour **(x+3)** : x + 3 = 0 ⟹ **x = -3**
+
+## Étape 2 : Déterminer le signe de chaque facteur
+
+**Pour (x-2)** : le coefficient de x est positif (+1)
+- Avant x = 2 : négatif (-)
+- Après x = 2 : positif (+)
+
+**Pour (x+3)** : le coefficient de x est positif (+1)
+- Avant x = -3 : négatif (-)
+- Après x = -3 : positif (+)
+
+## Étape 3 : Dresser le tableau de signes
+
+```math-table
+x: -inf, -3, 2, +inf
+sign: (x+3) : -, 0, +, +
+sign: (x-2) : -, -, 0, +
+sign: f(x) : +, 0, -, 0, +
+```
+
+## Interprétation
+
+La fonction f(x) est :
+- **positive** sur ]-∞ ; -3[ et sur ]2 ; +∞[
+- **nulle** en x = -3 et x = 2
+- **négative** sur ]-3 ; 2[
+
+----------------------------------------------------------------------
+
+
+📚 SOURCES CITÉES : 10
+
+Liste des sources :
+1. ⚠️  [NON-OFFICIEL] http://mathematiques.daval.free.fr/IMG/pdf/tableaux_signes.pdf
+2. ⚠️  [NON-OFFICIEL] http://megamaths.free.fr/spip/IMG/pdf/tabsignes.pdf
+3. ⚠️  [NON-OFFICIEL] https://www.maths-et-tiques.fr/telech/Secondegre2GM.pdf
+4. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=zZ9SbX8mC2o
+5. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=PgwP3-AQkoA
+6. ⚠️  [NON-OFFICIEL] https://www.maths-cours.fr/methode/dresser-tableau-de-signes
+7. ⚠️  [NON-OFFICIEL] https://www.normalesup.org/~dconduche/Secondes/exercices/ExoTableauSignes.pdf
+8. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=50CByVTP4ig
+9. ⚠️  [NON-OFFICIEL] https://www.youtube.com/playlist?list=PL_ZtK1TB2InrCbvigAHqLocS8Qg1OCShZ
+10. ⚠️  [NON-OFFICIEL] https://www.educastream.com/fr/inequations-tableaux-signes-seconde
+
+======================================================================
+TEST: Tableau de variations
+DATE: 2026-02-18T13:34:20.025Z
+======================================================================
+
+Niveau: Première
+Question: Dresse le tableau de variations de f(x) = x² - 4x + 3 sur R.
+
+Envoi de la requête à Perplexity (Modèle: sonar)...
+
+
+✅ RÉPONSE DU TUTEUR :
+
+La fonction **f(x) = x² - 4x + 3** est une parabole ouvrant vers le haut (coefficient dominant positif). Pour dresser son tableau de variations sur ℝ, calculons la dérivée **f'(x) = 2x - 4**, nulle en **x = 2** (point critique, minimum local).[1]
+
+Factorisons **f'(x) = 2(x - 2)**. Le signe de f'(x) est positif sur ]-∞, 2[ (croissante) et négatif sur ]2, +∞[ (décroissante).[1]
+
+**f(2) = -1** (valeur au minimum).[1]
+
+```math-table
+x: -inf, 2, +inf
+var: f(x) : +inf/+, searrow, -1/-, nearrow, +inf/+
+```
+
+La fonction est **strictement croissante sur ]-∞, 2]** et **strictement décroissante sur [2, +∞[**.[1]
+
+----------------------------------------------------------------------
+
+
+📚 SOURCES CITÉES : 9
+
+Liste des sources :
+1. ⚠️  [NON-OFFICIEL] https://www.superprof.fr/blog/variations-de-fonction-representation/
+2. ⚠️  [NON-OFFICIEL] https://www.annales2maths.com/2nd-variations-des-fonctions-de-reference/
+3. ⚠️  [NON-OFFICIEL] https://hitt.uqam.ca/mat3225_fich/La_fonction_quadratique.pdf
+4. ⚠️  [NON-OFFICIEL] https://www.xm1math.net/premiere_commun_tech/prem_tech_chap4_cours.pdf
+5. ⚠️  [NON-OFFICIEL] https://www.maths-et-tiques.fr/telech/19FonctionVariationsM.pdf
+6. ⚠️  [NON-OFFICIEL] https://www.maxireussite.com/tableaux-de-signes-et-de-variations-arme-anti-erreur/
+7. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=kCLVk6aous0
+8. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=gyOfEbKAr1Y
+9. ⚠️  [NON-OFFICIEL] https://www.alloprof.qc.ca/fr/eleves/bv/mathematiques/la-fonction-polynomiale-de-degre-2-m1124
+
+======================================================================
+TEST: Graphique courbe lisse
+DATE: 2026-02-18T13:34:25.975Z
+======================================================================
+
+Niveau: Première
+Question: Trace le graphique de la fonction f(x) = -x² + 2x + 3 sur l'intervalle [-2, 4]. Montre-moi une belle courbe lisse.
+
+Envoi de la requête à Perplexity (Modèle: sonar)...
+
+
+✅ RÉPONSE DU TUTEUR :
+
+La fonction \( f(x) = -x^2 + 2x + 3 \) est une parabole concave vers le bas (car \( a = -1 < 0 \)), avec sommet au point \( (1 ; 4) \), ordonnée à l'origine \( f(0) = 3 \), et zéros aux points \( x = -1 \) et \( x = 3 \).[1][5][6]
+
+### Étude de la fonction
+**Coefficient dominant** : \( a = -1 < 0 \), donc \( \lim_{x \to \pm \infty} f(x) = -\infty \).
+
+**Sommet** : abscisse \( x_S = -\frac{b}{2a} = -\frac{2}{2(-1)} = 1 \), ordonnée \( f(1) = -1 + 2 + 3 = **4** \). Sommet : **S(1 ; 4)**.[1][5]
+
+**Discriminant** : \( \Delta = b^2 - 4ac = 4 - 4(-1)(3) = 16 > 0 \), deux zéros réels.
+Résolution \( -x^2 + 2x + 3 = 0 \) ⇔ \( x^2 - 2x - 3 = 0 \) ⇔ \( (x-3)(x+1) = 0 \) ⇒ zéros : **x = -1** et **x = 3**.[1][4]
+
+**Image de l'intervalle [-2 ; 4]** :  
+\( f(-2) = -4 - 4 + 3 = **-5** \)  
+\( f(4) = -16 + 8 + 3 = **-5** \)  
+Sur [-2 ; 4], maximum **4** au sommet, minimum aux extrémités **-5**.
+
+### Tableaux obligatoires (sur \(\mathbb{R}\))
+
+```math-table
+x: -inf, -1, 1, 3, +inf
+sign: (x+1) : -, 0, +, +, +
+sign: (x-3) : -, -, -, 0, +
+sign: f(x) : +, 0, -, 0, -
+```
+
+```math-table
+x: -inf, -1, 1, 3, +inf
+var: f(x) : -inf/-, nearrow, 4/+, searrow, -inf/-
+```
+
+### Tracé du graphique sur [-2 ; 4]
+La courbe est une **parabole lisse symétrique** autour de l'axe \( x = 1 \), passant par :
+- A(-2 ; -5)
+- Z1(-1 ; 0)
+- S(1 ; 4) ← **sommet maximum**
+- Z2(3 ; 0)
+- B(4 ; -5)
+
+**Esquisse textuelle (courbe lisse)** :  
+Commence à (-2 ; -5), monte doucement jusqu'à (-1 ; 0), continue à **monter raide** jusqu'au sommet **S(1 ; 4)** (point le plus haut, arrondi parfait), puis **descend symétriquement** en passant par (3 ; 0) jusqu'à (4 ; -5). La courbe est parfaitement symétrique, très lisse comme un "U" inversé.[1][3][7]
+
+Points supplémentaires pour précision :  
+\( f(-0,5) \approx 3,25 \), \( f(2) = -1 \), \( f(3,5) \approx -3,25 \). Trace en joignant **doucement** ces points pour une belle courbe continue !
+
+----------------------------------------------------------------------
+
+
+📚 SOURCES CITÉES : 10
+
+Liste des sources :
+1. ⚠️  [NON-OFFICIEL] https://www.studysmarter.fr/resumes/mathematiques/mathematiques-pures/graphiques-de-fonctions-quadratiques/
+2. ⚠️  [NON-OFFICIEL] https://unebellefacon.wordpress.com/wp-content/uploads/2017/06/ch03_corrigc3a9-manuel1.pdf
+3. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=4zXXGrXbDz4
+4. ⚠️  [NON-OFFICIEL] https://www.bdrp.ch/system/files/docs/2020-08-09/fonctionsquadratiques_handout_t_3.pdf
+5. ⚠️  [NON-OFFICIEL] https://mathematiques.lmrl.lu/Formulaires/analyse_f_quadratiques.htm
+6. ⚠️  [NON-OFFICIEL] https://mathcracker.com/fr/fonction-quadratique
+7. ⚠️  [NON-OFFICIEL] https://www.analyzemath.com/french/quadraticg/quadraticg.html
+8. ⚠️  [NON-OFFICIEL] https://hitt.uqam.ca/mat3225_fich/La_fonction_quadratique.pdf
+9. ⚠️  [NON-OFFICIEL] https://www.youtube.com/watch?v=O1CPP2u9Fh0
+10. ⚠️  [NON-OFFICIEL] https://astra-ai.fr/videos/fonction-mathematique/fonction-quadratique/sommet-de-la-fonction-quadratique
