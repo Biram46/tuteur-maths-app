@@ -222,6 +222,22 @@ TYPE : FEUILLE D'EXERCICES N°1 — Application directe
 - Pas de piège, calculs directs
 - ⛔ PAS de cadre réponse (\\\\reponse) — les élèves rédigent sur copie
 
+📄 EN-TÊTE OBLIGATOIRE DU DOCUMENT (après \\\\begin{document}) :
+L'en-tête DOIT être dans un encadré centré, en GRAS, avec :
+- La classe : ${context.level_label}
+- Le numéro de feuille : Feuille d'exercices N°1
+- Le chapitre : ${context.chapter_title}
+
+Code LaTeX de l'en-tête :
+\\\\begin{center}
+\\\\fbox{\\\\parbox{0.9\\\\textwidth}{\\\\centering
+\\\\textbf{\\\\Large ${context.level_label}} \\\\\\\\[6pt]
+\\\\textbf{\\\\large Feuille d'exercices N°1 — Application directe} \\\\\\\\[4pt]
+\\\\textbf{Chapitre : ${context.chapter_title}}
+}}
+\\\\end{center}
+\\\\vspace{0.5cm}
+
 📋 NUMÉROTATION OBLIGATOIRE DES EXERCICES :
 - Chaque exercice DOIT être titré : \\\\underline{\\\\textbf{EXERCICE 1}}, \\\\underline{\\\\textbf{EXERCICE 2}}, etc.
 - Le titre est en GRAS et SOULIGNÉ, suivi d'un saut de ligne avant l'énoncé
@@ -248,6 +264,22 @@ TYPE : FEUILLE D'EXERCICES N°2 — Intermédiaire
 - Demande de justification et de rédaction
 - Derniers exercices = mise en situation réelle
 - ⛔ PAS de cadre réponse (\\\\reponse) — les élèves rédigent sur copie
+
+📄 EN-TÊTE OBLIGATOIRE DU DOCUMENT (après \\\\begin{document}) :
+L'en-tête DOIT être dans un encadré centré, en GRAS, avec :
+- La classe : ${context.level_label}
+- Le numéro de feuille : Feuille d'exercices N°2
+- Le chapitre : ${context.chapter_title}
+
+Code LaTeX de l'en-tête :
+\\\\begin{center}
+\\\\fbox{\\\\parbox{0.9\\\\textwidth}{\\\\centering
+\\\\textbf{\\\\Large ${context.level_label}} \\\\\\\\[6pt]
+\\\\textbf{\\\\large Feuille d'exercices N°2 — Intermédiaire} \\\\\\\\[4pt]
+\\\\textbf{Chapitre : ${context.chapter_title}}
+}}
+\\\\end{center}
+\\\\vspace{0.5cm}
 
 📋 NUMÉROTATION OBLIGATOIRE DES EXERCICES :
 - Chaque exercice DOIT être titré : \\\\underline{\\\\textbf{EXERCICE 1}}, \\\\underline{\\\\textbf{EXERCICE 2}}, etc.
@@ -298,6 +330,22 @@ TYPE : FEUILLE D'EXERCICES N°3 — Synthèse
 - Problème ouvert en fin de feuille
 - Prépare au DS
 - ⛔ PAS de cadre réponse (\\\\reponse) — les élèves rédigent sur copie
+
+📄 EN-TÊTE OBLIGATOIRE DU DOCUMENT (après \\\\begin{document}) :
+L'en-tête DOIT être dans un encadré centré, en GRAS, avec :
+- La classe : ${context.level_label}
+- Le numéro de feuille : Feuille d'exercices N°3
+- Le chapitre : ${context.chapter_title}
+
+Code LaTeX de l'en-tête :
+\\\\begin{center}
+\\\\fbox{\\\\parbox{0.9\\\\textwidth}{\\\\centering
+\\\\textbf{\\\\Large ${context.level_label}} \\\\\\\\[6pt]
+\\\\textbf{\\\\large Feuille d'exercices N°3 — Synthèse} \\\\\\\\[4pt]
+\\\\textbf{Chapitre : ${context.chapter_title}}
+}}
+\\\\end{center}
+\\\\vspace{0.5cm}
 
 📋 NUMÉROTATION OBLIGATOIRE DES EXERCICES :
 - Chaque exercice DOIT être titré : \\\\underline{\\\\textbf{EXERCICE 1}}, \\\\underline{\\\\textbf{EXERCICE 2}}, etc.
