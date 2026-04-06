@@ -638,10 +638,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── TENTATIVE 1 : DeepSeek-R1 en streaming direct ──────────
+        // ── TENTATIVE 1 : DeepSeek V3 en streaming direct ──────────
+        // Note: On utilise deepseek-chat (V3) au lieu de deepseek-reasoner (R1)
+        // car R1 a une phase de raisonnement silencieuse (~60s) qui cause des timeouts.
+        // V3 stream le contenu immédiatement.
         if (deepseekKey) {
             try {
-                console.log('[Prof-Chat] 🧠 DeepSeek-R1 : streaming direct au client...');
+                console.log('[Prof-Chat] 🧠 DeepSeek V3 : streaming direct au client...');
 
                 const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
                     method: 'POST',
@@ -650,22 +653,22 @@ export async function POST(request: NextRequest) {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: 'deepseek-reasoner',
+                        model: 'deepseek-chat',
                         messages: apiMessages,
                         stream: true,
-                        temperature: 0.1,
-                        max_tokens: 16000,
+                        temperature: 0.2,
+                        max_tokens: 32000,
                     }),
                 });
 
                 if (dsResponse.ok) {
-                    console.log('[Prof-Chat] ✅ DeepSeek-R1 connecté — streaming...');
-                    const stream = createSSEStream(dsResponse, 'DeepSeek-R1');
+                    console.log('[Prof-Chat] ✅ DeepSeek V3 connecté — streaming...');
+                    const stream = createSSEStream(dsResponse, 'DeepSeek-V3');
                     return new Response(stream, {
                         headers: {
                             'Content-Type': 'text/plain; charset=utf-8',
                             'Transfer-Encoding': 'chunked',
-                            'X-AI-Provider': 'DeepSeek-R1',
+                            'X-AI-Provider': 'DeepSeek-V3',
                         },
                     });
                 } else {
@@ -692,7 +695,7 @@ export async function POST(request: NextRequest) {
                         messages: apiMessages,
                         stream: true,
                         temperature: 0.4,
-                        max_tokens: 16000,
+                        max_tokens: 16384,
                     }),
                 });
 
