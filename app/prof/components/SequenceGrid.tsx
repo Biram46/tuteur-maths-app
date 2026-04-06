@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import type { Level, Chapter, Resource } from '@/lib/data';
 import {
     type SequenceGridRow,
@@ -9,9 +9,9 @@ import {
     GRID_COLUMNS,
     EAM_COLUMN,
     EAM_ELIGIBLE_LEVELS,
-    type ProfContext,
 } from '@/lib/prof-types';
 import { publishResourcesByIds } from '../actions';
+import DraftEditor from './DraftEditor';
 
 interface SequenceGridProps {
     levels: Level[];
@@ -21,6 +21,17 @@ interface SequenceGridProps {
     selectedLevelId: string | null;
     onCellClick: (chapterId: string, chapterTitle: string, resourceType: ProfResourceType) => void;
 }
+
+/** Mapping colonne → kinds pour la recherche de ressources */
+const COL_KINDS: Record<string, { kinds: string[]; label?: string }> = {
+    cours: { kinds: ['cours'] },
+    fe1: { kinds: ['exercice', 'exo', 'exercices'], label: 'N°1' },
+    fe2: { kinds: ['exercice', 'exo', 'exercices'], label: 'N°2' },
+    fe3: { kinds: ['exercice', 'exo', 'exercices'], label: 'N°3' },
+    interactif: { kinds: ['interactif'] },
+    ds: { kinds: ['ds', 'devoir'] },
+    eam: { kinds: ['eam', 'épreuve'] },
+};
 
 /** Détermine le statut d'une cellule en cherchant dans les ressources */
 function getCellStatus(resources: Resource[], chapterId: string, kinds: string[], label?: string): CellStatus {
@@ -39,13 +50,30 @@ function getCellStatus(resources: Resource[], chapterId: string, kinds: string[]
     return 'draft';
 }
 
+/** Trouve la ressource brouillon correspondant à une cellule */
+function findDraftResource(resources: Resource[], chapterId: string, colKey: string): Resource | null {
+    const config = COL_KINDS[colKey];
+    if (!config) return null;
+
+    return resources.find(r => {
+        if (r.chapter_id !== chapterId) return false;
+        if (r.status !== 'draft') return false;
+        const kindMatch = config.kinds.some(k => r.kind.toLowerCase().includes(k));
+        if (!kindMatch) return false;
+        if (config.label && r.label) {
+            return r.label.toLowerCase().includes(config.label.toLowerCase());
+        }
+        return true;
+    }) || null;
+}
+
 /** Icône de statut */
 function StatusIcon({ status }: { status: CellStatus }) {
     switch (status) {
         case 'published':
             return <span title="Publié" className="text-green-400 text-lg">✅</span>;
         case 'draft':
-            return <span title="Brouillon" className="text-amber-400 text-lg animate-pulse">🔄</span>;
+            return <span title="Brouillon — cliquer pour modifier" className="text-amber-400 text-lg animate-pulse">🔄</span>;
         case 'none':
         default:
             return <span title="Non créé" className="text-slate-600 text-sm">—</span>;
@@ -61,6 +89,13 @@ export default function SequenceGrid({
     onCellClick,
 }: SequenceGridProps) {
     const [isPending, startTransition] = useTransition();
+
+    // État de l'éditeur de brouillon
+    const [editingDraft, setEditingDraft] = useState<{
+        resourceId: string;
+        resourceLabel: string;
+        chapterTitle: string;
+    } | null>(null);
 
     // Filtrer les chapitres du niveau sélectionné
     const visibleChapters = useMemo(() =>
@@ -114,9 +149,29 @@ export default function SequenceGrid({
         [resources, visibleChapters]
     );
 
+    // Clic sur une cellule : ouvrir l'éditeur si brouillon, sinon le chatbot
+    const handleCellClick = (row: SequenceGridRow, colKey: string, colLabel: string, resourceType: ProfResourceType) => {
+        const status = row[colKey as keyof SequenceGridRow] as CellStatus;
+
+        if (status === 'draft') {
+            // Trouver la ressource brouillon
+            const draft = findDraftResource(resources, row.chapter_id, colKey);
+            if (draft) {
+                setEditingDraft({
+                    resourceId: draft.id,
+                    resourceLabel: draft.label || colLabel,
+                    chapterTitle: row.chapter_title,
+                });
+                return;
+            }
+        }
+
+        // Sinon (none ou published) → ouvrir le chatbot de création
+        onCellClick(row.chapter_id, row.chapter_title, resourceType);
+    };
+
     // Publier tous les brouillons du niveau sélectionné
     const handlePublishAll = () => {
-        // Récupérer directement les IDs des ressources en brouillon pour les chapitres visibles
         const draftResourceIds = resources
             .filter(r =>
                 r.status === 'draft' &&
@@ -221,9 +276,17 @@ export default function SequenceGrid({
                                     return (
                                         <td key={col.key} className="text-center px-3 py-3">
                                             <button
-                                                onClick={() => onCellClick(row.chapter_id, row.chapter_title, col.resourceType)}
-                                                className="inline-flex items-center justify-center w-10 h-10 rounded-xl hover:bg-white/5 transition-all active:scale-90 cursor-pointer"
-                                                title={`${col.label} — ${row.chapter_title}`}
+                                                onClick={() => handleCellClick(row, col.key, col.label, col.resourceType)}
+                                                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-90 cursor-pointer ${
+                                                    status === 'draft'
+                                                        ? 'hover:bg-amber-500/10 hover:ring-1 hover:ring-amber-500/30'
+                                                        : 'hover:bg-white/5'
+                                                }`}
+                                                title={
+                                                    status === 'draft'
+                                                        ? `✏️ Modifier le brouillon — ${col.label} — ${row.chapter_title}`
+                                                        : `${col.label} — ${row.chapter_title}`
+                                                }
                                             >
                                                 <StatusIcon status={status} />
                                             </button>
@@ -239,10 +302,24 @@ export default function SequenceGrid({
             {/* Légende */}
             <div className="flex items-center gap-6 px-2 text-[10px] text-slate-500">
                 <span className="flex items-center gap-1.5"><span className="text-green-400">✅</span> Publié</span>
-                <span className="flex items-center gap-1.5"><span className="text-amber-400">🔄</span> Brouillon</span>
+                <span className="flex items-center gap-1.5"><span className="text-amber-400">🔄</span> Brouillon <span className="text-slate-600">(clic = modifier)</span></span>
                 <span className="flex items-center gap-1.5"><span className="text-slate-600">—</span> Non créé</span>
-                <span className="ml-auto italic">Cliquez sur une cellule pour créer ou modifier</span>
+                <span className="ml-auto italic">Cliquez sur 🔄 pour éditer avant validation</span>
             </div>
+
+            {/* Modal éditeur de brouillon */}
+            {editingDraft && (
+                <DraftEditor
+                    resourceId={editingDraft.resourceId}
+                    resourceLabel={editingDraft.resourceLabel}
+                    chapterTitle={editingDraft.chapterTitle}
+                    onClose={() => setEditingDraft(null)}
+                    onSaved={() => {
+                        // Force un refresh de la page pour récupérer les données à jour
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }

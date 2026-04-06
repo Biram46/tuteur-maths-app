@@ -293,6 +293,85 @@ export async function publishResourcesByIds(resourceIds: string[]) {
     revalidatePath("/");
 }
 
+// ─────────────────────────────────────────────────────────────
+// ÉDITION DE BROUILLONS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Récupère le contenu LaTeX d'un brouillon pour l'éditer
+ */
+export async function getDraftContent(resourceId: string): Promise<{ content: string; label: string | null; latex_url: string | null }> {
+    const { data: resource, error } = await supabaseServer
+        .from("resources")
+        .select("latex_url, label")
+        .eq("id", resourceId)
+        .single();
+
+    if (error || !resource) throw new Error("Ressource introuvable");
+
+    if (!resource.latex_url) {
+        return { content: '', label: resource.label, latex_url: null };
+    }
+
+    // Récupérer le contenu du fichier depuis l'URL
+    try {
+        const response = await fetch(resource.latex_url);
+        if (!response.ok) throw new Error("Impossible de charger le fichier");
+        const content = await response.text();
+        return { content, label: resource.label, latex_url: resource.latex_url };
+    } catch (e: any) {
+        throw new Error(`Erreur récupération contenu: ${e.message}`);
+    }
+}
+
+/**
+ * Met à jour le contenu LaTeX d'un brouillon
+ */
+export async function updateDraftContent(resourceId: string, newContent: string): Promise<void> {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) throw new Error("Bucket non configuré");
+
+    const { data: resource, error: fetchError } = await supabaseServer
+        .from("resources")
+        .select("latex_url, created_by, sequence_id")
+        .eq("id", resourceId)
+        .single();
+
+    if (fetchError || !resource) throw new Error("Ressource introuvable");
+
+    let filePath: string;
+
+    if (resource.latex_url) {
+        const urlObj = new URL(resource.latex_url);
+        const pathParts = urlObj.pathname.split('/object/public/' + bucketName + '/');
+        filePath = pathParts.length > 1 ? decodeURIComponent(pathParts[1]) : `prof/drafts/${resourceId}_${Date.now()}.tex`;
+    } else {
+        filePath = `prof/drafts/${resourceId}_${Date.now()}.tex`;
+    }
+
+    const { error: uploadError } = await supabaseServer.storage
+        .from(bucketName)
+        .upload(filePath, newContent, {
+            contentType: 'text/x-latex',
+            upsert: true,
+        });
+
+    if (uploadError) throw new Error(`Erreur upload: ${uploadError.message}`);
+
+    if (!resource.latex_url) {
+        const { data: { publicUrl } } = supabaseServer.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+
+        await supabaseServer
+            .from("resources")
+            .update({ latex_url: publicUrl })
+            .eq("id", resourceId);
+    }
+
+    revalidatePath("/prof");
+}
+
 /**
  * Dépublie une ressource (publié → brouillon)
  */

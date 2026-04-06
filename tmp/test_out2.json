@@ -1,1 +1,0 @@
-{"aaaBlock":"@@@\ntable |\nx: -inf, 0, +inf |\nsign: e\u02e3 - 1 : -, 0, + |\nsign: f(x) : -, 0, + |\n@@@","criticalPoints":[0.0],"denZeros":[],"discriminantSteps":[],"effectiveConst":1.0,"exactMap":{},"factors":[{"label":"e\u02e3 - 1","type":"numerator"}],"fxValues":["-","0","+"],"numZeros":[0.0],"success":true}

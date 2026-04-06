@@ -40,6 +40,14 @@
     "node_modules",
     ".next",
     "scripts",
-    "test_*.ts"
+    "tests",
+    "_cleanup_archive",
+    "tmp",
+    "test_*.ts",
+    "tmp_*.ts",
+    "tmp_*.txt",
+    "_tmp_*",
+    "python-api",
+    "*.test.ts"
   ]
 }

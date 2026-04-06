@@ -74,4 +74,12 @@ app/api/convert/
 app/api/convert-local/
 app/api/convert-test/
 
+# Temp/archive files
+_cleanup_archive/
+tmp/
+_tmp_*
+tmp_*
+vitest_out.txt
+python_backend_*.txt
+
 .vercel
