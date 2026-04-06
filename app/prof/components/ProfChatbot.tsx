@@ -16,6 +16,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [generatedLatex, setGeneratedLatex] = useState<string | null>(null);
+    const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+    const [contentType, setContentType] = useState<'latex' | 'html'>('latex');
     const [showPreview, setShowPreview] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
@@ -26,10 +28,21 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+    // Determine if resource type is interactive
+    const isInteractif = context.resource_type === 'interactif';
+
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Get content to send based on type
+    const getContentToSend = useCallback((): string | undefined => {
+        if (isInteractif) {
+            return generatedHtml || undefined;
+        }
+        return generatedLatex || undefined;
+    }, [isInteractif, generatedHtml, generatedLatex]);
 
     // ── Envoi d'un message ───────────────────────────────────
     const handleSend = useCallback(async (e?: React.FormEvent) => {
@@ -67,7 +80,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 body: JSON.stringify({
                     messages: newMessages,
                     context,
-                    existing_content: generatedLatex,
+                    existing_content: getContentToSend(),
                     image_urls: allImageUrls.length > 0 ? allImageUrls : undefined,
                 }),
             });
@@ -110,16 +123,35 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 });
             }
 
-            // Extraire le LaTeX si la réponse en contient
-            const latexMatch = fullContent.match(/```latex\n([\s\S]*?)```/);
-            if (latexMatch) {
-                setGeneratedLatex(latexMatch[1]);
-                setShowPreview(true);
-            } else if (fullContent.includes('\\documentclass') || fullContent.includes('\\begin{document}')) {
-                // Le contenu entier est du LaTeX
-                setGeneratedLatex(fullContent);
-                setShowPreview(true);
+            // Extract content based on resource type
+            if (isInteractif) {
+                // For interactive: extract HTML
+                const htmlMatch = fullContent.match(/```html\n([\s\S]*?)```/);
+                if (htmlMatch) {
+                    setGeneratedHtml(htmlMatch[1]);
+                    setContentType('html');
+                } else if (fullContent.includes('<!DOCTYPE html') || fullContent.includes('<html')) {
+                    // Full HTML content without markdown
+                    setGeneratedHtml(fullContent);
+                    setContentType('html');
+                } else {
+                    // Fallback: show raw content
+                    setGeneratedHtml(fullContent);
+                    setContentType('html');
+                }
+            } else {
+                // For other types: extract LaTeX
+                const latexMatch = fullContent.match(/```latex\n([\s\S]*?)```/);
+                if (latexMatch) {
+                    setGeneratedLatex(latexMatch[1]);
+                    setContentType('latex');
+                } else if (fullContent.includes('\\documentclass') || fullContent.includes('\\begin{document}')) {
+                    // Full LaTeX content without markdown
+                    setGeneratedLatex(fullContent);
+                    setContentType('latex');
+                }
             }
+            setShowPreview(true);
 
         } catch (err: any) {
             console.error('Erreur envoi message:', err);
@@ -134,7 +166,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         } finally {
             setLoading(false);
         }
-    }, [input, messages, loading, context, generatedLatex, pendingImageUrls]);
+    }, [input, messages, loading, context, getContentToSend, pendingImageUrls, isInteractif]);
 
     // ── Upload fichier ───────────────────────────────────────
     const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +260,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
 
     // ── Sauvegarder le brouillon ─────────────────────────────
     const handleSaveDraft = useCallback(async () => {
-        if (!generatedLatex) return;
+        const content = isInteractif ? generatedHtml : generatedLatex;
+        if (!content) return;
         setSavingDraft(true);
         try {
             await saveDraft({
@@ -236,7 +269,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 sequenceId,
                 chapterId: context.chapter_id,
                 resourceType: context.resource_type,
-                content: generatedLatex,
+                content,
             });
             setDraftSaved(true);
         } catch (err: any) {
@@ -244,19 +277,23 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         } finally {
             setSavingDraft(false);
         }
-    }, [generatedLatex, teacherId, sequenceId, context]);
+    }, [isInteractif, generatedHtml, generatedLatex, teacherId, sequenceId, context]);
 
-    // ── Télécharger le .tex ──────────────────────────────────
-    const handleDownloadTex = useCallback(() => {
-        if (!generatedLatex) return;
-        const blob = new Blob([generatedLatex], { type: 'text/x-latex' });
+    // ── Télécharger le fichier ──────────────────────────────────
+    const handleDownload = useCallback(() => {
+        const content = isInteractif ? generatedHtml : generatedLatex;
+        if (!content) return;
+        const blob = new Blob([content], { type: isInteractif ? 'text/html' : 'text/x-latex' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${context.resource_type}_${context.chapter_title.replace(/\s+/g, '_')}.tex`;
+        a.download = `${context.resource_type}_${context.chapter_title.replace(/\s+/g, '_')}.${isInteractif ? 'html' : 'tex'}`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [generatedLatex, context]);
+    }, [isInteractif, generatedHtml, generatedLatex, context]);
+
+    // Get current content for display
+    const currentContent = isInteractif ? generatedHtml : generatedLatex;
 
     return (
         <div className="flex flex-col h-full">
@@ -275,7 +312,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {generatedLatex && (
+                    {currentContent && (
                         <>
                             <button
                                 onClick={() => setShowPreview(!showPreview)}
@@ -284,10 +321,10 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                 {showPreview ? '💬 Chat' : '👁️ Aperçu'}
                             </button>
                             <button
-                                onClick={handleDownloadTex}
+                                onClick={handleDownload}
                                 className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-cyan-400 hover:bg-cyan-500/10 transition-all"
                             >
-                                ⬇ .tex
+                                ⬇ {isInteractif ? '.html' : '.tex'}
                             </button>
                             <button
                                 onClick={handleSaveDraft}
@@ -391,19 +428,27 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 </div>
 
                 {/* Preview panel */}
-                {showPreview && generatedLatex && (
+                {showPreview && currentContent && (
                     <div className="w-1/2 overflow-y-auto p-5 bg-white/[0.01] custom-scrollbar">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                Aperçu LaTeX
+                                {isInteractif ? 'Aperçu HTML' : 'Aperçu LaTeX'}
                             </h3>
                             <span className="text-[10px] text-slate-600">
-                                {generatedLatex.length} caractères
+                                {currentContent.length} caractères
                             </span>
                         </div>
-                        <pre className="text-xs text-slate-400 font-mono bg-black/30 rounded-xl p-4 overflow-x-auto whitespace-pre-wrap border border-white/5 leading-relaxed">
-                            {generatedLatex}
-                        </pre>
+                        {isInteractif ? (
+                            <iframe
+                                srcDoc={`data:text/html;charset=utf-8,${encodeURIComponent(currentContent)}`}
+                                className="w-full h-[calc(100vh-200px)] border-0 rounded-lg bg-white"
+                                title="Aperçu HTML"
+                            />
+                        ) : (
+                            <pre className="text-xs text-slate-400 font-mono bg-black/30 rounded-xl p-4 overflow-x-auto whitespace-pre-wrap border border-white/5 leading-relaxed">
+                                {currentContent}
+                            </pre>
+                        )}
                     </div>
                 )}
             </div>
@@ -480,7 +525,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 {aiProvider && (
                     <div className="mt-2 text-right">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${
-                            aiProvider === 'DeepSeek-R1'
+                            aiProvider === 'DeepSeek-V3'
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                 : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                         }`}>
@@ -504,12 +549,13 @@ function getPlaceholder(type: ProfResourceType): string {
         exercices_1: 'Décrivez les exercices d\'application directe souhaités...',
         exercices_2: 'Décrivez les exercices intermédiaires...',
         exercices_3: 'Décrivez les exercices de synthèse...',
-        interactif: 'Décrivez les questions interactives à générer...',
+        interactif: 'Décrivez les questions interactives à générer (10 questions HTML avec note sur 20)...',
         ds: 'Décrivez le devoir surveillé (thème, nombre d\'exercices, durée)...',
         eam: 'Décrivez l\'épreuve anticipée (chapitres couverts, difficulté)...',
     };
-    return placeholders[type];
+    return placeholders[type]
 }
+
 
 function getSuggestions(type: ProfResourceType): string[] {
     const suggestions: Record<ProfResourceType, string[]> = {
@@ -534,8 +580,8 @@ function getSuggestions(type: ProfResourceType): string[] {
             'Bilan transversal du chapitre',
         ],
         interactif: [
-            'Génère 20 questions QCM sur ce chapitre',
-            'Questions avec piéges fréquents',
+            'Génère 10 questions interactives HTML',
+            'Questions avec pièges fréquents',
             'Mix de calcul et de logique',
         ],
         ds: [
@@ -548,6 +594,6 @@ function getSuggestions(type: ProfResourceType): string[] {
             '12 automatismes QCM + 3 exercices longs',
             'Difficulté progressive, dernière question difficile',
         ],
-    };
-    return suggestions[type] || [];
+    }
+    return suggestions[type] || []
 }

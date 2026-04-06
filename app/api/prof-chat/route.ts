@@ -367,13 +367,143 @@ STRUCTURE : Énoncés → \\\\newpage → \\\\section*{Corrections} → Correcti
 
         interactif: `${base}
 
-TYPE : EXERCICES INTERACTIFS
-- Génère exactement 20 questions sous forme de JSON structuré
-- Format : [{ "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "..." }, ...]
-- Les questions doivent couvrir tout le chapitre
-- Mix de calcul mental, logique et application
-- Inclure des pièges fréquents des élèves
-- Réponse en JSON uniquement (pas de LaTeX pour ce type)`,
+TYPE : EXERCICES INTERACTIFS HTML — FORMAT OBLIGATOIRE
+
+Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
+- 10 questions interactives (champs de réponse texte)
+- Calcul automatique de la note finale sur 20
+- Feedback visuel (correct/incorrect) pour chaque question
+- KaTeX pour les formules mathématiques
+
+⛔ RÉPONSE EN HTML UNIQUEMENT — PAS DE JSON, PAS DE LATEX
+
+📦 STRUCTURE OBLIGATOIRE DU FICHIER HTML :
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Exercice Interactif — ${context.chapter_title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body);"></script>
+    <style>
+        /* Styles CSS inclus */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exercice : ${context.chapter_title}</h1>
+        <p class="consigne">Résous les calculs suivants. Tu seras noté sur 20.</p>
+
+        <!-- 10 questions avec inputs -->
+        <section class="question" data-question="1">
+            <p><span class="num">1</span> Calcule : <span class="math">$$...$$</span></p>
+            <input type="text" class="reponse" id="q1" placeholder="Ta réponse">
+            <div class="feedback" id="feedback-q1"></div>
+        </section>
+        <!-- ... répéter pour 10 questions ... -->
+
+        <button class="btn-valider" onclick="calculerNote()">✅ Valider et voir ma note</button>
+        <div class="resultat" id="resultat"></div>
+    </div>
+
+    <script>
+        // Variables globales OBLIGATOIRES
+        var noteFinale = 0;
+        var surNote = 20;
+
+        // Réponses correctes
+        var reponsesCorrectes = {
+            q1: "réponse_attendue",
+            q2: "réponse_attendue",
+            // ... pour les 10 questions
+        };
+
+        // Fonction de normalisation (accepter variantes)
+        function normaliserReponse(r) {
+            return r.trim().replace(/\\s+/g, '').replace(/,/g, '.');
+        }
+
+        // Fonction de calcul de la note
+        function calculerNote() {
+            let points = 0;
+            const pointsParQuestion = 2; // 10 questions × 2 pts = 20
+
+            for (let i = 1; i <= 10; i++) {
+                const id = 'q' + i;
+                const reponse = document.getElementById(id).value;
+                const attendue = reponsesCorrectes[id];
+                const feedback = document.getElementById('feedback-' + id);
+                const question = document.querySelector('[data-question="' + i + '"]');
+
+                if (normaliserReponse(reponse) === normaliserReponse(attendue)) {
+                    points += pointsParQuestion;
+                    feedback.textContent = "✅ Correct !";
+                    feedback.className = "feedback correct";
+                    question.style.borderLeftColor = "#27ae60";
+                } else {
+                    feedback.textContent = "❌ Incorrect. La réponse était : " + attendue;
+                    feedback.className = "feedback incorrect";
+                    question.style.borderLeftColor = "#e74c3c";
+                }
+                feedback.style.display = "block";
+            }
+
+            noteFinale = points;
+            afficherResultat();
+        }
+
+        // Affichage du résultat final
+        function afficherResultat() {
+            const el = document.getElementById('resultat');
+            const pct = (noteFinale / surNote) * 100;
+            let msg, couleur;
+
+            if (pct >= 80) { msg = "🎉 Excellent !"; couleur = "#d4edda"; }
+            else if (pct >= 60) { msg = "👍 Bien joué !"; couleur = "#d1ecf1"; }
+            else if (pct >= 40) { msg = "👌 Peut mieux faire"; couleur = "#fff3cd"; }
+            else { msg = "📚 À revoir"; couleur = "#f8d7da"; }
+
+            el.innerHTML = '<h2>' + msg + '</h2><p class="note">' + noteFinale + '/' + surNote + '</p>';
+            el.style.backgroundColor = couleur;
+            el.style.display = 'block';
+            el.scrollIntoView({ behavior: 'smooth' });
+
+            // Message pour application parente
+            if (window.parent !== window.self) {
+                window.parent.postMessage({
+                    type: "quiz-result",
+                    note: noteFinale,
+                    sur: surNote
+                }, "*");
+            }
+        }
+    </script>
+</body>
+</html>
+
+📐 RÈGLES POUR LES QUESTIONS :
+- 10 questions numérotées de 1 à 10
+- Mix de : calculs simples, applications du cours, pièges fréquents
+- Questions adaptées au niveau ${context.level_label}
+- Réponses COURTES (un nombre, une fraction, un mot-clé)
+- Accepter les variantes (ex: "1/2" ou "0.5" ou "0,5")
+
+📐 RÈGLES MATHÉMATIQUES :
+- Utiliser $$...$$ pour les formules (rendu KaTeX)
+- Virgule décimale française dans l'affichage
+- Notation française : $]a ; b[$ pour les intervalles
+
+⚠️ CONTRAINTES :
+- Code HTML COMPLET et FONCTIONNEL (copier-coller direct)
+- Pas de commentaires superflus dans le code final
+- Styles CSS inclus dans <style>
+- JavaScript inclus dans <script>
+- Taille raisonnable (< 50ko)
+
+GÉNÈRE UNIQUEMENT LE CODE HTML — PAS D'EXPLICATIONS AUTOUR.`,
 
         ds: `${base}
 

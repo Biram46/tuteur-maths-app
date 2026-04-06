@@ -115,21 +115,23 @@ export async function saveDraft(params: {
     };
     const resourceLabel = label || labelMap[resourceType];
 
-    // Upload le fichier LaTeX dans Storage
+    // Upload le fichier dans Storage (HTML pour interactif, LaTeX pour les autres)
     const timestamp = Date.now();
-    const fileName = `${resourceType}_${timestamp}.tex`;
+    const isInteractif = resourceType === 'interactif';
+    const fileExtension = isInteractif ? 'html' : 'tex';
+    const fileName = `${resourceType}_${timestamp}.${fileExtension}`;
     const filePath = `prof/${teacherId}/sequences/${sequenceId}/${fileName}`;
 
     const { error: uploadError } = await supabaseServer.storage
         .from(bucketName)
         .upload(filePath, content, {
-            contentType: 'text/x-latex',
+            contentType: isInteractif ? 'text/html' : 'text/x-latex',
             upsert: true,
         });
 
     if (uploadError) throw new Error(`Erreur upload: ${uploadError.message}`);
 
-    const { data: { publicUrl: latexUrl } } = supabaseServer.storage
+    const { data: { publicUrl: contentUrl } } = supabaseServer.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
@@ -147,7 +149,7 @@ export async function saveDraft(params: {
         const { error } = await supabaseServer
             .from("resources")
             .update({
-                latex_url: latexUrl,
+                latex_url: contentUrl,
                 label: resourceLabel,
                 status: 'draft',
             })
@@ -167,7 +169,7 @@ export async function saveDraft(params: {
             sequence_id: sequenceId,
             kind,
             label: resourceLabel,
-            latex_url: latexUrl,
+            latex_url: contentUrl,
             status: 'draft',
             created_by: teacherId,
         }])
