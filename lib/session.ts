@@ -50,6 +50,7 @@ export async function updateSession(request: NextRequest) {
     const isPublicRoute = isStudentLoginPage || isAdminLoginPage || isForgotPasswordPage || isAuthRoute || isApiRoute || isAssistantRoute || isGraphRoute || isTestRoute || isResourceRoute
 
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && !isAdminLoginPage
+    const isProfRoute = request.nextUrl.pathname.startsWith('/prof')
 
     // 1. Rediriger vers /login si non connecté et tente d'accéder à une route privée
     if (!user && !isPublicRoute) {
@@ -79,6 +80,19 @@ export async function updateSession(request: NextRequest) {
         if (!user || user.email !== 'biram26@yahoo.fr') {
             const url = request.nextUrl.clone()
             url.pathname = '/admin/login'
+            const redirectResponse = NextResponse.redirect(url)
+            response.cookies.getAll().forEach(c => redirectResponse.cookies.set(c.name, c.value, c))
+            return redirectResponse
+        }
+    }
+
+    // 4. Protection de la route /prof (espace professeur)
+    // Pour l'instant : seul l'admin (biram26@yahoo.fr) y a accès
+    // Futur : vérifier le rôle 'teacher' dans la table eleves
+    if (isProfRoute) {
+        if (!user || user.email !== 'biram26@yahoo.fr') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
             const redirectResponse = NextResponse.redirect(url)
             response.cookies.getAll().forEach(c => redirectResponse.cookies.set(c.name, c.value, c))
             return redirectResponse

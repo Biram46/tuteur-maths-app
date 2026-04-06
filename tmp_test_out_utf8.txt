@@ -1,0 +1,416 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/HP/Documents/projet/tuteur-maths-app[39m
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="2*x-4"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "2*x-4"
+
+node.exe : [90mstderr[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > 
+[22m[2mg├®n├¿re un tableau de signes pour 2x-4
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\HP\AppData\Roaming\npm ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([90mstderr[2m...ignes pour 2x-4:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[22m[39m[MathEngine] SymPy: aucune API configur├®e ÔåÆ fallback JS
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[SIGN-ENGINE] Expression: 2*x-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2*x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m ]
+[SIGN-ENGINE] Row "2*x-4" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, +inf |
+sign: 2*x-4 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de variations pour x^2
+[22m[39m[MathEngine] type=variation_table niveau=undefined expr="x^2"
+
+[90mstderr[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > 
+[22m[2mg├®n├¿re un tableau de variations pour x^2
+[22m[39m[MathEngine] Variation: calcul d├®riv├®e ├®chou├® Error: Cannot find module 
+'@/lib/math-engine/expression-parser'
+Require stack:
+- C:\Users\HP\Documents\projet\tuteur-maths-app\app\api\math-engine\route.ts
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:328:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at require (node:internal/modules/helpers:152:16)[39m
+    at POST (C:/Users/HP/Documents/projet/tuteur-maths-app/app/api/math-engine/route.ts:174:55)
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [
+    [32m'C:\\Users\\HP\\Documents\\projet\\tuteur-maths-app\\app\\api\\math-engine\\route.ts'[39m
+  ]
+}
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de variations pour x^2
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: undefined
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="(x+2)/(x-3)"
+
+[90mstderr[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > 
+[22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[MathEngine] SymPy: aucune API configur├®e ÔåÆ fallback JS
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "(x+2)/(x-3)"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="sqrt(x+2)"
+
+[90mstderr[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > 
+[22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[MathEngine] SymPy: aucune API configur├®e ÔåÆ fallback JS
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "sqrt(x+2)"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x+2)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -2, +inf |
+sign: sqrt(x+2) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mroute correctement une demande de tableau de signes
+[22m[39m[SIGN-ENGINE] Expression: (x+2)(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: x+2 : -, 0, +, +, + |
+sign: x-3 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mroute correctement une demande de tableau de signes
+[22m[39mTEST ROUTER DEBUG: {
+  hasResults: [33mtrue[39m,
+  aaaBlocks: [
+    [32m'@@@\n'[39m +
+      [32m'table |\n'[39m +
+      [32m'x: -inf, -2, 3, +inf |\n'[39m +
+      [32m'sign: x+2 : -, 0, +, +, + |\n'[39m +
+      [32m'sign: x-3 : -, -, -, 0, + |\n'[39m +
+      [32m'sign: f(x) : +, 0, -, 0, + |\n'[39m +
+      [32m'@@@'[39m
+  ],
+  prerenderedBlocks: [32m'@@@\n'[39m +
+    [32m'table |\n'[39m +
+    [32m'x: -inf, -2, 3, +inf |\n'[39m +
+    [32m'sign: x+2 : -, 0, +, +, + |\n'[39m +
+    [32m'sign: x-3 : -, -, -, 0, + |\n'[39m +
+    [32m'sign: f(x) : +, 0, -, 0, + |\n'[39m +
+    [32m'@@@'[39m,
+  contextForAI: [32m'ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ\n'[39m +
+    [32m'  R├ëSULTATS PR├ë-CALCUL├ëS PAR LE MATH ENGINE\n'[39m +
+    [32m'ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ\n'[39m +
+    [32m'Expression principale : (x+2)(x-3)\n'[39m +
+    [32m'\n'[39m +
+    [32m'Tu DOIS utiliser ces r├®sultats ci-dessous dans ta r├®ponse.\n'[39m +
+    [32m'Ces tableaux sont d├®j├á calcul├®s ÔÇö ne les recalcule pas toi-m├¬me.\n'[39m +
+    [32m'Explique-les p├®dagogiquement et r├®ponds aux autres sous-questions.\n'[39m +
+    [32m'\n'[39m +
+    [32m'--- Question : ­ƒôï Tableau de signes ---\n'[39m +
+    [32m'Tableau calcul├® (reproduire ce bloc dans ta r├®ponse) :\n'[39m +
+    [32m'@@@\n'[39m +
+    [32m'table |\n'[39m +
+    [32m'x: -inf, -2, 3, +inf |\n'[39m +
+    [32m'sign: x+2 : -, 0, +, +, + |\n'[39m +
+    [32m'sign: x-3 : -, -, -, 0, + |\n'[39m +
+    [32m'sign: f(x) : +, 0, -, 0, + |\n'[39m +
+    [32m'@@@\n'[39m +
+    [32m'\n'[39m +
+    [32m'--- CONSIGNES ANTI-HALLUCINATION DU MOTEUR MATHEMATIQUE ---\n'[39m +
+    [32m'Niveau : Seconde.\n'[39m +
+    [32m'NE G├ëN├êRE AUCUN bloc @@@.\n'[39m +
+    [32m'\n'[39m +
+    [32m'Pour chaque facteur affine : utilise la r├¿gle du signe de a (m├®thode directe).\n'[39m +
+    [32m'Explique la r├¿gle des signes du produit/quotient : compter le nombre de facteurs n├®gatifs.\n'[39m +
+    [32m'\n'[39m +
+    [32m'ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ'[39m,
+  discriminantSteps: []
+}
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mroute correctement une demande de tableau de variations
+[22m[39m[VarEngine] f(x) = x^3 ÔåÆ cat├®gorie: reference_x3, niveau: terminale_spe
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mextrait correctement l'expression f(x) = ...
+[22m[39m[SIGN-ENGINE] Expression: 2x^2 - 3x + 1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2x^2 - 3x + 1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m0.5[39m, [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'1/2'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0.5[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "2x^2 - 3x + 1" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 1/2, 1, +inf |
+sign: 2x^2 - 3x + 1 : +, 0, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les questions multiples
+[22m[39m[SIGN-ENGINE] Expression: 2x-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m ]
+[SIGN-ENGINE] Row "2x-4" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, +inf |
+sign: 2x-4 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: soudre f(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'soudre f(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "soudre f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: soudre f(x) : + |
+sign: f(x) : + |
+@@@
+
+[90mstderr[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/convert ÔÇö Anti-R├®gression[2m > [22m[2mrejette 
+les requ├¬tes sans contenu
+[22m[39mErreur de conversion: TypeError: Content-Type was not one of "multipart/form-data" or 
+"application/x-www-form-urlencoded".
+[90m    at node:internal/deps/undici/undici:6847:19[39m
+[90m    at successSteps (node:internal/deps/undici/undici:6882:27)[39m
+[90m    at readAllBytes (node:internal/deps/undici/undici:5807:13)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+
+ [31mÔØ»[39m tests/api-routes.test.ts [2m([22m[2m13 tests[22m[2m | [22m[31m6 failed[39m[2m | [22m[33m2 skipped[39m[2m)[22m[33m 9814[2mms[22m[39m
+[31m     [31m├ù[31m retourne success=false pour une expression vide[39m[33m 6247[2mms[22m[39m
+     [32mÔ£ô[39m g├®n├¿re un tableau de signes pour 2x-4[32m 188[2mms[22m[39m
+     [32mÔ£ô[39m g├®n├¿re un tableau de variations pour x^2[32m 16[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions avec fractions rationnelles[32m 11[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m g├¿re les expressions avec racine carr├®e [32m 300[2mms[22m[39m
+[31m     [31m├ù[31m route correctement une demande de tableau de signes[39m[32m 129[2mms[22m[39m
+[31m     [31m├ù[31m route correctement une demande de tableau de variations[39m[32m 7[2mms[22m[39m
+[31m     [31m├ù[31m extrait correctement l'expression f(x) = ...[39m[32m 9[2mms[22m[39m
+[31m     [31m├ù[31m g├¿re les questions multiples[39m[33m 706[2mms[22m[39m
+[31m     [31m├ù[31m retourne hasMathEngine=false pour une question non-math├®matique[39m[32m 2[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m rejette les requ├¬tes sans contenu [33m 2191[2mms[22m[39m
+     [2m[90mÔåô[39m[22m calcule la distance entre deux points
+     [2m[90mÔåô[39m[22m calcule le milieu d'un segment
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Tests 6 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > 
+[22mretourne success=false pour une expression vide
+[31m[1mError[22m: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with 
+"testTimeout".[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m11:5[22m[39m
+    [90m  9| [39m
+    [90m 10| [39m[34mdescribe[39m([32m'API /api/math-engine ÔÇö Anti-R├®gression'[39m[33m,[39m () [33m=>[39m 
+{
+    [90m 11| [39m    [34mit[39m([32m'retourne success=false pour une expression vide'[39m[33m,[39m 
+[35masync[39m () [33m=>[39m {
+    [90m   | [39m    [31m^[39m
+    [90m 12| [39m        [35mconst[39m { [33mPOST[39m } [33m=[39m [35mawait[39m 
+[35mimport[39m([32m'@/app/api/math-engine/route'[39m)[33m;[39m
+    [90m 13| [39m        const req = new NextRequest('http://localhost/api/math-engine'ÔÇª
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/6]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-router ÔÇö Anti-R├®gression[2m > 
+[22mroute correctement une demande de tableau de signes
+[31m[1mAssertionError[22m: expected undefined to be defined[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m87:31[22m[39m
+    [90m 85| [39m        [35mconst[39m data [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m 86| [39m        console[33m.[39m[34mlog[39m([32m"TEST ROUTER DEBUG:"[39m[33m,[39m data)[33m;[39m
+    [90m 87| [39m        [34mexpect[39m(data[33m.[39manalysis)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m   | [39m                              [31m^[39m
+    [90m 88| [39m        
+[34mexpect[39m(data[33m.[39manalysis[33m.[39mintents)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m 89| [39m        [34mexpect[39m(data[33m.[39manalysis[33m.[39mintents[[34m0[39m][33m.[39mintent)[3
+3m.[39m[34mtoBe[39m([32m'sign_table'[39m)[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/6]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-router ÔÇö Anti-R├®gression[2m > 
+[22mroute correctement une demande de tableau de variations
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'intents')[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m103:30[22m[39m
+    [90m101| [39m        [35mconst[39m res [33m=[39m [35mawait[39m [33mPOST[39m(req)[33m;[39m
+    [90m102| [39m        [35mconst[39m data [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m103| [39m        expect(data.analysis.intents[0].intent).toBe('variation_table'ÔÇª
+    [90m   | [39m                             [31m^[39m
+    [90m104| [39m    })[33m;[39m
+    [90m105| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/6]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-router ÔÇö Anti-R├®gression[2m > 
+[22mextrait correctement l'expression f(x) = ...
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'globalExpression')[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m117:30[22m[39m
+    [90m115| [39m        [35mconst[39m res [33m=[39m [35mawait[39m [33mPOST[39m(req)[33m;[39m
+    [90m116| [39m        [35mconst[39m data [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m117| [39m        [34mexpect[39m(data[33m.[39manalysis[33m.[39mglobalExpression)[33m.[39m[34mtoContai
+n[39m([32m'2'[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m118| [39m    })[33m;[39m
+    [90m119| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/6]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-router ÔÇö Anti-R├®gression[2m > 
+[22mg├¿re les questions multiples
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'intents')[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m131:30[22m[39m
+    [90m129| [39m        [35mconst[39m res [33m=[39m [35mawait[39m [33mPOST[39m(req)[33m;[39m
+    [90m130| [39m        [35mconst[39m data [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m131| [39m        [34mexpect[39m(data[33m.[39manalysis[33m.[39mintents[33m.[39mlength)[33m.[39m[34m
+toBeGreaterThanOrEqual[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m132| [39m    })[33m;[39m
+    [90m133| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/6]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api-routes.test.ts[2m > [22mAPI /api/math-router ÔÇö Anti-R├®gression[2m > 
+[22mretourne hasMathEngine=false pour une question non-math├®matique
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'hasMathEngine')[39m
+[36m [2mÔØ»[22m tests/api-routes.test.ts:[2m145:30[22m[39m
+    [90m143| [39m        [35mconst[39m res [33m=[39m [35mawait[39m [33mPOST[39m(req)[33m;[39m
+    [90m144| [39m        [35mconst[39m data [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m145| [39m        
+[34mexpect[39m(data[33m.[39manalysis[33m.[39mhasMathEngine)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m146| [39m    })[33m;[39m
+    [90m147| [39m})[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/6]ÔÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[2m | [22m[33m2 skipped[39m[90m (13)[39m
+[2m   Start at [22m 23:22:37
+[2m   Duration [22m 11.39s[2m (transform 932ms, setup 0ms, import 776ms, tests 9.81s, environment 0ms)[22m
+

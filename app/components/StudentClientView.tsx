@@ -113,7 +113,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                     <Link href="/assistant" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-all">
                         Module Assistant
                     </Link>
-                    <Link href="/admin" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-all">
+                    <Link href="/prof" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-all">
                         Espace prof
                     </Link>
                 </div>

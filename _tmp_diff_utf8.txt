@@ -1,0 +1,1978 @@
+﻿diff --git a/app/api/perplexity/route.ts b/app/api/perplexity/route.ts
+index fbb78eb..8347548 100644
+--- a/app/api/perplexity/route.ts
++++ b/app/api/perplexity/route.ts
+@@ -838,6 +838,42 @@ title: Courbes de ln et 1/x
+ - 'asymptotes: 0' ÔåÆ trace une ligne pointill├®e en x=0 (valeur interdite)
+ 
+ 
++=== DIAGRAMMES STATISTIQUES ===
++
++ÔÜá´©Å **R├êGLE ABSOLUE : Pour les questions de statistiques de type "bo├«te ├á moustache" (boxplot) ou "diagramme en b├ótons" (barchart), tu DOIS g├®n├®rer un graphique @@@ graph contenant la syntaxe correspondante.**
++
++Pour un diagramme en b├ótons (effectifs, fr├®quences, probabilit├®s discr├¿tes) :
++@@@ graph
++domain: -1, 6, 0, 10
++barchart: 1:3, 2:5, 3:8, 4:2, #3b82f6
++title: Diagramme en b├ótons
++@@@
++- Format barchart: valeur_x1:hauteur1, valeur_x2:hauteur2, ..., #couleur_optionnelle
++
++Pour une bo├«te ├á moustaches (quartiles, m├®diane, extremums) :
++@@@ graph
++domain: 0, 20, -2, 2
++boxplot: 2, 8, 11, 14, 18, S├®rie 1, #f43f5e
++title: Bo├«te ├á moustaches
++@@@
++- Format boxplot: min, Q1, m├®diane, Q3, max, label_optionnel, #couleur_optionnelle
++- Si la question demande deux s├®ries, tu peux ajouter deux lignes boxplot: dans le m├¬me @@@ graph en adaptant le domain.
++
++Pour un diagramme circulaire (camembert) :
++@@@ graph
++domain: -5, 5, -5, 5
++piechart: Pommes:30, Poires:20, Bananes:50
++title: R├®partition des fruits
++@@@
++- Format piechart: Label1:Valeur1, Label2:Valeur2, ..., LabelN:ValeurN
++- Les valeurs peuvent ├¬tre des pourcentages ou des effectifs.
++- Un seul piechart par graphique en g├®n├®ral.
++
++Pour les tableaux de statistiques ou tableaux ├á double entr├®e :
++- ÔÜá´©Å NE PAS UTILISER @@@ table (qui est strictement r├®serv├® aux tableaux de signes/variations) !
++- Utiliser un simple tableau Markdown pour afficher un tableau de statistiques ou tableau crois├®.
++
++
+ === ARBRES DE PROBABILIT├ëS ===
+ 
+ ÔÜá´©Å **R├êGLE ABSOLUE : Toute question sur un arbre de probabilit├®s DOIT g├®n├®rer un bloc @@@tree !**
+diff --git a/app/components/GeometryFigure.tsx b/app/components/GeometryFigure.tsx
+index 8efa22b..16d4477 100644
+--- a/app/components/GeometryFigure.tsx
++++ b/app/components/GeometryFigure.tsx
+@@ -418,7 +418,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
+         const ux = dx / len, uy = dy / len;
+ 
+         // Pointe de fl├¿che sur le segment (triangle)
+-        const arrowLen = 14, arrowW = 6;
++        const arrowLen = 12, arrowW = 5;
+         const tipX = x2, tipY = y2;
+         const baseX = x2 - ux * arrowLen, baseY = y2 - uy * arrowLen;
+         const leftX = baseX - uy * arrowW, leftY = baseY + ux * arrowW;
+@@ -435,15 +435,17 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
+         labelText = labelText.replace(/^(?:vecteur|vector)\s+/i, '');
+         const textWidth = labelText.length * 8; // estimation largeur texte
+ 
+-
+-        // D├®calage perpendiculaire au vecteur (toujours au-dessus)
+-        const perpX = -uy; // perpendiculaire normalis├®e
+-        const perpY = ux;
+-        const offset = 18; // pixels au-dessus du segment
+-        // S'assurer que le label est toujours "au-dessus" visuellement
+-        const sign = perpY < 0 ? 1 : -1;
+-        const lx = mx + perpX * offset * sign;
+-        const ly = my + perpY * offset * sign;
++        // D├®calage perpendiculaire au vecteur (garantit que le texte est dans le demi-plan sup├®rieur visuel)
++        let nx = -uy;
++        let ny = ux;
++        // L'axe Y du SVG vers le bas : on veut que la normale pointe vers le "haut" (ny < 0)
++        if (ny > 0 || (Math.abs(ny) < 1e-5 && nx < 0)) {
++            nx = -nx;
++            ny = -ny;
++        }
++        const offset = 20; // pixels au-dessus du segment
++        const lx = mx + nx * offset;
++        const ly = my + ny * offset;
+ 
+         return (
+             <g key={`vec${i}`}>
+diff --git a/app/components/MathGraph.tsx b/app/components/MathGraph.tsx
+index b602b2c..b019140 100644
+--- a/app/components/MathGraph.tsx
++++ b/app/components/MathGraph.tsx
+@@ -40,6 +40,9 @@ export interface MathGraphProps {
+     title?: string;
+     hideAxes?: boolean;
+     asymptotes?: number[];
++    boxplots?: { min: number, q1: number, median: number, q3: number, max: number, label: string, color?: string }[];
++    barcharts?: { coords: { x: number, y: number }[], color?: string }[];
++    piecharts?: { data: { label: string, value: number, color?: string }[] }[];
+ }
+ 
+ // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+@@ -282,7 +285,10 @@ export default function MathGraph({
+     domain: domainProp = { x: [-5, 5], y: [-4, 4] },
+     title,
+     hideAxes = false,
+-    asymptotes = []
++    asymptotes = [],
++    boxplots = [],
++    barcharts = [],
++    piecharts = []
+ }: MathGraphProps) {
+     const svgRef = useRef<SVGSVGElement>(null);
+     const containerRef = useRef<HTMLDivElement>(null);
+@@ -329,6 +335,16 @@ export default function MathGraph({
+             const autoY = autoComputeYDomain(functions, xDomain, computedAsymptotes);
+             yDomain = autoY;
+         }
++        else if (barcharts && barcharts.length > 0) {
++            let maxY = 0;
++            barcharts.forEach(b => {
++                b.coords.forEach(pt => { if (pt.y > maxY) maxY = pt.y; });
++            });
++            yDomain = [0, Math.ceil(maxY * 1.2)];
++        }
++        else if (boxplots && boxplots.length > 0) {
++            yDomain = [0, boxplots.length + 1];
++        }
+         // M├¬me sans fonctions, adapter le Y aux points si on en a assez
+         else if (points.length > 2) {
+             const yValues = points.map(p => p.y);
+@@ -458,8 +474,10 @@ export default function MathGraph({
+         // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ GRADUATIONS ¤Ç OU NORMALES ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+         const piTicks = hasTrigFunctions ? generatePiTicks(domain.x[0], domain.x[1], isMobile) : [];
+         const usesPiTicks = piTicks.length > 0;
++        const hasPie = piecharts && piecharts.length > 0;
++        const autoHideAxes = hideAxes || hasPie;
+ 
+-        if (!hideAxes) {
++        if (!autoHideAxes) {
+             // ÔöÇÔöÇ GRILLES ÔöÇÔöÇ
+             if (usesPiTicks) {
+                 // Grilles verticales align├®es sur les multiples de ¤Ç
+@@ -751,9 +769,116 @@ export default function MathGraph({
+             });
+         }
+ 
++        // ÔöÇÔöÇ BARCHARTS ÔöÇÔöÇ
++        if (barcharts && barcharts.length > 0) {
++            const chartGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
++            barcharts.forEach(bar => {
++                const color = bar.color || '#3b82f6';
++                const dx = xScale(1) - xScale(0);
++                const bw = Math.abs(dx * 0.6);
++                bar.coords.forEach(pt => {
++                    const py = yScale(pt.y);
++                    const p0 = yScale(0);
++                    const bh = Math.max(0, p0 - py);
++                    chartGroup.append('rect')
++                        .attr('x', xScale(pt.x) - bw/2)
++                        .attr('y', py)
++                        .attr('width', bw)
++                        .attr('height', bh)
++                        .attr('fill', color)
++                        .attr('opacity', 0)
++                        .attr('rx', 2)
++                        .transition()
++                        .delay(400)
++                        .duration(800)
++                        .attr('opacity', 0.8);
++                });
++            });
++        }
++
++        // ÔöÇÔöÇ BOXPLOTS ÔöÇÔöÇ
++        if (boxplots && boxplots.length > 0 && !hasPie) {
++            const boxGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
++            boxplots.forEach((box, i) => {
++                const yPos = boxplots.length === 1 ? (domain.y[0] + domain.y[1])/2 : domain.y[0] + (i + 1) * (domain.y[1] - domain.y[0]) / (boxplots.length + 1);
++                const sy = yScale(yPos);
++                const dh = 15; // half height
++                const color = box.color || '#10b981';
++
++                const grp = boxGroup.append('g').style('opacity', 0);
++                grp.transition().delay(i * 300).duration(800).style('opacity', 1);
++
++                // Ligne de moustache
++                grp.append('line').attr('x1', xScale(box.min)).attr('x2', xScale(box.max)).attr('y1', sy).attr('y2', sy).attr('stroke', color).attr('stroke-width', 2);
++                
++                // Moustaches bouts
++                grp.append('line').attr('x1', xScale(box.min)).attr('x2', xScale(box.min)).attr('y1', sy-dh/2).attr('y2', sy+dh/2).attr('stroke', color).attr('stroke-width', 2);
++                grp.append('line').attr('x1', xScale(box.max)).attr('x2', xScale(box.max)).attr('y1', sy-dh/2).attr('y2', sy+dh/2).attr('stroke', color).attr('stroke-width', 2);
++                
++                // Bo├«te
++                grp.append('rect')
++                    .attr('x', xScale(box.q1)).attr('y', sy-dh)
++                    .attr('width', xScale(box.q3) - xScale(box.q1)).attr('height', dh*2)
++                    .attr('fill', color).attr('fill-opacity', 0.3)
++                    .attr('stroke', color).attr('stroke-width', 2);
++                    
++                // M├®diane
++                grp.append('line').attr('x1', xScale(box.median)).attr('x2', xScale(box.median)).attr('y1', sy-dh).attr('y2', sy+dh).attr('stroke', color).attr('stroke-width', 3);
++                
++                // Label au-dessus de la bo├«te, centr├® sur la m├®diane
++                grp.append('text').attr('x', xScale(box.median)).attr('y', sy - dh - 8)
++                    .attr('fill', 'white').style('font-size', '13px').attr('text-anchor', 'middle').text(box.label);
++            });
++        }
++
++        // ÔöÇÔöÇ PIECHARTS (Camemberts) ÔöÇÔöÇ
++        if (hasPie) {
++            const pieGroup = g.append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
++            const radius = Math.min(width, height) / 2 * 0.8;
++            
++            const pieGen = d3.pie<any>().value(d => d.value).sort(null);
++            const arcGen = d3.arc<any>().innerRadius(0).outerRadius(radius);
++            const labelArcGen = d3.arc<any>().innerRadius(radius * 0.6).outerRadius(radius * 0.6);
++            
++            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
++
++            piecharts.forEach((pie, pieIdx) => {
++                const pieData = pieGen(pie.data);
++                
++                const arcs = pieGroup.selectAll('.arc')
++                    .data(pieData)
++                    .enter().append('g')
++                    .attr('class', 'arc');
++                    
++                arcs.append('path')
++                    .attr('d', arcGen)
++                    .attr('fill', (d, i) => d.data.color || colorScale(i.toString()))
++                    .attr('stroke', 'white')
++                    .attr('stroke-width', '2px')
++                    .attr('opacity', 0)
++                    .transition()
++                    .delay((d, i) => i * 200)
++                    .duration(500)
++                    .attr('opacity', 0.9);
++                    
++                arcs.append('text')
++                    .attr('transform', d => `translate(${labelArcGen.centroid(d)})`)
++                    .attr('text-anchor', 'middle')
++                    .attr('fill', 'white')
++                    .style('font-size', isMobile ? '10px' : '12px')
++                    .style('font-weight', 'bold')
++                    .text(d => d.data.label)
++                    .attr('opacity', 0)
++                    .transition()
++                    .delay((d, i) => i * 200 + 400)
++                    .duration(500)
++                    .attr('opacity', 1);
++            });
++        }
++
+         // ÔöÇÔöÇ TITRE ÔöÇÔöÇ
+         // (Rendu en HTML au lieu du SVG pour g├®rer le LaTeX/KaTeX proprement)
+-    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions]);
++    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions, boxplots, barcharts, piecharts]);
+ 
+     useEffect(() => {
+         renderGraph();
+diff --git a/app/hooks/useFigureRenderer.tsx b/app/hooks/useFigureRenderer.tsx
+index 44e2c49..db6150f 100644
+--- a/app/hooks/useFigureRenderer.tsx
++++ b/app/hooks/useFigureRenderer.tsx
+@@ -74,7 +74,7 @@ export function useFigureRenderer() {
+                     // (ind├®pendamment du titre), car l'IA peut g├®n├®rer $\vec{AB}$
+                     // m├¬me dans des figures sans titre explicite "vecteur".
+                     rawToParse = rawToParse.replace(
+-                        /(?:^|\n)(\s*)(?:vecteur|vector|vec)\s*:\s*([^\n]+)/gim,
++                        /(?:^|\n)(\s*)(?:vecteurs?|vectors?|vecs?)\s*:\s*([^\n]+)/gim,
+                         (match, indent, content) => {
+                             const cleaned = content
+                                 .replace(/\$\$?/g, '')
+@@ -88,33 +88,28 @@ export function useFigureRenderer() {
+                                 .replace(/\bVEC\b|\bSEG\b|\bVECTOR\b|\bSEGMENT\b/gi, ' ')
+                                 .trim();
+ 
+-                            let pts = '';
+-                            const twoMAdj = cleaned.match(/\b([A-Z]{2})\b/);
+-                            if (twoMAdj) pts = twoMAdj[1];
+-                            else {
+-                                const twoM = cleaned.match(/\b([A-Z])\b[\s,]*\b([A-Z])\b/);
+-                                if (twoM) pts = twoM[1] + twoM[2];
+-                                else {
+-                                    const letters = (cleaned.match(/[A-Z]/g) || []).slice(0, 2);
+-                                    if (letters.length === 2) pts = letters[0] + letters[1];
+-                                }
+-                            }
+-                            
+-                            if (pts) {
+-                                const parts = content.split(',').map((s: string) => s.trim());
+-                                const otherParts = parts.filter((p: string) => {
+-                                    const cleanP = p.replace(/[^a-zA-Z]/g, '');
+-                                    if (cleanP === pts) return false;
+-                                    if (cleanP === pts[0] && p.length <= 2) return false;
+-                                    if (cleanP === pts[1] && p.length <= 2) return false;
++                            let output = '';
++                            const pairsMatch = cleaned.match(/\b([A-Z])\s*([A-Z])\b/g);
++
++                            if (pairsMatch && pairsMatch.length > 0) {
++                                const parts = content.split(/[,=]/).map((s: string) => s.trim());
++                                const validOthers = parts.filter((p: string) => {
++                                    const cleanP = p.replace(/[^a-zA-Z0-9#]/g, '');
++                                    if (/^[A-Z]{1,2}$/.test(cleanP)) return false;
+                                     if (p.includes('vec') || p.includes('rightarrow') || p.includes('overrightarrow')) return false;
++                                    if (p.includes('+') || p.includes('-')) return false;
+                                     return true;
+                                 });
+-                                
+-                                if (otherParts.length > 0) {
+-                                    return `\n${indent}vecteur: ${pts}, ${otherParts.join(', ')}`;
+-                                }
+-                                return `\n${indent}vecteur: ${pts}`;
++
++                                pairsMatch.forEach((pair: string) => {
++                                    const pts = pair.replace(/\s+/g, '');
++                                    if (validOthers.length > 0) {
++                                        output += `\n${indent}vecteur: ${pts}, ${validOthers.join(', ')}`;
++                                    } else {
++                                        output += `\n${indent}vecteur: ${pts}`;
++                                    }
++                                });
++                                return output;
+                             }
+                             return match;
+                         }
+@@ -366,6 +361,10 @@ export function useFigureRenderer() {
+                 let graphAsym: number[] = [];
+                 let graphTitle = sections[0].includes(':') ? sections[0].split(':').slice(1).join(':').trim() : '';
+ 
++                const graphBoxplots: any[] = [];
++                const graphBarcharts: any[] = [];
++                const graphPiecharts: any[] = [];
++
+                 sections.slice(1).forEach(sec => {
+                     const low = sec.toLowerCase().trim();
+                     if (low.startsWith('function:')) {
+@@ -385,10 +384,46 @@ export function useFigureRenderer() {
+                             const m = pt.match(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+                             if (m) graphPoints.push({ x: parseFloat(m[1]), y: parseFloat(m[2]) });
+                         });
++                    } else if (low.startsWith('boxplot:')) {
++                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                        const parts = argStr.split(',').map(s => s.trim());
++                        if (parts.length >= 5) {
++                            graphBoxplots.push({
++                                min: parseFloat(parts[0]), q1: parseFloat(parts[1]),
++                                median: parseFloat(parts[2]), q3: parseFloat(parts[3]),
++                                max: parseFloat(parts[4]), label: parts[5] || 'S├®rie',
++                                color: parts[6] || graphFnColors[graphBoxplots.length % graphFnColors.length]
++                            });
++                        }
++                    } else if (low.startsWith('barchart:')) {
++                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                        const parts = argStr.split(',').map(s => s.trim());
++                        const coords = [];
++                        let color = undefined;
++                        for (const p of parts) {
++                            if (p.startsWith('#')) color = p;
++                            else if (p.includes(':')) {
++                                const [x, y] = p.split(':').map(Number);
++                                if (!isNaN(x) && !isNaN(y)) coords.push({ x, y });
++                            }
++                        }
++                        if (coords.length > 0) graphBarcharts.push({ coords, color: color || graphFnColors[graphBarcharts.length % graphFnColors.length] });
++                    } else if (low.startsWith('piechart:')) {
++                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                        const parts = argStr.split(',').map(s => s.trim());
++                        const data = [];
++                        for (const p of parts) {
++                            const segments = p.split(':').map(s => s.trim());
++                            if (segments.length >= 2) {
++                                const value = parseFloat(segments[1]);
++                                if (!isNaN(value)) data.push({ label: segments[0], value, color: segments[2] && segments[2].startsWith('#') ? segments[2] : undefined });
++                            }
++                        }
++                        if (data.length > 0) graphPiecharts.push({ data });
+                     }
+                 });
+ 
+-                if (graphFns.length > 0) {
++                if (graphFns.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0 || graphPoints.length > 0) {
+                     return _cacheAndReturn(
+                         <div key={rawBlock} className="w-full math-figure-container my-6">
+                             <div className="animate-in zoom-in duration-700">
+@@ -398,6 +433,9 @@ export function useFigureRenderer() {
+                                     domain={graphDomain}
+                                     title={graphTitle || undefined}
+                                     asymptotes={graphAsym}
++                                    boxplots={graphBoxplots}
++                                    barcharts={graphBarcharts}
++                                    piecharts={graphPiecharts}
+                                 />
+                             </div>
+                         </div>
+@@ -476,6 +514,20 @@ export function useFigureRenderer() {
+                             const m = c.match(/cercle\s*\(\s*([A-Z][A-Z0-9]?)\s*,\s*([\d.]+)\s*\)/);
+                             if (m) objects.push({ kind: 'circle', id: `circ${i}`, center: m[1], radiusValue: parseFloat(m[2]) });
+                         });
++                    } else if (low.startsWith('angle_droit:') || low.startsWith('right_angle:')) {
++                        const parts = sec.substring(sec.indexOf(':') + 1).split(',').map(p => p.trim());
++                        if (parts.length >= 3) {
++                            const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase());
++                            objects.push({ kind: 'angle', id: `ang${objects.length}`, vertex, from: p1, to: p2, label: '90┬░', value: 90, square: true, color: '#34d399' } as any);
++                        }
++                    } else if (low.startsWith('angle:')) {
++                        const parts = sec.substring(sec.indexOf(':') + 1).split(',').map(p => p.trim());
++                        if (parts.length >= 3) {
++                            const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase());
++                            const label = parts[3] || `\\widehat{${p1}${vertex}${p2}}`;
++                            const color = parts[4] || '#fbbf24';
++                            objects.push({ kind: 'angle', id: `ang${objects.length}`, vertex, from: p1, to: p2, label, color } as any);
++                        }
+                     } else if (low.startsWith('compute:')) {
+                         // Calcule le p├®rim├¿tre ou une distance
+                         const expr = sec.substring(sec.indexOf(':') + 1).trim();
+@@ -895,11 +947,22 @@ export function useFigureRenderer() {
+             }
+ 
+             // --- CAS 2 : GRAPHIQUE OU G├ëOM├ëTRIE ---
+-            const title = (sections[0]?.includes(',') || sections[0]?.includes(':') || sections[0]?.includes('domain:')) ? "Analyse Graphique" : sections[0];
++            let title = "Analyse graphique";
++            if (sections[0] && !sections[0].includes(',') && !sections[0].includes(':') && !sections[0].includes('domain:')) {
++                const rawT = sections[0].trim();
++                // Si la premi├¿re ligne n'est ni "graph" ni "figure", on l'adopte comme titre
++                if (rawT.toLowerCase() !== 'graph' && rawT.toLowerCase() !== 'figure') {
++                    title = rawT;
++                }
++            }
++            
+             const points: GraphPoint[] = [];
+             const entities: any[] = [];
+             const graphFunctions: { fn: string; color: string; domain?: [number, number] }[] = [];
+             let graphAsymptotes: number[] = [];
++            const graphBoxplots: { min: number, q1: number, median: number, q3: number, max: number, label: string, color?: string }[] = [];
++            const graphBarcharts: { coords: { x: number, y: number }[], color?: string }[] = [];
++            const graphPiecharts: { data: { label: string, value: number, color?: string }[] }[] = [];
+             let domain = { x: [-5, 5] as [number, number], y: [-4, 4] as [number, number] };
+             let hideAxesValue = false;
+ 
+@@ -910,6 +973,9 @@ export function useFigureRenderer() {
+             sections.forEach(sec => {
+                 const low = sec.toLowerCase().trim();
+                 if (low === 'pure' || low === 'hideaxes' || low === 'geometry') hideAxesValue = true;
++                else if (low.startsWith('title:')) {
++                    title = sec.substring(sec.indexOf(':') + 1).trim();
++                }
+                 else if (low.startsWith('domain:')) {
+                     const d = low.replace('domain:', '').trim().split(',').map(Number);
+                     if (d.length >= 4) domain = { x: [d[0], d[1]], y: [d[2], d[3]] };
+@@ -940,6 +1006,54 @@ export function useFigureRenderer() {
+                 } else if (low.startsWith('point:')) {
+                     const p = sec.split(':')[1].split(',');
+                     if (p.length >= 3) entities.push({ type: 'point', name: p[0].trim(), x1: parseFloat(p[1]), y1: parseFloat(p[2]) });
++                } else if (low.startsWith('boxplot:')) {
++                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                    const parts = argStr.split(',').map(s => s.trim());
++                    if (parts.length >= 5) {
++                        graphBoxplots.push({
++                            min: parseFloat(parts[0]),
++                            q1: parseFloat(parts[1]),
++                            median: parseFloat(parts[2]),
++                            q3: parseFloat(parts[3]),
++                            max: parseFloat(parts[4]),
++                            label: parts[5] || 'S├®rie',
++                            color: parts[6] || fnColors[graphBoxplots.length % fnColors.length]
++                        });
++                    }
++                } else if (low.startsWith('barchart:')) {
++                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                    const parts = argStr.split(',').map(s => s.trim());
++                    const coords = [];
++                    let color = undefined;
++                    for (const p of parts) {
++                        if (p.startsWith('#')) {
++                            color = p;
++                        } else if (p.includes(':')) {
++                            const [x, y] = p.split(':').map(Number);
++                            if (!isNaN(x) && !isNaN(y)) coords.push({ x, y });
++                        }
++                    }
++                    if (coords.length > 0) {
++                        graphBarcharts.push({ coords, color: color || fnColors[graphBarcharts.length % fnColors.length] });
++                    }
++                } else if (low.startsWith('piechart:')) {
++                    const argStr = sec.substring(sec.indexOf(':') + 1).trim();
++                    const parts = argStr.split(',').map(s => s.trim());
++                    const data = [];
++                    for (const p of parts) {
++                        const segments = p.split(':').map(s => s.trim());
++                        if (segments.length >= 2) {
++                            const label = segments[0];
++                            const value = parseFloat(segments[1]);
++                            const color = segments[2] && segments[2].startsWith('#') ? segments[2] : undefined;
++                            if (!isNaN(value)) {
++                                data.push({ label, value, color });
++                            }
++                        }
++                    }
++                    if (data.length > 0) {
++                        graphPiecharts.push({ data });
++                    }
+                 }
+             });
+ 
+@@ -996,7 +1110,7 @@ export function useFigureRenderer() {
+ 
+             // Ancienne r├¿gle supprim├®e : if (entities.length > 0 && points.length === 0) hideAxesValue = true;
+ 
+-            if (points.length > 0 || entities.length > 0 || graphFunctions.length > 0) {
++            if (points.length > 0 || entities.length > 0 || graphFunctions.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0) {
+                 return _cacheAndReturn(
+                     <div key={rawBlock} className="w-full math-figure-container my-6">
+                         <div className="animate-in zoom-in duration-700">
+@@ -1008,6 +1122,9 @@ export function useFigureRenderer() {
+                                 title={title}
+                                 hideAxes={hideAxesValue}
+                                 asymptotes={graphAsymptotes}
++                                boxplots={graphBoxplots}
++                                barcharts={graphBarcharts}
++                                piecharts={graphPiecharts}
+                             />
+                         </div>
+                     </div>
+diff --git a/app/hooks/useMathRouter.ts b/app/hooks/useMathRouter.ts
+index 8773d34..5357c9e 100644
+--- a/app/hooks/useMathRouter.ts
++++ b/app/hooks/useMathRouter.ts
+@@ -14,6 +14,9 @@ import {
+     stripDdx,
+     prettifyExpr,
+ } from '@/lib/math-router/math-text-utils';
++import { streamPerplexityResponse } from '@/lib/math-router/stream-handler';
++import { analyzeQuestion } from '@/lib/math-router/intent-detector';
++
+ import {
+     buildSignTableInstructions,
+     buildProbabilitySystemPrompt,
+@@ -96,138 +99,16 @@ export function useMathRouter({
+         // On pr├®-ajoute le message de l'assistant (vide pour le stream)
+         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+ 
+-        try {
+-            const response = await fetch('/api/perplexity', {
+-                method: 'POST',
+-                headers: { 'Content-Type': 'application/json' },
+-                body: JSON.stringify({ messages: msgs, context: baseContext }),
+-            });
+-
+-            if (!response.ok) {
+-                let errMsg = `Erreur API (HTTP ${response.status})`;
+-                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+-                console.error('[useMathRouter] /api/perplexity error:', errMsg);
+-                throw new Error(errMsg);
+-            }
+-
+-            const reader = response.body?.getReader();
+-            if (!reader) throw new Error('Reader non disponible');
+-
+-            const decoder = new TextDecoder();
+-            let fullText = "";
+-            let currentSentence = "";
+-            let inMathBlock = false;
+-            let lastUpdate = Date.now();
+-            let rafPending = false;
+-            let lineBuffer = ""; // Buffer pour les lignes incompl├¿tes entre chunks
+-
+-            // R├®f├®rence stable pour acc├®der ├á fullText dans le RAF
+-            const fullTextRef = { current: "" };
+-
+-            while (true) {
+-                const { done, value } = await reader.read();
+-                if (done) break;
+-
+-                const rawChunk = decoder.decode(value, { stream: true });
+-
+-                // Accumuler le chunk dans le buffer et s├®parer les lignes compl├¿tes
+-                lineBuffer += rawChunk;
+-                const lines = lineBuffer.split('\n');
+-
+-                // Le dernier ├®l├®ment peut ├¬tre incomplet, le garder pour le prochain chunk
+-                lineBuffer = lines.pop() || "";
+-
+-                for (const line of lines) {
+-                    if (line.startsWith('data: ')) {
+-                        const jsonStr = line.substring(6);
+-                        if (jsonStr === '[DONE]') break;
+-                        try {
+-                            const json = JSON.parse(jsonStr);
+-                            const content = json.choices[0]?.delta?.content || "";
+-                            if (content) {
+-                                fullText += content;
+-                                fullTextRef.current = fullText;
+-                                currentSentence += content;
+-
+-                                // Mise ├á jour UI : utiliser le texte brut pendant le streaming
+-                                // Le fixer complet sera appliqu├® ├á la fin (ligne ~214)
+-                                // Cela ├®vite les probl├¿mes d'encapsulation de fractions incompl├¿tes
+-                                setMessages(prev => {
+-                                    const updated = [...prev];
+-                                    updated[updated.length - 1] = {
+-                                        role: 'assistant',
+-                                        content: fullText  // Texte brut pendant le streaming
+-                                    };
+-                                    return updated;
+-                                });
+-
+-                                // D├®tection de fin de phrase pour le TTS
+-                                // On ├®vite de couper au milieu d'un bloc @@@ ou d'un bloc KaTeX $$
+-                                if (content.includes('@@@')) inMathBlock = !inMathBlock;
+-                                if (content.includes('$$')) inMathBlock = !inMathBlock;
+-
+-                                if (!inMathBlock && isVoiceEnabled) {
+-                                    const sentenceEndings = /[.!?](\s|$)/;
+-                                    if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
+-                                        // On nettoie un peu la phrase avant de l'ajouter ├á la queue
+-                                        const sentenceToSpeak = currentSentence.trim();
+-                                        speechQueue.current.push(sentenceToSpeak);
+-                                        currentSentence = "";
+-                                        processSpeechQueue();
+-                                    }
+-                                }
+-                            }
+-                        } catch (e) {
+-                            // Erreur de parsing JSON - log pour debug
+-                            console.warn('[Stream] JSON parse error on line:', line.slice(0, 100));
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Traiter le buffer r├®siduel si non vide
+-            if (lineBuffer.startsWith('data: ')) {
+-                const jsonStr = lineBuffer.substring(6);
+-                if (jsonStr !== '[DONE]') {
+-                    try {
+-                        const json = JSON.parse(jsonStr);
+-                        const content = json.choices[0]?.delta?.content || "";
+-                        if (content) {
+-                            fullText += content;
+-                            fullTextRef.current = fullText;
+-                        }
+-                    } catch (e) {
+-                        console.warn('[Stream] Residual buffer parse error');
+-                    }
+-                }
+-            }
+-
+-            // Fin du stream : application du fixFinal et lecture du reste
+-            // patchMarkdownTables : si l'IA a g├®n├®r├® un tableau Markdown au lieu de @@@,
+-            // on le convertit automatiquement (garde-fou non-d├®terminisme)
+-            const finalFixed = patchMarkdownTables(fixLatexContent(fullText).content);
+-            setMessages(prev => {
+-                const updated = [...prev];
+-                updated[updated.length - 1] = { role: 'assistant', content: finalFixed };
+-                return updated;
+-            });
+-
+-            if (currentSentence.trim().length > 0 && isVoiceEnabled) {
+-                speechQueue.current.push(currentSentence.trim());
+-                processSpeechQueue();
+-            }
+-
+-        } catch (error) {
+-            console.error('Erreur Assistant:', error);
+-            setMessages(prev => {
+-                const updated = [...prev];
+-                updated[updated.length - 1] = { role: 'assistant', content: "D├®sol├®, une erreur est survenue lors de la communication." };
+-                return updated;
+-            });
+-            setIsTalking(false);
+-        } finally {
+-            setLoading(false);
+-        }
++        await streamPerplexityResponse({
++            messages: msgs,
++            baseContext,
++            setMessages,
++            setLoading,
++            setIsTalking,
++            isVoiceEnabled,
++            speechQueue,
++            processSpeechQueue
++        });
+     };
+ 
+ 
+@@ -241,8 +122,12 @@ export function useMathRouter({
+         const inputCleaned = deLatexInput(inputText);
+         // Utiliser inputCleaned pour les d├®tections et extractions, inputText pour l'affichage/IA
+         const inputLower = inputCleaned.toLowerCase();
+-        const wantsSignTable = /signe|sign|tableau\s*de\s*signe|├®tudier?\s*(le\s*)?signe|in[e├®]quation/i.test(inputLower);
+-        const wantsVariationTable = /variation|tableau\s*de\s*variation|├®tudier?\s*(les?\s*)?variation/i.test(inputLower);
++        // ÔöÇÔöÇ Phase B.1: D├®l├®gation des 'Basic Intents' au d├®tecteur ÔöÇÔöÇ
++        const analysis = analyzeQuestion(inputCleaned, resolveNiveau(inputText));
++        
++        // On mappe les r├®sultats de l'analyseur propre vers les flags locaux
++        const wantsSignTable = analysis.intents.some(i => i.intent === 'sign_table' || i.intent === 'solve_inequality');
++        const wantsVariationTable = analysis.intents.some(i => i.intent === 'variation_table');
+         // D├®tection exercice multi-questions (format 1) ... 2) ... OU 1. ... 2. ...)
+         const isMultiExpr = /(?:^|[\n;.!?\s])\s*\d+\s*[).]\s+[\s\S]+?(?:[\n;.!?\s])\s*\d+\s*[).]\s+/.test(inputText);
+ 
+@@ -624,63 +509,6 @@ R├êGLES ABSOLUES :
+                     const header = `­ƒôØ **Exercice : f(x) = ${prettifyExpr(exprClean)}**\n\n---\n\n`;
+                     setMessages(prev => [...prev, { role: 'assistant', content: header + 'ÔÅ│ *R├®solution en cours...*' }]);
+ 
+-                    try {
+-                        const response = await fetch('/api/perplexity', {
+-                            method: 'POST',
+-                            headers: { 'Content-Type': 'application/json' },
+-                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+-                        });
+-                        if (!response.ok) {
+-                            let errMsg = `Erreur API (HTTP ${response.status})`;
+-                            try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+-                            console.error('[ExerciceMode] /api/perplexity error:', errMsg);
+-                            throw new Error(errMsg);
+-                        }
+-                        const reader = response.body?.getReader();
+-                        if (!reader) throw new Error('Reader non disponible');
+-                        const decoder = new TextDecoder();
+-                        let aiText = '';
+-                        let lastUpdate = 0;
+-                        // stripDdx est import├® de math-text-utils.ts
+-                        let lineBuffer = ''; // Buffer pour les lignes incompl├¿tes
+-                        while (true) {
+-                            const { done, value } = await reader.read();
+-                            if (done) break;
+-                            lineBuffer += decoder.decode(value, { stream: true });
+-                            const lines = lineBuffer.split('\n');
+-                            lineBuffer = lines.pop() || ''; // Garder la derni├¿re ligne incompl├¿te
+-                            for (const ln of lines) {
+-                                if (!ln.startsWith('data: ')) continue;
+-                                const js = ln.substring(6);
+-                                if (js === '[DONE]') break;
+-                                try {
+-                                    const c = JSON.parse(js).choices?.[0]?.delta?.content || '';
+-                                    if (c) {
+-                                        aiText += c;
+-                                        // Throttle : max 1 update / 400ms pour ├®viter 'Maximum update depth exceeded'
+-                                        const now = Date.now();
+-                                        if (now - lastUpdate > 400) {
+-                                            lastUpdate = now;
+-                                            let disp = aiText
+-                                                .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
+-                                                .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
+-                                            const fixedDisp = patchMarkdownTables(fixLatexContent(header + disp).content);
+-                                            requestAnimationFrame(() => {
+-                                                setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: fixedDisp }; return u; });
+-                                            });
+-                                        }
+-                                    }
+-                                } catch { }
+-                            }
+-                        }
+-                        let finalText = aiText
+-                            .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
+-                            .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
+-                        if (tableOfValues && !finalText.includes('| x | f(x) |')) {
+-                            finalText += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
+-                        }
+-                        // Toujours ajouter le graphe pour un exercice sur une fonction
+-                        // (m├¬me si pas de question 'graph' explicite dans l'OCR)
+                         try {
+                             const prettyName = prettifyExprForDisplay(exprClean);
+                             const gs = {
+@@ -695,16 +523,29 @@ R├êGLES ABSOLUES :
+                             } catch { /* ignore */ }
+                             console.log(`[ExerciceMode] ­ƒôè graphState stock├® pour ${exprClean}`);
+                         } catch { /* ignore */ }
+-                        finalText += '\n\n---\n\n­ƒôè Clique sur le bouton ci-dessous pour voir la courbe.';
+-                        finalText = stripDdx(finalText);
+-                        const finalContent = patchMarkdownTables(fixLatexContent(header + finalText).content);
+-                        setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: 'assistant', content: finalContent }; return u; });
+-                    } catch (error) {
+-                        console.error('[ExerciceMode] Erreur streaming:', error);
+-                    } finally {
+-                        setLoading(false);
+-                        setIsTalking(false);
+-                    }
++
++                        await streamPerplexityResponse({
++                            messages: enrichedMessages,
++                            baseContext,
++                            setMessages,
++                            setLoading,
++                            setIsTalking,
++                            isVoiceEnabled,
++                            speechQueue,
++                            processSpeechQueue,
++                            prependText: header,
++                            applyStripDdx: true,
++                            postProcess: (text) => {
++                                let proc = text
++                                    .replace(/\[TABLE_SIGNES\]/gi, (signTableBlock && !hasStudyVarTable) ? `\n\n${signTableBlock}\n\n` : '')
++                                    .replace(/\[TABLE_VARIATIONS\]/gi, variationTableBlock ? `\n\n${variationTableBlock}\n\n` : '');
++                                if (tableOfValues && !proc.includes('| x | f(x) |')) {
++                                    proc += '\n\n**Tableau de valeurs :**\n\n' + tableOfValues;
++                                }
++                                proc += '\n\n---\n\n­ƒôè Clique sur le bouton ci-dessous pour voir la courbe.';
++                                return proc;
++                            }
++                        });
+                     return;
+                 }
+             } catch (err) {
+@@ -718,7 +559,8 @@ R├êGLES ABSOLUES :
+         // ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+         const wantsStudyFunction = /(?:├®tudier?|etudie)\s+(?:la\s+)?(?:fonction\s+)?(?:[fghk]|cette\s+fonction)/i.test(inputLower)
+             || /(?:├®tude\s+(?:compl├¿te|de\s+la\s+fonction))/i.test(inputLower)
+-            || (/(?:sign\w*|├®tud\w*|etud\w*).+d├®riv├®e/i.test(inputLower) && /variation/i.test(inputLower));
++            || (/(?:sign\w*|├®tud\w*|etud\w*).+(?:d├®riv├®e|fonction)/i.test(inputLower) && /variation/i.test(inputLower))
++            || (/signe/i.test(inputLower) && /variation/i.test(inputLower));
+ 
+         if (wantsStudyFunction && !isMultiExpr) {
+             try {
+@@ -765,9 +607,7 @@ R├êGLES ABSOLUES :
+         // ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+         // HANDLER "CALCULER UNE D├ëRIV├ëE EXACTE" (Module D├®rivation)
+         // ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+-        const wantsDerivative = /(?:calculer?|donne-?moi|calcule|d├®terminer?|determiner?|quelle\s+est|trouve[rz]?)\s+(?:la\s+)?(?:d├®riv├®e?|deriv├®e?)\s*(?:de|du|d'un|d'une|des)?\s*(?:[fghk]|cette|l'expression|la\s+fonction|trin[├┤o]me|polyn[├┤o]me|quotient|produit|fraction)/i.test(inputLower)
+-            || /(?:c'est\s+quoi\s+la\s+d├®riv├®e|quelle\s+est\s+la\s+d├®riv├®e)/i.test(inputLower)
+-            || /^[fghk]'\s*\(\s*x\s*\)/i.test(inputLower);
++        const wantsDerivative = analysis.intents.some(i => i.intent === 'derivative');
+ 
+         // Bloquer si c'est une ├®tude compl├¿te ou un tableau (les autres handlers s'en chargent)
+         if (wantsDerivative && !wantsStudyFunction && !wantsVariationTable && !wantsSignTable && !isMultiExpr) {
+@@ -802,58 +642,17 @@ R├êGLES ABSOLUES :
+                             enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACH├ëES DU SYST├êME AUTOMATIQUE DE MATHS]\n${engineData.aiContext}`;
+                         }
+ 
+-                        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+-                        setLoading(true);
+-                        setIsTalking(true);
+-                        const response = await fetch('/api/perplexity', {
+-                            method: 'POST',
+-                            headers: { 'Content-Type': 'application/json' },
+-                            body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
++                        await streamPerplexityResponse({
++                            messages: enrichedMessages,
++                            baseContext,
++                            setMessages,
++                            setLoading,
++                            setIsTalking,
++                            isVoiceEnabled,
++                            speechQueue,
++                            processSpeechQueue,
++                            prependText: ''
+                         });
+-                        
+-                        if (!response.ok) throw new Error(`Erreur API deriv (HTTP ${response.status})`);
+-                        const reader = response.body?.getReader();
+-                        if (!reader) throw new Error('Reader non disponible');
+-                        const decoder = new TextDecoder();
+-                        let aiText = '';
+-                        let lastUpdate = 0;
+-                        let lineBuffer = '';
+-                        while (true) {
+-                            const { done, value } = await reader.read();
+-                            if (done) break;
+-                            lineBuffer += decoder.decode(value, { stream: true });
+-                            const lines = lineBuffer.split('\n');
+-                            lineBuffer = lines.pop() || '';
+-                            for (const line of lines) {
+-                                if (!line.startsWith('data: ')) continue;
+-                                const jsonStr = line.substring(6);
+-                                if (jsonStr === '[DONE]') break;
+-                                try {
+-                                    const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+-                                    if (c) {
+-                                        aiText += c;
+-                                        const now = Date.now();
+-                                        if (now - lastUpdate > 250) {
+-                                            lastUpdate = now;
+-                                            const fixedClean = fixLatexContent(aiText).content;
+-                                            setMessages(prev => {
+-                                                const u = [...prev];
+-                                                u[u.length - 1] = { role: 'assistant', content: fixedClean };
+-                                                return u;
+-                                            });
+-                                        }
+-                                    }
+-                                } catch { }
+-                            }
+-                        }
+-                        const finalFixed = fixLatexContent(aiText).content;
+-                        setMessages(prev => {
+-                            const u = [...prev];
+-                            u[u.length - 1] = { role: 'assistant', content: finalFixed };
+-                            return u;
+-                        });
+-                        setLoading(false);
+-                        setIsTalking(false);
+                         return;
+                     } else if (!engineData.success) {
+                         console.warn('[MathEngine] Module d├®rivation: API a retourn├® success=false:', engineData.error);
+@@ -980,72 +779,25 @@ R├êGLES ABSOLUES :
+                             enrichedMessages[enrichedMessages.length - 1].content += '\n\n' + buildSignTableInstructions(engineData, expr, tableBlock, inputText);
+                         }
+                         const tablePrefix = tableBlock + '\n\n';
+-                        // AJOUTER un nouveau message assistant (pas remplacer !)
+-                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
+-
++                        
+                         setLoading(true);
+                         setIsTalking(true);
+                         try {
+                             console.log('[DEBUG PROMPT IA COMPLET]:', JSON.stringify(enrichedMessages, null, 2));
+-                            const response = await fetch('/api/perplexity', {
+-                                method: 'POST',
+-                                headers: { 'Content-Type': 'application/json' },
+-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+-                            });
+-                            if (!response.ok) {
+-                                let errMsg = `Erreur API sign_table (HTTP ${response.status})`;
+-                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+-                                console.error('[SignTable] /api/perplexity error:', errMsg);
+-                                throw new Error(errMsg);
+-                            }
+-                            const reader = response.body?.getReader();
+-                            if (!reader) throw new Error('Reader non disponible');
+-                            const decoder = new TextDecoder();
+-                            let aiText = '';
+-                            let lastSignUpdate = 0;
+-                            let lineBuffer = ''; // Buffer pour les lignes incompl├¿tes
+-                            while (true) {
+-                                const { done, value } = await reader.read();
+-                                if (done) break;
+-                                lineBuffer += decoder.decode(value, { stream: true });
+-                                const lines = lineBuffer.split('\n');
+-                                lineBuffer = lines.pop() || ''; // Garder la derni├¿re ligne incompl├¿te
+-                                for (const line of lines) {
+-                                    if (!line.startsWith('data: ')) continue;
+-                                    const jsonStr = line.substring(6);
+-                                    if (jsonStr === '[DONE]') break;
+-                                    try {
+-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+-                                        if (c) {
+-                                            aiText += c;
+-                                            // Throttle : max 1 update / 250ms pour ├®viter 'Maximum update depth exceeded'
+-                                            const now = Date.now();
+-                                            if (now - lastSignUpdate > 250) {
+-                                                lastSignUpdate = now;
+-                                                const clean = aiText
+-                                                    .replace(/@@@[\s\S]*?@@@/g, '')
+-                                                    .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')
+-                                                    .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');
+-                                                const fixedClean = patchMarkdownTables(fixLatexContent(tablePrefix + clean).content);
+-                                                setMessages(prev => {
+-                                                    const u = [...prev];
+-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
+-                                                    return u;
+-                                                });
+-                                            }
+-                                        }
+-                                    } catch { }
+-                                }
+-                            }
+-                            const cleanFinal = aiText
+-                                .replace(/@@@[\s\S]*?@@@/g, '')
+-                                .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')  // Supprimer tableaux LaTeX g├®n├®r├®s par l'IA
+-                                .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '');  // Supprimer tableaux markdown de signes
+-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+-                            setMessages(prev => {
+-                                const u = [...prev];
+-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
+-                                return u;
++                            await streamPerplexityResponse({
++                                messages: enrichedMessages,
++                                baseContext,
++                                setMessages,
++                                setLoading,
++                                setIsTalking,
++                                isVoiceEnabled,
++                                speechQueue,
++                                processSpeechQueue,
++                                prependText: tablePrefix,
++                                postProcess: (text) => text
++                                    .replace(/@@@[\s\S]*?@@@/g, '')
++                                    .replace(/\\begin\{array\}[\s\S]*?\\end\{array\}/g, '')
++                                    .replace(/\|(?:[^|\n]*(?:x|signe|variations?|f\(x\))[^|\n]*)\|[^\n]*(?:\n|$)(?:\|[^\n]*(?:\n|$))*/gi, '')
+                             });
+                         } catch (error) {
+                             console.error('Erreur streaming:', error);
+@@ -1173,59 +925,17 @@ R├êGLES ABSOLUES :
+                         setLoading(true);
+                         setIsTalking(true);
+                         try {
+-                            const response = await fetch('/api/perplexity', {
+-                                method: 'POST',
+-                                headers: { 'Content-Type': 'application/json' },
+-                                body: JSON.stringify({ messages: enrichedMessages, context: baseContext }),
+-                            });
+-                            if (!response.ok) {
+-                                let errMsg = `Erreur API variation_table (HTTP ${response.status})`;
+-                                try { const j = await response.json(); errMsg += ': ' + (j.error || j.details || JSON.stringify(j)); } catch {}
+-                                console.error('[VarTable] /api/perplexity error:', errMsg);
+-                                throw new Error(errMsg);
+-                            }
+-                            const reader = response.body?.getReader();
+-                            if (!reader) throw new Error('Reader non disponible');
+-                            const decoder = new TextDecoder();
+-                            let aiText = '';
+-                            let lastVarUpdate = 0;
+-                            let lineBuffer = ''; // Buffer pour les lignes incompl├¿tes
+-                            while (true) {
+-                                const { done, value } = await reader.read();
+-                                if (done) break;
+-                                lineBuffer += decoder.decode(value, { stream: true });
+-                                const lines = lineBuffer.split('\n');
+-                                lineBuffer = lines.pop() || ''; // Garder la derni├¿re ligne incompl├¿te
+-                                for (const line of lines) {
+-                                    if (!line.startsWith('data: ')) continue;
+-                                    const jsonStr = line.substring(6);
+-                                    if (jsonStr === '[DONE]') break;
+-                                    try {
+-                                        const c = JSON.parse(jsonStr).choices?.[0]?.delta?.content || '';
+-                                        if (c) {
+-                                            aiText += c;
+-                                            // Throttle : max 1 update / 200ms pour ├®viter 'Maximum update depth exceeded'
+-                                            const now = Date.now();
+-                                            if (now - lastVarUpdate > 200) {
+-                                                lastVarUpdate = now;
+-                                                const clean = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+-                                                const fixedClean = fixLatexContent(tablePrefix + clean).content;
+-                                                setMessages(prev => {
+-                                                    const u = [...prev];
+-                                                    u[u.length - 1] = { role: 'assistant', content: fixedClean };
+-                                                    return u;
+-                                                });
+-                                            }
+-                                        }
+-                                    } catch { }
+-                                }
+-                            }
+-                            const cleanFinal = aiText.replace(/@@@[\s\S]*?@@@/g, '');
+-                            const finalContent = patchMarkdownTables(fixLatexContent(tablePrefix + cleanFinal).content);
+-                            setMessages(prev => {
+-                                const u = [...prev];
+-                                u[u.length - 1] = { role: 'assistant', content: finalContent };
+-                                return u;
++                            await streamPerplexityResponse({
++                                messages: enrichedMessages,
++                                baseContext,
++                                setMessages,
++                                setLoading,
++                                setIsTalking,
++                                isVoiceEnabled,
++                                speechQueue,
++                                processSpeechQueue,
++                                prependText: tablePrefix,
++                                postProcess: (text) => text.replace(/@@@[\s\S]*?@@@/g, '')
+                             });
+                         } catch (error) {
+                             console.error('Erreur streaming:', error);
+diff --git a/fuzz_err.txt b/fuzz_err.txt
+deleted file mode 100644
+index 3ef5510..0000000
+Binary files a/fuzz_err.txt and /dev/null differ
+diff --git a/fuzz_result.txt b/fuzz_result.txt
+deleted file mode 100644
+index 23f8f99..0000000
+Binary files a/fuzz_result.txt and /dev/null differ
+diff --git a/lib/math-router/intent-detector.ts b/lib/math-router/intent-detector.ts
+index 5e3f236..2b7346b 100644
+--- a/lib/math-router/intent-detector.ts
++++ b/lib/math-router/intent-detector.ts
+@@ -54,6 +54,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
+             /signe\s+de\s+[fg]/i,
+             /├®tude\s+(?:du|des)\s+signe/i,
+             /analyse\s+(?:du|des)\s+signe/i,
++            /signe|sign|tableau\s*de\s*signe|├®tudier?\s*(le\s*)?signe/i
+         ],
+     },
+     {
+@@ -65,6 +66,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
+             /dresser\s+un\s+tableau\s+de\s+vari/i,
+             /vari(?:ation|ations)\s+de\s+[fg]/i,
+             /tableau\s+des\s+vari/i,
++            /variation|tableau\s*de\s*variation|├®tudier?\s*(les?\s*)?variation/i
+         ],
+     },
+     {
+@@ -109,6 +111,7 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
+             /nombre\s+d├®riv├®/i,
+             /[fg][']\s*\([^)]*\)/i,
+             /d├®river\s+[fg]/i,
++            /calculer?\s+(?:la\s+)?d[e├®]riv[e├®]e\s+(?:de\s+)?[fghk]\s*\(|d[e├®]terminer\s+[fghk]'\s*\(|^[fghk]'\s*\([^)]*\)\s*$|^d[e├®]riv[e├®]e\s+de\s+[fghk]\s*\(/i
+         ],
+     },
+     {
+@@ -159,7 +162,15 @@ export function extractExpression(text: string): string | null {
+         .replace(/Ôü┤/g, '^4')
+         .replace(/ÔêÆ/g, '-')
+         .replace(/├ù/g, '*')
+-        .replace(/\u00d7/g, '*');
++        .replace(/\u00d7/g, '*')
++        .replace(/\\ln\b/gi, 'ln')
++        .replace(/\\exp\b/gi, 'exp')
++        .replace(/\\cos\b/gi, 'cos')
++        .replace(/\\sin\b/gi, 'sin')
++        .replace(/\\tan\b/gi, 'tan')
++        .replace(/\\frac/gi, '')
++        .replace(/\\left/gi, '')
++        .replace(/\\right/gi, '');
+ 
+     // Pattern 1: f(x) = <expression>
+     const funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r?!]+)/i;
+@@ -171,8 +182,9 @@ export function extractExpression(text: string): string | null {
+     m = normalized.match(keywordPattern);
+     if (m) {
+         let candidate = m[1].trim();
+-        // Remove leading words like "l'expression", "la fonction"
+-        candidate = candidate.replace(/^(?:l['ÔÇÖ]expression|la fonction|l['ÔÇÖ]├®quation|les?|des?|l['ÔÇÖ]|la|le)\s*/i, '').trim();
++        // Remove leading words like "l'expression", "la fonction", "suivante :"
++        candidate = candidate.replace(/^(?:l['ÔÇÖ]expression|la fonction|l['ÔÇÖ]├®quation|les?|des?|l['ÔÇÖ]|la|le|du|de la)\s*/gi, '').trim();
++        candidate = candidate.replace(/^(?:suivante|ci-dessous)?\s*:?\s*/gi, '').trim();
+         // Remove trailing spaces or words
+         candidate = candidate.replace(/[a-zA-Z├Ç-├┐]{2,}\s*$/g, '').trim();
+         if (candidate.includes('x') && candidate.length > 2) return candidate;
+@@ -256,9 +268,10 @@ export function analyzeQuestion(
+ 
+     for (const sub of subquestions) {
+         let detected = false;
++        const foundIntents = new Set<MathIntent>();
+ 
+         for (const { intent, patterns } of INTENT_PATTERNS) {
+-            if (patterns.some(p => p.test(sub.text))) {
++            if (!foundIntents.has(intent) && patterns.some(p => p.test(sub.text))) {
+                 // Chercher l'expression dans la sous-question d'abord, puis global
+                 const localExpr = extractExpression(sub.text);
+                 const expr = localExpr ?? globalExpression;
+@@ -277,7 +290,7 @@ export function analyzeQuestion(
+                 });
+ 
+                 detected = true;
+-                break; // Une seule intention par sous-question
++                foundIntents.add(intent);
+             }
+         }
+ 
+diff --git a/lib/math-router/router.ts b/lib/math-router/router.ts
+index e3b16ab..ef1f36a 100644
+--- a/lib/math-router/router.ts
++++ b/lib/math-router/router.ts
+@@ -120,7 +120,11 @@ async function callMathEngine(
+                 });
+                 if (!res.ok) return { mathBlock: null, textSummary: null, error: `HTTP ${res.status}` };
+                 const data = await res.json();
+-                return { mathBlock: data.aaaBlock ?? null, textSummary: null, error: data.error };
++                let aiContext;
++                if (intent.intent === 'factorize' && niveau !== 'seconde') {
++                    aiContext = "ÔÜá´©Å EXIGENCE P├ëDAGOGIQUE : Si l'expression est un polyn├┤me du second degr├® ax┬▓ + bx + c ou s'y ram├¿ne, tu DOIS ABSOLUMENT d├®tailler le calcul du discriminant ╬ö = b┬▓ - 4ac, puis calculer les racines x1 et x2, avant de conclure sur la forme factoris├®e a(x-x1)(x-x2). N'utilise JAMAIS les racines ├®videntes ou les formules directes sans montrer le passage par ╬ö.";
++                }
++                return { mathBlock: data.aaaBlock ?? null, aiContext, textSummary: null, error: data.error };
+             }
+ 
+             default:
+diff --git a/out.json b/out.json
+deleted file mode 100644
+index 702273e..0000000
+Binary files a/out.json and /dev/null differ
+diff --git a/out.txt b/out.txt
+deleted file mode 100644
+index 016691a..0000000
+--- a/out.txt
++++ /dev/null
+@@ -1,38 +0,0 @@
+-´╗┐{
+-  aaaBlock: '@@@\n' +
+-    'table |\n' +
+-    'x: -inf, 2, 3, +inf |\n' +
+-    'sign: -2 : -, -, -, -, - |\n' +
+-    'sign: x - 2 : -, 0, +, +, + |\n' +
+-    'sign: x - 3 : -, -, -, 0, + |\n' +
+-    'sign: xÔö¼Ôûô + 1 : +, +, +, +, + |\n' +
+-    'sign: f(x) : -, 0, +, 0, - |\n' +
+-    '@@@',
+-  criticalPoints: [ 2, 3 ],
+-  denZeros: [],
+-  discriminantSteps: [
+-    {
+-      factor: 'xÔö¼Ôûô + 1',
+-      steps: [ '$\\Delta=-4<0$ : pas de racine rÔö£┬«elle.' ]
+-    }
+-  ],
+-  effectiveConst: -2,
+-  factors: [
+-    { label: '-2', type: 'numerator' },
+-    { label: 'x - 2', type: 'numerator' },
+-    { label: 'x - 3', type: 'numerator' },
+-    { label: 'xÔö¼Ôûô + 1', type: 'numerator' }
+-  ],
+-  fxValues: [ '-', '0', '+', '0', '-' ],
+-  numZeros: [ 2, 3 ],
+-  success: true
+-}
+-@@@
+-table |
+-x: -inf, 2, 3, +inf |
+-sign: -2 : -, -, -, -, - |
+-sign: x - 2 : -, 0, +, +, + |
+-sign: x - 3 : -, -, -, 0, + |
+-sign: xÔö¼Ôûô + 1 : +, +, +, +, + |
+-sign: f(x) : -, 0, +, 0, - |
+-@@@
+diff --git a/out3.txt b/out3.txt
+deleted file mode 100644
+index ab3dfbe..0000000
+--- a/out3.txt
++++ /dev/null
+@@ -1,16 +0,0 @@
+-
+---- e^x / x ---
+-@@@
+-table |
+-x: -inf, 0, 1, +inf |
+-sign: f'(x) : -, ||, -, 0, + |
+-variation: f(x) : 0, searrow, -9999, ||, +inf, searrow, 2.72, nearrow, +inf |
+-@@@
+-
+---- ln(x) ---
+-@@@
+-table |
+-x: ]0, +inf |
+-sign: f'(x) : + |
+-variation: f(x) : -9.21, nearrow, 13.82 |
+-@@@
+diff --git a/out4.txt b/out4.txt
+deleted file mode 100644
+index 128334a..0000000
+--- a/out4.txt
++++ /dev/null
+@@ -1,16 +0,0 @@
+-
+---- e^x / x ---
+-@@@
+-table |
+-x: -inf, 0, 1, +inf |
+-sign: f'(x) : -, ||, -, 0, + |
+-variation: f(x) : 0, searrow, -inf, ||, +inf, searrow, 2.72, nearrow, +inf |
+-@@@
+-
+---- ln(x) ---
+-@@@
+-table |
+-x: ]0, +inf |
+-sign: f'(x) : + |
+-variation: f(x) : ?, nearrow, +inf |
+-@@@
+diff --git a/out5.txt b/out5.txt
+deleted file mode 100644
+index a7aaad4..0000000
+--- a/out5.txt
++++ /dev/null
+@@ -1,8 +0,0 @@
+-ln(1e-4): -9.210340371976182
+-ln(1e-8): -18.420680743952367
+-e^x/x(-1e-4): -9999.000049998333
+-e^x/x(-1e-8): -99999999
+-e^x/x(1e-4): 10001.000050001667
+-e^x/x(1e-8): 100000000.99999999
+-1/(x+2)(-2 - 1e-4): -9999.999999978896
+-deriv(e^x/x): (1 / x - (1 / x) ^ 2) * exp(x)
+diff --git a/out6.txt b/out6.txt
+deleted file mode 100644
+index 5080f0f..0000000
+--- a/out6.txt
++++ /dev/null
+@@ -1,16 +0,0 @@
+-
+---- e^x / x ---
+-@@@
+-table |
+-x: -inf, 0, 1, +inf |
+-sign: f'(x) : -, ||, -, 0, + |
+-variation: f(x) : 0, searrow, -inf, ||, +inf, searrow, 2.72, nearrow, +inf |
+-@@@
+-
+---- ln(x) ---
+-@@@
+-table |
+-x: ]0, +inf |
+-sign: f'(x) : + |
+-variation: f(x) : -inf, nearrow, +inf |
+-@@@
+diff --git a/out7.txt b/out7.txt
+deleted file mode 100644
+index 49046be..0000000
+--- a/out7.txt
++++ /dev/null
+@@ -1,16 +0,0 @@
+-
+---- e^x / x ---
+-@@@
+-table |
+-x: -inf, 0, 1, +inf |
+-sign: f'(x) : -, ||, -, 0, + |
+-variation: f(x) : 0, searrow, -inf, ||, +inf, searrow, e, nearrow, +inf |
+-@@@
+-
+---- ln(x) ---
+-@@@
+-table |
+-x: ]0, +inf |
+-sign: f'(x) : + |
+-variation: f(x) : -inf, nearrow, +inf |
+-@@@
+diff --git a/temp_intent.js b/temp_intent.js
+deleted file mode 100644
+index 35671aa..0000000
+--- a/temp_intent.js
++++ /dev/null
+@@ -1,266 +0,0 @@
+-"use strict";
+-/**
+- * INTENT DETECTOR ÔÇö D├®tecteur d'intentions math├®matiques
+- * ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+- * Analyse le texte d'une question de l'├®l├¿ve et extrait :
+- * 1. Les sous-questions avec leur type d'intention math├®matique
+- * 2. Les expressions de fonctions ├á traiter
+- * 3. La priorit├® de routing (Math Engine ou IA pure)
+- */
+-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+-        if (ar || !(i in from)) {
+-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+-            ar[i] = from[i];
+-        }
+-    }
+-    return to.concat(ar || Array.prototype.slice.call(from));
+-};
+-Object.defineProperty(exports, "__esModule", { value: true });
+-exports.INTENT_LABELS = void 0;
+-exports.extractExpression = extractExpression;
+-exports.analyzeQuestion = analyzeQuestion;
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-// PATTERNS DE D├ëTECTION
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-var INTENT_PATTERNS = [
+-    {
+-        intent: 'sign_table',
+-        patterns: [
+-            /├®tudi(?:er|ons|ez)\s+le\s+signe/i,
+-            /tableau\s+de\s+signes?/i,
+-            /dresser\s+le\s+tableau\s+de\s+signes?/i,
+-            /signe\s+de\s+[fg]/i,
+-            /├®tude\s+(?:du|des)\s+signe/i,
+-            /analyse\s+(?:du|des)\s+signe/i,
+-        ],
+-    },
+-    {
+-        intent: 'variation_table',
+-        patterns: [
+-            /tableau\s+de\s+vari(?:ation|ations)/i,
+-            /dresser\s+le\s+tableau\s+de\s+vari/i,
+-            /├®tudi(?:er|ons|ez)\s+les?\s+vari(?:ation|ations)/i,
+-            /dresser\s+un\s+tableau\s+de\s+vari/i,
+-            /vari(?:ation|ations)\s+de\s+[fg]/i,
+-            /tableau\s+des\s+vari/i,
+-        ],
+-    },
+-    {
+-        intent: 'graph',
+-        patterns: [
+-            /trac(?:er|ez|ons)\s+(?:la courbe|le graphe|la repr├®sentation)/i,
+-            /repr├®sentation\s+graphique/i,
+-            /courbe\s+repr├®sentative/i,
+-            /graphe\s+de\s+[fg]/i,
+-            /esquiss(?:er|ez)\s+(?:la courbe|le graphe)/i,
+-            /construi(?:re|re)\s+(?:la courbe|le graphe)/i,
+-        ],
+-    },
+-    {
+-        intent: 'solve_inequality',
+-        patterns: [
+-            /r├®sou(?:dre|ds)\s+.*[fg]\s*[><ÔëñÔëÑ]/i,
+-            /r├®sou(?:dre|ds)\s+l['']in├®quation/i,
+-            /[fg]\s*\([^)]*\)\s*[><ÔëñÔëÑ]\s*0/i,
+-            /solution[s]?\s+de\s+.*[><ÔëñÔëÑ]/i,
+-            /[fg]\s*[><ÔëñÔëÑ]\s*0/i,
+-            /in├®quation/i,
+-        ],
+-    },
+-    {
+-        intent: 'solve_equation',
+-        patterns: [
+-            /r├®sou(?:dre|ds)\s+l[''](?:├®|e)quation/i,
+-            /r├®sou(?:dre|ds)\s+.*[fg]\s*=\s*0/i,
+-            /[fg]\s*\([^)]*\)\s*=\s*0/i,
+-            /(?:z├®ros?|racines?)\s+de\s+[fg]/i,
+-            /ant├®c├®dent\s+de\s+0/i,
+-        ],
+-    },
+-    {
+-        intent: 'derivative',
+-        patterns: [
+-            /calculer?\s+[fg][']\s*\(/i,
+-            /d├®term[ei]n(?:er|ez)\s+[fg]['']/i,
+-            /d├®riv├®e?\s+de\s+[fg]/i,
+-            /nombre\s+d├®riv├®/i,
+-            /[fg][']\s*\([^)]*\)/i,
+-            /d├®river\s+[fg]/i,
+-        ],
+-    },
+-    {
+-        intent: 'integral',
+-        patterns: [
+-            /primitiv(?:e|es)\s+de\s+[fg]/i,
+-            /calculer?\s+l['']int├®grale/i,
+-            /Ôê½\s*[fg]/,
+-            /int├®grale\s+de\s+[fg]/i,
+-            /aire\s+(?:sous|de)\s+(?:la courbe|[fg])/i,
+-        ],
+-    },
+-    {
+-        intent: 'limits',
+-        patterns: [
+-            /limit(?:e|es)\s+en/i,
+-            /lim\s*[({]/i,
+-            /lim\s+[fg]/i,
+-            /comportement\s+(?:en|├á)\s+l'infini/i,
+-            /asymptot(?:e|es)/i,
+-            /tend\s+vers/i,
+-        ],
+-    },
+-    {
+-        intent: 'factorize',
+-        patterns: [
+-            /factori(?:ser|ser|sez)\s+/i,
+-            /factorisation/i,
+-            /mise\s+en\s+facteur/i,
+-        ],
+-    },
+-];
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-// EXTRACTION D'EXPRESSION DE FONCTION
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-/**
+- * Extrait l'expression math├®matique d'une cha├«ne.
+- * Exemple: "f(x) = (x-3)/(x+2)" ÔåÆ "(x-3)/(x+2)"
+- *          "g(x) = 2x┬▓ - 3x + 1" ÔåÆ "2x^2 - 3x + 1"
+- */
+-function extractExpression(text) {
+-    // Normaliser les exposants unicode
+-    var normalized = text
+-        .replace(/┬▓/g, '^2')
+-        .replace(/┬│/g, '^3')
+-        .replace(/Ôü┤/g, '^4')
+-        .replace(/ÔêÆ/g, '-')
+-        .replace(/├ù/g, '*')
+-        .replace(/\u00d7/g, '*');
+-    // Pattern 1 : f(x) = <expression>
+-    var funcPattern = /[fg]\s*\([^)]*\)\s*=\s*([^,;.\n\r]+)/i;
+-    var m1 = normalized.match(funcPattern);
+-    if (m1)
+-        return m1[1].trim();
+-    // Pattern 2 : = <fraction> ou = <polynome>
+-    var eqPattern = /=\s*([-+*/^()\w\s.]+)/;
+-    var m2 = normalized.match(eqPattern);
+-    if (m2) {
+-        var candidate = m2[1].trim();
+-        // Filtre les faux positifs trop courts et sans x
+-        if (candidate.includes('x') && candidate.length > 2)
+-            return candidate;
+-    }
+-    // Pattern 3 : expression libre avec x dans le texte
+-    var exprPattern = /\(([^)]*x[^)]*)\)\s*\/\s*\(/;
+-    var m3 = normalized.match(exprPattern);
+-    if (m3)
+-        return "(".concat(m3[0].trim(), ")");
+-    return null;
+-}
+-/**
+- * Extrait les contextes d'in├®galit├® (ex: "> 0", "Ôëñ 0").
+- */
+-function extractInequalityContext(text) {
+-    var m = text.match(/[fg]\s*(?:\([^)]*\))?\s*([><ÔëñÔëÑ]=?\s*[0-9\s]+)/i);
+-    return m ? m[1].trim() : null;
+-}
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-// D├ëTECTEUR DE SOUS-QUESTIONS
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-/**
+- * D├®coupe un texte multi-questions en sous-questions num├®rot├®es.
+- */
+-function splitIntoSubquestions(text) {
+-    var _a, _b, _c, _d;
+-    var parts = [];
+-    // Pattern : 1) / 1. / a) / a. / Q1: etc.
+-    var splitPattern = /(?:^|\n)\s*(?:(\d+|[a-zA-Z])\s*[).:\-]\s*)/gm;
+-    var matches = __spreadArray([], text.matchAll(splitPattern), true);
+-    if (matches.length <= 1) {
+-        // Pas de num├®rotation d├®tect├®e : texte unique
+-        return [{ num: '', text: text.trim() }];
+-    }
+-    for (var i = 0; i < matches.length; i++) {
+-        var match = matches[i];
+-        var start = ((_a = match.index) !== null && _a !== void 0 ? _a : 0) + match[0].length;
+-        var end = (_c = (_b = matches[i + 1]) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : text.length;
+-        var num = (_d = match[1]) !== null && _d !== void 0 ? _d : "".concat(i + 1);
+-        var subText = text.slice(start, end).trim();
+-        if (subText)
+-            parts.push({ num: num, text: subText });
+-    }
+-    return parts.length > 0 ? parts : [{ num: '', text: text.trim() }];
+-}
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-// ANALYSEUR PRINCIPAL
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-/**
+- * Analyse compl├¿te d'une question pour d├®tecter les intentions.
+- * C'est le point d'entr├®e principal du syst├¿me de routing.
+- */
+-function analyzeQuestion(userMessage, niveau) {
+-    var _a;
+-    if (niveau === void 0) { niveau = 'seconde'; }
+-    var intents = [];
+-    var globalExpression = extractExpression(userMessage);
+-    var subquestions = splitIntoSubquestions(userMessage);
+-    var _loop_1 = function (sub) {
+-        var detected = false;
+-        for (var _b = 0, INTENT_PATTERNS_1 = INTENT_PATTERNS; _b < INTENT_PATTERNS_1.length; _b++) {
+-            var _c = INTENT_PATTERNS_1[_b], intent = _c.intent, patterns = _c.patterns;
+-            if (patterns.some(function (p) { return p.test(sub.text); })) {
+-                // Chercher l'expression dans la sous-question d'abord, puis global
+-                var localExpr = extractExpression(sub.text);
+-                var expr = localExpr !== null && localExpr !== void 0 ? localExpr : globalExpression;
+-                var context = intent === 'solve_inequality'
+-                    ? extractInequalityContext(sub.text)
+-                    : undefined;
+-                intents.push({
+-                    intent: intent,
+-                    questionText: sub.text,
+-                    expression: expr,
+-                    questionNumber: sub.num || undefined,
+-                    variable: 'x',
+-                    context: context !== null && context !== void 0 ? context : undefined,
+-                });
+-                detected = true;
+-                break; // Une seule intention par sous-question
+-            }
+-        }
+-        if (!detected && sub.text.length > 10) {
+-            intents.push({
+-                intent: 'unknown',
+-                questionText: sub.text,
+-                expression: (_a = extractExpression(sub.text)) !== null && _a !== void 0 ? _a : globalExpression,
+-                questionNumber: sub.num || undefined,
+-                variable: 'x',
+-            });
+-        }
+-    };
+-    for (var _i = 0, subquestions_1 = subquestions; _i < subquestions_1.length; _i++) {
+-        var sub = subquestions_1[_i];
+-        _loop_1(sub);
+-    }
+-    return {
+-        intents: intents,
+-        globalExpression: globalExpression,
+-        hasMathEngine: intents.some(function (i) { return i.intent !== 'unknown'; }),
+-        niveau: niveau,
+-    };
+-}
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-// UTILITAIRES D'AFFICHAGE
+-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-exports.INTENT_LABELS = {
+-    sign_table: '­ƒôï Tableau de signes',
+-    variation_table: '­ƒôÉ Tableau de variations',
+-    graph: '­ƒôê Trac├® de courbe',
+-    solve_equation: '­ƒöó R├®solution d\'├®quation',
+-    solve_inequality: 'ÔÜû R├®solution d\'in├®quation',
+-    derivative: 'Ô£Å Calcul de d├®riv├®e',
+-    integral: 'Ôê½ Calcul d\'int├®grale',
+-    factorize: '­ƒöú Factorisation',
+-    limits: 'ÔåÆ Calcul de limites',
+-    literal_calc: '­ƒº« Calcul symbolique',
+-    unknown: '­ƒÆ¼ R├®ponse IA',
+-};
+diff --git a/test-var3.ts b/test-var3.ts
+deleted file mode 100644
+index cc4f714..0000000
+--- a/test-var3.ts
++++ /dev/null
+@@ -1,26 +0,0 @@
+-import { generateVariationTable } from './lib/math-engine/variation-engine';
+-import * as fs from 'fs';
+-
+-const tests = [
+-    { expr: 'e^x / x', niveau: 'terminale_spe' as const },
+-    { expr: 'ln(x)', niveau: 'terminale_spe' as const }
+-];
+-
+-let out = '';
+-for (const t of tests) {
+-    out += `\n--- ${t.expr} ---\n`;
+-    try {
+-        const result = generateVariationTable({
+-            expression: t.expr,
+-            niveau: t.niveau,
+-        });
+-        if (result.aaaBlock) {
+-            out += result.aaaBlock + '\n';
+-        } else {
+-            out += result.error + '\n';
+-        }
+-    } catch (e) {
+-        out += 'EXCEPTION ' + e + '\n';
+-    }
+-}
+-fs.writeFileSync('out7.txt', out, {encoding: 'utf8'});
+diff --git a/test.js b/test.js
+deleted file mode 100644
+index 923ffa0..0000000
+--- a/test.js
++++ /dev/null
+@@ -1 +0,0 @@
+-let block = 'geo\r\npoint: A\r\nvecteur: AB\r\n'; block = block.replace(/^([ \t]*vecteur:\\s*AB)[ \t]*$/gim, '$1, u'); console.log(JSON.stringify(block));
+diff --git a/test_api.ts b/test_api.ts
+deleted file mode 100644
+index e5badc8..0000000
+--- a/test_api.ts
++++ /dev/null
+@@ -1,3 +0,0 @@
+-import { generateVariationTable } from './lib/math-engine/variation-engine';
+-const res = generateVariationTable({ expression: 'x*log(x)', niveau: 'terminale_spe' });
+-console.log(JSON.stringify(res, null, 2));
+diff --git a/test_api_dual.ts b/test_api_dual.ts
+deleted file mode 100644
+index e3f065f..0000000
+--- a/test_api_dual.ts
++++ /dev/null
+@@ -1,14 +0,0 @@
+-async function test() {
+-    const res = await fetch('http://localhost:3000/api/math-engine', {
+-        method: 'POST',
+-        headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({
+-            type: 'sign_and_variation',
+-            expression: '(2*x - 1) / (x + 3)',
+-            niveau: 'terminale_spe'
+-        })
+-    });
+-    const json = await res.json();
+-    console.log(JSON.stringify(json.rawData.signTable, null, 2));
+-}
+-test();
+diff --git a/test_api_sign.ts b/test_api_sign.ts
+deleted file mode 100644
+index f79f139..0000000
+--- a/test_api_sign.ts
++++ /dev/null
+@@ -1,14 +0,0 @@
+-async function test() {
+-    const res = await fetch('http://localhost:3000/api/math-engine', {
+-        method: 'POST',
+-        headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({
+-            type: 'sign_table',
+-            expression: '(2*x - 1) / (x + 3)',
+-            niveau: 'terminale_spe'
+-        })
+-    });
+-    const json = await res.json();
+-    console.log(JSON.stringify(json.rawData, null, 2));
+-}
+-test();
+diff --git a/test_api_sign_bug.ts b/test_api_sign_bug.ts
+deleted file mode 100644
+index 35432e9..0000000
+--- a/test_api_sign_bug.ts
++++ /dev/null
+@@ -1,14 +0,0 @@
+-async function test() {
+-    const res = await fetch('http://localhost:3000/api/math-engine', {
+-        method: 'POST',
+-        headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({
+-            type: 'sign_table',
+-            expression: '(2*x - 4)*(-x + 3)*(x^2 + 1)',
+-            niveau: 'terminale_spe'
+-        })
+-    });
+-    const json = await res.json();
+-    console.log(JSON.stringify(json.rawData, null, 2));
+-}
+-test();
+diff --git a/test_api_sign_bug2.ts b/test_api_sign_bug2.ts
+deleted file mode 100644
+index a10aaaa..0000000
+--- a/test_api_sign_bug2.ts
++++ /dev/null
+@@ -1,15 +0,0 @@
+-async function test() {
+-    const res = await fetch('http://localhost:3000/api/math-engine', {
+-        method: 'POST',
+-        headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({
+-            type: 'sign_table',
+-            expression: '(2x - 4)(-x + 3)(x^2 + 1)',
+-            niveau: 'terminale_spe'
+-        })
+-    });
+-    const json = await res.json();
+-    console.dir(json.rawData, {depth: null});
+-    console.log(json.aaaBlock);
+-}
+-test();
+diff --git a/test_deriv.py b/test_deriv.py
+deleted file mode 100644
+index 5f68890..0000000
+--- a/test_deriv.py
++++ /dev/null
+@@ -1,82 +0,0 @@
+-import sympy as sp
+-
+-x = sp.Symbol('x', real=True)
+-LOCALS = {'x': x, 'e': sp.E, 'pi': sp.pi, 'log': sp.log, 'ln': sp.log, 'exp': sp.exp, 'sqrt': sp.sqrt}
+-
+-def deriv_steps(expr):
+-    steps = []
+-    
+-    def walk(e, label="f(x)"):
+-        if e.is_Add:
+-            steps.append(f"{label} est une somme.")
+-            d_args = []
+-            for i, arg in enumerate(e.args):
+-                steps.append(f"On d├®rive le terme {sp.latex(arg)} :")
+-                d_args.append(walk(arg, "Terme"))
+-            d = sum(d_args)
+-            steps.append(f"La d├®riv├®e de la somme est la somme des d├®riv├®es : {sp.latex(d)}")
+-            return d
+-            
+-        elif e.is_Mul:
+-            # check if quotient
+-            num, den = sp.fraction(e)
+-            if den != 1:
+-                u, v = num, den
+-                steps.append(f"{label} est de la forme u/v avec u(x)={sp.latex(u)} et v(x)={sp.latex(v)}.")
+-                du = walk(u, "u(x)")
+-                dv = walk(v, "v(x)")
+-                steps.append(f"On applique (u/v)' = (u'v - uv') / v^2")
+-                d = sp.simplify((du * v - u * dv) / (v**2))
+-                return d
+-            else:
+-                # product
+-                if len(e.args) == 2:
+-                    u, v = e.args
+-                    if u.is_number:
+-                        return u * walk(v, "v(x)")
+-                    steps.append(f"{label} est de la forme u*v avec u(x)={sp.latex(u)} et v(x)={sp.latex(v)}.")
+-                    du = walk(u, "u(x)")
+-                    dv = walk(v, "v(x)")
+-                    d = sp.simplify(du * v + u * dv)
+-                    steps.append(f"On applique (uv)' = u'v + uv' -> {sp.latex(d)}")
+-                    return d
+-                else:
+-                    return sp.diff(e, x)
+-                
+-        elif hasattr(e, 'func'):
+-            if e.func == sp.exp:
+-                u = e.args[0]
+-                if u == x: return sp.exp(x)
+-                steps.append(f"{label} est de la forme e^u avec u(x)={sp.latex(u)}")
+-                du = walk(u, "u(x)")
+-                d = du * sp.exp(u)
+-                steps.append(f"On applique (e^u)' = u'e^u -> {sp.latex(d)}")
+-                return d
+-            elif e.func == sp.log:
+-                u = e.args[0]
+-                if u == x: return 1/x
+-                steps.append(f"{label} est de la forme ln(u) avec u(x)={sp.latex(u)}")
+-                du = walk(u, "u(x)")
+-                d = du / u
+-                steps.append(f"On applique (ln(u))' = u'/u -> {sp.latex(d)}")
+-                return d
+-            elif e.is_Pow:
+-                u, n = e.args
+-                if u == x: return sp.diff(e, x)
+-                steps.append(f"{label} est de la forme u^n avec u(x)={sp.latex(u)} et n={n}")
+-                du = walk(u, "u(x)")
+-                d = n * du * u**(n-1)
+-                steps.append(f"On applique (u^n)' = n u' u^(n-1) -> {sp.latex(d)}")
+-                return d
+-                
+-        # Base case
+-        return sp.diff(e, x)
+-
+-    final_d = walk(expr)
+-    final_simple = sp.factor(final_d)
+-    return steps, final_d, final_simple
+-
+-expr = sp.sympify("exp(2*x) / (x+1)", locals=LOCALS)
+-s, d, fs = deriv_steps(expr)
+-for x in s: print(x)
+-print("FINAL:", sp.latex(fs))
+diff --git a/test_extract.ts b/test_extract.ts
+deleted file mode 100644
+index 3dd928c..0000000
+--- a/test_extract.ts
++++ /dev/null
+@@ -1,3 +0,0 @@
+-import { extractFunctionParams } from './lib/math-engine/expression-parser';
+-const msg = `Soit la fonction $f(x) = \\frac{e^x}{x}$. 1) Donne moi son domaine de d├®finition. 2) Calcule sa d├®riv├®e f'(x). 3) Dresse son tableau de variations complet.`;
+-console.log(extractFunctionParams(msg));
+diff --git a/test_python.py b/test_python.py
+deleted file mode 100644
+index b21074e..0000000
+--- a/test_python.py
++++ /dev/null
+@@ -1,4 +0,0 @@
+-import requests
+-import json
+-res = requests.post("http://localhost:5000/sign-table", json={"expression": "(2x - 4)(-x + 3)(x^2 + 1)"})
+-print(json.dumps(res.json(), indent=2))
+diff --git a/test_python.ts b/test_python.ts
+deleted file mode 100644
+index 3cb6a8b..0000000
+--- a/test_python.ts
++++ /dev/null
+@@ -1,13 +0,0 @@
+-async function test() {
+-    const res = await fetch('http://localhost:5000/sign-table', {
+-        method: 'POST',
+-        headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({
+-            expression: '(2x - 4)(-x + 3)(x^2 + 1)',
+-            niveau: 'terminale_spe'
+-        })
+-    });
+-    const json = await res.json();
+-    console.log(JSON.stringify(json, null, 2));
+-}
+-test();
+diff --git a/test_sign_table.ts b/test_sign_table.ts
+deleted file mode 100644
+index c018cef..0000000
+--- a/test_sign_table.ts
++++ /dev/null
+@@ -1,5 +0,0 @@
+-import { generateSignTable } from './lib/math-router/sign-table-engine';
+-
+-const expr = "(2*x + 1)/(x - 3)";
+-const result = generateSignTable(expr);
+-console.log(result.aaaBlock);
+diff --git a/test_table.ts b/test_table.ts
+deleted file mode 100644
+index e0cf1a1..0000000
+--- a/test_table.ts
++++ /dev/null
+@@ -1,59 +0,0 @@
+-const ROW_H = 50;
+-const xValues = ['-inf', '0', '1', '+inf'];
+-const N = xValues.length;
+-
+-function isForbidden(v: string) { return v === '||'; }
+-function isArrow(v: string) { return /nearrow|searrow/i.test(v); }
+-
+-// Test f'(x)
+-const signContent = ['-', '||', '-', '0', '+'];
+-console.log("=== SIGN f'(x) ===");
+-signContent.forEach((val, idx) => {
+-    const halfIdx = idx + 1;
+-    const isXValueCol = halfIdx % 2 === 0;
+-    if (isXValueCol) {
+-        console.log(`Point x=${xValues[(halfIdx/2)-1]} (halfIdx=${halfIdx}): rend ${val}`);
+-    } else {
+-        console.log(`Intervalle (halfIdx=${halfIdx}): rend ${val}`);
+-    }
+-});
+-
+-// Test f(x)
+-const varContent = ['0', 'searrow', '-9999', '||', '+inf', 'searrow', '2.72', 'nearrow', '+inf'];
+-console.log("\n=== VARIATION f(x) ===");
+-const valAtXk = new Array(N).fill(null);
+-const arrowAtInterval = new Array(N - 1).fill(null);
+-const forbiddenAt = new Array(N).fill(false);
+-
+-let tokenIdx = 0;
+-for (let xIdx = 0; xIdx < N && tokenIdx < varContent.length; xIdx++) {
+-    const tok = varContent[tokenIdx];
+-    if (isForbidden(tok)) {
+-        forbiddenAt[xIdx] = true;
+-        valAtXk[xIdx] = '||';
+-        tokenIdx++;
+-    } else if (isArrow(tok)) {
+-        // ...
+-    } else {
+-        if (tokenIdx + 1 < varContent.length && isForbidden(varContent[tokenIdx + 1])) {
+-            valAtXk[xIdx] = tok; 
+-            forbiddenAt[xIdx] = true;
+-            tokenIdx += 2;
+-            if (tokenIdx < varContent.length && !isArrow(varContent[tokenIdx])) {
+-                tokenIdx++; // limitRight
+-            }
+-        } else {
+-            valAtXk[xIdx] = tok;
+-            tokenIdx++;
+-        }
+-    }
+-    if (xIdx < N - 1 && tokenIdx < varContent.length) {
+-        if (isArrow(varContent[tokenIdx])) {
+-            arrowAtInterval[xIdx] = varContent[tokenIdx];
+-            tokenIdx++;
+-        }
+-    }
+-}
+-console.log("valAtXk:", valAtXk);
+-console.log("forbiddenAt:", forbiddenAt);
+-console.log("arrowAtInterval:", arrowAtInterval);
+diff --git a/test_var.ts b/test_var.ts
+deleted file mode 100644
+index 56e9042..0000000
+--- a/test_var.ts
++++ /dev/null
+@@ -1,3 +0,0 @@
+-import { generateVariationTable } from './lib/math-engine/variation-engine';
+-const res = generateVariationTable({ expression: '(e^x)/x', niveau: 'terminale_spe' });
+-console.log(JSON.stringify(res, null, 2));
+diff --git a/var_out.json b/var_out.json
+deleted file mode 100644
+index 69d176d..0000000
+--- a/var_out.json
++++ /dev/null
+@@ -1,52 +0,0 @@
+-´╗┐[VarEngine] f(x) = (e^x)/x ├ö├Ñ├å catÔö£┬«gorie: general, niveau: terminale_spe
+-{
+-  "success": true,
+-  "tableSpec": {
+-    "xValues": [
+-      "-inf",
+-      "0",
+-      "1",
+-      "+inf"
+-    ],
+-    "rows": [
+-      {
+-        "label": "f'(x)",
+-        "type": "sign",
+-        "values": [
+-          "-",
+-          "||",
+-          "-",
+-          "0",
+-          "+"
+-        ]
+-      },
+-      {
+-        "label": "f(x)",
+-        "type": "variation",
+-        "values": [
+-          "0",
+-          "searrow",
+-          "-9999",
+-          "||",
+-          "+inf",
+-          "searrow",
+-          "2.72",
+-          "nearrow",
+-          "+inf"
+-        ]
+-      }
+-    ],
+-    "title": "Tableau de variations de f(x) = (e^x)/x"
+-  },
+-  "aaaBlock": "@@@\ntable |\nx: -inf, 0, 1, +inf |\nsign: f'(x) : -, ||, -, 0, + |\nvariation: f(x) : 0, searrow, -9999, ||, +inf, searrow, 2.72, nearrow, +inf |\n@@@",
+-  "derivativeExpr": "(1 / x - (1 / x) ^ 2) * exp(x)",
+-  "method": "Cas gÔö£┬«nÔö£┬«ral : f'(x) = (1 / x - (1 / x) ^ 2) * exp(x)",
+-  "extrema": [
+-    {
+-      "x": 1,
+-      "y": 2.718281828459045,
+-      "type": "min"
+-    }
+-  ],
+-  "aiContext": "Niveau : Terminale SpÔö£┬«cialitÔö£┬« Maths.\n├ö├©├Â INTERDICTIONS ABSOLUES :\n- NE GÔö£├½NÔö£├¬RE AUCUN bloc @@@.\n- NE DESSINE AUCUN tableau de variations (ni en texte, ni en markdown, ni en ASCII, ni avec des barres |, ni avec des flÔö£┬┐ches ├ö├Ñ├╣├ö├Ñ├┐).\n- Le tableau est DÔö£├½JÔö£├ç affichÔö£┬« au-dessus par le moteur de calcul. Tu ne dois PAS le reproduire.\n- Fais UNIQUEMENT les explications pÔö£┬«dagogiques des Ôö£┬«tapes (dÔö£┬«rivÔö£┬«e, signe, conclusion).\n- Ton rÔö£Ôöñle est d'expliquer la mÔö£┬«thode, pas de refaire le tableau.\nMÔö£┬«thode : Ôö£┬«tude du signe de la dÔö£┬«rivÔö£┬«e.\nf'(x) = (1 / x - (1 / x) ^ 2) * exp(x).\nExplique : calcul de f'(x), rÔö£┬«solution de f'(x)=0, signe de f'(x) sur chaque intervalle, variation de f.\nInclus l'Ôö£┬«tude des limites en Ôö¼ÔûÆ├ö├¬├ù.\nExtremums : minimum en x=1, f(x)=2.718281828459045."
+-}

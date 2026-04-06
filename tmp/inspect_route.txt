@@ -1,0 +1,359 @@
+def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
+    """Calcule le tableau de signes complet d'une expression."""
+    # Si l'expression contient une inéquation ou équation, on ne garde que la partie gauche
+    expression = re.sub(r'\s*(?:>|<|>=|<=|=)\s*.*$', '', str(expression))
+    
+    # Nettoyer l'expression
+    raw = expression.replace('^', '**').replace(',', '.')
+    # Convertir les exposants Unicode et symboles
+    raw = raw.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
+    raw = raw.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
+    
+    # Rétablissement des multiplications implicites (ex: 2x -> 2*x)
+    raw = re.sub(r'(\d)\s*([a-zA-Z])', r'\1*\2', raw)
+    raw = re.sub(r'\)\s*\(', r')*(', raw)
+    raw = re.sub(r'([x-zX-Z])\s*\(', r'\1*(', raw)
+    raw = re.sub(r'(\d)\s*\(', r'\1*(', raw)
+    raw = re.sub(r'\)\s*([a-zA-Z])', r')*\1', raw)
+    
+    expr_full = sp.sympify(raw, locals=LOCALS)
+    num, den = sp.fraction(expr_full)
+
+    # Extraire tous les facteurs
+    num_trans = extract_transcendental_factors(num, 'numerator')
+    den_trans = extract_transcendental_factors(den, 'denominator')
+    num_poly, num_const = get_polynomial_factors(num, 'numerator', niveau)
+    den_poly, den_const = get_polynomial_factors(den, 'denominator', niveau)
+
+    num_factors_all = num_trans + num_poly
+    den_factors_all = den_trans + den_poly
+
+    # Trouver les zéros
+    def zf(factors):
+        r = []
+        for f in factors:
+            for z in f['zeros']:
+                try:
+                    r.append(float(z.evalf()))
+                except:
+                    pass
+        return sorted(set(r))
+
+    num_zeros_f = zf(num_factors_all)
+    den_zeros_f = zf(den_factors_all)
+
+    # Filet de sécurité : résolution directe pour les expressions transcendantes
+    # (exp, ln, etc.) dont les zéros ne sont pas trouvés par la factorisation
+    try:
+        direct_zeros = sp.solve(num, x)
+        for z in direct_zeros:
+            try:
+                if z.is_real:
+                    zv = float(z.evalf())
+                    if not any(abs(zv - nz) < 1e-9 for nz in num_zeros_f):
+                        num_zeros_f.append(zv)
+            except:
+                pass
+        num_zeros_f = sorted(set(num_zeros_f))
+    except:
+        pass
+    try:
+        direct_den_zeros = sp.solve(den, x)
+        for z in direct_den_zeros:
+            try:
+                if z.is_real:
+                    zv = float(z.evalf())
+                    if not any(abs(zv - dz) < 1e-9 for dz in den_zeros_f):
+                        den_zeros_f.append(zv)
+            except:
+                pass
+        den_zeros_f = sorted(set(den_zeros_f))
+    except:
+        pass
+
+    critical = sorted(set(num_zeros_f + den_zeros_f))
+
+    # Domaine --- continuous_domain() de SymPy
+    domain_left = None
+    domain_strict = False
+    left_label = '-inf'
+    forbidden_domain_pts = []  # internal gap points (ex: +-2 for ln(x^2-4))
+
+    dom = None
+    try:
+        dom = continuous_domain(expr_full, x, sp.S.Reals)
+
+        if isinstance(dom, sp.Union):
+            # Union domain, e.g. ln(x^2-4) -> ]-inf,-2[ U ]2,+inf[
+            intervals = sorted(
+                [arg for arg in dom.args if isinstance(arg, sp.Interval)],
+                key=lambda iv: float(iv.inf.evalf()) if iv.inf != sp.S.NegativeInfinity else -1e18
+            )
+            if intervals:
+                first_iv = intervals[0]
+                if first_iv.inf != sp.S.NegativeInfinity:
+                    domain_left = float(first_iv.inf.evalf())
+                    domain_strict = first_iv.left_open
+                seen_pts = set()
+                for iv in intervals:
+                    if iv.sup != sp.S.Infinity:
+                        v = float(iv.sup.evalf())
+                        if v not in seen_pts:
+                            forbidden_domain_pts.append(v)
+                            seen_pts.add(v)
+                    if iv.inf != sp.S.NegativeInfinity:
+                        v = float(iv.inf.evalf())
+                        if v not in seen_pts:
+                            forbidden_domain_pts.append(v)
+                            seen_pts.add(v)
+                forbidden_domain_pts.sort()
+        elif hasattr(dom, 'inf') and dom.inf != sp.S.NegativeInfinity:
+            domain_left = float(dom.inf.evalf())
+            domain_strict = getattr(dom, 'left_open', False)
+            if hasattr(dom, 'args'):
+                for arg in dom.args:
+                    if isinstance(arg, sp.Interval):
+                        domain_left = float(arg.inf.evalf())
+                        domain_strict = arg.left_open
+                        break
+    except Exception:
+        pass
+
+    # Add forbidden domain pts as denominator zeros -> || in sign table
+    for pt in forbidden_domain_pts:
+        if not any(abs(pt - dz) < 1e-9 for dz in den_zeros_f):
+            den_zeros_f.append(pt)
+    if forbidden_domain_pts:
+        den_zeros_f = sorted(den_zeros_f)
+
+    # Si on a une borne de domaine :
+    # GARDER les zéros à la borne (ex: sqrt(x+3) s'annule en x=-3)
+    if domain_left is not None:
+        num_zeros_f = [z for z in num_zeros_f if z >= domain_left - 1e-9]
+        den_zeros_f = [z for z in den_zeros_f if z >= domain_left - 1e-9]
+        critical = sorted(set(num_zeros_f + den_zeros_f))
+
+    # Construire le label de la borne gauche
+    # Convention : ] devant la valeur = borne stricte (exclue), ex: ]0
+    # Pas de préfixe = borne incluse, ex: 0
+    if domain_left is not None:
+        left_label = (']' if domain_strict else '') + fmt(domain_left)
+    else:
+        left_label = '-inf'
+
+    # Points de test
+    def test_pts_for(crit, dl):
+        if not crit:
+            return [dl + 1.0 if dl is not None else 0.0]
+        if dl is not None and abs(dl - crit[0]) < 1e-9:
+            first = dl - 1.0  # before domain -> || slot
+        elif dl is not None:
+            first = (dl + crit[0]) / 2.0 + 1e-6
+        else:
+            first = crit[0] - 1.0
+        pts = [first]
+        for i in range(len(crit) - 1):
+            pts.append((crit[i] + crit[i + 1]) / 2.0)
+        pts.append(crit[-1] + 1.0)
+        return pts
+
+    test_pts = test_pts_for(critical, domain_left)
+
+    # Construire les lignes du tableau
+    def is_before_domain(pt):
+        return domain_left is not None and pt < domain_left - 1e-9
+
+    def is_in_forbidden_zone(pt):
+        # Pour savoir si on est dans un "trou" du domaine de définition
+        # (ex: ]-2, 2[ pour ln(x^2 - 4))
+        # On utilise uniquement les intervalles extraits.
+        # Cela empêche qu'une simple valeur interdite (trou isolé) ne masque
+        # les valeurs des facteurs individuels (sinon dom.contains(cp) serait False).
+        if not forbidden_domain_pts: return False
+        fps = sorted(forbidden_domain_pts)
+        for j in range(0, len(fps) - 1, 2):
+            lo, hi = fps[j], fps[j + 1]
+            if lo < pt < hi: return True
+        return False
+
+    def build_row(f):
+        ftype = f.get('type', 'poly')
+        zeros_f = []
+        for z in f['zeros']:
+            try:
+                zeros_f.append(float(z.evalf()))
+            except:
+                pass
+        own_zero_set = set(zeros_f)
+        sym = f.get('expr')
+        if sym is None:
+            try:
+                sym = sp.sympify(f['label'], locals=LOCALS)
+            except:
+                sym = None
+        vals = []
+        for i, tp in enumerate(test_pts):
+            if is_before_domain(tp) or is_in_forbidden_zone(tp):
+                s = '||'
+            elif ftype == 'exp':
+                s = '+'
+            else:
+                s = sign_at(sym, tp) if sym else '+'
+            vals.append(s or '+')
+            if i < len(critical):
+                cp = critical[i]
+                is_den_zero = any(abs(cp - dz) < 1e-9 for dz in den_zeros_f)
+                is_own_zero = any(abs(cp - z) < 1e-9 for z in own_zero_set)
+
+                if is_before_domain(cp) or is_in_forbidden_zone(cp):
+                    vals.append('||')
+                elif is_own_zero:
+                    # Ce facteur s'annule ici : afficher '0'
+                    # Pour le dénominateur, ce '0' est aussi la valeur interdite de f(x)
+                    vals.append('0')
+                elif is_den_zero:
+                    # Ce point est un zéro du dénominateur global, MAIS pas de ce facteur.
+                    # On évalue le signe de CE facteur à ce point (il est défini et non nul ici).
+                    # Le facteur dénominateur qui possède ce zéro affichera '0' via is_own_zero.
+                    if ftype == 'exp':
+                        s2 = '+'
+                    else:
+                        s2 = sign_at(sym, cp) if sym else '+'
+                    vals.append(s2 or '+')
+                else:
+                    if ftype == 'exp': s2 = '+'
+                    else: s2 = sign_at(sym, cp) if sym else '+'
+                    vals.append(s2 or '+')
+        return vals
+
+    rows = []
+    all_delta_steps = []
+
+    # Coefficient constant négatif (règle des signes)
+    effective_const = float(num_const) / float(den_const) if float(den_const) != 0 else float(num_const)
+    if effective_const < -1e-10:
+        n_elements = 2 * len(critical) + 1
+        const_row_vals = ['-'] * n_elements
+        ec_abs = abs(effective_const)
+        if abs(ec_abs - round(ec_abs)) < 1e-9:
+            const_label = str(int(round(effective_const)))
+        else:
+            const_label = str(round(effective_const, 4))
+        rows.append({'label': const_label, 'values': const_row_vals, 'type': 'numerator'})
+
+    # Facteurs
+    for fi in num_factors_all:
+        rows.append({'label': fi['label'], 'values': build_row(fi), 'type': 'numerator'})
+        if fi.get('delta_steps'):
+            all_delta_steps.append({'factor': prettify_label(fi['label']), 'steps': fi['delta_steps']})
+    for fi in den_factors_all:
+        rows.append({'label': fi['label'], 'values': build_row(fi), 'type': 'denominator'})
+        if fi.get('delta_steps'):
+            all_delta_steps.append({'factor': prettify_label(fi['label']), 'steps': fi['delta_steps']})
+
+    # Ligne f(x)
+    fx_vals = []
+    for i, tp in enumerate(test_pts):
+        if is_before_domain(tp) or is_in_forbidden_zone(tp):
+            fx_vals.append('||')
+        else:
+            s = sign_at(expr_full, tp)
+            fx_vals.append(s or '+')
+        if i < len(critical):
+            cp = critical[i]
+            if any(abs(cp - d) < 1e-9 for d in den_zeros_f):
+                fx_vals.append('||')
+            elif any(abs(cp - z) < 1e-9 for z in num_zeros_f):
+                fx_vals.append('0')
+            elif is_before_domain(cp) or is_in_forbidden_zone(cp):
+                fx_vals.append('||')
+            else:
+                s2 = sign_at(expr_full, cp + 1e-6)
+                fx_vals.append(s2 or '+')
+
+    # Construire le bloc @@@
+    # left_label est déjà construit plus haut (avec ] si borne stricte)
+    # Dédupliquer : si domain_left == critical[0], ne pas répéter la borne
+    critical_display = critical
+    if domain_left is not None and critical and abs(critical[0] - domain_left) < 1e-9:
+        critical_display = critical[1:]
+        left_label = ']' + fmt(domain_left)  # MathTable: domain boundary, no phantom slot
+        for row in rows:
+            if len(row['values']) >= 2:
+                row['values'] = row['values'][2:]
+        if len(fx_vals) >= 2:
+            fx_vals = fx_vals[2:]
+    x_str = ', '.join([left_label] + [fmt(c) for c in critical_display] + ['+inf'])
+    lines = ['table |', f'x: {x_str} |']
+
+    for row in rows:
+        lines.append(f"sign: {prettify_label(row['label'])} : {', '.join(row['values'])} |")
+    lines.append(f"sign: f(x) : {', '.join(fx_vals)} |")
+    aaa_block = '@@@\n' + '\n'.join(lines) + '\n@@@'
+
+    # Construire la liste des facteurs pour le contexte IA
+    factors_info = []
+    for row in rows:
+        factors_info.append({
+            'label': prettify_label(row['label']),
+            'type': row.get('type', 'numerator'),
+        })
+        
+    # --- Collecter les valeurs exactes des racines pour un affichage parfait ---
+    exact_map = {}
+    z_exact_list = []
+    def try_add_exact(z_exact):
+        try:
+            if not hasattr(z_exact, 'is_real') or not z_exact.is_real:
+                return
+            val = float(z_exact.evalf())
+            k = str(round(val, 4)) if abs(val - round(val)) >= 0.01 else str(int(round(val)))
+            if k not in exact_map and not isinstance(z_exact, sp.Float) and not z_exact.is_integer:
+                exact_map[k] = sp.latex(z_exact)
+                z_exact_list.append((k, z_exact))
+        except:
+            pass
+
+    for f in num_factors_all + den_factors_all:
+        if 'zeros' in f:
+            for z in f['zeros']: try_add_exact(z)
+                 
+    try:
+        if 'direct_zeros' in locals():
+            for z in direct_zeros: try_add_exact(z)
+        if 'direct_den_zeros' in locals():
+            for z in direct_den_zeros: try_add_exact(z)
+    except:
+        pass
+
+    # --- Évaluer les extremums exacts (f(x) formel) si f(x) est injecté ---
+    # optionnel: l'API JS peut passer ?originalExpr= dans l'endpoint
+    if 'originalExpr' in kwargs and kwargs['originalExpr']:
+        try:
+            from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application, convert_xor
+            transformations = standard_transformations + (implicit_multiplication_application, convert_xor)
+            orig_expr_str = kwargs['originalExpr'].replace('^', '**')
+            orig_sym = parse_expr(orig_expr_str, transformations=transformations, local_dict=LOCALS)
+            
+            for k, z_val in z_exact_list:
+                try:
+                    img = sp.simplify(orig_sym.subs(x, z_val))
+                    if not isinstance(img, sp.Float):
+                         exact_map[f"y_{k}"] = sp.latex(img)
+                except:
+                    pass
+        except:
+            pass
+
+    return {
+        'success': True,
+        'aaaBlock': aaa_block,
+        'criticalPoints': critical,
+        'discriminantSteps': all_delta_steps,
+        'factors': factors_info,
+        'numZeros': num_zeros_f,
+        'denZeros': den_zeros_f,
+        'fxValues': fx_vals,
+        'effectiveConst': effective_const,
+        'exactMap': exact_map,
+    }

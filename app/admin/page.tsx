@@ -120,6 +120,10 @@ export default async function AdminPage() {
                         <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-cyan-500 transition-all"></span>
                         Module Assistant
                     </a>
+                    <a href="/prof" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-indigo-400 transition-all uppercase">
+                        <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-indigo-500 transition-all"></span>
+                        Espace Prof
+                    </a>
                     <a href="/" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-fuchsia-400 transition-all uppercase">
                         <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-fuchsia-500 transition-all"></span>
                         Espace Élève

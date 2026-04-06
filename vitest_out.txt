@@ -1,0 +1,2740 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/HP/Documents/projet/tuteur-maths-app[39m
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2m2x - 4 : un seul point critique en x=2
+[22m[39m[SIGN-ENGINE] Expression: 2*x - 4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'-'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "2" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "-" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "4" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: 2 : +, +, + |
+sign: x : -, 0, + |
+sign: - : +, ||, + |
+sign: 4 : +, +, + |
+sign: f(x) : -, ||, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="2*x-4"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "2*x-4"
+
+ [31mÔØ»[39m tests/math-router.test.ts [2m([22m[2m29 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 72[2mms[22m[39m
+     [32mÔ£ô[39m extrait f(x) = (x-3)/(x+2)[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m extrait g(x) = 2x┬▓ - 3x + 1 avec exposant unicode[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m extrait une ├®quation = 0[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m retourne null pour un texte sans expression[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les caract├¿res fran├ºais (├ù, ÔêÆ)[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte sign_table pour "├®tudier le signe"[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte variation_table pour "tableau de variations"[32m 4[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte graph pour "tracer la courbe"[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte solve_equation pour "r├®soudre f(x) = 0"[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte solve_inequality pour "f(x) > 0"[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte derivative pour "calculer f'(x)"[32m 0[2mms[22m[39m
+[31m     [31m├ù[31m d├®tecte limits pour "limite en"[39m[32m 25[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte integral pour "primitive"[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte factorize pour "factoriser"[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®tecte unknown pour une question g├®n├®rale[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m d├®coupe les questions num├®rot├®es 1) 2)[32m 7[2mms[22m[39m
+     [32mÔ£ô[39m d├®coupe les questions avec notation a. b.[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m pr├®serve l'expression globale pour les sous-questions[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m retourne une cha├«ne vide pour une question sans maths[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m affiche un aper├ºu pour une question de signe[32m 4[2mms[22m[39m
+     [32mÔ£ô[39m affiche l'expression extraite dans l'aper├ºu[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m tous les intents ont un label d├®fini[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les fractions rationnelles[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions avec racine carr├®e[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions exponentielles[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions avec logarithme[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions trigonom├®triques[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m #4.1 : (3x+2)(7x-1) sur une ligne n'est PAS multi-questions[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les parenth├¿ses num├®rot├®es dans l'expression[32m 0[2mms[22m[39m
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de signes pour 2x-4
+[22m[39m[SIGN-ENGINE] Expression: 2*x-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'4'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m4[39m ]
+[SIGN-ENGINE] Row "2" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-4" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 4, +inf |
+sign: 2 : +, +, + |
+sign: x-4 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de variations pour x^2
+[22m[39m[MathEngine] type=variation_table niveau=undefined expr="x^2"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├®n├¿re un tableau de variations pour x^2
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: undefined
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="(x+2)/(x-3)"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "(x+2)/(x-3)"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec fractions rationnelles
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[MathEngine] type=sign_table niveau=undefined expr="sqrt(x+2)"
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[MathEngine] ÔÜá´©Å SymPy ├®chou├®, FALLBACK JS pour "sqrt(x+2)"
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2m2x - 4 : signe n├®gatif avant x=2, positif apr├¿s
+[22m[39m[SIGN-ENGINE] Expression: 2*x - 4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'-'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "2" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "-" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "4" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: 2 : +, +, + |
+sign: x : -, 0, + |
+sign: - : +, ||, + |
+sign: 4 : +, +, + |
+sign: f(x) : -, ||, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-engine ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les expressions avec racine carr├®e
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x+2)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -2, +inf |
+sign: sqrt(x+2) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2mÔêÆ3x + 6 : un seul point critique en x=2
+[22m[39m[SIGN-ENGINE] Expression: -3*x + 6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'+'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "-3" [sign] (3): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "+" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "6" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: -3 : -, -, - |
+sign: x : -, 0, + |
+sign: + : +, ||, + |
+sign: 6 : +, +, + |
+sign: f(x) : +, ||, - |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2mÔêÆ3x + 6 : signe positif avant x=2, n├®gatif apr├¿s
+[22m[39m[SIGN-ENGINE] Expression: -3*x + 6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'+'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "-3" [sign] (3): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "+" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "6" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: -3 : -, -, - |
+sign: x : -, 0, + |
+sign: + : +, ||, + |
+sign: 6 : +, +, + |
+sign: f(x) : +, ||, - |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2m3x : un seul point critique en x=0
+[22m[39m[SIGN-ENGINE] Expression: 3*x
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "3" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: x : -, 0, + |
+sign: 3 : +, +, + |
+sign: f(x) : -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2m5 (constante positive) : aucun point critique, signe + partout
+[22m[39m[SIGN-ENGINE] Expression: 5
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "5" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: 5 : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fonctions affines[2m > [22m[2mÔêÆ2 (constante n├®gative) : aucun point critique, signe ÔêÆ partout
+[22m[39m[SIGN-ENGINE] Expression: -2
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "-2" [sign] (1): [ [32m'-'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: -2 : - |
+sign: f(x) : - |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Produit de facteurs affines[2m > [22m[2m(x+3)(x-2) : deux points critiques en ÔêÆ3 et 2
+[22m[39m[SIGN-ENGINE] Expression: (x+3)*(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-2" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 2, +inf |
+sign: x+3 : -, 0, +, +, + |
+sign: x-2 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mroute correctement une demande de tableau de signes
+[22m[39m[SIGN-ENGINE] Expression: (x+2)(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: x+2 : -, 0, +, +, + |
+sign: x-3 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Produit de facteurs affines[2m > [22m[2m(x+3)(x-2) : signe + sur (ÔêÆÔê×,ÔêÆ3), ÔêÆ sur (ÔêÆ3,2), + sur (2,+Ôê×)
+[22m[39m[SIGN-ENGINE] Expression: (x+3)*(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-2" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 2, +inf |
+sign: x+3 : -, 0, +, +, + |
+sign: x-2 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mroute correctement une demande de tableau de variations
+[22m[39m[VarEngine] f(x) = x^3 ÔåÆ cat├®gorie: reference_x3, niveau: terminale_spe
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Produit de facteurs affines[2m > [22m[2m(x+3)(x-2) : retourne le domaine ÔäØ
+[22m[39m[SIGN-ENGINE] Expression: (x+3)*(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-2" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 2, +inf |
+sign: x+3 : -, 0, +, +, + |
+sign: x-2 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Produit de facteurs affines[2m > [22m[2m(x-1)(x+1)(x-2) : trois points critiques en ÔêÆ1, 1, 2
+[22m[39m[SIGN-ENGINE] Expression: (x-1)*(x+1)*(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-1'[39m, [32m'1'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-1[39m, [33m1[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x-1" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+1" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-2" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -1, 1, 2, +inf |
+sign: x-1 : -, -, -, 0, +, +, + |
+sign: x+1 : -, 0, +, +, +, +, + |
+sign: x-2 : -, -, -, -, -, 0, + |
+sign: f(x) : -, 0, +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mextrait correctement l'expression f(x) = ...
+[22m[39m[SIGN-ENGINE] Expression: 2x^2 - 3x + 1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2x^2 - 3x + 1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m0.5[39m, [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'1/2'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0.5[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "2x^2 - 3x + 1" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 1/2, 1, +inf |
+sign: 2x^2 - 3x + 1 : +, 0, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Produit de facteurs affines[2m > [22m[2m(x+1)(x-3) via numeratorFactors explicites : m├¬me r├®sultat
+[22m[39m[SIGN-ENGINE] Expression: (x+1)*(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-1'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-1[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "x+1" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -1, 3, +inf |
+sign: x+1 : -, 0, +, +, + |
+sign: x-3 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2m(2x-1)/(x-3) : valeur interdite en x=3 (|| dans f(x))
+[22m[39m[SIGN-ENGINE] Expression: (2*x-1)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2*x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m0.5[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'1/2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0.5[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "2*x-1" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 1/2, 3, +inf |
+sign: 2*x-1 : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2m(2x-1)/(x-3) : z├®ro en x=1/2 (valeur 0 dans f(x))
+[22m[39m[SIGN-ENGINE] Expression: (2*x-1)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2*x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m0.5[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'1/2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0.5[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "2*x-1" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 1/2, 3, +inf |
+sign: 2*x-1 : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2m1/(x+2) : aucun z├®ro, une discontinuit├® en x=ÔêÆ2
+[22m[39m[SIGN-ENGINE] Expression: 1/(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m ]
+[SIGN-ENGINE] Row "1" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (3): [ [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, +inf |
+sign: 1 : +, +, + |
+sign: x+2 : -, D, + |
+sign: f(x) : -, ||, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2m1/(x+2) : signe + apr├¿s ÔêÆ2, signe ÔêÆ avant ÔêÆ2
+[22m[39m[SIGN-ENGINE] Expression: 1/(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m ]
+[SIGN-ENGINE] Row "1" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (3): [ [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, +inf |
+sign: 1 : +, +, + |
+sign: x+2 : -, D, + |
+sign: f(x) : -, ||, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2mx/(x-1) via denominatorFactors explicites : discontinuit├® en x=1
+[22m[39m[SIGN-ENGINE] Expression: x/(x-1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "x" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-1" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, 1, +inf |
+sign: x : -, 0, +, +, + |
+sign: x-1 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Fractions rationnelles[2m > [22m[2mdomaine contient x Ôëá pour les fractions rationnelles
+[22m[39m[SIGN-ENGINE] Expression: (x-2)/(x+1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x-2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+1'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-1'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-1[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "(x-2)" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x+1" [sign] (5): [ [32m'-'[39m, [32m'D'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'||'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -1, 2, +inf |
+sign: (x-2) : -, -, -, 0, + |
+sign: x+1 : -, D, +, +, + |
+sign: f(x) : +, ||, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓-5x+6 : ╬ö > 0, deux racines en 2 et 3
+[22m[39m[SIGN-ENGINE] Expression: x^2-5*x+6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2.2361[39m, [33m2.2361[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-6[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-6'[39m, [32m'-2.24'[39m, [32m'2.24'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-6[39m, [33m-2.2361[39m, [33m2.2361[39m ]
+[SIGN-ENGINE] Row "x^2-5" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+6" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -6, -2.24, 2.24, +inf |
+sign: x^2-5 : +, +, +, 0, -, 0, + |
+sign: x+6 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓-5x+6 : signe + avant 2, ÔêÆ entre 2 et 3, + apr├¿s 3
+[22m[39m[SIGN-ENGINE] Expression: x^2-5*x+6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2.2361[39m, [33m2.2361[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-6[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-6'[39m, [32m'-2.24'[39m, [32m'2.24'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-6[39m, [33m-2.2361[39m, [33m2.2361[39m ]
+[SIGN-ENGINE] Row "x^2-5" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+6" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -6, -2.24, 2.24, +inf |
+sign: x^2-5 : +, +, +, 0, -, 0, + |
+sign: x+6 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓-5x+6 : retourne discriminantSteps avec les ├®tapes de calcul
+[22m[39m[SIGN-ENGINE] Expression: x^2-5*x+6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2.2361[39m, [33m2.2361[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-6[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-6'[39m, [32m'-2.24'[39m, [32m'2.24'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-6[39m, [33m-2.2361[39m, [33m2.2361[39m ]
+[SIGN-ENGINE] Row "x^2-5" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+6" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -6, -2.24, 2.24, +inf |
+sign: x^2-5 : +, +, +, 0, -, 0, + |
+sign: x+6 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓+4 : ╬ö < 0, aucun point critique, signe + partout
+[22m[39m[SIGN-ENGINE] Expression: x^2+4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "x^2+4" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: x^2+4 : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓-4x+4 : ╬ö = 0, une racine double en x=2
+[22m[39m[SIGN-ENGINE] Expression: x^2-4*x+4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2[39m, [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-4'[39m, [32m'-2'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-4[39m, [33m-2[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x^2-4" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+4" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -4, -2, 2, +inf |
+sign: x^2-4 : +, +, +, 0, -, 0, + |
+sign: x+4 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mx┬▓-4x+4 (racine double) : signe + ÔêÆ 0 + ├á gauche et droite
+[22m[39m[SIGN-ENGINE] Expression: x^2-4*x+4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2[39m, [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-4'[39m, [32m'-2'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-4[39m, [33m-2[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x^2-4" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+4" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -4, -2, 2, +inf |
+sign: x^2-4 : +, +, +, 0, -, 0, + |
+sign: x+4 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Trin├┤mes[2m > [22m[2mÔêÆx┬▓+1 : signe ÔêÆ avant ÔêÆ1, + entre ÔêÆ1 et 1, ÔêÆ apr├¿s 1
+[22m[39m[SIGN-ENGINE] Expression: -x^2+1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-x^2+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-1[39m, [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-1'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-1[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "-x^2+1" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'0'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'0'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -1, 1, +inf |
+sign: -x^2+1 : -, 0, +, 0, - |
+sign: f(x) : -, 0, +, 0, - |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Facteur exponentiel[2m > [22m[2m(x-1)*e^x : seul z├®ro en x=1 (e^x ne change pas le signe)
+[22m[39m[SIGN-ENGINE] Expression: (x-1)*e^(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'e^x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'exp'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m1[39m ]
+[SIGN-ENGINE] Row "x-1" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "e^x" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 1, +inf |
+sign: x-1 : -, 0, + |
+sign: e^x : +, +, + |
+sign: f(x) : -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Facteur exponentiel[2m > [22m[2me^x seul : aucun z├®ro, signe + sur ÔäØ
+[22m[39m[SIGN-ENGINE] Expression: e^(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'e^x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'exp'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "e^x" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: e^x : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Racines carr├®es[2m > [22m[2msqrt(x) : aucun z├®ro en dehors de la borne, toujours + sur [0,+Ôê×[
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m0[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: 0, +inf |
+sign: sqrt(x) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Racines carr├®es[2m > [22m[2msqrt(x+2) : domaine commence ├á x=ÔêÆ2 (pas avant)
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x+2)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -2, +inf |
+sign: sqrt(x+2) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Racines carr├®es[2m > [22m[2mdomaine de sqrt(x) contient x ÔëÑ 0
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m0[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: 0, +inf |
+sign: sqrt(x) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Logarithmes[2m > [22m[2mln(x) : z├®ro en x=1, ÔêÆ sur (0,1), + sur (1,+Ôê×)
+[22m[39m[SIGN-ENGINE] Expression: ln(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'ln(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'ln'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: [ [33m0[39m ]
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'0/2'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m1[39m ]
+[SIGN-ENGINE] Row "ln(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: 0/2, 1, +inf |
+sign: ln(x) : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+[90mstdout[2m | tests/api-routes.test.ts[2m > [22m[2mAPI /api/math-router ÔÇö Anti-R├®gression[2m > [22m[2mg├¿re les questions multiples
+[22m[39m[SIGN-ENGINE] Expression: 2x-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m ]
+[SIGN-ENGINE] Row "2x-4" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, +inf |
+sign: 2x-4 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: soudre f(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'soudre f(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "soudre f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: soudre f(x) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Logarithmes[2m > [22m[2mln(x) : domaine contient x > 0
+[22m[39m[SIGN-ENGINE] Expression: ln(x)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'ln(x)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'ln'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: [ [33m0[39m ]
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'0/2'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m1[39m ]
+[SIGN-ENGINE] Row "ln(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: 0/2, 1, +inf |
+sign: ln(x) : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+
+ [31mÔØ»[39m tests/api-routes.test.ts [2m([22m[2m13 tests[22m[2m | [22m[31m9 failed[39m[2m)[22m[33m 13656[2mms[22m[39m
+[31m     [31m├ù[31m retourne success=false pour une expression vide[39m[33m 10051[2mms[22m[39m
+[31m     [31m├ù[31m g├®n├¿re un tableau de signes pour 2x-4[39m[33m 786[2mms[22m[39m
+     [32mÔ£ô[39m g├®n├¿re un tableau de variations pour x^2[32m 23[2mms[22m[39m
+     [32mÔ£ô[39m g├¿re les expressions avec fractions rationnelles[32m 14[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m g├¿re les expressions avec racine carr├®e [33m 385[2mms[22m[39m
+[31m     [31m├ù[31m route correctement une demande de tableau de signes[39m[32m 171[2mms[22m[39m
+[31m     [31m├ù[31m route correctement une demande de tableau de variations[39m[32m 33[2mms[22m[39m
+[31m     [31m├ù[31m extrait correctement l'expression f(x) = ...[39m[32m 11[2mms[22m[39m
+[31m     [31m├ù[31m g├¿re les questions multiples[39m[33m 2057[2mms[22m[39m
+[31m     [31m├ù[31m retourne hasMathEngine=false pour une question non-math├®matique[39m[32m 6[2mms[22m[39m
+     [32mÔ£ô[39m rejette les requ├¬tes sans contenu[32m 73[2mms[22m[39m
+[31m     [31m├ù[31m calcule la distance entre deux points[39m[32m 26[2mms[22m[39m
+[31m     [31m├ù[31m calcule le milieu d'un segment[39m[32m 3[2mms[22m[39m
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Logarithmes[2m > [22m[2mln(x-2) : z├®ro en x=3 (ln(x-2)=0 quand x-2=1)
+[22m[39m[SIGN-ENGINE] Expression: ln(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'ln(x-2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'ln'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: [ [33m2[39m ]
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'0/2'[39m, [32m'2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "ln(x-2)" [sign] (5): [ [32m'-'[39m, [32m'||'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'-'[39m, [32m'||'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: 0/2, 2, 3, +inf |
+sign: ln(x-2) : -, ||, -, 0, + |
+sign: f(x) : -, ||, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mne retourne pas d'erreur m├¬me pour une expression complexe
+[22m[39m[SIGN-ENGINE] Expression: (x^2-4)*(x+3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2[39m, [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'-2'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m-2[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x^2-4" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+3" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, -2, 2, +inf |
+sign: x^2-4 : +, +, +, 0, -, 0, + |
+sign: x+3 : -, 0, +, +, +, +, + |
+sign: f(x) : -, 0, +, 0, -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: (x^2-4)*(x+3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2[39m, [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'-2'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m-2[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x^2-4" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+3" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, -2, 2, +inf |
+sign: x^2-4 : +, +, +, 0, -, 0, + |
+sign: x+3 : -, 0, +, +, +, +, + |
+sign: f(x) : -, 0, +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mexpression invalide : retourne success=false sans crash
+[22m[39m[SIGN-ENGINE] Expression: junk$$$$%invalid
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'junk$$$$%invalid'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "junk$$$$NaNnvalid" [sign] (1):
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: junk$$$$%invalid : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mx^2 - 4 : deux points critiques en ┬▒2
+[22m[39m[SIGN-ENGINE] Expression: x^2-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2[39m, [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x^2-4" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 2, +inf |
+sign: x^2-4 : +, 0, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mcriticalPoints sont tri├®s en ordre croissant
+[22m[39m[SIGN-ENGINE] Expression: (x+5)*(x-1)*(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-5[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-5'[39m, [32m'1'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-5[39m, [33m1[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "x+5" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-1" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-3" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -5, 1, 3, +inf |
+sign: x+5 : -, 0, +, +, +, +, + |
+sign: x-1 : -, -, -, 0, +, +, + |
+sign: x-3 : -, -, -, -, -, 0, + |
+sign: f(x) : -, 0, +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mle tableau f(x) a le bon nombre de valeurs (2n+1 pour n points critiques)
+[22m[39m[SIGN-ENGINE] Expression: (x+1)*(x-2)*(x-4)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-1'[39m, [32m'2'[39m, [32m'4'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-1[39m, [33m2[39m, [33m4[39m ]
+[SIGN-ENGINE] Row "x+1" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-2" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-4" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -1, 2, 4, +inf |
+sign: x+1 : -, 0, +, +, +, +, + |
+sign: x-2 : -, -, -, 0, +, +, + |
+sign: x-4 : -, -, -, -, -, 0, + |
+sign: f(x) : -, 0, +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/sign-table-engine.test.ts[2m > [22m[2mgenerateSignTable ÔÇö Anti-freeze et robustesse[2m > [22m[2mretourne always un aiContext non vide en cas de succ├¿s
+[22m[39m[SIGN-ENGINE] Expression: 2*x + 1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-0[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'+'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'generic'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'0'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m0[39m ]
+[SIGN-ENGINE] Row "2" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "+" [sign] (3): [ [32m'+'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "1" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 0, +inf |
+sign: 2 : +, +, + |
+sign: x : -, 0, + |
+sign: + : +, ||, + |
+sign: 1 : +, +, + |
+sign: f(x) : -, ||, + |
+@@@
+
+ [31mÔØ»[39m tests/sign-table-engine.test.ts [2m([22m[2m47 tests[22m[2m | [22m[31m7 failed[39m[2m)[22m[33m 5387[2mms[22m[39m
+[31m     [31m├ù[31m 2x - 4 : un seul point critique en x=2[39m[33m 342[2mms[22m[39m
+[31m     [31m├ù[31m 2x - 4 : signe n├®gatif avant x=2, positif apr├¿s[39m[33m 431[2mms[22m[39m
+[31m     [31m├ù[31m ÔêÆ3x + 6 : un seul point critique en x=2[39m[32m 232[2mms[22m[39m
+[31m     [31m├ù[31m ÔêÆ3x + 6 : signe positif avant x=2, n├®gatif apr├¿s[39m[32m 119[2mms[22m[39m
+     [32mÔ£ô[39m 3x : un seul point critique en x=0[32m 9[2mms[22m[39m
+     [32mÔ£ô[39m 5 (constante positive) : aucun point critique, signe + partout[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m ÔêÆ2 (constante n├®gative) : aucun point critique, signe ÔêÆ partout[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m (x+3)(x-2) : deux points critiques en ÔêÆ3 et 2[32m 11[2mms[22m[39m
+     [32mÔ£ô[39m (x+3)(x-2) : signe + sur (ÔêÆÔê×,ÔêÆ3), ÔêÆ sur (ÔêÆ3,2), + sur (2,+Ôê×)[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m (x+3)(x-2) : retourne le domaine ÔäØ[32m 7[2mms[22m[39m
+     [32mÔ£ô[39m (x-1)(x+1)(x-2) : trois points critiques en ÔêÆ1, 1, 2[32m 6[2mms[22m[39m
+     [32mÔ£ô[39m (x+1)(x-3) via numeratorFactors explicites : m├¬me r├®sultat[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m (2x-1)/(x-3) : valeur interdite en x=3 (|| dans f(x))[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m (2x-1)/(x-3) : z├®ro en x=1/2 (valeur 0 dans f(x))[32m 49[2mms[22m[39m
+     [32mÔ£ô[39m 1/(x+2) : aucun z├®ro, une discontinuit├® en x=ÔêÆ2[32m 9[2mms[22m[39m
+     [32mÔ£ô[39m 1/(x+2) : signe + apr├¿s ÔêÆ2, signe ÔêÆ avant ÔêÆ2[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m x/(x-1) via denominatorFactors explicites : discontinuit├® en x=1[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m domaine contient x Ôëá pour les fractions rationnelles[32m 7[2mms[22m[39m
+[31m     [31m├ù[31m x┬▓-5x+6 : ╬ö > 0, deux racines en 2 et 3[39m[32m 33[2mms[22m[39m
+[31m     [31m├ù[31m x┬▓-5x+6 : signe + avant 2, ÔêÆ entre 2 et 3, + apr├¿s 3[39m[32m 13[2mms[22m[39m
+     [32mÔ£ô[39m x┬▓-5x+6 : retourne discriminantSteps avec les ├®tapes de calcul[32m 8[2mms[22m[39m
+     [32mÔ£ô[39m x┬▓+4 : ╬ö < 0, aucun point critique, signe + partout[32m 14[2mms[22m[39m
+[31m     [31m├ù[31m x┬▓-4x+4 : ╬ö = 0, une racine double en x=2[39m[32m 14[2mms[22m[39m
+     [32mÔ£ô[39m x┬▓-4x+4 (racine double) : signe + ÔêÆ 0 + ├á gauche et droite[32m 15[2mms[22m[39m
+     [32mÔ£ô[39m ÔêÆx┬▓+1 : signe ÔêÆ avant ÔêÆ1, + entre ÔêÆ1 et 1, ÔêÆ apr├¿s 1[32m 48[2mms[22m[39m
+     [32mÔ£ô[39m (x-1)*e^x : seul z├®ro en x=1 (e^x ne change pas le signe)[32m 8[2mms[22m[39m
+     [32mÔ£ô[39m e^x seul : aucun z├®ro, signe + sur ÔäØ[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m sqrt(x) : aucun z├®ro en dehors de la borne, toujours + sur [0,+Ôê×[[32m 116[2mms[22m[39m
+     [32mÔ£ô[39m sqrt(x+2) : domaine commence ├á x=ÔêÆ2 (pas avant)[32m 169[2mms[22m[39m
+     [32mÔ£ô[39m domaine de sqrt(x) contient x ÔëÑ 0[32m 162[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ln(x) : z├®ro en x=1, ÔêÆ sur (0,1), + sur (1,+Ôê×) [33m 970[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ln(x) : domaine contient x > 0 [33m 486[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ln(x-2) : z├®ro en x=3 (ln(x-2)=0 quand x-2=1) [33m 533[2mms[22m[39m
+     [32mÔ£ô[39m ne retourne pas d'erreur m├¬me pour une expression complexe[32m 14[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m expression invalide : retourne success=false sans crash [33m 1070[2mms[22m[39m
+     [32mÔ£ô[39m x^2 - 4 : deux points critiques en ┬▒2[32m 6[2mms[22m[39m
+     [32mÔ£ô[39m criticalPoints sont tri├®s en ordre croissant[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m le tableau f(x) a le bon nombre de valeurs (2n+1 pour n points critiques)[32m 14[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m retourne always un aiContext non vide en cas de succ├¿s [33m 387[2mms[22m[39m
+     [32mÔ£ô[39m ÔêÆinf ÔåÆ ÔêÆ\infty[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m +inf ÔåÆ +\infty[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m x^2 ÔåÆ x^{2}[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m sqrt(x+1) ÔåÆ \sqrt{x+1}[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m ln(x) ÔåÆ \ln(x)[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m 1/2 ÔåÆ \dfrac{1}{2}[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m (x+1)/(x-2) ÔåÆ \dfrac{x+1}{x-2}[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m cha├«ne vide ÔåÆ cha├«ne vide[32m 0[2mms[22m[39m
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2m2x+3 (a>0) : fl├¿che nearrow unique (croissante), aucun extremum
+[22m[39m[VarEngine] f(x) = 2*x+3 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2mÔêÆx+5 (a<0) : fl├¿che searrow unique (d├®croissante)
+[22m[39m[VarEngine] f(x) = -x+5 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2m3 (constante, a=0) : fl├¿che rightarrow (constante)
+[22m[39m[VarEngine] f(x) = 3 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2maffine : xValues = ["-inf", "+inf"] (ÔäØ entier)
+[22m[39m[VarEngine] f(x) = 2*x+1 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2maffine : PAS de ligne f'(x) (fonctions affines ne n├®cessitent pas la d├®riv├®e)
+[22m[39m[VarEngine] f(x) = 3*x-2 ÔåÆ cat├®gorie: affine, niveau: premiere_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2maffine : method mentionne "Fonction affine"
+[22m[39m[VarEngine] f(x) = 4*x-1 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions affines[2m > [22m[2maffine : aiContext est g├®n├®r├® et mentionne le niveau
+[22m[39m[VarEngine] f(x) = 2*x+1 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬▓[2m > [22m[2mx┬▓ : cat├®gorie reference_x2, extremum minimum en x=0
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬▓[2m > [22m[2mx┬▓ : d├®croissante sur ]-Ôê×;0], croissante sur [0;+Ôê×[
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬▓[2m > [22m[2mx┬▓ : xValues contient "-inf", "0", "+inf"
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬▓[2m > [22m[2m-x┬▓ : maximum en x=0 (a<0)
+[22m[39m[VarEngine] f(x) = -x^2 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬▓[2m > [22m[2mx┬▓ : PAS de ligne d├®riv├®e en Seconde (propri├®t├® connue)
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬│[2m > [22m[2mx┬│ : croissante sur ÔäØ, aucun extremum
+[22m[39m[VarEngine] f(x) = x^3 ÔåÆ cat├®gorie: reference_x3, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence x┬│[2m > [22m[2mx┬│ : method mentionne "r├®f├®rence"
+[22m[39m[VarEngine] f(x) = x^3 ÔåÆ cat├®gorie: reference_x3, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence ÔêÜx[2m > [22m[2msqrt(x) : croissante sur [0;+Ôê×[, aucun extremum
+[22m[39m[VarEngine] f(x) = sqrt(x) ÔåÆ cat├®gorie: reference_sqrt, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence ÔêÜx[2m > [22m[2msqrt(x) : xValues commence ├á "0"
+[22m[39m[VarEngine] f(x) = sqrt(x) ÔåÆ cat├®gorie: reference_sqrt, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence 1/x[2m > [22m[2m1/x : aucun extremum, valeur interdite en 0 (symbole ||)
+[22m[39m[VarEngine] f(x) = 1/x ÔåÆ cat├®gorie: reference_inv, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence 1/x[2m > [22m[2m1/x : deux fl├¿ches searrow (d├®croissante sur chaque intervalle)
+[22m[39m[VarEngine] f(x) = 1/x ÔåÆ cat├®gorie: reference_inv, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Fonctions de r├®f├®rence |x|[2m > [22m[2m|x| : minimum en 0, d├®croissante puis croissante
+[22m[39m[VarEngine] f(x) = abs(x) ÔåÆ cat├®gorie: reference_abs, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓-4x+3 (a>0) : minimum au sommet xs=2, ys=ÔêÆ1
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓-4x+3 : xValues contient le sommet
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mÔêÆ2x┬▓+8xÔêÆ6 (a<0) : maximum au sommet xs=2, ys=2
+[22m[39m[VarEngine] f(x) = -2*x^2+8*x-6 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓-4x+3 : PAS de ligne f'(x) (m├®thode forme canonique)
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓-4x+3 : method mentionne "Polyn├┤me du second degr├®"
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓-4x+3 : method mentionne le discriminant ╬ö
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Polyn├┤mes 2nd degr├®[2m > [22m[2mx┬▓+1 (sommet en 0, ys=1) : xValues contient "0"
+[22m[39m[VarEngine] f(x) = x^2+1 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mx┬│-3x (f'=3x┬▓-3) : extremums en ÔêÆ1 (max) et 1 (min)
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mx┬│-3x : expos├® la derivativeExpr dans le r├®sultat
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mx┬│-3x : ligne f'(x) pr├®sente en Terminale
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mx┬│-3x : PAS de ligne f'(x) en Seconde (d├®riv├®e hors programme)
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2msin(x) sur [-2¤Ç, 2¤Ç] : succ├¿s ou fallback IA (pas de crash)
+[22m[39m[VarEngine] f(x) = sin(x) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mexp(x) : croissante sur ÔäØ, aucun extremum
+[22m[39m[VarEngine] f(x) = exp(x) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15A ÔÇö Signes f(x) pour les fractions rationnelles[2m > [22m[2m(x+2)/(x-3) : generateSignTable ÔÇö deux points critiques (-2 et 3)
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15A ÔÇö Signes f(x) pour les fractions rationnelles[2m > [22m[2m(x+2)/(x-3) : f(x) a exactement un || (valeur interdite en x=3)
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15A ÔÇö Signes f(x) pour les fractions rationnelles[2m > [22m[2m(x+2)/(x-3) : s├®quence de signes f(x) = +, 0, -, ||, +
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15B ÔÇö Invariants structurels des tableaux de signes[2m > [22m[2minvariant 2N+1 : (x+2)/(x-3) ÔåÆ N=2, 5 valeurs par ligne
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15B ÔÇö Invariants structurels des tableaux de signes[2m > [22m[2minvariant 2N+1 : (x+3)*(x-2)/(x-1) ÔåÆ N=3, 7 valeurs par ligne
+[22m[39m[SIGN-ENGINE] Expression: (x+3)*(x-2)/(x-1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'1'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m1[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-2" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-1" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'D'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m,  [32m'0'[39m, [32m'+'[39m,
+  [32m'||'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 1, 2, +inf |
+sign: x+3 : -, 0, +, +, +, +, + |
+sign: x-2 : -, -, -, -, -, 0, + |
+sign: x-1 : -, -, -, D, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15B ÔÇö Invariants structurels des tableaux de signes[2m > [22m[2m(x+3)*(x-2)/(x-1) : exactement 1 || et 2 z├®ros dans f(x)
+[22m[39m[SIGN-ENGINE] Expression: (x+3)*(x-2)/(x-1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'1'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m1[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-2" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-1" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'D'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m,  [32m'0'[39m, [32m'+'[39m,
+  [32m'||'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 1, 2, +inf |
+sign: x+3 : -, 0, +, +, +, +, + |
+sign: x-2 : -, -, -, -, -, 0, + |
+sign: x-1 : -, -, -, D, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-15B ÔÇö Invariants structurels des tableaux de signes[2m > [22m[2mcriticalPoints toujours tri├®s en ordre croissant pour les fractions
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+[SIGN-ENGINE] Expression: (x-1)/(x+4)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x-1)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+4'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-4'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-4[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "(x-1)" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x+4" [sign] (5): [ [32m'-'[39m, [32m'D'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'||'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -4, 1, +inf |
+sign: (x-1) : -, -, -, 0, + |
+sign: x+4 : -, D, +, +, + |
+sign: f(x) : +, ||, -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: (x+3)*(x-2)/(x-1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'1'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m1[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-2" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'-'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x-1" [sign] (7): [
+  [32m'-'[39m, [32m'-'[39m, [32m'-'[39m,
+  [32m'D'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'-'[39m,  [32m'0'[39m, [32m'+'[39m,
+  [32m'||'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 1, 2, +inf |
+sign: x+3 : -, 0, +, +, +, +, + |
+sign: x-2 : -, -, -, -, -, 0, + |
+sign: x-1 : -, -, -, D, +, +, + |
+sign: f(x) : -, 0, +, ||, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Produit avec facteur ╬ö < 0 (x┬▓+1)[2m > [22m[2m(-2x+4)(x-3)(x┬▓+1) : exactement 2 points critiques (x=2 et x=3)
+[22m[39m[SIGN-ENGINE] Expression: (-2*x+4)*(x-3)*(x^2+1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-2*x+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x^2+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "-2*x+4" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'-'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x^2+1" [sign] (5): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'0'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, 3, +inf |
+sign: -2*x+4 : +, 0, -, -, - |
+sign: x-3 : -, -, -, 0, + |
+sign: x^2+1 : +, +, +, +, + |
+sign: f(x) : -, 0, +, 0, - |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Produit avec facteur ╬ö < 0 (x┬▓+1)[2m > [22m[2m(-2x+4)(x-3)(x┬▓+1) : aucun || dans f(x) (pas de valeur interdite)
+[22m[39m[SIGN-ENGINE] Expression: (-2*x+4)*(x-3)*(x^2+1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-2*x+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x^2+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "-2*x+4" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'-'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x^2+1" [sign] (5): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'0'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, 3, +inf |
+sign: -2*x+4 : +, 0, -, -, - |
+sign: x-3 : -, -, -, 0, + |
+sign: x^2+1 : +, +, +, +, + |
+sign: f(x) : -, 0, +, 0, - |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Produit avec facteur ╬ö < 0 (x┬▓+1)[2m > [22m[2m(-2x+4)(x-3)(x┬▓+1) : s├®quence de signes f(x) = -, 0, +, 0, -
+[22m[39m[SIGN-ENGINE] Expression: (-2*x+4)*(x-3)*(x^2+1)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-2*x+4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x^2+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "-2*x+4" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'-'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x^2+1" [sign] (5): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'0'[39m, [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 2, 3, +inf |
+sign: -2*x+4 : +, 0, -, -, - |
+sign: x-3 : -, -, -, 0, + |
+sign: x^2+1 : +, +, +, +, + |
+sign: f(x) : -, 0, +, 0, - |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Produit avec facteur ╬ö < 0 (x┬▓+1)[2m > [22m[2mx┬▓+1 seul : aucun point critique (╬ö < 0, toujours positif)
+[22m[39m[SIGN-ENGINE] Expression: x^2+1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2+1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "x^2+1" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: x^2+1 : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Produit avec facteur ╬ö < 0 (x┬▓+1)[2m > [22m[2m-x┬▓-1 (a<0, ╬ö<0) : aucun point critique, signe ÔêÆ partout
+[22m[39m[SIGN-ENGINE] Expression: -x^2-1
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'-x^2-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "-x^2-1" [sign] (1): [ [32m'-'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'-'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, +inf |
+sign: -x^2-1 : - |
+sign: f(x) : - |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mInvariants aaaBlock ÔÇö format @@@table[2m > [22m[2maaaBlock d├®marre par "@@@" et contient "table |"
+[22m[39m[SIGN-ENGINE] Expression: 2*x-4
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-4'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m4[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'4'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m4[39m ]
+[SIGN-ENGINE] Row "2" [sign] (3): [ [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-4" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (3): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, 4, +inf |
+sign: 2 : +, +, + |
+sign: x-4 : -, 0, + |
+sign: f(x) : -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: (x+3)*(x-2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-3[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-3'[39m, [32m'2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-3[39m, [33m2[39m ]
+[SIGN-ENGINE] Row "x+3" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-2" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -3, 2, +inf |
+sign: x+3 : -, 0, +, +, + |
+sign: x-2 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+[SIGN-ENGINE] Expression: x^2-5*x+6
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x^2-5'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'trinomial'[39m,
+    zeros: [ [33m-2.2361[39m, [33m2.2361[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+6'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-6[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-6'[39m, [32m'-2.24'[39m, [32m'2.24'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-6[39m, [33m-2.2361[39m, [33m2.2361[39m ]
+[SIGN-ENGINE] Row "x^2-5" [sign] (7): [
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'-'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "x+6" [sign] (7): [
+  [32m'-'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'+'[39m, [32m'+'[39m, [32m'+'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] Row "f(x)" [sign] (7): [
+  [32m'+'[39m, [32m'0'[39m, [32m'+'[39m,
+  [32m'0'[39m, [32m'+'[39m, [32m'0'[39m,
+  [32m'+'[39m
+]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -6, -2.24, 2.24, +inf |
+sign: x^2-5 : +, +, +, 0, -, 0, + |
+sign: x+6 : -, 0, +, +, +, +, + |
+sign: f(x) : +, 0, +, 0, +, 0, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mInvariants aaaBlock ÔÇö format @@@table[2m > [22m[2maaaBlock se termine toujours par "@@@"
+[22m[39m[SIGN-ENGINE] Expression: (x-1)*(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x-1'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m1[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'1'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m1[39m ]
+[SIGN-ENGINE] Row "x-1" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 1, +inf |
+sign: x-1 : -, -, -, 0, + |
+sign: x+2 : -, 0, +, +, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mInvariants aaaBlock ÔÇö format @@@table[2m > [22m[2maaaBlock contient exactement 1 ligne "x:"
+[22m[39m[SIGN-ENGINE] Expression: (x+2)/(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'denominator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "(x+2)" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'D'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'||'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: (x+2) : -, 0, +, +, + |
+sign: x-3 : -, -, -, D, + |
+sign: f(x) : +, 0, -, ||, + |
+@@@
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mInvariants aaaBlock ÔÇö format @@@table[2m > [22m[2maaaBlock contient au moins 1 ligne "sign:"
+[22m[39m[SIGN-ENGINE] Expression: (x+2)*(x-3)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'x+2'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  },
+  {
+    label: [32m'x-3'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'affine'[39m,
+    zeros: [ [33m3[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-inf'[39m, [32m'-2'[39m, [32m'3'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: [ [33m-2[39m, [33m3[39m ]
+[SIGN-ENGINE] Row "x+2" [sign] (5): [ [32m'-'[39m, [32m'0'[39m, [32m'+'[39m, [32m'+'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "x-3" [sign] (5): [ [32m'-'[39m, [32m'-'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (5): [ [32m'+'[39m, [32m'0'[39m, [32m'-'[39m, [32m'0'[39m, [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -inf, -2, 3, +inf |
+sign: x+2 : -, 0, +, +, + |
+sign: x-3 : -, -, -, 0, + |
+sign: f(x) : +, 0, -, 0, + |
+@@@
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mln(x+1) : domaine commence ├á x=ÔêÆ1 (pr├®sence dans xValues)
+[22m[39m[VarEngine] f(x) = ln(x+1) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mcas g├®n├®ral : aiContext contient les interdictions absolues et la r├¿gle anti d/dx
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+ [32mÔ£ô[39m tests/expression-parser.test.ts [2m([22m[2m50 tests[22m[2m)[22m[33m 1974[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m trouve le z├®ro de 2*x+6 en -3 [33m 332[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m retourne les z├®ros tri├®s par ordre croissant [33m 342[2mms[22m[39m
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-12 ÔÇö Variation Table de sqrt(x+2)[2m > [22m[2msqrt(x+2) : aucune valeur || dans la ligne f(x) (la valeur en -2 existe)
+[22m[39m[VarEngine] f(x) = sqrt(x+2) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Cas g├®n├®ral[2m > [22m[2mcas g├®n├®ral : fusion derivation/variation avec sympyDerivSign injecte factorisation dans aiContext
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mSeconde : aiContext contient interdictions sur la d├®riv├®e
+[22m[39m[VarEngine] f(x) = x^2+2*x-3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mTerminale Spe : aiContext mentionne les limites en ┬▒Ôê×
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-12 ÔÇö Variation Table de sqrt(x+2)[2m > [22m[2msqrt(x+2) : f(-2) est repr├®sent├® par la valeur exacte 0
+[22m[39m[VarEngine] f(x) = sqrt(x+2) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-16 ÔÇö Sign Table de sqrt(x+2)[2m > [22m[2msqrt(x+2) : pas de double barre || dans la ligne f(x)
+[22m[39m[SIGN-ENGINE] Expression: sqrt(x+2)
+[SIGN-ENGINE] Factors: [
+  {
+    label: [32m'sqrt(x+2)'[39m,
+    type: [32m'numerator'[39m,
+    factorType: [32m'sqrt'[39m,
+    zeros: [ [33m-2[39m ],
+    discontinuities: []
+  }
+]
+[SIGN-ENGINE] xValues: [ [32m'-2'[39m, [32m'+inf'[39m ]
+[SIGN-ENGINE] criticalPoints: []
+[SIGN-ENGINE] Row "sqrt(x+2)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] Row "f(x)" [sign] (1): [ [32m'+'[39m ]
+[SIGN-ENGINE] AAA Block:
+ @@@
+table |
+x: -2, +inf |
+sign: sqrt(x+2) : + |
+sign: f(x) : + |
+@@@
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mTerminale Spe : showLimitsAtInfinity ÔåÆ xValues globaux peuvent contenir +inf/-inf
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+ [32mÔ£ô[39m tests/geo-parser.test.ts [2m([22m[2m44 tests[22m[2m)[22m[32m 245[2mms[22m[39m
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mPremi├¿re Spe : PAS de limites en ┬▒Ôê× dans les xValues
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: premiere_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mSeconde : aiContext contient "Seconde"
+[22m[39m[VarEngine] f(x) = 2*x+1 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-18A ÔÇö Limites manquantes exponentielle e^x/x[2m > [22m[2me^x/x en terminale_spe : les limites sont construites et incluses
+[22m[39m[VarEngine] f(x) = (e^x)/x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├¿gles p├®dagogiques par niveau[2m > [22m[2mTerminale Expert : aiContext contient "Terminale Maths Expertes"
+[22m[39m[VarEngine] f(x) = x^3-x ÔåÆ cat├®gorie: general, niveau: terminale_expert
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2maaaBlock commence par @@@ et se termine par @@@
+[22m[39m[VarEngine] f(x) = x^2-4 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2maaaBlock contient "table" en premi├¿re ligne
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2maaaBlock contient "x:" (ligne des abscisses)
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2maaaBlock contient "variation:" (ligne de variation)
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2mtitle par d├®faut contient l'expression
+[22m[39m[VarEngine] f(x) = x^2-3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2mtitle personnalis├® respect├®
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Structure et format[2m > [22m[2msucc├¿s = true et error absent pour une expression valide
+[22m[39m[VarEngine] f(x) = 2*x+1 ÔåÆ cat├®gorie: affine, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Robustesse[2m > [22m[2mne throw jamais pour les fonctions de r├®f├®rence connues
+[22m[39m[VarEngine] f(x) = x^2 ÔåÆ cat├®gorie: reference_x2, niveau: seconde
+[VarEngine] f(x) = x^3 ÔåÆ cat├®gorie: reference_x3, niveau: seconde
+[VarEngine] f(x) = sqrt(x) ÔåÆ cat├®gorie: reference_sqrt, niveau: seconde
+[VarEngine] f(x) = 1/x ÔåÆ cat├®gorie: reference_inv, niveau: seconde
+[VarEngine] f(x) = abs(x) ÔåÆ cat├®gorie: reference_abs, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Robustesse[2m > [22m[2mne throw jamais pour plusieurs niveaux sur x┬▓-2x+1
+[22m[39m[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: premiere_spe
+[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: terminale_spe
+[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: terminale_comp
+[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: terminale_expert
+[VarEngine] f(x) = x^2-2*x+1 ÔåÆ cat├®gorie: quadratic, niveau: terminale_techno
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Robustesse[2m > [22m[2mderivativeExpr fournie explicitement : utilis├®e dans le cas g├®n├®ral
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-18B ÔÇö Limites num├®riques exactes (ln, exp)[2m > [22m[2me^x/x : les limites asymptotiques en 0 produisent bien -inf et +inf (et non -9999)
+[22m[39m[VarEngine] f(x) = e^x/x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Robustesse[2m > [22m[2msearchDomain personnalis├® : les extremums trouv├®s sont dans le domaine
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö Robustesse[2m > [22m[2mla ligne variation ne contient jamais de valeur undefined
+[22m[39m[VarEngine] f(x) = x^2-4*x+3 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├®gressions[2m > [22m[2mBug potentiel : x┬▓+bx (terme constant nul) ÔåÆ cat├®gorie quadratic correcte
+[22m[39m[VarEngine] f(x) = x^2+2*x ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├®gressions[2m > [22m[2mBug potentiel : ÔêÆx┬▓ (seul terme) ÔåÆ d├®tect├® comme reference_x2 (cas sp├®cial)
+[22m[39m[VarEngine] f(x) = -x^2 ÔåÆ cat├®gorie: quadratic, niveau: seconde
+
+ [32mÔ£ô[39m tests/math-orchestrator.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-18B ÔÇö Limites num├®riques exactes (ln, exp)[2m > [22m[2mln(x) : le domaine est ]0, +inf[ et les limites sont -inf et +inf (et non NaN ou 13.8)
+[22m[39m[VarEngine] f(x) = ln(x) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├®gressions[2m > [22m[2mR├®gression : sqrt(x+2) ÔåÆ domaine commence ├á ÔêÆ2 (pas ├á 0)
+[22m[39m[VarEngine] f(x) = sqrt(x+2) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-21 ÔÇö Modules D├®rivation et Variations (Invariants IA)[2m > [22m[2mD├®rivation : L'aiContext de generateVariationTable inclut syst├®matiquement le bannissement de "d/dx"
+[22m[39m[VarEngine] f(x) = x^3 - 3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+[90mstdout[2m | tests/variation-engine.test.ts[2m > [22m[2mgenerateVariationTable ÔÇö R├®gressions[2m > [22m[2mR├®gression : cos(x) ÔåÆ pas de bug de split "co*s"
+[22m[39m[VarEngine] f(x) = cos(x) ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+ [32mÔ£ô[39m tests/variation-engine.test.ts [2m([22m[2m57 tests[22m[2m)[22m[33m 8296[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m x┬│-3x (f'=3x┬▓-3) : extremums en ÔêÆ1 (max) et 1 (min) [33m 571[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m x┬│-3x : expos├® la derivativeExpr dans le r├®sultat [33m 733[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m x┬│-3x : ligne f'(x) pr├®sente en Terminale [33m 477[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m x┬│-3x : PAS de ligne f'(x) en Seconde (d├®riv├®e hors programme) [33m 569[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m sin(x) sur [-2¤Ç, 2¤Ç] : succ├¿s ou fallback IA (pas de crash) [33m 301[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ln(x+1) : domaine commence ├á x=ÔêÆ1 (pr├®sence dans xValues) [33m 625[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cas g├®n├®ral : aiContext contient les interdictions absolues et la r├¿gle anti d/dx [33m 531[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cas g├®n├®ral : fusion derivation/variation avec sympyDerivSign injecte factorisation dans aiContext [33m 697[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Terminale Spe : aiContext mentionne les limites en ┬▒Ôê× [33m 411[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Terminale Spe : showLimitsAtInfinity ÔåÆ xValues globaux peuvent contenir +inf/-inf [33m 488[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Premi├¿re Spe : PAS de limites en ┬▒Ôê× dans les xValues [33m 643[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Terminale Expert : aiContext contient "Terminale Maths Expertes" [33m 472[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m derivativeExpr fournie explicitement : utilis├®e dans le cas g├®n├®ral [33m 386[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m R├®gression : sqrt(x+2) ÔåÆ domaine commence ├á ÔêÆ2 (pas ├á 0) [33m 347[2mms[22m[39m
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-21 ÔÇö Modules D├®rivation et Variations (Invariants IA)[2m > [22m[2mD├®rivation : L'aiContext de generateVariationTable int├¿gre correctement les ├®tapes de discriminant (sympyDerivSign)
+[22m[39m[VarEngine] f(x) = x^3 / 3 - x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+ [32mÔ£ô[39m tests/expression-extractor.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+[90mstdout[2m | tests/regressions.test.ts[2m > [22m[2mR├®gression #2026-03-21 ÔÇö Modules D├®rivation et Variations (Invariants IA)[2m > [22m[2mD├®rivation : L'aiContext int├¿gre la factorisation sympyDerivSign
+[22m[39m[VarEngine] f(x) = x^3-3*x ÔåÆ cat├®gorie: general, niveau: terminale_spe
+
+ [32mÔ£ô[39m tests/regressions.test.ts [2m([22m[2m61 tests[22m[2m)[22m[33m 7571[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m retourne moins de 20 z├®ros pour toute expression (cap MAX_ZEROS) [33m 1369[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m les z├®ros trouv├®s sont tri├®s en ordre croissant [33m 337[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m findZeros de (-2*x+4)*(x-3)*(x^2+1) : exactement [2, 3] [33m 461[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m sqrt(x+2) : aucune valeur || dans la ligne f(x) (la valeur en -2 existe) [33m 884[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m sqrt(x+2) : f(-2) est repr├®sent├® par la valeur exacte 0 [33m 524[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m e^x/x en terminale_spe : les limites sont construites et incluses [33m 1311[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m e^x/x : les limites asymptotiques en 0 produisent bien -inf et +inf (et non -9999) [33m 751[2mms[22m[39m
+ [32mÔ£ô[39m tests/niveau-utils.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32mÔ£ô[39m tests/latex-fixer.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[31m17 failed[39m[22m[2m | [22m[1m[32m398 passed[39m[22m[90m (415)[39m
+[2m   Start at [22m 23:08:40
+[2m   Duration [22m 32.75s[2m (transform 5.03s, setup 0ms, import 47.12s, tests 37.34s, environment 10ms)[22m
+

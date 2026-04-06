@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "aaaBlock": "@@@\ntable |\nx: -inf, 0, +inf |\nsign: e\u02e3 - 1 : -, 0, + |\nsign: f(x) : -, 0, + |\n@@@",
+  "criticalPoints": [
+    0.0
+  ],
+  "discriminantSteps": [],
+  "factors": [
+    {
+      "label": "e\u02e3 - 1",
+      "type": "numerator"
+    }
+  ],
+  "numZeros": [
+    0.0
+  ],
+  "denZeros": [],
+  "fxValues": [
+    "-",
+    "0",
+    "+"
+  ],
+  "effectiveConst": 1.0,
+  "exactMap": {}
+}
