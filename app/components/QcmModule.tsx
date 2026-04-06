@@ -27,18 +27,24 @@ export default function QcmModule({ userName }: { userName: string }) {
         if (storedSession) {
             try {
                 const parsed = JSON.parse(storedSession);
-                // Valider au moins que ça contient bien 12 questions existantes si possible,
-                // ou redémarrer.
-                if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+                // Valider que les données sont structurellement correctes
+                if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0
+                    && parsed.questions.every((q: any) => q && q.id && Array.isArray(q.options))
+                ) {
+                    const safeIndex = Math.min(
+                        Math.max(0, parsed.currentIndex || 0),
+                        parsed.questions.length - 1
+                    );
                     setQuestions(parsed.questions);
                     setAnswers(parsed.answers || {});
-                    setCurrentIndex(parsed.currentIndex || 0);
+                    setCurrentIndex(safeIndex);
                     setIsFinished(parsed.isFinished || false);
                     setScore(parsed.score ?? null);
                     return;
                 }
             } catch (e) {
-                console.error("Erreur lecture session QCM", e);
+                console.error("Erreur lecture session QCM — réinitialisation", e);
+                localStorage.removeItem('qcm_session');
             }
         }
         
@@ -135,6 +141,13 @@ export default function QcmModule({ userName }: { userName: string }) {
     }
 
     const currentQuestion = questions[currentIndex];
+    
+    // Protection: si la question courante est invalide, reset la session
+    if (!currentQuestion || !currentQuestion.id || !Array.isArray(currentQuestion.options)) {
+        startNewSession();
+        return <div className="p-8 text-center text-slate-400">Réinitialisation du QCM…</div>;
+    }
+    
     const isAnswered = answers[currentQuestion.id] !== undefined;
 
     return (
