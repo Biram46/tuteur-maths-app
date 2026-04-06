@@ -226,22 +226,18 @@ TYPE : FEUILLE D'EXERCICES N°1 — Application directe
 - Chaque exercice DOIT être titré : \\\\underline{\\\\textbf{EXERCICE 1}}, \\\\underline{\\\\textbf{EXERCICE 2}}, etc.
 - Le titre est en GRAS et SOULIGNÉ, suivi d'un saut de ligne avant l'énoncé
 - Exemple : \\\\underline{\\\\textbf{EXERCICE 1}}\\\\par\\\\medskip
-- Dans les corrections, reprendre la MÊME numérotation : \\\\underline{\\\\textbf{Correction — EXERCICE 1}}
+- ⛔⛔⛔ CORRECTIONS OBLIGATOIRES — PARTIE LA PLUS IMPORTANTE ⛔⛔⛔
 
-⚠️ IMAGES SOURCES — RÈGLE ABSOLUE :
-- Si le professeur fournit des captures d'écran d'exercices, tu dois générer des exercices SIMILAIRES en t'inspirant de TOUS les exercices de TOUTES les images fournies.
-- Tu dois reproduire le MÊME TYPE de contenu graphique : si les exercices sources contiennent des courbes → tes exercices DOIVENT contenir des courbes (pgfplots). Si les sources contiennent des tableaux de variations → tes exercices DOIVENT contenir des tableaux de variations (tkz-tab). Idem pour les tableaux de signes, figures géométriques, etc.
-- ⛔ NE JAMAIS omettre les graphiques. Si l'exercice source montre une courbe, ton exercice similaire DOIT tracer une courbe.
-- ⛔ NE JAMAIS faire semblant qu'un graphique existe sans le produire réellement en code LaTeX/pgfplots/TikZ.
+Le document DOIT contenir DEUX parties : ÉNONCÉS puis CORRECTIONS (après \\\\newpage).
 
-⚠️ CORRECTIONS OBLIGATOIRES :
-- Après tous les énoncés, ajouter un \\\\newpage puis une section "\\\\section*{Corrections}"
-- Fournir la correction DÉTAILLÉE de CHAQUE exercice, numérotée à l'identique
-- Chaque correction doit montrer toutes les étapes de résolution
-- Utiliser des encadrés \\\\boxed{} pour les résultats finaux
-- Si un exercice demande un tableau de variations → le produire avec tkz-tab dans la correction
-- Si un exercice demande de tracer une courbe → la produire avec pgfplots dans la correction
-- Le professeur doit pouvoir distribuer les pages d'énoncés seules et garder les corrections`,
+STRUCTURE : Énoncés → \\\\newpage → \\\\section*{Corrections} → Correction de chaque exercice
+
+- Correction DÉTAILLÉE avec toutes les étapes de résolution
+- Encadrés \\\\boxed{} pour les résultats finaux
+- Tableaux → tkz-tab, Courbes → pgfplots dans les corrections
+- Le professeur doit pouvoir séparer énoncés et corrections
+
+⛔ Un document SANS section Corrections est INCOMPLET.`,
 
         exercices_2: `${base}
 
@@ -261,17 +257,37 @@ TYPE : FEUILLE D'EXERCICES N°2 — Intermédiaire
 ⚠️ IMAGES SOURCES — RÈGLE ABSOLUE :
 - Si le professeur fournit des captures d'écran d'exercices, tu dois générer des exercices SIMILAIRES en t'inspirant de TOUS les exercices de TOUTES les images fournies.
 - Tu dois reproduire le MÊME TYPE de contenu graphique : courbes → pgfplots, tableaux de variations → tkz-tab, figures → TikZ.
-- ⛔ NE JAMAIS omettre les graphiques. Si l'exercice source montre une courbe, ton exercice similaire DOIT tracer une courbe.
+- ⛔ NE JAMAIS omettre les graphiques.
 - ⛔ NE JAMAIS faire semblant qu'un graphique existe — TOUJOURS produire le code LaTeX correspondant.
 
-⚠️ CORRECTIONS OBLIGATOIRES :
-- Après tous les énoncés, ajouter un \\\\newpage puis une section "\\\\section*{Corrections}"
-- Fournir la correction DÉTAILLÉE de CHAQUE exercice, numérotée à l'identique
-- Rédiger les corrections comme un modèle de copie parfaite (justifications complètes)
-- Utiliser des encadrés \\\\boxed{} pour les résultats finaux
-- Si un exercice demande un tableau → le produire avec tkz-tab
-- Si un exercice demande une courbe → la produire avec pgfplots
-- Inclure les méthodes et astuces dans des remarques (\\\\textit{Méthode : ...})`,
+⛔⛔⛔ CORRECTIONS OBLIGATOIRES — C'EST LA PARTIE LA PLUS IMPORTANTE ⛔⛔⛔
+
+Le fichier LaTeX DOIT OBLIGATOIREMENT contenir DEUX parties :
+1) D'abord TOUS les ÉNONCÉS des exercices
+2) Puis un \\\\newpage suivi de \\\\section*{Corrections} avec la correction DÉTAILLÉE de CHAQUE exercice
+
+STRUCTURE OBLIGATOIRE DU DOCUMENT :
+\\\\begin{document}
+  \\\\section*{Feuille d'exercices N°2}
+  \\\\underline{\\\\textbf{EXERCICE 1}} ...
+  \\\\underline{\\\\textbf{EXERCICE 2}} ...
+  ...
+  \\\\newpage
+  \\\\section*{Corrections}
+  \\\\underline{\\\\textbf{Correction — EXERCICE 1}} ...
+  \\\\underline{\\\\textbf{Correction — EXERCICE 2}} ...
+  ...
+\\\\end{document}
+
+RÈGLES POUR LES CORRECTIONS :
+- Correction DÉTAILLÉE et COMPLÈTE de chaque exercice avec toutes les étapes
+- Rédiger comme un modèle de copie parfaite (justifications complètes)
+- Encadrés \\\\boxed{} pour les résultats finaux
+- Si un exercice contient un tableau → le produire avec tkz-tab dans la correction
+- Si un exercice contient une courbe → la produire avec pgfplots dans la correction
+- Astuces : \\\\textit{Méthode : ...}
+
+⛔ RAPPEL FINAL : Un document SANS section Corrections après un \\\\newpage est INCOMPLET et INUTILISABLE.`,
 
         exercices_3: `${base}
 
@@ -288,12 +304,18 @@ TYPE : FEUILLE D'EXERCICES N°3 — Synthèse
 - Le titre est en GRAS et SOULIGNÉ, suivi d'un saut de ligne avant l'énoncé
 - Dans les corrections : \\\\underline{\\\\textbf{Correction — EXERCICE 1}}
 
-⚠️ CORRECTIONS OBLIGATOIRES :
-- Après tous les énoncés, ajouter un \\\\newpage puis une section "\\\\section*{Corrections}"
-- Fournir la correction DÉTAILLÉE de CHAQUE exercice, numérotée à l'identique
-- Pour les problèmes ouverts, proposer au moins une piste de résolution complète
-- Utiliser des encadrés \\\\boxed{} pour les résultats finaux
-- Inclure des rappels de cours pertinents dans les corrections quand nécessaire`,
+⛔⛔⛔ CORRECTIONS OBLIGATOIRES — PARTIE LA PLUS IMPORTANTE ⛔⛔⛔
+
+Le document DOIT contenir DEUX parties : ÉNONCÉS puis CORRECTIONS (après \\\\newpage).
+
+STRUCTURE : Énoncés → \\\\newpage → \\\\section*{Corrections} → Correction de chaque exercice
+
+- Correction DÉTAILLÉE avec toutes les étapes
+- Pour les problèmes ouverts, au moins une piste complète
+- Encadrés \\\\boxed{} pour les résultats finaux
+- Rappels de cours pertinents dans les corrections
+
+⛔ Un document SANS section Corrections est INCOMPLET.`,
 
         interactif: `${base}
 
