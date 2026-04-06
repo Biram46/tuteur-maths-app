@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 // ─────────────────────────────────────────────────────────────
 // CONTRAINTES PAR NIVEAU
@@ -550,45 +550,7 @@ function createSSEStream(
     });
 }
 
-/**
- * Collecte le contenu complet d'une réponse SSE (streaming)
- * sans envoyer au client — utilisé pour la passe 1 du pipeline hybride.
- */
-async function collectSSEContent(fetchResponse: Response): Promise<string> {
-    const decoder = new TextDecoder();
-    const reader = fetchResponse.body?.getReader();
-    if (!reader) return '';
 
-    let buffer = '';
-    let content = '';
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const payload = line.slice(6).trim();
-            if (payload === '[DONE]') continue;
-
-            try {
-                const parsed = JSON.parse(payload);
-                const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) {
-                    content += delta;
-                }
-            } catch {
-                // Ignorer les chunks non-JSON
-            }
-        }
-    }
-
-    return content;
-}
 
 // ─────────────────────────────────────────────────────────────
 // ROUTE HANDLER — Pipeline Hybride
@@ -662,7 +624,10 @@ export async function POST(request: NextRequest) {
             })),
         ];
 
-        // ── ÉTAPE 3 : Appeler DeepSeek-R1 (principal) puis GPT-4o (fallback)
+        // ── ÉTAPE 3 : Streaming direct — DeepSeek-R1 (principal) ou GPT-4o (fallback)
+        // Le pipeline 2 passes causait des 504 sur Vercel (timeout).
+        // On stream directement la réponse au client pour un TTFB rapide.
+
         const deepseekKey = process.env.DEEPSEEK_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
 
@@ -673,19 +638,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── PIPELINE HYBRIDE 2 PASSES ─────────────────────────────
-        // Passe 1 : DeepSeek-R1 génère le contenu math (non-streaming)
-        // Passe 2 : GPT-4o corrige/refait les blocs graphiques (streaming)
-        
-        let deepseekContent: string | null = null;
-
-        // ── PASSE 1 : DeepSeek-R1 — Contenu mathématique ──────────
+        // ── TENTATIVE 1 : DeepSeek-R1 en streaming direct ──────────
         if (deepseekKey) {
             try {
-                console.log('[Prof-Chat] 🧠 PASSE 1 — DeepSeek-R1 : génération du contenu math...');
-
-                const dsController = new AbortController();
-                const dsTimeout = setTimeout(() => dsController.abort(), 120000); // 2min max
+                console.log('[Prof-Chat] 🧠 DeepSeek-R1 : streaming direct au client...');
 
                 const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
                     method: 'POST',
@@ -700,15 +656,18 @@ export async function POST(request: NextRequest) {
                         temperature: 0.1,
                         max_tokens: 16000,
                     }),
-                    signal: dsController.signal,
                 });
 
-                clearTimeout(dsTimeout);
-
                 if (dsResponse.ok) {
-                    // Collecter tout le contenu DeepSeek (non-streaming côté client)
-                    deepseekContent = await collectSSEContent(dsResponse);
-                    console.log(`[Prof-Chat] 🧠 PASSE 1 terminée — ${deepseekContent.length} chars reçus`);
+                    console.log('[Prof-Chat] ✅ DeepSeek-R1 connecté — streaming...');
+                    const stream = createSSEStream(dsResponse, 'DeepSeek-R1');
+                    return new Response(stream, {
+                        headers: {
+                            'Content-Type': 'text/plain; charset=utf-8',
+                            'Transfer-Encoding': 'chunked',
+                            'X-AI-Provider': 'DeepSeek-R1',
+                        },
+                    });
                 } else {
                     const errText = await dsResponse.text();
                     console.warn(`[Prof-Chat] ⚠️ DeepSeek HTTP ${dsResponse.status}: ${errText.slice(0, 200)}`);
@@ -718,117 +677,10 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // ── PASSE 2 : GPT-4o — Correction des graphiques ──────────
-        if (deepseekContent && openaiKey) {
-            try {
-                console.log('[Prof-Chat] 🎨 PASSE 2 — GPT-4o : correction des graphiques LaTeX...');
-
-                // Construire les infos des images sources pour la correction
-                let imageContext = '';
-                if (allImageExtracts.length > 0) {
-                    imageContext = allImageExtracts.map(e =>
-                        `\n[IMAGE SOURCE N°${e.index + 1}]\n${e.content}`
-                    ).join('\n');
-                    imageContext = `\n\nDESCRIPTION DES IMAGES SOURCES FOURNIES PAR LE PROFESSEUR :\n${imageContext}`;
-                }
-
-                const refinementMessages = [
-                    {
-                        role: 'system' as const,
-                        content: `Tu es un expert en LaTeX graphique (pgfplots, TikZ, tkz-tab).
-
-TON RÔLE UNIQUE : Corriger et améliorer les blocs graphiques dans du code LaTeX.
-
-RÈGLES STRICTES :
-1. Tu reçois un document LaTeX complet. Tu dois le renvoyer EN ENTIER.
-2. Tu NE MODIFIES PAS le texte, les formules, les définitions, la structure, ni les numérotations.
-3. Tu corriges/améliores UNIQUEMENT :
-   - Les blocs \\begin{tikzpicture}...\\end{tikzpicture}
-   - Les blocs \\begin{axis}...\\end{axis} (pgfplots)
-   - Les blocs tkzTabInit/tkzTabLine/tkzTabVar (tkz-tab)
-   - Les \\addplot et commandes TikZ associées
-4. Si un exercice DEVRAIT contenir une courbe/figure/tableau mais qu'il n'y en a pas → AJOUTER le bloc graphique manquant
-5. Si un bloc graphique est présent mais mal fait → le RÉÉCRIRE proprement
-6. Courbes pgfplots : domaine correct, points remarquables marqués, repère avec grille, PAS de formule dans la légende
-7. Tableaux tkz-tab : valeurs correctes, flèches de variation correctes, signes corrects
-8. Figures TikZ : coordonnées précises, angles corrects, labels propres
-
-⛔ NE JAMAIS :
-- Changer le texte des énoncés ou des corrections
-- Modifier les formules mathématiques
-- Changer la structure du document
-- Supprimer du contenu
-
-✅ TOUJOURS :
-- Renvoyer le document COMPLET (pas juste les blocs modifiés)
-- Assurer que chaque \\begin{tikzpicture} a son \\end{tikzpicture}
-- Assurer que le LaTeX est compilable
-${imageContext}`,
-                    },
-                    {
-                        role: 'user' as const,
-                        content: `Voici le document LaTeX à corriger (NE TOUCHE QU'AUX GRAPHIQUES) :\n\n${deepseekContent}`,
-                    },
-                ];
-
-                const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${openaiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o',
-                        messages: refinementMessages,
-                        stream: true,
-                        temperature: 0.2,
-                        max_tokens: 16000,
-                    }),
-                });
-
-                if (gptResponse.ok) {
-                    console.log('[Prof-Chat] 🎨 PASSE 2 connectée — streaming du résultat corrigé...');
-
-                    const stream = createSSEStream(gptResponse, 'GPT-4o-Refine');
-
-                    return new Response(stream, {
-                        headers: {
-                            'Content-Type': 'text/plain; charset=utf-8',
-                            'Transfer-Encoding': 'chunked',
-                            'X-AI-Provider': 'DeepSeek-R1 + GPT-4o',
-                        },
-                    });
-                } else {
-                    console.warn(`[Prof-Chat] ⚠️ GPT-4o refinement failed HTTP ${gptResponse.status}`);
-                    // Fallback : renvoyer le contenu DeepSeek brut
-                }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ GPT-4o refinement error: ${err.message}`);
-            }
-        }
-
-        // ── FALLBACK : Si DeepSeek a réussi mais GPT-4o a échoué → renvoyer brut
-        if (deepseekContent) {
-            console.log('[Prof-Chat] 📤 Fallback : envoi du contenu DeepSeek brut (sans correction graphique)');
-            const encoder = new TextEncoder();
-            const stream = new ReadableStream({
-                start(controller) {
-                    controller.enqueue(encoder.encode(deepseekContent!));
-                    controller.close();
-                },
-            });
-            return new Response(stream, {
-                headers: {
-                    'Content-Type': 'text/plain; charset=utf-8',
-                    'X-AI-Provider': 'DeepSeek-R1',
-                },
-            });
-        }
-
-        // ── FALLBACK TOTAL : GPT-4o seul si DeepSeek a échoué ─────
+        // ── TENTATIVE 2 : GPT-4o en fallback streaming ─────────────
         if (openaiKey) {
             try {
-                console.log('[Prof-Chat] 🔄 Fallback total — GPT-4o seul...');
+                console.log('[Prof-Chat] 🔄 Fallback — GPT-4o : streaming direct...');
                 const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -845,6 +697,7 @@ ${imageContext}`,
                 });
 
                 if (gptResponse.ok) {
+                    console.log('[Prof-Chat] ✅ GPT-4o connecté — streaming...');
                     const stream = createSSEStream(gptResponse, 'GPT-4o');
                     return new Response(stream, {
                         headers: {
