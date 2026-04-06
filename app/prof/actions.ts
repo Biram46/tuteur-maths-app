@@ -282,7 +282,7 @@ export async function publishResourcesByIds(resourceIds: string[]) {
         .in("id", resourceIds);
 
     const sequenceIds = [...new Set(
-        (resources || []).map(r => r.sequence_id).filter(Boolean)
+        (resources || []).map((r: { sequence_id: string | null }) => r.sequence_id).filter(Boolean)
     )];
 
     for (const seqId of sequenceIds) {
