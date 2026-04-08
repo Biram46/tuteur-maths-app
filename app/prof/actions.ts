@@ -527,7 +527,7 @@ export async function uploadProfFile(formData: FormData): Promise<{ url: string;
             }
 
             const pdfParseModule = await import('pdf-parse');
-            const pdf = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule.default || (pdfParseModule as any).pdf || pdfParseModule);
+            const pdf = typeof pdfParseModule === 'function' ? pdfParseModule : ((pdfParseModule as any).default || (pdfParseModule as any).pdf || pdfParseModule);
             const pdfData = await pdf(pdfBuffer);
             extractedContent = pdfData.text;
             console.log(`[Upload] 📕 PDF extrait (${extractedContent?.length || 0} caractères, ${pdfData.numpages} pages)`);
