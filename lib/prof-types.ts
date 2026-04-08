@@ -90,6 +90,8 @@ export interface ProfAttachment {
     name: string;
     /** Base64 data pour upload initial (avant stockage) */
     data?: string;
+    /** Contenu extrait du fichier (pour que l'IA ne le perde pas) */
+    extractedText?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

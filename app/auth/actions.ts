@@ -46,7 +46,9 @@ export async function signup(formData: FormData) {
         email,
         password,
         options: {
-            emailRedirectTo: `${origin}/auth/callback`,
+            // /auth/confirm utilise verifyOtp (token_hash) — fonctionne même si l'élève
+            // ouvre le lien de confirmation sur un autre appareil/navigateur
+            emailRedirectTo: `${origin}/auth/confirm`,
         }
     })
 

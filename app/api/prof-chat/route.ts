@@ -133,11 +133,56 @@ PACKAGES LaTeX OBLIGATOIRES dans le préambule :
 \\\\newtcolorbox{exemple}[1][]{colback=exorange!5, colframe=exorange, fonttitle=\\\\bfseries, title=Exemple, #1}
 \\\\newtcolorbox{remarque}[1][]{colback=remarkgray!5, colframe=remarkgray, fonttitle=\\\\bfseries, title=Remarque, #1}
 
-⚠️ FIGURES, COURBES ET TABLEAUX — OBLIGATOIRES :
-- Si le contenu contient une courbe de fonction → la tracer avec pgfplots (\\\\begin{axis} + \\\\addplot)
-- Si le contenu contient un tableau de variations → le créer avec tkz-tab
-- Si le contenu contient un tableau de signes → le créer avec tkz-tab
-- Si le contenu contient une figure géométrique → la créer avec TikZ
+⚠️ FIGURES ET TABLEAUX DANS LE CHAT (IMPORTANT) :
+Lors de tes DISCUSSIONS avec le professeur dans le chat (en dehors du bloc \`\`\`latex ou \`\`\`html final), tu ne dois PAS utiliser TikZ directement pour tes explications.
+À la place, tu dois ABSOLUMENT réutiliser les structures interactives développées pour afficher les éléments à l'écran. 
+Utilise OBLIGATOIREMENT ces syntaxes dans tes explications :
+
+- Arbre de probabilités (FORMAT OBLIGATOIRE avec flèches → ou ->) :
+@@@
+tree: Titre de l'arbre
+A, 0.3
+B, 0.7
+A → C, 0.4
+A → D, 0.6
+B → C, 0.5
+B → D, 0.5
+@@@
+
+⛔ RÈGLES ARBRES DE PROBABILITÉS :
+1. Chaque branche = une ligne : chemin → nœud, probabilité
+2. Les flèches sont : → (Unicode) ou -> (ASCII)
+3. TOUJOURS écrire le chemin COMPLET depuis la racine pour chaque nœud
+   - ❌ INTERDIT : "C, 0.4" au niveau 2 (ambigu : enfant de A ou de B ?)
+   - ✅ CORRECT : "A → C, 0.4" (chemin complet)
+4. Pour un arbre à 3 niveaux :
+   - ✅ "A → C → E, 0.8" (chemin depuis la racine)
+5. ⛔ JAMAIS utiliser le format avec indentation (parenthèses)
+6. ⛔ JAMAIS utiliser | (pipe) dans les lignes de l'arbre
+7. Fractions autorisées : 1/2, 3/5, etc.
+8. Le titre après "tree:" est obligatoire
+9. Ne JAMAIS mettre "Ω" comme première ligne (ajouté automatiquement)
+
+EXEMPLE COMPLET — Permis et voiture :
+@@@
+tree: Permis et voiture
+A, 0.6
+B, 0.4
+A → V, 0.8
+A → W, 0.2
+B → V, 0.1
+B → W, 0.9
+@@@
+
+- Courbes : @@@\ngraph | Titre\nf(x) = x^2 | color=blue\n@@@
+- Tableau de signes : @@@\nsign-table | Titre\nx | -\\infty || 0 || +\\infty\nf(x) | - || 0 || +\n@@@
+- Tableau de variations : @@@\nvariation-table | Titre\nx | -\\infty || 0 || +\\infty\nf(x) | +\\infty | \\searrow | 0 | \\nearrow | +\\infty\n@@@
+
+⚠️ FIGURES DANS LE DOCUMENT FINAL (COURS / EXERCICES) :
+Par contre, dans le bloc \`\`\`latex généré pour la ressource finale :
+- Courbes → pgfplots (\\\\begin{axis} + \\\\addplot)
+- Tableaux de variations et signes → tkz-tab
+- Figures géométriques et ARBRES DE PROBABILITÉS → TikZ
 - ⛔ NE JAMAIS omettre une figure, une courbe ou un tableau si le contenu du professeur en contient !
 
 ⛔ COURBES — RÈGLE DE PROPRETÉ :
@@ -174,6 +219,41 @@ EXEMPLE de tableau de signes (tkz-tab) :
 \\\\tkzTabLine{, -, t, +, t, +, }
 \\\\tkzTabLine{, -, t, -, t, +, }
 \\\\tkzTabLine{, +, z, -, z, +, }
+\\\\end{tikzpicture}
+\\\\end{center}
+
+EXEMPLE d'arbre de probabilité (TikZ) :
+\\\\begin{center}
+\\\\begin{tikzpicture}[xscale=3,yscale=1.2, every node/.style={fill=white, inner sep=1pt}]
+    % --- Niveaux de l'arbre ---
+    % Racine
+    \\\\node (Root) at (0,0) {};
+    
+    % Premier niveau (Événements principaux)
+    \\\\node (T) at (1,1.5) {$T$}; 
+    \\\\node (C) at (1,0) {$C$}; 
+    \\\\node (A) at (1,-1.5) {$A$};
+    
+    % Deuxième niveau (Événements conditionnels)
+    \\\\node (H1) at (2,2) {$H$}; \\\\node (H2) at (2,1) {$\\\\overline{H}$};
+    \\\\node (H3) at (2,0.5) {$H$}; \\\\node (H4) at (2,-0.5) {$\\\\overline{H}$};
+    \\\\node (H5) at (2,-1) {$H$}; \\\\node (H6) at (2,-2) {$\\\\overline{H}$};
+    
+    % --- Tracé des branches avec étiquettes ---
+    % Branches vers le premier niveau
+    \\\\draw (Root) -- (T) node[midway,above left] {$0,45$};
+    \\\\draw (Root) -- (C) node[midway,above] {$0,35$};
+    \\\\draw (Root) -- (A) node[midway,below left] {$0,20$};
+    
+    % Branches vers le deuxième niveau
+    \\\\draw (T) -- (H1) node[midway,above] {$0,92$}; 
+    \\\\draw (T) -- (H2) node[midway,below] {$0,08$};
+    
+    \\\\draw (C) -- (H3) node[midway,above] {$0,78$}; 
+    \\\\draw (C) -- (H4) node[midway,below] {$0,22$};
+    
+    \\\\draw (A) -- (H5) node[midway,above] {$0,88$}; 
+    \\\\draw (A) -- (H6) node[midway,below] {$0,12$};
 \\\\end{tikzpicture}
 \\\\end{center}
 `;
@@ -370,7 +450,7 @@ STRUCTURE : Énoncés → \\\\newpage → \\\\section*{Corrections} → Correcti
 TYPE : EXERCICES INTERACTIFS HTML — FORMAT OBLIGATOIRE
 
 Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
-- 10 questions interactives (champs de réponse texte)
+- 10 questions interactives par défaut (ajuste la quantité si le professeur demande explicitEMENT 5, 15, ou 20 questions)
 - Calcul automatique de la note finale sur 20
 - Feedback visuel (correct/incorrect) pour chaque question
 - KaTeX pour les formules mathématiques
@@ -388,6 +468,7 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
         onload="renderMathInElement(document.body);"></script>
+
     <style>
         /* Styles CSS inclus */
     </style>
@@ -403,7 +484,7 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
             <input type="text" class="reponse" id="q1" placeholder="Ta réponse">
             <div class="feedback" id="feedback-q1"></div>
         </section>
-        <!-- ... répéter pour 10 questions ... -->
+        <!-- ⛔ TU DOIS ÉCRIRE ICI TOUTES LES QUESTIONS DEMANDÉES UNE PAR UNE. NE METS JAMAIS DE POINTILLES OU DE RACCOURCI ICI. -->
 
         <button class="btn-valider" onclick="calculerNote()">✅ Valider et voir ma note</button>
         <div class="resultat" id="resultat"></div>
@@ -416,9 +497,8 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
 
         // Réponses correctes
         var reponsesCorrectes = {
-            q1: "réponse_attendue",
-            q2: "réponse_attendue",
-            // ... pour les 10 questions
+            // ⛔ TU DOIS RÉSOUDRE LES QUESTIONS ET ÉCRIRE LES VRAIES RÉPONSES NUMÉRIQUES OU LITTÉRALES ICI.
+            // NE mets JAMAIS de texte d'exemple factice. Tu dois donner tes propres solutions mathématiques exactes.
         };
 
         // Fonction de normalisation (accepter variantes)
@@ -429,9 +509,10 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
         // Fonction de calcul de la note
         function calculerNote() {
             let points = 0;
-            const pointsParQuestion = 2; // 10 questions × 2 pts = 20
+            const nbQuestions = Object.keys(reponsesCorrectes).length;
+            const pointsParQuestion = surNote / nbQuestions;
 
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= nbQuestions; i++) {
                 const id = 'q' + i;
                 const reponse = document.getElementById(id).value;
                 const attendue = reponsesCorrectes[id];
@@ -485,7 +566,7 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
 </html>
 
 📐 RÈGLES POUR LES QUESTIONS :
-- 10 questions numérotées de 1 à 10
+- Questions numérotées de 1 à N (N = 10 par défaut, ou le nombre défini explicitement par le professeur)
 - Mix de : calculs simples, applications du cours, pièges fréquents
 - Questions adaptées au niveau ${context.level_label}
 - Réponses COURTES (un nombre, une fraction, un mot-clé)
@@ -495,13 +576,60 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
 - Utiliser $$...$$ pour les formules (rendu KaTeX)
 - Virgule décimale française dans l'affichage
 - Notation française : $]a ; b[$ pour les intervalles
+- POUR LES PROBABILITÉS : Tu DOIS utiliser la notation française $P_A(B)$ pour les probabilités conditionnelles (et NON $P(B|A)$).
+
+🌳 ARBRES DE PROBABILITÉS — DESSIN SVG OBLIGATOIRE :
+
+⛔ INTERDICTION ABSOLUE d'écrire "Un arbre est donné" ou "Voici l'arbre" SANS LE DESSINER.
+⛔ NE JAMAIS utiliser TikZJax. ÇA NE FONCTIONNE PAS dans ce contexte HTML interactif.
+✅ Tu DOIS dessiner les arbres en SVG INLINE directement dans le HTML.
+
+MODÈLE SVG pour un arbre à 2 niveaux (2 événements, 4 feuilles). ADAPTE les labels, probabilités et coordonnées :
+
+<svg viewBox="0 0 550 300" xmlns="http://www.w3.org/2000/svg" style="max-width:550px;margin:20px auto;display:block;font-family:serif;">
+  <line x1="40" y1="150" x2="200" y2="60" stroke="#6366f1" stroke-width="2"/>
+  <line x1="40" y1="150" x2="200" y2="240" stroke="#6366f1" stroke-width="2"/>
+  <line x1="200" y1="60" x2="420" y2="25" stroke="#34d399" stroke-width="2"/>
+  <line x1="200" y1="60" x2="420" y2="95" stroke="#34d399" stroke-width="2"/>
+  <line x1="200" y1="240" x2="420" y2="205" stroke="#34d399" stroke-width="2"/>
+  <line x1="200" y1="240" x2="420" y2="275" stroke="#34d399" stroke-width="2"/>
+  <text x="95" y="92" font-size="14" fill="#6366f1" font-style="italic">0,6</text>
+  <text x="95" y="215" font-size="14" fill="#6366f1" font-style="italic">0,4</text>
+  <text x="285" y="32" font-size="13" fill="#34d399" font-style="italic">0,8</text>
+  <text x="285" y="88" font-size="13" fill="#34d399" font-style="italic">0,2</text>
+  <text x="285" y="213" font-size="13" fill="#34d399" font-style="italic">0,1</text>
+  <text x="285" y="270" font-size="13" fill="#34d399" font-style="italic">0,9</text>
+  <circle cx="40" cy="150" r="4" fill="#94a3b8"/>
+  <circle cx="200" cy="60" r="18" fill="#fff" stroke="#6366f1" stroke-width="2"/>
+  <text x="200" y="65" text-anchor="middle" font-size="16" font-weight="bold" fill="#6366f1">A</text>
+  <circle cx="200" cy="240" r="18" fill="#fff" stroke="#6366f1" stroke-width="2"/>
+  <text x="200" y="245" text-anchor="middle" font-size="14" fill="#6366f1">A̅</text>
+  <circle cx="420" cy="25" r="16" fill="#fff" stroke="#34d399" stroke-width="2"/>
+  <text x="420" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#34d399">V</text>
+  <circle cx="420" cy="95" r="16" fill="#fff" stroke="#34d399" stroke-width="2"/>
+  <text x="420" y="100" text-anchor="middle" font-size="12" fill="#34d399">V̅</text>
+  <circle cx="420" cy="205" r="16" fill="#fff" stroke="#34d399" stroke-width="2"/>
+  <text x="420" y="210" text-anchor="middle" font-size="14" font-weight="bold" fill="#34d399">V</text>
+  <circle cx="420" cy="275" r="16" fill="#fff" stroke="#34d399" stroke-width="2"/>
+  <text x="420" y="280" text-anchor="middle" font-size="12" fill="#34d399">V̅</text>
+</svg>
+
+⛔ RÈGLES SVG :
+- Dessine les branches AVANT les nœuds (pour que les cercles recouvrent les lignes)
+- Probabilités en italique sur chaque branche (text avec font-style italic)
+- Nœuds = cercles blancs avec bordure colorée + label centré (text-anchor middle)
+- Pour le complémentaire : A̅, V̅ (caractère Unicode barre combinante U+0305)
+- Adapte le viewBox à ton arbre (plus grand pour 3 niveaux)
+- Si tu poses des questions de probabilités, tu DOIS inclure AU MOINS un arbre SVG complet
 
 ⚠️ CONTRAINTES :
+- ⛔⛔ NOMBRE DE QUESTIONS : Le professeur CHOISIT le nombre de questions. Par défaut c'est 10. Si le professeur demande 15, tu en fais 15. Si le professeur demande 20, tu en fais EXACTEMENT 20. COMPTE TES QUESTIONS : data-question="1" jusqu'à data-question="N". Si à la fin ton dernier data-question n'est pas N, tu as ÉCHOUÉ.
+- ⛔ ANTI-LAZINESS : INTERDICTION ABSOLUE D'UTILISER DES PLACEHOLDERS du type "... répéter pour X questions" ou "// ... pour les 20 questions". Tu DOIS générer l'INTÉGRALITÉ du code HTML et TOUTES les questions requises une par une dans le HTML ET dans les variables JavaScript, sans aucun raccourci.
+- ⛔ OPTIMISATION TOKEN : Pour 20 questions, sois CONCIS dans le CSS (pas de commentaires inutiles) et le JS. Mutualise les arbres SVG : un seul arbre pour 3-5 questions est mieux que 5 arbres séparés.
 - Code HTML COMPLET et FONCTIONNEL (copier-coller direct)
 - Pas de commentaires superflus dans le code final
 - Styles CSS inclus dans <style>
-- JavaScript inclus dans <script>
-- Taille raisonnable (< 50ko)
+- JavaScript inclus dans <${'script'}>
 
 GÉNÈRE UNIQUEMENT LE CODE HTML — PAS D'EXPLICATIONS AUTOUR.`,
 
@@ -764,11 +892,15 @@ export async function POST(request: NextRequest) {
             context,
             existing_content,
             image_urls,
+            file_content,
+            file_name,
         }: {
             messages: ChatMessageProf[];
             context: ProfContext;
             existing_content?: string;
             image_urls?: string[];
+            file_content?: string;
+            file_name?: string;
         } = body;
 
         if (!context || !messages) {
@@ -796,21 +928,57 @@ export async function POST(request: NextRequest) {
         // ── ÉTAPE 2 : Préparer le prompt système ───────────────────────
         const systemPrompt = getSystemPrompt(context, existing_content);
 
-        // Enrichir le dernier message utilisateur avec le contenu extrait de TOUTES les images
+        // Enrichir le dernier message utilisateur avec le contenu extrait (images + fichiers)
         const enrichedMessages = messages.map((m, i) => {
-            if (i === messages.length - 1 && m.role === 'user' && allImageExtracts.length > 0) {
-                let imageBlock = '';
-                if (allImageExtracts.length === 1) {
-                    imageBlock = `\n\n--- CONTENU EXTRAIT DE L'IMAGE (à reproduire FIDÈLEMENT en LaTeX, Y COMPRIS toutes les courbes, figures et tableaux) ---\n${allImageExtracts[0].content}`;
-                } else {
-                    imageBlock = allImageExtracts.map(e =>
-                        `\n--- IMAGE N°${e.index + 1} — CONTENU EXTRAIT (à reproduire FIDÈLEMENT, Y COMPRIS les courbes/figures/tableaux) ---\n${e.content}`
-                    ).join('\n');
-                    imageBlock = `\n\n⚠️ ATTENTION : ${allImageExtracts.length} IMAGES ont été fournies. Tu dois prendre en compte le contenu de TOUTES les images, pas seulement la dernière.${imageBlock}`;
+            if (i === messages.length - 1 && m.role === 'user') {
+                let enrichedContent = m.content;
+
+                // Ajouter le contenu des images
+                if (allImageExtracts.length > 0) {
+                    let imageBlock = '';
+                    if (allImageExtracts.length === 1) {
+                        imageBlock = `\n\n--- CONTENU EXTRAIT DE L'IMAGE (à reproduire FIDÈLEMENT en LaTeX, Y COMPRIS toutes les courbes, figures et tableaux) ---\n${allImageExtracts[0].content}`;
+                    } else {
+                        imageBlock = allImageExtracts.map(e =>
+                            `\n--- IMAGE N°${e.index + 1} — CONTENU EXTRAIT (à reproduire FIDÈLEMENT, Y COMPRIS les courbes/figures/tableaux) ---\n${e.content}`
+                        ).join('\n');
+                        imageBlock = `\n\n⚠️ ATTENTION : ${allImageExtracts.length} IMAGES ont été fournies. Tu dois prendre en compte le contenu de TOUTES les images, pas seulement la dernière.${imageBlock}`;
+                    }
+                    enrichedContent += imageBlock;
                 }
+
+                // Rassembler tous les contenus textuels des fichiers uploadés (y compris l'historique)
+                let allFilesText = "";
+                messages.forEach(msg => {
+                    if (msg.attachments) {
+                        msg.attachments.forEach(att => {
+                            if (att.extractedText) {
+                                const fileExt = att.name.toLowerCase().split('.').pop();
+                                const fileTypeLabel = fileExt === 'pdf' ? 'PDF' : fileExt === 'tex' ? 'LaTeX' : 'fichier';
+                                allFilesText += `\n\n--- DÉBUT DU CONTENU DU FICHIER ${fileTypeLabel} "${att.name}" ---\n${att.extractedText}\n--- FIN DU FICHIER ---`;
+                            }
+                        });
+                    }
+                });
+
+                // Inclure aussi l'éventuel nouveau contenu de pendingFileContent
+                if (file_content && file_name) {
+                    const fileExt = file_name.toLowerCase().split('.').pop();
+                    const fileTypeLabel = fileExt === 'pdf' ? 'PDF' : fileExt === 'tex' ? 'LaTeX' : 'fichier';
+                    allFilesText += `\n\n--- DÉBUT DU CONTENU DU FICHIER ${fileTypeLabel} "${file_name}" ---\n${file_content}\n--- FIN DU FICHIER ---`;
+                }
+
+                if (allFilesText.trim() !== '') {
+                    enrichedContent += `\n\n⚠️ INSTRUCTION CRITIQUE ET IMPÉRATIVE POUR L'IA : L'utilisateur a uploadé des fichiers. Tu AS ACCÈS à la transcription complète de ces fichiers ci-dessous. IL T'EST STRICTEMENT INTERDIT de répondre que tu ne peux pas lire les fichiers ou les PDF. Tu DOIS utiliser le texte ci-dessous comme source pour réaliser la demande de l'utilisateur.\n${allFilesText}`;
+                    console.log(`[Prof-Chat] 📎 Contenus de fichiers joints avec anti-refus (${allFilesText.length} caractères)`);
+                }
+
+                enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (la balise <!DOCTYPE html> ou \\documentclass). Le système frontend va planter si tu écris du texte normal avant !
+⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.`;
+
                 return {
                     ...m,
-                    content: `${m.content}${imageBlock}`,
+                    content: enrichedContent,
                 };
             }
             return m;
@@ -838,52 +1006,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── TENTATIVE 1 : DeepSeek V3 en streaming direct ──────────
-        // Note: On utilise deepseek-chat (V3) au lieu de deepseek-reasoner (R1)
-        // car R1 a une phase de raisonnement silencieuse (~60s) qui cause des timeouts.
-        // V3 stream le contenu immédiatement.
-        if (deepseekKey) {
-            try {
-                console.log('[Prof-Chat] 🧠 DeepSeek V3 : streaming direct au client...');
-
-                const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${deepseekKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'deepseek-chat',
-                        messages: apiMessages,
-                        stream: true,
-                        temperature: 0.2,
-                        max_tokens: 32000,
-                    }),
-                });
-
-                if (dsResponse.ok) {
-                    console.log('[Prof-Chat] ✅ DeepSeek V3 connecté — streaming...');
-                    const stream = createSSEStream(dsResponse, 'DeepSeek-V3');
-                    return new Response(stream, {
-                        headers: {
-                            'Content-Type': 'text/plain; charset=utf-8',
-                            'Transfer-Encoding': 'chunked',
-                            'X-AI-Provider': 'DeepSeek-V3',
-                        },
-                    });
-                } else {
-                    const errText = await dsResponse.text();
-                    console.warn(`[Prof-Chat] ⚠️ DeepSeek HTTP ${dsResponse.status}: ${errText.slice(0, 200)}`);
-                }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ DeepSeek error: ${err.message}`);
-            }
-        }
-
-        // ── TENTATIVE 2 : GPT-4o en fallback streaming ─────────────
+        // ── TENTATIVE 1 : GPT-4o en streaming direct ─────────────
         if (openaiKey) {
             try {
-                console.log('[Prof-Chat] 🔄 Fallback — GPT-4o : streaming direct...');
+                console.log('[Prof-Chat] 🧠 GPT-4o : streaming direct au client...');
                 const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -909,9 +1035,49 @@ export async function POST(request: NextRequest) {
                             'X-AI-Provider': 'GPT-4o',
                         },
                     });
+                } else {
+                    const errText = await gptResponse.text();
+                    console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
                 }
             } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ GPT-4o fallback error: ${err.message}`);
+                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
+            }
+        }
+
+        // ── TENTATIVE 2 : DeepSeek V3 en fallback ──────────
+        // Note: On utilise deepseek-chat (V3) au lieu de deepseek-reasoner (R1)
+        // car R1 a une phase de raisonnement silencieuse (~60s) qui cause des timeouts.
+        if (deepseekKey) {
+            try {
+                console.log('[Prof-Chat] 🔄 Fallback — DeepSeek V3 : streaming direct...');
+                const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${deepseekKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        messages: apiMessages,
+                        stream: true,
+                        temperature: 0.2,
+                        max_tokens: 16384,
+                    }),
+                });
+
+                if (dsResponse.ok) {
+                    console.log('[Prof-Chat] ✅ DeepSeek V3 connecté — streaming...');
+                    const stream = createSSEStream(dsResponse, 'DeepSeek-V3');
+                    return new Response(stream, {
+                        headers: {
+                            'Content-Type': 'text/plain; charset=utf-8',
+                            'Transfer-Encoding': 'chunked',
+                            'X-AI-Provider': 'DeepSeek-V3',
+                        },
+                    });
+                }
+            } catch (err: any) {
+                console.warn(`[Prof-Chat] ⚠️ DeepSeek error: ${err.message}`);
             }
         }
 

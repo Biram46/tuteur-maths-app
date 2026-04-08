@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { ProfContext, ChatMessageProf, ProfResourceType } from '@/lib/prof-types';
 import { RESOURCE_TYPE_LABELS } from '@/lib/prof-types';
 import { saveDraft, uploadProfFile } from '../actions';
+import { useFigureRenderer } from '@/app/hooks/useFigureRenderer';
 
 interface ProfChatbotProps {
     context: ProfContext;
@@ -21,7 +22,12 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [showPreview, setShowPreview] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
+
+    // Initialisation du renderer mathématique pour le chat (comme mimimaths)
+    const { renderMessageContent: renderContent } = useFigureRenderer();
     const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
+    const [pendingFileContent, setPendingFileContent] = useState<string | null>(null);
+    const [pendingFileName, setPendingFileName] = useState<string | null>(null);
     const [aiProvider, setAiProvider] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -82,12 +88,16 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     context,
                     existing_content: getContentToSend(),
                     image_urls: allImageUrls.length > 0 ? allImageUrls : undefined,
+                    file_content: pendingFileContent,
+                    file_name: pendingFileName,
                 }),
             });
 
             // Récupérer le provider AI utilisé
             setAiProvider(response.headers.get('X-AI-Provider'));
             setPendingImageUrls([]); // Reset après envoi
+            setPendingFileContent(null); // Reset contenu fichier après envoi
+            setPendingFileName(null);
 
             if (!response.ok) {
                 throw new Error(`Erreur ${response.status}`);
@@ -125,20 +135,39 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
 
             // Extract content based on resource type
             if (isInteractif) {
-                // For interactive: extract HTML
-                const htmlMatch = fullContent.match(/```html\n([\s\S]*?)```/);
-                if (htmlMatch) {
-                    setGeneratedHtml(htmlMatch[1]);
-                    setContentType('html');
-                } else if (fullContent.includes('<!DOCTYPE html') || fullContent.includes('<html')) {
-                    // Full HTML content without markdown
-                    setGeneratedHtml(fullContent);
+                // For interactive: extract HTML (plusieurs formats possibles)
+                let htmlContent: string | null = null;
+
+                // 1. Essayer d'extraire d'un bloc markdown ```html ou ```HTML
+                const htmlBlockMatch = fullContent.match(/```html?\s*\n([\s\S]*?)```/i);
+                if (htmlBlockMatch) {
+                    htmlContent = htmlBlockMatch[1];
+                }
+                // 2. Chercher un document HTML complet (DOCTYPE ou <html)
+                else if (fullContent.includes('<!DOCTYPE html') || fullContent.includes('<!doctype html') || /<html[\s>]/i.test(fullContent)) {
+                    // Extraire tout le contenu HTML
+                    const htmlStartMatch = fullContent.match(/(<!DOCTYPE html[\s\S]*)/i);
+                    if (htmlStartMatch) {
+                        htmlContent = htmlStartMatch[1];
+                        // Nettoyer le texte après </html> si présent
+                        const htmlEndMatch = htmlContent.match(/([\s\S]*<\/html>)/i);
+                        if (htmlEndMatch) {
+                            htmlContent = htmlEndMatch[1];
+                        }
+                    } else {
+                        htmlContent = fullContent;
+                    }
+                }
+
+                if (htmlContent) {
+                    setGeneratedHtml(htmlContent.trim());
                     setContentType('html');
                 } else {
-                    // Fallback: show raw content
+                    // Fallback: afficher le contenu brut
                     setGeneratedHtml(fullContent);
                     setContentType('html');
                 }
+                setShowPreview(true);
             } else {
                 // For other types: extract LaTeX
                 const latexMatch = fullContent.match(/```latex\n([\s\S]*?)```/);
@@ -150,8 +179,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     setGeneratedLatex(fullContent);
                     setContentType('latex');
                 }
+                setShowPreview(true);
             }
-            setShowPreview(true);
 
         } catch (err: any) {
             console.error('Erreur envoi message:', err);
@@ -166,7 +195,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         } finally {
             setLoading(false);
         }
-    }, [input, messages, loading, context, getContentToSend, pendingImageUrls, isInteractif]);
+    }, [input, messages, loading, context, getContentToSend, pendingImageUrls, pendingFileContent, pendingFileName, isInteractif]);
 
     // ── Upload fichier ───────────────────────────────────────
     const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,16 +210,21 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         try {
             const result = await uploadProfFile(formData);
 
+            // Déterminer le type de fichier
+            const fileName = file.name.toLowerCase();
+            const fileType = fileName.endsWith('.tex') ? 'tex' :
+                fileName.endsWith('.pdf') ? 'pdf' :
+                    fileName.endsWith('.docx') ? 'docx' : 'image';
+
             // Ajouter le message utilisateur avec l'attachement
             const msg: ChatMessageProf = {
                 role: 'user',
                 content: `📎 Fichier uploadé : ${file.name}`,
                 attachments: [{
-                    type: file.name.endsWith('.tex') ? 'tex' :
-                        file.name.endsWith('.pdf') ? 'pdf' :
-                            file.name.endsWith('.docx') ? 'docx' : 'image',
+                    type: fileType,
                     url: result.url,
                     name: result.name,
+                    extractedText: result.extractedContent,
                 }],
                 timestamp: new Date().toISOString(),
             };
@@ -200,6 +234,12 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             // Accumuler les URLs d'images pour les envoyer avec le prochain message
             if (file.type.startsWith('image/')) {
                 setPendingImageUrls(prev => [...prev, result.url]);
+            }
+
+            // Stocker le contenu extrait (PDF, TEX) pour l'envoyer à l'API
+            if (result.extractedContent) {
+                setPendingFileContent(result.extractedContent);
+                setPendingFileName(file.name);
             }
         } catch (err: any) {
             console.error('Erreur upload:', err);
@@ -404,7 +444,13 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                         ))}
                                     </div>
                                 )}
-                                <div className="whitespace-pre-wrap">{msg.content}</div>
+                                <div className="leading-relaxed message-content-wrapper space-y-4">
+                                    {msg.role === 'user' ? (
+                                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                                    ) : (
+                                        renderContent(msg.content)
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -440,7 +486,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                         </div>
                         {isInteractif ? (
                             <iframe
-                                srcDoc={`data:text/html;charset=utf-8,${encodeURIComponent(currentContent)}`}
+                                srcDoc={currentContent}
                                 className="w-full h-[calc(100vh-200px)] border-0 rounded-lg bg-white"
                                 title="Aperçu HTML"
                             />

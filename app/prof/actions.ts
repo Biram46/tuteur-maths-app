@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 import type { ProfResourceType } from "@/lib/prof-types";
 
+
+
 // ─────────────────────────────────────────────────────────────
 // SÉQUENCES
 // ─────────────────────────────────────────────────────────────
@@ -470,8 +472,9 @@ export async function getChatSession(sessionId: string) {
 
 /**
  * Upload un fichier professeur (PDF, image, .tex, .docx)
+ * et extrait le contenu textuel si possible (PDF, TEX)
  */
-export async function uploadProfFile(formData: FormData): Promise<{ url: string; name: string }> {
+export async function uploadProfFile(formData: FormData): Promise<{ url: string; name: string; extractedContent?: string }> {
     const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
     if (!bucketName) throw new Error("Bucket non configuré");
 
@@ -498,5 +501,42 @@ export async function uploadProfFile(formData: FormData): Promise<{ url: string;
         .from(bucketName)
         .getPublicUrl(filePath);
 
-    return { url: publicUrl, name: file.name };
+    // Extraire le contenu selon le type de fichier
+    let extractedContent: string | undefined;
+    const fileName = file.name.toLowerCase();
+
+    try {
+        if (fileName.endsWith('.tex')) {
+            // Fichier LaTeX : lire directement le texte
+            const decoder = new TextDecoder('utf-8');
+            extractedContent = decoder.decode(buffer);
+            console.log(`[Upload] 📄 Fichier .tex extrait (${extractedContent.length} caractères)`);
+        } else if (fileName.endsWith('.pdf')) {
+            // Fichier PDF : extraire le texte avec pdf-parse
+            const pdfBuffer = Buffer.from(buffer);
+            
+            // Polyfill pour éviter le crash "DOMMatrix is not defined" pallié à cause de pdf-parse
+            if (typeof globalThis.DOMMatrix === 'undefined') {
+                (globalThis as any).DOMMatrix = class DOMMatrix {};
+            }
+            if (typeof globalThis.Path2D === 'undefined') {
+                (globalThis as any).Path2D = class Path2D {};
+            }
+            if (typeof globalThis.ImageData === 'undefined') {
+                (globalThis as any).ImageData = class ImageData {};
+            }
+
+            const pdfParseModule = await import('pdf-parse');
+            const pdf = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule.default || (pdfParseModule as any).pdf || pdfParseModule);
+            const pdfData = await pdf(pdfBuffer);
+            extractedContent = pdfData.text;
+            console.log(`[Upload] 📕 PDF extrait (${extractedContent?.length || 0} caractères, ${pdfData.numpages} pages)`);
+        }
+        // Les images (.png, .jpg) seront traitées par GPT-4o Vision via l'API
+    } catch (extractError: any) {
+        console.warn(`[Upload] ⚠️ Impossible d'extraire le contenu de ${file.name}:`, extractError.message);
+        // On continue sans contenu extrait - le fichier reste accessible via URL
+    }
+
+    return { url: publicUrl, name: file.name, extractedContent };
 }
