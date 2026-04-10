@@ -223,7 +223,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                         </div>
 
                                         {q.questionTableData && (
-                                            <div className="mb-6 w-full max-w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200">
+                                            <div className="mb-6 w-full overflow-x-auto bg-slate-50 p-2 sm:p-4 rounded-xl border border-slate-200 qcm-table-scroll">
                                                 <MathTable data={q.questionTableData} />
                                             </div>
                                         )}
@@ -241,7 +241,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                         <>
                                                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
                                                             {q.optionsTableData?.[userAnswerIdx] && (
-                                                                <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
+                                                                <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
                                                             )}
                                                             {q.optionsGraphData?.[userAnswerIdx] && (
                                                                 <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
@@ -258,7 +258,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                         <>
                                                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
                                                             {q.optionsTableData?.[q.correctAnswerIndex] && (
-                                                                <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
+                                                                <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
                                                             )}
                                                             {q.optionsGraphData?.[q.correctAnswerIndex] && (
                                                                 <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
@@ -323,7 +323,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                 </div>
                             )}
 
-                            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`mt-10 grid gap-4 ${currentQuestion.optionsTableData ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                                 {currentQuestion.options.map((opt, idx) => {
                                     const isSelected = answers[currentQuestion.id] === idx;
                                     const hasTable = currentQuestion.optionsTableData?.[idx];
@@ -353,7 +353,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 </ReactMarkdown>
                                                 
                                                 {hasTable && (
-                                                    <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl">
+                                                    <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
                                                         <MathTable data={hasTable} />
                                                     </div>
                                                 )}
@@ -418,6 +418,25 @@ const GlobalStyles = () => (
             width: 100%;
             overflow-x: auto;
             white-space: nowrap;
+        }
+        .qcm-table-scroll {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #475569 transparent;
+        }
+        .qcm-table-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+        .qcm-table-scroll::-webkit-scrollbar-track {
+            background: transparent;
+            border-radius: 3px;
+        }
+        .qcm-table-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        .qcm-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
     `}</style>
 )
