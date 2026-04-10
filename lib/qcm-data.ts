@@ -570,28 +570,6 @@ export const qcmDatabase: QcmQuestion[] = [
         explanation: "Proportion de filles en ST2S $= \\dfrac{\\text{filles ST2S}}{\\text{total ST2S}} = \\dfrac{55}{60}$."
     },
 
-    // --- AUTOMATISMES EDUSCOL — Fonctions / Suites ---
-    {
-        id: "eduscol-suite-1",
-        category: "Fonctions",
-        question: "Les nombres $11\\,; 15\\,; 19\\,; 23$ sont des termes consécutifs d'une suite. Cette suite est :",
-        options: [
-            "Arithmétique de raison $4$",
-            "Arithmétique de raison $3$",
-            "Géométrique de raison $4$",
-            "Ni arithmétique, ni géométrique"
-        ],
-        correctAnswerIndex: 0,
-        explanation: "$15 - 11 = 4$, $19 - 15 = 4$, $23 - 19 = 4$. La différence est constante et égale à $4$, c'est une suite arithmétique de raison $4$."
-    },
-    {
-        id: "eduscol-suite-2",
-        category: "Fonctions",
-        question: "Un enfant dépose chaque semaine $5$€ dans sa tirelire. La suite $(u_n)$, où $u_n$ est la somme dans la tirelire après $n$ semaines, est :",
-        options: ["Arithmétique", "Géométrique", "Ni l'une ni l'autre", "Constante"],
-        correctAnswerIndex: 0,
-        explanation: "La somme augmente de $5$€ chaque semaine : $u_{n+1} = u_n + 5$. C'est une suite arithmétique de raison $5$."
-    },
 
     // --- Calcul numérique et algébrique ---
     {
