@@ -571,6 +571,222 @@ export const qcmDatabase: QcmQuestion[] = [
     },
 
 
+
+    // --- AUTOMATISMES EDUSCOL - EAM (Fonctions, Calcul, Stats) ---
+    {
+        "id": "eam-fonc-1",
+        "category": "Fonctions",
+        "question": "On considère la courbe $\\mathcal{C}$ ci-dessous représentant une fonction $f$.\nLaquelle des affirmations suivantes est vraie ?",
+        "questionGraphData": {"domain": {"x": [-3, 4], "y": [-2, 5]}, "functions": [{"fn": "-(x-1)^2 + 4", "color": "#3b82f6"}]},
+        "options": ["$f(1) = 0$", "$f(0) = 4$", "$f(1) = 4$", "$f(4) = 1$"],
+        "correctAnswerIndex": 2,
+        "explanation": "Le sommet de la parabole est le point de coordonnées $(1; 4)$, donc $f(1) = 4$."
+    },
+    {
+        "id": "eam-fonc-2",
+        "category": "Fonctions",
+        "question": "D'après la courbe de la question précédente, l'équation $f(x) = 0$ admet :",
+        "questionGraphData": {"domain": {"x": [-3, 4], "y": [-2, 5]}, "functions": [{"fn": "-(x-1)^2 + 4", "color": "#3b82f6"}]},
+        "options": ["Aucune solution", "Une seule solution", "Deux solutions", "Trois solutions"],
+        "correctAnswerIndex": 2,
+        "explanation": "La courbe coupe l'axe des abscisses ($y=0$) en deux points : $x = -1$ et $x = 3$."
+    },
+    {
+        "id": "eam-fonc-3",
+        "category": "Fonctions",
+        "question": "On considère la droite $(D)$ tracée ci-dessous. Son coefficient directeur est :",
+        "questionGraphData": {"domain": {"x": [-3, 4], "y": [-4, 5]}, "functions": [{"fn": "2*x - 1", "color": "#ef4444"}]},
+        "options": ["$-2$", "$\\dfrac{1}{2}$", "$-1$", "$2$"],
+        "correctAnswerIndex": 3,
+        "explanation": "La droite monte. Quand on avance de $1$ unité vers la droite ($x$), on monte de $2$ unités ($y$). Le coefficient directeur est donc de $2$."
+    },
+    {
+        "id": "eam-fonc-4",
+        "category": "Fonctions",
+        "question": "La fonction $f$ est représentée ci-dessous sur $[-3\\,;\\,3]$. Elle est strictement décroissante sur :",
+        "questionGraphData": {"domain": {"x": [-3.5, 3.5], "y": [-3, 5]}, "functions": [{"fn": "-x^2 + 3", "color": "#3b82f6"}]},
+        "options": ["$[-3\\,;\\,3]$", "$[-3\\,;\\,0]$", "$[0\\,;\\,3]$", "$[-1\\,;\\,1]$"],
+        "correctAnswerIndex": 2,
+        "explanation": "La courbe descend pour les abscisses $x$ allant de $0$ à $3$, donc la fonction est décroissante sur $[0\\,;\\,3]$."
+    },
+    {
+        "id": "eam-fonc-5",
+        "category": "Fonctions",
+        "question": "Soit $f(x) = 2x^2 - 3x + 1$. L'image $f(2)$ est égale à :",
+        "options": ["$-3$", "$1$", "$3$", "$-1$"],
+        "correctAnswerIndex": 2,
+        "explanation": "$f(2) = 2(2)^2 - 3(2) + 1 = 2(4) - 6 + 1 = 8 - 6 + 1 = 3$."
+    },
+    {
+        "id": "eam-fonc-6",
+        "category": "Fonctions",
+        "question": "Soit $f$ une fonction affine avec $f(0) = -2$ et $f(1) = 3$. L'expression de $f$ est :",
+        "options": ["$5x-2$", "$3x-2$", "$-2x+3$", "$2x+3$"],
+        "correctAnswerIndex": 0,
+        "explanation": "L'ordonnée à l'origine (quand $x=0$) est $-2$. Le coefficient directeur est $\\dfrac{f(1)-f(0)}{1-0} = \\dfrac{3 - (-2)}{1} = 5$. D'où $f(x) = 5x - 2$."
+    },
+    {
+        "id": "eam-fonc-7",
+        "category": "Fonctions",
+        "question": "Les antécédents de $0$ par $f(x) = x^2 - 4$ sont :",
+        "options": ["$x=0$", "$x=4$ et $x=-4$", "$x=2$ et $x=-2$", "$x=2$ seulement"],
+        "correctAnswerIndex": 2,
+        "explanation": "On résout $x^2 - 4 = 0$, soit $x^2 = 4$, ce qui donne $x=2$ et $x=-2$."
+    },
+    {
+        "id": "eam-fonc-8",
+        "category": "Fonctions",
+        "question": "La solution de $3x - 6 = 0$ est :",
+        "options": ["$x=-2$", "$x=3$", "$x=2$", "$x=6$"],
+        "correctAnswerIndex": 2,
+        "explanation": "$3x - 6 = 0 \\iff 3x = 6 \\iff x = \\dfrac{6}{3} = 2$."
+    },
+    {
+        "id": "eam-calc-1",
+        "category": "Calcul numérique et algébrique",
+        "question": "Une forme factorisée de $x^2 - 5x + 6$ est :",
+        "options": ["$(x-2)(x-3)$", "$(x+2)(x+3)$", "$(x-1)(x-6)$", "$(x-2)(x+3)$"],
+        "correctAnswerIndex": 0,
+        "explanation": "En développant $(x-2)(x-3)$ on obtient $x^2 - 3x - 2x + 6 = x^2 - 5x + 6$."
+    },
+    {
+        "id": "eam-calc-2",
+        "category": "Calcul numérique et algébrique",
+        "question": "Pour tout réel $x$, $(x+3)^2$ est égal à :",
+        "options": ["$x^2+9$", "$x^2+3x+9$", "$x^2+6x+9$", "$x^2+9x+6$"],
+        "correctAnswerIndex": 2,
+        "explanation": "On utilise l'identité remarquable $(a+b)^2 = a^2 + 2ab + b^2$, donc $x^2 + 2\\times3\\times x + 3^2 = x^2 + 6x + 9$."
+    },
+    {
+        "id": "eam-calc-3",
+        "category": "Calcul numérique et algébrique",
+        "question": "L'expression $-2x+4$ est strictement positive pour :",
+        "options": ["$x > 2$", "$x < -2$", "$x < 2$", "$x > -2$"],
+        "correctAnswerIndex": 2,
+        "explanation": "$-2x + 4 > 0 \\iff -2x > -4$. En divisant par $-2$ (qui est strictement négatif), on change le sens de l'inégalité : $x < 2$."
+    },
+    {
+        "id": "eam-calc-4",
+        "category": "Calcul numérique et algébrique",
+        "question": "Pour tout $x\\neq 0$, $\\dfrac{x^3 \\times x^{-1}}{x^2}$ est égal à :",
+        "options": ["$x^4$", "$1$", "$x^2$", "$x^{-4}$"],
+        "correctAnswerIndex": 1,
+        "explanation": "D'après les règles de calcul des puissances : $\\dfrac{x^3 \\times x^{-1}}{x^2} = \\dfrac{x^{3-1}}{x^2} = \\dfrac{x^2}{x^2} = 1$."
+    },
+    {
+        "id": "eam-calc-5",
+        "category": "Calcul numérique et algébrique",
+        "question": "L'ensemble des solutions de l'équation $2x - 3 = 7$ est :",
+        "options": ["$\\{2\\}$", "$\\{5\\}$", "$\\{-2\\}$", "$\\{-5\\}$"],
+        "correctAnswerIndex": 1,
+        "explanation": "$2x - 3 = 7 \\iff 2x = 10 \\iff x = 5$."
+    },
+    {
+        "id": "eam-calc-6",
+        "category": "Calcul numérique et algébrique",
+        "question": "Une forme développée de $(2x-1)(x+4)$ est :",
+        "options": ["$2x^2+7x-4$", "$2x^2-4$", "$2x^2+8x-4$", "$2x^2+9x-4$"],
+        "correctAnswerIndex": 0,
+        "explanation": "En utilisant la double distributivité : $2x(x) + 2x(4) - 1(x) - 1(4) = 2x^2 + 8x - x - 4 = 2x^2 + 7x - 4$."
+    },
+    {
+        "id": "eam-calc-7",
+        "category": "Calcul numérique et algébrique",
+        "question": "L'ensemble des solutions de l'inéquation $3x + 1 < 10$ est :",
+        "options": ["$\\left]-\\infty\\,;\\,3\\right[$", "$\\left]3\\,;+\\infty\\right[$", "$\\left]-\\infty\\,;\\,-3\\right[$", "$\\left[-3\\,;+\\infty\\right[$"],
+        "correctAnswerIndex": 0,
+        "explanation": "$3x + 1 < 10 \\iff 3x < 9 \\iff x < 3$. Cela correspond à l'intervalle $\\left]-\\infty\\,;\\,3\\right[$."
+    },
+    {
+        "id": "eam-deriv-1",
+        "category": "Fonctions",
+        "question": "La dérivée de la fonction $f(x) = 3x^2 - 5x + 2$ est :",
+        "options": ["$3x-5$", "$6x-5$", "$6x+5$", "$6x^2-5$"],
+        "correctAnswerIndex": 1,
+        "explanation": "On applique les formules de dérivation : $f'(x) = 3(2x) - 5(1) + 0 = 6x - 5$."
+    },
+    {
+        "id": "eam-deriv-2",
+        "category": "Fonctions",
+        "question": "On considère la courbe $\\mathcal{C}_f$ et sa tangente $(T)$ en $x_0 = 1$ ci-dessous.\nLe nombre dérivé $f'(1)$ est :",
+        "questionGraphData": {"domain": {"x": [-1, 4], "y": [-1, 7]}, "functions": [{"fn": "x^2", "color": "#3b82f6"}, {"fn": "2*x-1", "color": "#ef4444"}]},
+        "options": ["$1$", "$-1$", "$2$", "$4$"],
+        "correctAnswerIndex": 2,
+        "explanation": "Le nombre dérivé $f'(1)$ est le coefficient directeur de la tangente $(T)$ au point d'abscisse $1$. Cette droite a pour équation $y = 2x - 1$, son coefficient directeur est donc $2$."
+    },
+    {
+        "id": "eam-deriv-3",
+        "category": "Fonctions",
+        "question": "Le tableau de signes de $f'$ est tel que $f'$ est positive sur $]-\\infty\\,;\\,2[$ et négative sur $]2\\,;\\,+\\infty[$.\nLaquelle des descriptions correspond à $f$ ?",
+        "options": ["$f$ est croissante puis décroissante, avec un maximum en $x=2$", "$f$ est décroissante sur $\\mathbb{R}$", "$f$ est décroissante puis croissante, avec un minimum en $x=2$", "$f$ est croissante sur $\\mathbb{R}$"],
+        "correctAnswerIndex": 0,
+        "explanation": "Si $f'$ est positive puis négative, cela signifie que la fonction $f$ est croissante puis décroissante. Le changement de variation s'opère en $x=2$ qui est donc un maximum local."
+    },
+    {
+        "id": "eam-deriv-4",
+        "category": "Fonctions",
+        "question": "La fonction polynomiale définie par $f(x) = -x^2 + 6x - 5$ est croissante sur l'intervalle :",
+        "options": ["$\\left]-\\infty\\,;\\,3\\right]$", "$\\left[3\\,;+\\infty\\right[$", "$\\mathbb{R}$", "$\\left]-\\infty\\,;\\,0\\right]$"],
+        "correctAnswerIndex": 0,
+        "explanation": "On calcule la dérivée : $f'(x) = -2x + 6$. La fonction est croissante quand $f'(x) \\geq 0 \\iff -2x \\geq -6 \\iff x \\leq 3$. L'intervalle est donc $\\left]-\\infty\\,;\\,3\\right]$."
+    },
+    {
+        "id": "eam-stats-1",
+        "category": "Calcul numérique et algébrique",
+        "question": "Le nombre $e^0$ est égal à :",
+        "options": ["$0$", "$1$", "$e$", "$-1$"],
+        "correctAnswerIndex": 1,
+        "explanation": "Tout nombre (non nul) élevé à la puissance $0$ vaut $1$, en particulier $e^0 = 1$."
+    },
+    {
+        "id": "eam-stats-2",
+        "category": "Calcul numérique et algébrique",
+        "question": "L'ensemble des solutions de l'équation $e^x = 1$ est :",
+        "options": ["$\\{-1\\}$", "$\\{e\\}$", "$\\{0\\}$", "$\\{1\\}$"],
+        "correctAnswerIndex": 2,
+        "explanation": "$e^x = 1 \\iff e^x = e^0 \\iff x = 0$."
+    },
+    {
+        "id": "eam-stats-3",
+        "category": "Probabilités",
+        "question": "On considère une expérience aléatoire modélisée par un arbre pondéré. On a $P(F) = 0{,}6$ et $P_F(E) = 0{,}3$. La probabilité $P(F \\cap E)$ est :",
+        "options": ["$0{,}3$", "$0{,}6$", "$0{,}18$", "$0{,}9$"],
+        "correctAnswerIndex": 2,
+        "explanation": "Le calcul de l'intersection se fait en multipliant le long du chemin sur l'arbre de probabilités : $P(F \\cap E) = P(F) \\times P_F(E) = 0{,}6 \\times 0{,}3 = 0{,}18$."
+    },
+    {
+        "id": "eam-stats-6",
+        "category": "Statistiques",
+        "question": "On considère un diagramme en boîte représentant les notes d'une classe. Les 5 valeurs du résumé sont (dans l'ordre) : 3, 6, 11, 15, 18.\nLa médiane des notes est :",
+        "options": ["$6$", "$15$", "$11$", "$18$"],
+        "correctAnswerIndex": 2,
+        "explanation": "Le résumé statistique à 5 valeurs d'un diagramme en boîte est composé de (Min, Q1, Médiane, Q3, Max). La médiane est donc la valeur centrale, fixée ici à $11$."
+    },
+    {
+        "id": "eam-stats-7",
+        "category": "Statistiques",
+        "question": "D'après un diagramme en boîte dont les quartiles sont $Q_1=6$ et $Q_3=15$, environ $50\\%$ des élèves ont une note :",
+        "options": ["Inférieure à $6$", "Comprise entre $6$ et $15$", "Supérieure à $15$", "Égale à $11$"],
+        "correctAnswerIndex": 1,
+        "explanation": "La boîte \"centrale\" est délimitée par les quartiles $Q_1$ et $Q_3$. L'écart interquartile regroupe donc environ les $50\\%$ valeurs centrales de la série statistique. Ainsi, $50\\%$ des notes sont comprises entre $6$ et $15$."
+    },
+    {
+        "id": "eam-stats-8",
+        "category": "Probabilités",
+        "question": "On tire au hasard une carte dans un jeu de $52$ cartes. La probabilité de tirer un as est :",
+        "options": ["$\\dfrac{1}{13}$", "$\\dfrac{1}{52}$", "$\\dfrac{4}{13}$", "$\\dfrac{1}{4}$"],
+        "correctAnswerIndex": 0,
+        "explanation": "Il y a $4$ as dans un jeu de $52$ cartes. La probabilité est donc $\\dfrac{4}{52} = \\dfrac{1}{13}$."
+    },
+    {
+        "id": "eam-stats-9",
+        "category": "Probabilités",
+        "question": "On lance un dé à $6$ faces équilibré. La probabilité d'obtenir un nombre strictement supérieur à $4$ est :",
+        "options": ["$\\dfrac{1}{6}$", "$\\dfrac{1}{3}$", "$\\dfrac{2}{3}$", "$\\dfrac{1}{2}$"],
+        "correctAnswerIndex": 1,
+        "explanation": "Les seules issues favorables sont d'obtenir un $5$ ou un $6$. Il y a donc $2$ issues favorables sur $6$ possibilités au total, ce qui donne une probabilité de $\\dfrac{2}{6} = \\dfrac{1}{3}$."
+    },
+
     // --- Calcul numérique et algébrique ---
     {
         id: "calc-1",
