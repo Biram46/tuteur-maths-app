@@ -360,6 +360,239 @@ export const qcmDatabase: QcmQuestion[] = [
     "explanation": "$y = 3x$. Pour $A(2;6)$ : $3 \\times 2 = 6$ ✓. Le point $A$ vérifie l'équation de la droite."
 },
 
+    // --- AUTOMATISMES EDUSCOL — Évolutions et variations ---
+    {
+        id: "eduscol-ev-1",
+        category: "Évolutions et variations",
+        question: "Le coefficient multiplicateur associé à une hausse de $30\\%$ est :",
+        options: ["$0{,}3$", "$1{,}3$", "$30$", "$0{,}7$"],
+        correctAnswerIndex: 1,
+        explanation: "Une hausse de $30\\%$ correspond à un CM de $1 + \\dfrac{30}{100} = 1{,}3$."
+    },
+    {
+        id: "eduscol-ev-2",
+        category: "Évolutions et variations",
+        question: "Le taux d'évolution associé au coefficient multiplicateur $C = 1{,}2$ est :",
+        options: ["$+120\\%$", "$+1{,}2\\%$", "$+20\\%$", "$+2\\%$"],
+        correctAnswerIndex: 2,
+        explanation: "Le taux d'évolution est $t = C - 1 = 1{,}2 - 1 = 0{,}2 = +20\\%$."
+    },
+    {
+        id: "eduscol-ev-3",
+        category: "Évolutions et variations",
+        question: "Un prix de $150$€ subit une hausse de $10\\%$. Le nouveau prix est :",
+        options: ["$150{,}10$€", "$160$€", "$165$€", "$151{,}10$€"],
+        correctAnswerIndex: 2,
+        explanation: "Nouveau prix $= 150 \\times 1{,}10 = 165$€."
+    },
+    {
+        id: "eduscol-ev-4",
+        category: "Évolutions et variations",
+        question: "Le coefficient multiplicateur associé à une hausse de $5\\%$ est :",
+        options: ["$0{,}05$", "$1{,}05$", "$1{,}5$", "$5$"],
+        correctAnswerIndex: 1,
+        explanation: "Une hausse de $5\\%$ correspond à un CM de $1 + \\dfrac{5}{100} = 1{,}05$."
+    },
+    {
+        id: "eduscol-ev-5",
+        category: "Évolutions et variations",
+        question: "Le taux d'évolution associé à un coefficient multiplicateur $C = 0{,}85$ est :",
+        options: ["$-15\\%$", "$+85\\%$", "$+15\\%$", "$-0{,}15\\%$"],
+        correctAnswerIndex: 0,
+        explanation: "Le taux d'évolution est $t = C - 1 = 0{,}85 - 1 = -0{,}15 = -15\\%$."
+    },
+    {
+        id: "eduscol-ev-6",
+        category: "Évolutions et variations",
+        question: "Le coefficient multiplicateur global associé à deux hausses successives de $10\\%$ et de $20\\%$ est :",
+        options: ["$1{,}30$", "$1{,}1 \\times 1{,}2 = 1{,}32$", "$0{,}1 \\times 0{,}2$", "$1{,}02$"],
+        correctAnswerIndex: 1,
+        explanation: "Le CM global est le produit des CM : $1{,}1 \\times 1{,}2 = 1{,}32$, soit une hausse globale de $32\\%$."
+    },
+    {
+        id: "eduscol-ev-7",
+        category: "Évolutions et variations",
+        question: "Le coefficient multiplicateur associé à une baisse de $0{,}3\\%$ est :",
+        options: ["$0{,}7$", "$0{,}97$", "$0{,}997$", "$1{,}03$"],
+        correctAnswerIndex: 2,
+        explanation: "Une baisse de $0{,}3\\%$ : CM $= 1 - \\dfrac{0{,}3}{100} = 1 - 0{,}003 = 0{,}997$."
+    },
+    {
+        id: "eduscol-ev-8",
+        category: "Évolutions et variations",
+        question: "Le taux d'évolution associé à un coefficient multiplicateur $C = 0{,}975$ est :",
+        options: ["$+97{,}5\\%$", "$+25\\%$", "$-2{,}5\\%$", "$-25\\%$"],
+        correctAnswerIndex: 2,
+        explanation: "Le taux d'évolution est $t = C - 1 = 0{,}975 - 1 = -0{,}025 = -2{,}5\\%$."
+    },
+    {
+        id: "eduscol-ev-9",
+        category: "Évolutions et variations",
+        question: "Si une grandeur subit trois évolutions successives de $+3\\%$, $-5\\%$ et $+7\\%$, alors elle est multipliée par :",
+        options: ["$1{,}3 \\times 1{,}5 \\times 1{,}7$", "$1{,}03 \\times 0{,}95 \\times 1{,}07$", "$3 - 5 + 7$", "$3 \\times (-5) \\times 7$"],
+        correctAnswerIndex: 1,
+        explanation: "Les CM sont $1{,}03$, $0{,}95$ et $1{,}07$. Le CM global est leur produit : $1{,}03 \\times 0{,}95 \\times 1{,}07$."
+    },
+    {
+        id: "eduscol-ev-10",
+        category: "Évolutions et variations",
+        question: "Un prix de $150$€ subit une hausse de $10\\%$ puis une baisse de $10\\%$. Que peut-on dire ?",
+        options: [
+            "Le prix revient à $150$€",
+            "Le prix est inférieur à $150$€",
+            "Le prix est supérieur à $150$€",
+            "On ne peut pas conclure"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "Nouveau prix : $150 \\times 1{,}1 \\times 0{,}9 = 148{,}50$€. Une hausse puis une baisse du même taux ne ramène jamais au prix initial."
+    },
+    {
+        id: "eduscol-ev-11",
+        category: "Évolutions et variations",
+        question: "Une longueur a été multipliée par $3$. Quel est le taux d'évolution correspondant ?",
+        options: ["$+300\\%$", "$+200\\%$", "$+30\\%$", "$+3\\%$"],
+        correctAnswerIndex: 1,
+        explanation: "Multiplier par $3$, c'est un CM de $3$. Le taux d'évolution est $t = 3 - 1 = 2 = +200\\%$."
+    },
+
+    // --- AUTOMATISMES EDUSCOL — Proportions et pourcentages ---
+    {
+        id: "eduscol-prop-1",
+        category: "Proportions et pourcentages",
+        question: "Calculer $30\\%$ de $70$.",
+        options: ["$21$", "$2{,}1$", "$210$", "$30$"],
+        correctAnswerIndex: 0,
+        explanation: "$30\\% \\times 70 = \\dfrac{30}{100} \\times 70 = 0{,}3 \\times 70 = 21$."
+    },
+    {
+        id: "eduscol-prop-2",
+        category: "Proportions et pourcentages",
+        question: "Calculer les $\\dfrac{3}{5}$ de $15$.",
+        options: ["$5$", "$9$", "$3$", "$45$"],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{3}{5} \\times 15 = 3 \\times 3 = 9$."
+    },
+    {
+        id: "eduscol-prop-3",
+        category: "Proportions et pourcentages",
+        question: "Quel pourcentage représente $\\dfrac{1}{5}$ ?",
+        options: ["$15\\%$", "$20\\%$", "$25\\%$", "$5\\%$"],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{1}{5} = \\dfrac{20}{100} = 20\\%$."
+    },
+    {
+        id: "eduscol-prop-4",
+        category: "Proportions et pourcentages",
+        question: "Quelle fraction représente la moitié de $\\dfrac{3}{4}$ ?",
+        options: ["$\\dfrac{3}{2}$", "$\\dfrac{3}{8}$", "$\\dfrac{1}{4}$", "$\\dfrac{6}{4}$"],
+        correctAnswerIndex: 1,
+        explanation: "La moitié de $\\dfrac{3}{4}$ est $\\dfrac{1}{2} \\times \\dfrac{3}{4} = \\dfrac{3}{8}$."
+    },
+    {
+        id: "eduscol-prop-5",
+        category: "Proportions et pourcentages",
+        question: "$25\\%$ des élèves d'un lycée sont internes. Il y a $320$ internes. Combien y a-t-il d'élèves dans ce lycée ?",
+        options: ["$80$", "$640$", "$1\\,280$", "$1\\,600$"],
+        correctAnswerIndex: 2,
+        explanation: "Si $25\\%$ des élèves $= 320$, alors le nombre total est $\\dfrac{320}{0{,}25} = 1\\,280$ élèves."
+    },
+    {
+        id: "eduscol-prop-6",
+        category: "Proportions et pourcentages",
+        question: "Quel pourcentage de $120$ est représenté par $90$ ?",
+        options: ["$60\\%$", "$70\\%$", "$75\\%$", "$80\\%$"],
+        correctAnswerIndex: 2,
+        explanation: "$\\dfrac{90}{120} = \\dfrac{3}{4} = 0{,}75 = 75\\%$."
+    },
+    {
+        id: "eduscol-prop-7",
+        category: "Proportions et pourcentages",
+        question: "$\\dfrac{1}{3}$ des élèves d'une école sont des garçons et les $\\dfrac{3}{4}$ des garçons sont sportifs. Quelle est la proportion de garçons sportifs parmi les élèves ?",
+        options: ["$\\dfrac{3}{7}$", "$\\dfrac{1}{4}$", "$\\dfrac{1}{12}$", "$\\dfrac{3}{4}$"],
+        correctAnswerIndex: 1,
+        explanation: "Proportion de garçons sportifs : $\\dfrac{1}{3} \\times \\dfrac{3}{4} = \\dfrac{3}{12} = \\dfrac{1}{4} = 25\\%$."
+    },
+    {
+        id: "eduscol-prop-8",
+        category: "Proportions et pourcentages",
+        question: "Quelle proportion d'heure représentent $12$ minutes ?",
+        options: ["$\\dfrac{1}{12}$", "$\\dfrac{12}{100}$", "$\\dfrac{1}{5}$", "$\\dfrac{1}{6}$"],
+        correctAnswerIndex: 2,
+        explanation: "$\\dfrac{12}{60} = \\dfrac{1}{5}$ d'heure."
+    },
+
+    // --- AUTOMATISMES EDUSCOL — Calcul numérique ---
+    {
+        id: "eduscol-cn-1",
+        category: "Calcul numérique et algébrique",
+        question: "Un véhicule roule à $120$ km/h. Quelle distance parcourt-il en $36$ min ?",
+        options: ["$43{,}2$ km", "$4\\,320$ km", "$72$ km", "$36$ km"],
+        correctAnswerIndex: 2,
+        explanation: "$36$ min $= \\dfrac{36}{60}$ h $= 0{,}6$ h. Distance $= 120 \\times 0{,}6 = 72$ km."
+    },
+    {
+        id: "eduscol-cn-2",
+        category: "Calcul numérique et algébrique",
+        question: "Quel pourcentage est égal à $16\\%$ de $25\\%$ ?",
+        options: ["$4\\%$", "$41\\%$", "$0{,}04\\%$", "$400\\%$"],
+        correctAnswerIndex: 0,
+        explanation: "$16\\% \\times 25\\% = 0{,}16 \\times 0{,}25 = 0{,}04 = 4\\%$."
+    },
+
+    // --- AUTOMATISMES EDUSCOL — Probabilités ---
+    {
+        id: "eduscol-proba-1",
+        category: "Probabilités",
+        question: "On lance $10$ fois et de façon indépendante un dé à $6$ faces non truqué. On gagne si le résultat est supérieur à $4$. Cette expérience peut être modélisée par :",
+        options: [
+            "Une loi de Bernoulli de paramètre $p = \\dfrac{1}{3}$",
+            "Une loi binomiale $\\mathcal{B}\\left(10\\,; \\dfrac{1}{3}\\right)$",
+            "Une loi binomiale $\\mathcal{B}\\left(10\\,; \\dfrac{2}{3}\\right)$",
+            "Une loi uniforme sur $\\{1\\,; 2\\,; 3\\,; 4\\,; 5\\,; 6\\}$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "Chaque lancer est une épreuve de Bernoulli avec $p = P(\\text{résultat} > 4) = P(5 \\text{ ou } 6) = \\dfrac{2}{6} = \\dfrac{1}{3}$. La répétition de $10$ épreuves indépendantes suit $\\mathcal{B}(10\\,; \\frac{1}{3})$."
+    },
+    {
+        id: "eduscol-proba-2",
+        category: "Probabilités",
+        question: "On modélise $3$ épreuves de Bernoulli indépendantes de paramètre $p = 0{,}6$ avec un arbre. Soit $X$ le nombre de succès. $P(X = 2)$ est égal à :",
+        options: ["$0{,}6^2$", "$0{,}6^2 \\times 0{,}4$", "$3$", "$3 \\times 0{,}6^2 \\times 0{,}4$"],
+        correctAnswerIndex: 3,
+        explanation: "$P(X = 2) = \\binom{3}{2} \\times 0{,}6^2 \\times 0{,}4^1 = 3 \\times 0{,}36 \\times 0{,}4 = 0{,}432$."
+    },
+    {
+        id: "eduscol-proba-3",
+        category: "Probabilités",
+        question: "Dans un lycée technologique, sur $60$ élèves en ST2S, il y a $55$ filles. Quelle est la proportion de filles parmi les élèves de ST2S ?",
+        options: ["$\\dfrac{134}{60}$", "$\\dfrac{55}{134}$", "$\\dfrac{55}{60}$", "$\\dfrac{55}{240}$"],
+        correctAnswerIndex: 2,
+        explanation: "Proportion de filles en ST2S $= \\dfrac{\\text{filles ST2S}}{\\text{total ST2S}} = \\dfrac{55}{60}$."
+    },
+
+    // --- AUTOMATISMES EDUSCOL — Fonctions / Suites ---
+    {
+        id: "eduscol-suite-1",
+        category: "Fonctions",
+        question: "Les nombres $11\\,; 15\\,; 19\\,; 23$ sont des termes consécutifs d'une suite. Cette suite est :",
+        options: [
+            "Arithmétique de raison $4$",
+            "Arithmétique de raison $3$",
+            "Géométrique de raison $4$",
+            "Ni arithmétique, ni géométrique"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$15 - 11 = 4$, $19 - 15 = 4$, $23 - 19 = 4$. La différence est constante et égale à $4$, c'est une suite arithmétique de raison $4$."
+    },
+    {
+        id: "eduscol-suite-2",
+        category: "Fonctions",
+        question: "Un enfant dépose chaque semaine $5$€ dans sa tirelire. La suite $(u_n)$, où $u_n$ est la somme dans la tirelire après $n$ semaines, est :",
+        options: ["Arithmétique", "Géométrique", "Ni l'une ni l'autre", "Constante"],
+        correctAnswerIndex: 0,
+        explanation: "La somme augmente de $5$€ chaque semaine : $u_{n+1} = u_n + 5$. C'est une suite arithmétique de raison $5$."
+    },
+
     // --- Calcul numérique et algébrique ---
     {
         id: "calc-1",
