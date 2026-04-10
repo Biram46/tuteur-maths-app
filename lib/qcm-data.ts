@@ -196,8 +196,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-1",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "$\\dfrac{5}{6} \\approx 0{,}833$ et $\\dfrac{6}{7} \\approx 0{,}857$, donc $\\dfrac{5}{6} < \\dfrac{6}{7}$. On peut aussi réduire au même dénominateur : $\\dfrac{5}{6} = \\dfrac{35}{42}$ et $\\dfrac{6}{7} = \\dfrac{36}{42}$."
 },
     {
     "question": "$1\\ \\text{m}^2$ correspond à :",
@@ -209,8 +209,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-2",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 3,
+    "explanation": "$1\\text{ m} = 100\\text{ cm}$, donc $1\\text{ m}^2 = (100)^2\\text{ cm}^2 = 10\\,000\\text{ cm}^2$."
 },
     {
     "question": "Dans une classe de 30 élèves, 40\\% sont des filles. Le nombre de filles est :",
@@ -222,8 +222,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-3",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "$40\\%$ de $30 = \\dfrac{40}{100} \\times 30 = 12$ filles."
 },
     {
     "question": "Le prix d’un article subit une augmentation de 20\\,\\% puis une augmentation de 10\\,\\%. Le taux d’évolution global est :",
@@ -235,8 +235,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-4",
     "category": "Évolutions et variations",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 1,
+    "explanation": "Le coefficient multiplicateur global est $1{,}20 \\times 1{,}10 = 1{,}32$, soit une augmentation globale de $32\\%$."
 },
     {
     "question": "On donne ci-contre la courbe représentative d’une fonction $f$. On lit graphiquement que $f(2)$ est égal à :",
@@ -252,8 +252,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-5",
     "category": "Fonctions",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 3,
+    "explanation": "$f(2) = -0{,}5 \\times (2-2)^2 + 3 = -0{,}5 \\times 0 + 3 = 3$. Le sommet de la parabole est en $(2 ; 3)$."
 },
     {
     "question": "On lance deux fois de suite un dé truqué. La probabilité d’obtenir un 6 à chaque lancer est $0,2$. La probabilité d’obtenir  deux  6 est :",
@@ -265,8 +265,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-6",
     "category": "Probabilités",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 2,
+    "explanation": "Les lancers sont indépendants. $P(\\text{deux 6}) = 0{,}2 \\times 0{,}2 = 0{,}04$."
 },
     {
     "question": "Le diagramme en barres ci-dessous donne la répartition des élèves d’un lycée selon leur âge. La médiane de cette série est :",
@@ -285,8 +285,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-7",
     "category": "Statistiques",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "L'effectif total est $25 + 40 + 30 + 5 = 100$. La médiane sépare en deux groupes de 50. L'effectif cumulé atteint 50 à la valeur 17 ($25 + 40 = 65 \\geq 50$), donc la médiane est $17$."
 },
     {
     "question": "L’équation $x^2 = 9$ a pour solutions :",
@@ -298,8 +298,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-8",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 2,
+    "explanation": "$x^2 = 9 \\iff x = 3$ ou $x = -3$. L'équation $x^2 = c$ avec $c > 0$ admet toujours deux solutions : $\\sqrt{c}$ et $-\\sqrt{c}$."
 },
     {
     "question": "Soit $f$ la fonction définie sur $\\mathbb{R}$ par $f(x)=2x-4$. Le tableau de signes de $f$ est :",
@@ -317,8 +317,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-9",
     "category": "Fonctions",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "$f(x) = 2x - 4$ s'annule en $x = 2$. Le coefficient directeur est $2 > 0$, donc $f$ est négative avant $2$ et positive après."
 },
     {
     "question": "La forme factorisée de $(x+3)^2 - 4(x+3)$ est :",
@@ -330,8 +330,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-10",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "On factorise par $(x+3)$ : $(x+3)^2 - 4(x+3) = (x+3)[(x+3) - 4] = (x+3)(x-1)$."
 },
     {
     "question": "Le prix d’un article a baissé de 20\\,\\%. Pour retrouver son prix initial, il faut l’augmenter de :",
@@ -343,8 +343,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-11",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 1,
+    "explanation": "Après une baisse de $20\\%$, le CM est $0{,}80$. Pour revenir au prix initial, il faut multiplier par $\\dfrac{1}{0{,}80} = 1{,}25$, soit une hausse de $25\\%$."
 },
     {
     "question": "La droite d’équation $y=3x$ passe par le point :",
@@ -356,8 +356,8 @@ export const qcmDatabase: QcmQuestion[] = [
     ],
     "id": "bac_blanc_5-qcm-12",
     "category": "Calcul numérique et algébrique",
-    "correctAnswerIndex": -1,
-    "explanation": ""
+    "correctAnswerIndex": 0,
+    "explanation": "$y = 3x$. Pour $A(2;6)$ : $3 \\times 2 = 6$ ✓. Le point $A$ vérifie l'équation de la droite."
 },
 
     // --- Calcul numérique et algébrique ---
@@ -1305,9 +1305,11 @@ export const qcmDatabase: QcmQuestion[] = [
 ];
 
 export function generateRandomQcmSession(numberOfQuestions: number = 12): QcmQuestion[] {
-    // Organiser par catégories
+    // Organiser par catégories (en filtrant les questions invalides)
     const questionsByCategory: Record<string, QcmQuestion[]> = {};
     for (const q of qcmDatabase) {
+        // Exclure les questions sans bonne réponse valide
+        if (q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) continue;
         if (!questionsByCategory[q.category]) questionsByCategory[q.category] = [];
         questionsByCategory[q.category].push(q);
     }

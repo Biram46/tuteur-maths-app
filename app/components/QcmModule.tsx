@@ -29,7 +29,8 @@ export default function QcmModule({ userName }: { userName: string }) {
                 const parsed = JSON.parse(storedSession);
                 // Valider que les données sont structurellement correctes
                 if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0
-                    && parsed.questions.every((q: any) => q && q.id && Array.isArray(q.options))
+                    && parsed.questions.every((q: any) => q && q.id && Array.isArray(q.options)
+                        && typeof q.correctAnswerIndex === 'number' && q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length)
                 ) {
                     const safeIndex = Math.min(
                         Math.max(0, parsed.currentIndex || 0),
@@ -253,12 +254,18 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
                                                 <div className="text-xs text-green-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse</div>
                                                 <div className="text-green-100 prose prose-invert math-prose">
-                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
-                                                    {q.optionsTableData?.[q.correctAnswerIndex] && (
-                                                        <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
-                                                    )}
-                                                    {q.optionsGraphData?.[q.correctAnswerIndex] && (
-                                                        <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
+                                                    {q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length ? (
+                                                        <>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
+                                                            {q.optionsTableData?.[q.correctAnswerIndex] && (
+                                                                <div className="mt-4 w-full max-w-full overflow-x-auto bg-slate-50 p-2 rounded-xl"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
+                                                            )}
+                                                            {q.optionsGraphData?.[q.correctAnswerIndex] && (
+                                                                <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic">Réponse non disponible</span>
                                                     )}
                                                 </div>
                                             </div>
