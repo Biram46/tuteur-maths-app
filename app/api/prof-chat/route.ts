@@ -1015,12 +1015,15 @@ export async function POST(request: NextRequest) {
         if (anthropicKey) {
             try {
                 console.log('[Prof-Chat] 🧠 Claude 4.6 : streaming direct au client...');
-                const anthropic = new Anthropic({ apiKey: anthropicKey });
+                const anthropic = new Anthropic({ 
+                    apiKey: anthropicKey,
+                    defaultHeaders: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' }
+                });
                 const connectController = new AbortController();
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
                 const stream = await anthropic.messages.create({
-                    max_tokens: 4096,
+                    max_tokens: 8192,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
                     system: systemPrompt,
