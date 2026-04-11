@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
@@ -171,6 +172,15 @@ B → D, 0.5
 4. ⛔ JAMAIS utiliser le format avec indentation (parenthèses)
 5. Le titre après "tree:" est obligatoire
 6. Ne JAMAIS mettre "Ω" comme première ligne (ajouté automatiquement)
+
+⛔⛔ RÈGLE N°3 — BLOC DE CODE OBLIGATOIRE POUR LE LATEX ET LE HTML ⛔⛔
+Quand tu as fini de discuter et que tu proposes le document LaTeX (le cours, l'EAM, le DS) ou le code HTML, tu DOIS OBLIGATOIREMENT l'englober dans un bloc de code Markdown, par exemple :
+\`\`\`latex
+\\documentclass[a4paper, 12pt]{article}
+...
+\\end{document}
+\`\`\`
+C'est VITAL, ne mets JAMAIS le code LaTeX "à nu" dans ta réponse. Il doit toujours être dans un bloc \`\`\`latex.
 
 ⚠️ FIGURES DANS LE DOCUMENT FINAL (COURS / EXERCICES) :
 Par contre, dans le bloc \`\`\`latex généré pour la ressource finale :
@@ -990,14 +1000,64 @@ export async function POST(request: NextRequest) {
         // Le pipeline 2 passes causait des 504 sur Vercel (timeout).
         // On stream directement la réponse au client pour un TTFB rapide.
 
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
         const deepseekKey = process.env.DEEPSEEK_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
 
-        if (!deepseekKey && !openaiKey) {
+        if (!deepseekKey && !openaiKey && !anthropicKey) {
             return new Response(
-                JSON.stringify({ error: 'Aucune clé API configurée (DEEPSEEK_API_KEY ou OPENAI_API_KEY)' }),
+                JSON.stringify({ error: 'Aucune clé API configurée (ANTHROPIC_API_KEY, DEEPSEEK_API_KEY ou OPENAI_API_KEY)' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
+        }
+
+        // ── TENTATIVE 0 : Claude 4.6 en streaming direct ─────────────
+        if (anthropicKey) {
+            try {
+                console.log('[Prof-Chat] 🧠 Claude 4.6 : streaming direct au client...');
+                const anthropic = new Anthropic({ apiKey: anthropicKey });
+                const connectController = new AbortController();
+                const connectTimeout = setTimeout(() => connectController.abort(), 15000);
+
+                const stream = await anthropic.messages.create({
+                    max_tokens: 8192,
+                    messages: apiMessages.filter(m => m.role !== 'system') as any,
+                    model: 'claude-sonnet-4-6',
+                    system: systemPrompt,
+                    temperature: 0.2,
+                    stream: true
+                }, { signal: connectController.signal });
+
+                clearTimeout(connectTimeout);
+                console.log('[Prof-Chat] ✅ Claude connecté — streaming...');
+
+                const responseStream = new ReadableStream({
+                    async start(controller) {
+                        try {
+                            for await (const chunk of stream) {
+                                if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+                                    const encoded = new TextEncoder().encode(chunk.delta.text);
+                                    controller.enqueue(encoded);
+                                }
+                            }
+                            controller.close();
+                            console.log('[Prof-Chat] ✅ Claude stream terminé');
+                        } catch (e) {
+                            controller.error(e);
+                        }
+                    }
+                });
+
+                return new Response(responseStream, {
+                    headers: {
+                        'Content-Type': 'text/plain; charset=utf-8',
+                        'Transfer-Encoding': 'chunked',
+                        'X-AI-Provider': 'Claude',
+                    },
+                });
+            } catch (err: any) {
+                console.warn(`[Prof-Chat] ⚠️ Claude error: ${err.message}`);
+            }
         }
 
         // ── TENTATIVE 1 : GPT-4o en streaming direct ─────────────
