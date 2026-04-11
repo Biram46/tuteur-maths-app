@@ -978,7 +978,8 @@ export async function POST(request: NextRequest) {
                 }
 
                 enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (la balise <!DOCTYPE html> ou \\documentclass). Le système frontend va planter si tu écris du texte normal avant !
-⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.`;
+⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.
+⛔ CONTRAINTE DE LONGUEUR ABSOLUE : Ton proxy coupe strictement la génération à 4096 tokens (environ 3 à 4 pages LaTeX)! TU DOIS DONC ÊTRE EXTRÊMEMENT SYNTHÉTIQUE ET CONCIS LE CAS ÉCHÉANT. Même si l'utilisateur a demandé un cours "exhaustif" ou "complet", tu DOIS RÉSUMER L'ESSENTIEL MAGISTRALEMENT pour tenir dans cette limite. Ne génère JAMAIS plus de 4 pages de code LaTeX.`;
 
                 return {
                     ...m,
