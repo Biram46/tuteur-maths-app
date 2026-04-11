@@ -61,7 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Récupérer les niveaux et chapitres dynamiquement
     try {
-        const supabase = supabaseServer();
+        const supabase = supabaseServer;
 
         // Fetch levels
         const { data: levels } = await supabase
