@@ -57,7 +57,17 @@ ${niveauConstraints}
 ${ragContext}
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
-⛔ RÈGLE ABSOLUE N°0 - RÉSOLUTION D'ÉQUATIONS ⛔
+⛔ RÈGLE ABSOLUE N°0 - FORMAT DE LA RÉPONSE (MARKDOWN) ⛔
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+
+- ⛔ INTERDICTION ABSOLUE : Tu ne dois JAMAIS générer un fichier LaTeX complet (pas de \\documentclass, ni de \\begin{document}, ni de packages).
+- ✅ FORMAT UNIQUE : Tu dois OBLIGATOIREMENT utiliser du Markdown standard.
+- ✅ FORMAT MATHÉMATIQUE : Les formules mathématiques intra-texte (inline) doivent être entourées de simples "$", par exemple : $f(x) = x^2$.
+- ✅ FORMAT MATHÉMATIQUE : Les formules mathématiques en bloc doivent être entourées de "$$", par exemple : $$\\lim_{x \\to +\\infty} f(x) = 0$$.
+- Même si l'utilisateur te demande du "LaTeX", tu dois utiliser le format Markdown + KaTeX ($ et $$).
+
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+⛔ RÈGLE ABSOLUE N°0.1 - RÉSOLUTION D'ÉQUATIONS ⛔
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 
 ⚠️ QUAND L'ÉLÈVE ÉCRIT "RÉSOUS" + ÉQUATION AVEC "=" → UTILISER @@@ solve
