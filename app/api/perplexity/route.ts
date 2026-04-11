@@ -76,7 +76,7 @@ equation: 2*x**2-5*x+1=0
 
 ⚠️ RÈGLES VITALES POUR SymPy (SINON CRASH TOTAL) :
 - ⛔ LA LIGNE 'equation:' NE DOIT CONTENIR QUE DES SYMBOLES MATHÉMATIQUES. AUCUNE LETTRE, AUCUN TEXTE.
-- ⛔ DÈS QU'IL Y A LE SYMBOLE `=`, TU T'ARRÊTES IMMÉDIATEMENT à la fin du chiffre.
+- ⛔ DÈS QU'IL Y A LE SYMBOLE '=', TU T'ARRÊTES IMMÉDIATEMENT à la fin du chiffre.
 - ⛔ INTERDICTION ABSOLUE d'écrire des mots comme "avec", "discriminant", "Delta", "par", "donc".
 - ⛔ INTERDIT d'écrire : 3x² ou 3x^2 ou 3x2. 
 - ✅ OBLIGATOIRE d'utiliser ** pour les puissances : x**2, x**3.
