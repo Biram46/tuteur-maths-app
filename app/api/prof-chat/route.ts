@@ -267,6 +267,16 @@ EXEMPLE d'arbre de probabilité (TikZ) :
 
 TYPE : COURS — MISE EN FORME PROFESSIONNELLE
 
+✅ EN-TÊTE OBLIGATOIRE DU DOCUMENT (juste après \\\\begin{document}) :
+L'en-tête du cours DOIT ABSOLUMENT être dans un bel encadré (utiliser tcolorbox) avec le titre du chapitre et le niveau.
+Code LaTeX de l'en-tête attendu :
+\\\\begin{center}
+\\\\begin{tcolorbox}[colframe=defblue, colback=defblue!5, width=0.9\\\\textwidth, halign=center, arc=5pt, boxrule=1pt]
+{\\\\Large\\\\bfseries\\\\color{defblue} Chapitre : ${context.chapter_title}} \\\\\\\\
+[0.3cm] {\\\\normalsize Classe : ${context.level_label}}
+\\\\end{tcolorbox}
+\\\\end{center}
+
 🎨 STRUCTURE ET NUMÉROTATION :
 - Parties principales : \\\\section{} → numérotées I, II, III (chiffres romains automatiques)
 - Sous-parties : \\\\subsection{} → numérotées 1), 2), 3) (chiffres arabes automatiques)
