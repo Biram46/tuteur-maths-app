@@ -979,8 +979,7 @@ export async function POST(request: NextRequest) {
 
                 enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (la balise <!DOCTYPE html> ou \\documentclass). Le système frontend va planter si tu écris du texte normal avant !
 ⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.
-⛔ CONTRAINTE DE LONGUEUR ABSOLUE : Ton proxy coupe strictement la génération à 4096 tokens (environ 3 à 4 pages LaTeX)! TU DOIS DONC ÊTRE EXTRÊMEMENT SYNTHÉTIQUE ET CONCIS LE CAS ÉCHÉANT. Même si l'utilisateur a demandé un cours "exhaustif" ou "complet", tu DOIS RÉSUMER L'ESSENTIEL MAGISTRALEMENT (1 à 2 exemples max par notion) pour tenir dans cette limite. Ne génère JAMAIS plus de 3 pages de code LaTeX.
-✅ CEPENDANT : Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras ou du texte simple ! C'est CRUCIAL pour le rendu visuel du site.`;
+✅ OBLIGATION DE FORMATAGE: Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions, méthodes et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras markdown (ex: **Propriété**)! C'est CRUCIAL pour le rendu visuel du site. Ton code doit être 100% LaTeX.`;
 
                 return {
                     ...m,
@@ -1013,7 +1012,45 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── TENTATIVE 0 : Claude 4.6 en streaming direct ─────────────
+        // ── TENTATIVE 0 : GPT-4o en streaming direct ─────────────
+        if (openaiKey) {
+            try {
+                console.log('[Prof-Chat] 🧠 GPT-4o : streaming direct au client...');
+                const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${openaiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: apiMessages,
+                        stream: true,
+                        temperature: 0.4,
+                        max_tokens: 16384,
+                    }),
+                });
+
+                if (gptResponse.ok) {
+                    console.log('[Prof-Chat] ✅ GPT-4o connecté — streaming...');
+                    const stream = createSSEStream(gptResponse, 'GPT-4o');
+                    return new Response(stream, {
+                        headers: {
+                            'Content-Type': 'text/plain; charset=utf-8',
+                            'Transfer-Encoding': 'chunked',
+                            'X-AI-Provider': 'GPT-4o',
+                        },
+                    });
+                } else {
+                    const errText = await gptResponse.text();
+                    console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
+                }
+            } catch (err: any) {
+                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
+            }
+        }
+
+        // ── TENTATIVE 1 : Claude 4.6 en streaming direct ─────────────
         if (anthropicKey) {
             try {
                 console.log('[Prof-Chat] 🧠 Claude 4.6 : streaming direct au client...');
@@ -1065,43 +1102,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // ── TENTATIVE 1 : GPT-4o en streaming direct ─────────────
-        if (openaiKey) {
-            try {
-                console.log('[Prof-Chat] 🧠 GPT-4o : streaming direct au client...');
-                const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${openaiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o',
-                        messages: apiMessages,
-                        stream: true,
-                        temperature: 0.4,
-                        max_tokens: 16384,
-                    }),
-                });
 
-                if (gptResponse.ok) {
-                    console.log('[Prof-Chat] ✅ GPT-4o connecté — streaming...');
-                    const stream = createSSEStream(gptResponse, 'GPT-4o');
-                    return new Response(stream, {
-                        headers: {
-                            'Content-Type': 'text/plain; charset=utf-8',
-                            'Transfer-Encoding': 'chunked',
-                            'X-AI-Provider': 'GPT-4o',
-                        },
-                    });
-                } else {
-                    const errText = await gptResponse.text();
-                    console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
-                }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
-            }
-        }
 
         // ── TENTATIVE 2 : DeepSeek V3 en fallback ──────────
         // Note: On utilise deepseek-chat (V3) au lieu de deepseek-reasoner (R1)
