@@ -353,6 +353,11 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\subsection\*?\{([\s\S]*?)\}/g, '## $1')
             .replace(/\\subsubsection\*?\{([\s\S]*?)\}/g, '### $1')
             
+            // Nettoyage de l'en-tête du cours (tcolorbox) pour un joli rendu
+            .replace(/\{\\Large\\bfseries\\color\{.*?\}([^{]*?)\}/g, '### $1')
+            .replace(/\{\\normalsize([^{]*?)\}/g, '**$1**')
+            .replace(/\\\[0\.3cm\]/g, '')
+
             // Formatage texte
             .replace(/\\textit\{([\s\S]*?)\}/g, '*$1*')
             .replace(/\\textbf\{([\s\S]*?)\}/g, '**$1**')

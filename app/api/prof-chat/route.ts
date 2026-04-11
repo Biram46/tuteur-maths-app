@@ -282,6 +282,13 @@ Code LaTeX de l'en-tête attendu :
 - Sous-parties : \\\\subsection{} → numérotées 1), 2), 3) (chiffres arabes automatiques)
 - Ne PAS numéroter manuellement, c'est fait automatiquement par les commandes \\\\section / \\\\subsection
 
+🚀 EXHAUSTIVITÉ ABSOLUE OBLIGATOIRE (TRÈS IMPORTANT) :
+- Ne sois PAS synthétique ! Rédige un cours extrêmement DÉTAILLÉ et complet, digne d'un professeur agrégé.
+- Inclus systématiquement les démonstrations au programme pour chaque grand théorème.
+- Tu dois proposer au moins 2 ou 3 exemples complets après chaque nouvelle notion.
+- Les méthodes complexes doivent être expliquées point par point.
+- Utilise tout ton espace de génération. Plus c'est long et détaillé, mieux c'est.
+
 🎨 COULEURS ET ENCADRÉS OBLIGATOIRES :
 - Chaque DÉFINITION → dans un encadré \\\\begin{definition} ... \\\\end{definition} (bleu)
 - Chaque PROPRIÉTÉ → dans un encadré \\\\begin{propriete} ... \\\\end{propriete} (vert)
