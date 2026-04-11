@@ -1259,9 +1259,9 @@ export function useFigureRenderer() {
                     <ReactMarkdown
                         remarkPlugins={[remarkMath, remarkGfm]}
                         rehypePlugins={[rehypeKatex, rehypeRaw]}
-                        components={{
-                                p: ({ node, ...props }) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
-                                mathtable: ({ node, ...props }) => {
+                        components={({
+                                p: ({ node, ...props }: any) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
+                                mathtable: ({ node, ...props }: any) => {
                                     try {
                                         const data = JSON.parse(props.data);
                                         return (
@@ -1275,7 +1275,7 @@ export function useFigureRenderer() {
                                         return <pre className="text-red-400 text-[10px]">Erreur Table: {props.data}</pre>;
                                     }
                                 },
-                                mathgraph: ({ node, ...props }) => {
+                                mathgraph: ({ node, ...props }: any) => {
                                     try {
                                         const data = JSON.parse(props.data);
                                         return (
@@ -1289,7 +1289,7 @@ export function useFigureRenderer() {
                                         return <pre className="text-red-400 text-[10px]">Erreur Graph: {props.data}</pre>;
                                     }
                                 },
-                                geometryfigure: ({ node, ...props }) => {
+                                geometryfigure: ({ node, ...props }: any) => {
                                     try {
                                         const data = JSON.parse(props.data);
                                         return (
@@ -1303,7 +1303,7 @@ export function useFigureRenderer() {
                                         return <pre className="text-red-400 text-[10px]">Erreur Géo: {props.data}</pre>;
                                     }
                                 },
-                            }}
+                            } as any)}
                         >
                             {fixedSection}
                         </ReactMarkdown>

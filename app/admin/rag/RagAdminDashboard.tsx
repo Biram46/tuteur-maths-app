@@ -314,8 +314,8 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                         <ReactMarkdown
                                                             remarkPlugins={[remarkMath, remarkGfm]}
                                                             rehypePlugins={[rehypeKatex, rehypeRaw]}
-                                                            components={{
-                                                                mathtable: ({ node, ...props }) => {
+                                                            components={({
+                                                                mathtable: ({ node, ...props }: any) => {
                                                                     try {
                                                                         const data = JSON.parse(props.data);
                                                                         return (
@@ -329,7 +329,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                         return <pre className="text-red-400 text-[10px]">Erreur Table: {props.data}</pre>;
                                                                     }
                                                                 },
-                                                                mathgraph: ({ node, ...props }) => {
+                                                                mathgraph: ({ node, ...props }: any) => {
                                                                     try {
                                                                         const data = JSON.parse(props.data);
                                                                         return (
@@ -343,7 +343,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                         return <pre className="text-red-400 text-[10px]">Erreur Graph: {props.data}</pre>;
                                                                     }
                                                                 },
-                                                                geometryfigure: ({ node, ...props }) => {
+                                                                geometryfigure: ({ node, ...props }: any) => {
                                                                     try {
                                                                         const data = JSON.parse(props.data);
                                                                         return (
@@ -357,8 +357,8 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                         return <pre className="text-red-400 text-[10px]">Erreur Géo: {props.data}</pre>;
                                                                     }
                                                                 },
-                                                                p: ({ node, ...props }) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />
-                                                            }}
+                                                                p: ({ node, ...props }: any) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />
+                                                            } as any)}
                                                         >
                                                             {doc.content}
                                                         </ReactMarkdown>
@@ -526,9 +526,8 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkMath, remarkGfm]}
                                                     rehypePlugins={[rehypeKatex, rehypeRaw]}
-                                                    components={{
-                                                        // @ts-ignore
-                                                        mathtable: ({ node, ...props }) => {
+                                                    components={({
+                                                        mathtable: ({ node, ...props }: any) => {
                                                             try {
                                                                 const data = JSON.parse(props.data);
                                                                 return (
@@ -542,7 +541,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                 return <pre className="text-red-400 text-[10px]">Erreur Table: {props.data}</pre>;
                                                             }
                                                         },
-                                                        mathgraph: ({ node, ...props }) => {
+                                                        mathgraph: ({ node, ...props }: any) => {
                                                             try {
                                                                 const data = JSON.parse(props.data);
                                                                 return (
@@ -556,7 +555,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                 return <pre className="text-red-400 text-[10px]">Erreur Graph: {props.data}</pre>;
                                                             }
                                                         },
-                                                        geometryfigure: ({ node, ...props }) => {
+                                                        geometryfigure: ({ node, ...props }: any) => {
                                                             try {
                                                                 const data = JSON.parse(props.data);
                                                                 return (
@@ -570,8 +569,8 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                                 return <pre className="text-red-400 text-[10px]">Erreur Géo: {props.data}</pre>;
                                                             }
                                                         },
-                                                        p: ({ node, ...props }) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />
-                                                    }}
+                                                        p: ({ node, ...props }: any) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />
+                                                    } as any)}
                                                 >
                                                     {docContent || "*Contenu vide*"}
                                                 </ReactMarkdown>

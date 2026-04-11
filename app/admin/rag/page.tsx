@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { checkTrustedDevice, generateDeviceFingerprint } from "@/lib/admin2fa";
 import { headers } from "next/headers";
 import RagAdminDashboard from "./RagAdminDashboard";
-import { fetchRagDocuments } from "./actions";
+import { fetchRagDocuments, RagDocument } from "./actions";
 
 export default async function RagAdminPage() {
     // Check Authentication
