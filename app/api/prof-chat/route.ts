@@ -979,7 +979,8 @@ export async function POST(request: NextRequest) {
 
                 enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (la balise <!DOCTYPE html> ou \\documentclass). Le système frontend va planter si tu écris du texte normal avant !
 ⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.
-✅ OBLIGATION DE FORMATAGE: Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions, méthodes et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras markdown (ex: **Propriété**)! C'est CRUCIAL pour le rendu visuel du site. Ton code doit être 100% LaTeX.`;
+✅ OBLIGATION DE FORMATAGE: Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions, méthodes et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras markdown (ex: **Propriété**)! C'est CRUCIAL pour le rendu visuel du site. Ton code doit être 100% LaTeX.
+⛔ INTERDICTION DE TEXTE POST-CODE : IL EST STRICTEMENT INTERDIT de rajouter une "version Markdown" ou de discuter en dessous de ton \`\\end{document}\`. TU NE DOIS GÉNÉRER QUE LE CODE LATEX COMPILABLE ET RIEN D'AUTRE ! Tout texte après la balise de fin corrompra le téléchargement du professeur.`;
 
                 return {
                     ...m,
