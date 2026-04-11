@@ -1020,7 +1020,7 @@ export async function POST(request: NextRequest) {
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
                 const stream = await anthropic.messages.create({
-                    max_tokens: 8192,
+                    max_tokens: 4096,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
                     system: systemPrompt,
