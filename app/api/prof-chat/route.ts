@@ -4,7 +4,7 @@ import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 
-export const maxDuration = 60;
+export const runtime = 'edge';
 
 // ─────────────────────────────────────────────────────────────
 // CONTRAINTES PAR NIVEAU
