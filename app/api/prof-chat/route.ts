@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
+import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
+import { searchProgrammeRAG } from '@/lib/rag-search';
 
 export const maxDuration = 60;
 
@@ -15,12 +17,13 @@ function getLevelConstraints(context: ProfContext): string {
 NIVEAU SECONDE — CONTRAINTES STRICTES :
 ⛔ JAMAIS de dérivée f'(x)
 ⛔ JAMAIS de discriminant Δ = b²-4ac
-⛔ JAMAIS de polynômes du second degré (ax²+bx+c) — hors programme
+⛔ JAMAIS de polynômes du second degré (ax²+bx+c) non factorisés. L'élève DOIT avoir une instruction pour factoriser d'abord.
+⛔ NE RÉSOUD JAMAIS un trinôme comme 3x²-5x+2=0 "par observation" ou "complétion du carré" pour faire de la magie, c'est STRICTEMENT interdit.
 ⛔ JAMAIS de limites
 ✅ Fonctions de référence (carré, inverse, racine, cube)
 ✅ Tableaux de signes et de variations SANS ligne f'(x)
 ✅ Résolution d'équations/inéquations du 1er degré uniquement
-✅ Inéquations factorisables par identités remarquables (SANS Δ)`;
+✅ Si le prof te demande de résoudre un second degré complexe pour la Seconde, tu DOIS REFUSER de le résoudre et alerter le prof que ce trinôme est inadapté au programme de Seconde sans question préparatoire.`;
     }
 
     if (label.includes('première') && label.includes('stmg')) {
@@ -68,8 +71,13 @@ NIVEAU TERMINALE — TOUTES MÉTHODES AUTORISÉES :
 // SYSTEM PROMPTS PAR TYPE DE RESSOURCE
 // ─────────────────────────────────────────────────────────────
 
-function getSystemPrompt(context: ProfContext, existingContent?: string): string {
+async function getSystemPrompt(context: ProfContext, existingContent?: string, messages?: any[]): Promise<string> {
+    const lastUserMessage = messages?.filter((m: any) => m.role === 'user').pop()?.content || '';
+    const ragContext = await searchProgrammeRAG(lastUserMessage, context.level_label);
+    
     const base = `Tu es un assistant de mise en forme LaTeX pour un professeur de mathématiques en lycée français.
+
+${ragContext}
 
 CONTEXTE :
 - Classe : ${context.level_label}
@@ -136,9 +144,16 @@ PACKAGES LaTeX OBLIGATOIRES dans le préambule :
 ⚠️ FIGURES ET TABLEAUX DANS LE CHAT (IMPORTANT) :
 Lors de tes DISCUSSIONS avec le professeur dans le chat (en dehors du bloc \`\`\`latex ou \`\`\`html final), tu ne dois PAS utiliser TikZ directement pour tes explications.
 À la place, tu dois ABSOLUMENT réutiliser les structures interactives développées pour afficher les éléments à l'écran. 
-Utilise OBLIGATOIREMENT ces syntaxes dans tes explications :
+Utilise OBLIGATOIREMENT ces syntaxes dans tes explications pour un rendu professionnel :
 
-- Arbre de probabilités (FORMAT OBLIGATOIRE avec flèches → ou ->) :
+- Tableaux (Signes/Variations) : <mathtable data='{"xValues": ["-inf", "1", "+inf"], "rows": [{"label": "f(x)", "type": "sign", "content": ["+", "0", "-"]}]}' />
+  ⚠️ IMPORTANT : Pour les variations, alterne valeur et flèche dans "content" : ["-inf", "nearrow", "0", "searrow", "-inf"]
+
+- Graphiques : <mathgraph data='{"functions": [{"fn": "x^2", "color": "#ff0000"}], "title": "Courbe"}' />
+
+- Géométrie : <geometryfigure data='{"objects": [{"id": "A", "kind": "point", "x": 0, "y": 0}], "title": "Figure"}' />
+
+- Arbres de probabilités (Format @@@) :
 @@@
 tree: Titre de l'arbre
 A, 0.3
@@ -152,31 +167,10 @@ B → D, 0.5
 ⛔ RÈGLES ARBRES DE PROBABILITÉS :
 1. Chaque branche = une ligne : chemin → nœud, probabilité
 2. Les flèches sont : → (Unicode) ou -> (ASCII)
-3. TOUJOURS écrire le chemin COMPLET depuis la racine pour chaque nœud
-   - ❌ INTERDIT : "C, 0.4" au niveau 2 (ambigu : enfant de A ou de B ?)
-   - ✅ CORRECT : "A → C, 0.4" (chemin complet)
-4. Pour un arbre à 3 niveaux :
-   - ✅ "A → C → E, 0.8" (chemin depuis la racine)
-5. ⛔ JAMAIS utiliser le format avec indentation (parenthèses)
-6. ⛔ JAMAIS utiliser | (pipe) dans les lignes de l'arbre
-7. Fractions autorisées : 1/2, 3/5, etc.
-8. Le titre après "tree:" est obligatoire
-9. Ne JAMAIS mettre "Ω" comme première ligne (ajouté automatiquement)
-
-EXEMPLE COMPLET — Permis et voiture :
-@@@
-tree: Permis et voiture
-A, 0.6
-B, 0.4
-A → V, 0.8
-A → W, 0.2
-B → V, 0.1
-B → W, 0.9
-@@@
-
-- Courbes : @@@\ngraph | Titre\nf(x) = x^2 | color=blue\n@@@
-- Tableau de signes : @@@\nsign-table | Titre\nx | -\\infty || 0 || +\\infty\nf(x) | - || 0 || +\n@@@
-- Tableau de variations : @@@\nvariation-table | Titre\nx | -\\infty || 0 || +\\infty\nf(x) | +\\infty | \\searrow | 0 | \\nearrow | +\\infty\n@@@
+3. TOUJOURS écrire le chemin COMPLET depuis la racine pour chaque nœud (ex: "A → C, 0.4")
+4. ⛔ JAMAIS utiliser le format avec indentation (parenthèses)
+5. Le titre après "tree:" est obligatoire
+6. Ne JAMAIS mettre "Ω" comme première ligne (ajouté automatiquement)
 
 ⚠️ FIGURES DANS LE DOCUMENT FINAL (COURS / EXERCICES) :
 Par contre, dans le bloc \`\`\`latex généré pour la ressource finale :
@@ -926,7 +920,7 @@ export async function POST(request: NextRequest) {
         }
 
         // ── ÉTAPE 2 : Préparer le prompt système ───────────────────────
-        const systemPrompt = getSystemPrompt(context, existing_content);
+        const systemPrompt = await getSystemPrompt(context, existing_content, messages);
 
         // Enrichir le dernier message utilisateur avec le contenu extrait (images + fichiers)
         const enrichedMessages = messages.map((m, i) => {

@@ -17,13 +17,13 @@ export default async function AdminPage() {
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !authUser) {
-            redirect('/');
+            redirect('/login');
         }
 
         user = authUser;
 
         // Strict Admin Check
-        if (user.email !== 'biram26@yahoo.fr') {
+        if (user.email !== 'biram26@yahoo.fr' && user.email !== 'biram46@yahoo.fr' && process.env.NODE_ENV !== 'development') {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
                     Access Denied: You do not have administrator privileges.
@@ -44,9 +44,7 @@ export default async function AdminPage() {
         // Vérifier si l'appareil est de confiance
         const { trusted } = await checkTrustedDevice(user.id, deviceToken || '', currentFingerprint);
 
-        if (!trusted) {
-            // Appareil non reconnu - Rediriger vers la vérification
-            // La page de vérification se chargera de générer et d'envoyer le premier code
+        if (!trusted && process.env.NODE_ENV !== 'development') {
             redirect('/admin/verify-2fa');
         }
 
@@ -115,6 +113,10 @@ export default async function AdminPage() {
                     <a href="/admin/security" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-green-400 transition-all uppercase">
                         <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-green-500 transition-all"></span>
                         Sécurité 2FA
+                    </a>
+                    <a href="/admin/rag" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-emerald-400 transition-all uppercase">
+                        <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-emerald-500 transition-all"></span>
+                        Base RAG
                     </a>
                     <a href="/assistant" className="group flex items-center gap-2 text-xs font-['Orbitron'] tracking-widest text-slate-400 hover:text-cyan-400 transition-all uppercase">
                         <span className="w-2 h-2 rounded-full border border-slate-600 group-hover:bg-cyan-500 transition-all"></span>

@@ -29,12 +29,16 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`[Solve] equation envoyée: "${equation}" niveau=${niveau ?? 'non précisé'} → ${PYTHON_API}`);
+        // Nettoyage impitoyable : on coupe tout dès qu'on sort du domaine mathématique pur (ex: " avec le discriminant")
+        // Autorise chiffres, x, X, opérateurs basiques, espaces, et point décimal. Dès qu'une lette non-x apparait, on coupe la string.
+        let cleanEquation = equation.replace(/[^0-9xX\*\+\-\/\(\)\=\.\s].*$/, "").trim();
+
+        console.log(`[Solve] equation originale envoyée: "${equation}", nettoyée: "${cleanEquation}" niveau=${niveau ?? 'non précisé'} → ${PYTHON_API}`);
 
         const response = await fetch(`${PYTHON_API}/solve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ equation, niveau: niveau ?? 'terminale_spe' }),
+            body: JSON.stringify({ equation: cleanEquation, niveau: niveau ?? 'terminale_spe' }),
             signal: controller.signal,
         });
 

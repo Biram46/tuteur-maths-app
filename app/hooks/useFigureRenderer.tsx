@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import { fixLatexContent } from '@/lib/latex-fixer';
 
 
@@ -1257,30 +1258,55 @@ export function useFigureRenderer() {
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
                     <ReactMarkdown
                         remarkPlugins={[remarkMath, remarkGfm]}
-                        rehypePlugins={[rehypeKatex]}
+                        rehypePlugins={[rehypeKatex, rehypeRaw]}
                         components={{
-                            p: ({ node, ...props }) => <p className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
-                            code: ({ node, className, ...props }) => <code className="bg-black/60 px-1.5 py-0.5 rounded text-[13px] font-mono text-cyan-300" {...props} />,
-                            a: ({ node, href, children, ...props }) => {
-                                if (href === '/graph') {
-                                    return (
-                                        <a
-                                            href="/graph"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-lg text-cyan-300 hover:text-cyan-100 hover:border-cyan-400 transition-all duration-200 no-underline font-medium text-sm"
-                                            {...props}
-                                        >
-                                            📊 {children}
-                                        </a>
-                                    );
-                                }
-                                return <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline" {...props}>{children}</a>;
-                            },
-                        }}
-                    >
-                        {fixedSection}
-                    </ReactMarkdown>
+                                p: ({ node, ...props }) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
+                                mathtable: ({ node, ...props }) => {
+                                    try {
+                                        const data = JSON.parse(props.data);
+                                        return (
+                                            <div className="w-full overflow-x-auto my-4 pb-4 scrollbar-thin scrollbar-thumb-slate-500">
+                                                <div style={{ minWidth: '1080px' }}>
+                                                    <MathTable data={data} />
+                                                </div>
+                                            </div>
+                                        );
+                                    } catch (e) {
+                                        return <pre className="text-red-400 text-[10px]">Erreur Table: {props.data}</pre>;
+                                    }
+                                },
+                                mathgraph: ({ node, ...props }) => {
+                                    try {
+                                        const data = JSON.parse(props.data);
+                                        return (
+                                            <div className="w-full overflow-x-auto my-4 pb-4 bg-slate-900 rounded-lg border border-slate-700 shadow-xl overflow-x-auto scrollbar-thin scrollbar-thumb-slate-500">
+                                                <div style={{ minWidth: '600px' }}>
+                                                    <MathGraph {...data} />
+                                                </div>
+                                            </div>
+                                        );
+                                    } catch (e) {
+                                        return <pre className="text-red-400 text-[10px]">Erreur Graph: {props.data}</pre>;
+                                    }
+                                },
+                                geometryfigure: ({ node, ...props }) => {
+                                    try {
+                                        const data = JSON.parse(props.data);
+                                        return (
+                                            <div className="my-4 flex justify-center overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-slate-500">
+                                                <div style={{ minWidth: '400px' }}>
+                                                    <GeometryFigure scene={data} />
+                                                </div>
+                                            </div>
+                                        );
+                                    } catch (e) {
+                                        return <pre className="text-red-400 text-[10px]">Erreur Géo: {props.data}</pre>;
+                                    }
+                                },
+                            }}
+                        >
+                            {fixedSection}
+                        </ReactMarkdown>
 
                     {/* Bouton graphe visible si le contenu mentionne la courbe */}
                     {section.includes('bouton ci-dessous') && (

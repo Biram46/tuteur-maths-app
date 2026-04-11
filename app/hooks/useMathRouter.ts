@@ -102,6 +102,7 @@ export function useMathRouter({
         await streamPerplexityResponse({
             messages: msgs,
             baseContext,
+            niveau: selectedNiveau,
             setMessages,
             setLoading,
             setIsTalking,
@@ -527,6 +528,7 @@ RÈGLES ABSOLUES :
                         await streamPerplexityResponse({
                             messages: enrichedMessages,
                             baseContext,
+                            niveau: resolveNiveau(inputText),
                             setMessages,
                             setLoading,
                             setIsTalking,
@@ -645,6 +647,7 @@ RÈGLES ABSOLUES :
                         await streamPerplexityResponse({
                             messages: enrichedMessages,
                             baseContext,
+                            niveau: resolveNiveau(inputText),
                             setMessages,
                             setLoading,
                             setIsTalking,
@@ -787,6 +790,7 @@ RÈGLES ABSOLUES :
                             await streamPerplexityResponse({
                                 messages: enrichedMessages,
                                 baseContext,
+                                niveau: resolveNiveau(inputText),
                                 setMessages,
                                 setLoading,
                                 setIsTalking,
@@ -928,6 +932,7 @@ RÈGLES ABSOLUES :
                             await streamPerplexityResponse({
                                 messages: enrichedMessages,
                                 baseContext,
+                                niveau: resolveNiveau(inputText),
                                 setMessages,
                                 setLoading,
                                 setIsTalking,
@@ -1678,10 +1683,14 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                 setLoading(true);
                 setIsTalking(true);
 
+                const niveauGeo = resolveNiveau(inputText);
+                const geoNiveauInfo = await import('@/lib/niveaux').then(m => m.getNiveauInfo(niveauGeo));
+                const geoContextPayload = { level_label: geoNiveauInfo.label, raw: baseContext || '' };
+
                 const response = await fetch('/api/perplexity', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: geoMessages, context: baseContext }),
+                    body: JSON.stringify({ messages: geoMessages, context: geoContextPayload }),
                 });
 
                 if (!response.ok) {

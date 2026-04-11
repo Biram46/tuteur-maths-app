@@ -1,6 +1,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
+import { searchProgrammeRAG } from '@/lib/rag-search';
+import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
 
 // Config segment Next.js supprimée pour compatibilité Turbopack
 /**
@@ -23,21 +26,42 @@ export async function POST(request: NextRequest) {
         const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.DEEP_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
         const zhipuKey = process.env.ZHIPU_API_KEY;
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
         // Au moins une IA de raisonnement est requise (OpenAI, DeepSeek ou GLM-5)
-        if (!openaiKey && !deepseekKey && !zhipuKey) {
+        if (!openaiKey && !deepseekKey && !zhipuKey && !anthropicKey) {
             return NextResponse.json({ error: 'Configs manquantes: OpenAI, DeepSeek ou GLM-5 requis' }, { status: 500 });
         }
 
 
 
-        const reasoningPrompt = `Tu es mimimaths@i, assistant de mathématiques pour le site aimaths.fr.
+        // RAG Search for official curriculum based on last message
+        const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || '';
+        const ragContext = await searchProgrammeRAG(lastUserMessage, context);
+
+        // Résoudre le niveau et injecter les contraintes IA spécifiques
+        const levelLabel = context?.level_label || '';
+        const detectedNiveau = detectNiveauFromText(levelLabel) || detectNiveauFromText(lastUserMessage);
+        const niveauConstraints = detectedNiveau ? getContraintesIA(detectedNiveau) : '';
+        console.log('[Perplexity] level_label reçu:', JSON.stringify(levelLabel), '→ niveau détecté:', detectedNiveau);
+
+        const reasoningPrompt = `Tu es mimimaths, assistant de mathématiques pour le site aimaths.fr.
+Niveau de l'élève : ${levelLabel || "Non spécifié, assumes qu'il est au lycée en fonction de sa question (ex: s'il dit 'Seconde' applique la règle Seconde)"}.
+
+${niveauConstraints ? `═══════════════════════════════════════════
+⛔ CONTRAINTES PÉDAGOGIQUES DU NIVEAU ${levelLabel.toUpperCase()} ⛔
+═══════════════════════════════════════════
+${niveauConstraints}
+═══════════════════════════════════════════` : ''}
+
+${ragContext}
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 ⛔ RÈGLE ABSOLUE N°0 - RÉSOLUTION D'ÉQUATIONS ⛔
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 
 ⚠️ QUAND L'ÉLÈVE ÉCRIT "RÉSOUS" + ÉQUATION AVEC "=" → UTILISER @@@ solve
+⛔⛔⛔ ATTENTION EXCEPTION SECONDE : Si l'élève est en Seconde ET que l'équation contient un "x au carré" (degré 2) non factorisé, tu NE DOIS PAS utiliser @@@ solve. Tu dois refuser la résolution selon la Règle N°0.8 plus bas !! ⛔⛔⛔
 
 ⛔ JAMAIS @@@ solve pour une INÉQUATION (avec <, >, ≤, ≥) !!! @@@ solve ne marche QUE pour le signe "=".
 ⛔ JAMAIS @@@graph pour résoudre une équation
@@ -50,7 +74,14 @@ export async function POST(request: NextRequest) {
 equation: 2*x**2-5*x+1=0
 @@@
 
-⚠️ Format SymPy : x**2 (pas x²), 2*x (pas 2x), pas d'espaces
+⚠️ RÈGLES VITALES POUR SymPy (SINON CRASH TOTAL) :
+- ⛔ LA LIGNE 'equation:' NE DOIT CONTENIR QUE DES SYMBOLES MATHÉMATIQUES. AUCUNE LETTRE, AUCUN TEXTE.
+- ⛔ DÈS QU'IL Y A LE SYMBOLE `=`, TU T'ARRÊTES IMMÉDIATEMENT à la fin du chiffre.
+- ⛔ INTERDICTION ABSOLUE d'écrire des mots comme "avec", "discriminant", "Delta", "par", "donc".
+- ⛔ INTERDIT d'écrire : 3x² ou 3x^2 ou 3x2. 
+- ✅ OBLIGATOIRE d'utiliser ** pour les puissances : x**2, x**3.
+- ✅ OBLIGATOIRE d'utiliser * pour la multiplication : 3*x, 5*x.
+- ✅ CORRECT ET PARFAIT : equation: 3*x**2-5*x+2=0
 
 EXEMPLE :
 Question: "Résous 2x² - 5x + 1 = 0"
@@ -89,6 +120,17 @@ Si l'équation est DÉJÀ FACTORISÉE sous la forme d'un produit qui vaut zéro,
    est QUAND MÊME OBLIGATOIRE. "Le produit est déjà factorisé" n'est PAS une excuse pour sauter
    le tableau. Ex: si l'énoncé dit "montrer que C(x) > 3200 ⟺ (-x+20)(x-60) > 0", alors
    la résolution de (-x+20)(x-60) > 0 DOIT passer par un tableau de signes.
+
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+⛔ RÈGLE ABSOLUE N°0.8 - NIVEAU SECONDE ET ÉQUATIONS DU SECOND DEGRÉ ⛔
+⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+
+SI la question concerne un élève de "SECONDE" et implique un trinôme du type ax²+bx+c (ex: 3x²-5x+2=0) non factorisé :
+PROCÉDURE OBLIGATOIRE :
+1. Arrête toute tentative de calcul magique (ni discriminant, ni observation des racines, ni factorisation devinée).
+2. Explique explicitement à l'élève : "En classe de Seconde, la résolution de cette équation n'est pas possible directement sous cette forme car le discriminant (Delta) n'est pas au programme. "
+3. Propose-lui l'UNIQUE voie possible : "As-tu une indication dans l'énoncé, ou une forme factorisée obtenue à une question précédente ? (Sinon, on peut chercher à écrire la forme canonique en forçant l'apparition d'une identité remarquable, mais c'est très calculatoire)."
+4. FIN DE TA RÉPONSE. Ne résous SURTOUT PAS le problème pour l'instant.
 
 ✅ PROTOCOLE OBLIGATOIRE POUR TOUTE INÉQUATION f(x) > 0 (ou <, ≥, ≤) DE DEGRÉ ≥ 2 :
 
@@ -156,10 +198,10 @@ sign: f(x) : -, 0, +, 0, - |
 
 ⚠️ RÈGLE SPÉCIFIQUE PAR NIVEAU :
 
-- SECONDE : Trouver les racines SANS Δ (identités remarquables ou observation), puis TOUJOURS tableau de signes
-  ✅ x² - 4 > 0 → équivaut à (x-2)(x+2) > 0 → TABLEAU DE SIGNES ← identité a²-b²=(a-b)(a+b), PAS de Δ
-  ✅ x(x-3) > 0 → TABLEAU DE SIGNES (déjà scindé)
-  ⛔ Si on ne peut pas trouver les racines sans Δ → refuser, c'est au programme de Première
+- SECONDE : Trouver les racines SANS Δ (uniquement via facteur commun ou identités remarquables) puis TOUJOURS tableau de signes.
+  ✅ x² - 4 > 0 → équivaut à (x-2)(x+2) > 0 → TABLEAU DE SIGNES (identité remarquable a²-b²)
+  ✅ x(x-3) > 0 → TABLEAU DE SIGNES (déjà scindé / facteur commun)
+  ⛔ ATTENTION PÉDAGOGIQUE : En Seconde, il est INTERDIT de factoriser "par observation", de deviner les racines, ou d'utiliser la complétion du carré pour des trinômes complexes comme 3x²-5x+2=0. Si le trinôme ne se factorise pas simplement (par $x$ ou $a^2-b^2$), tu DOIS dire à l'élève que "la résolution de ce type d'équation n'est pas exigible telle quelle en Seconde sans qu'une forme factorisée ne soit donnée dans l'énoncé". Ne le résous pas à sa place par magie.
 
 - PREMIÈRE / TERMINALE : Pour tout trinôme ax² + bx + c, le calcul de Δ = b² - 4ac est
   ⛔⛔ ABSOLUMENT OBLIGATOIRE, même si les racines sont des entiers "évidents" ⛔⛔
@@ -1026,8 +1068,18 @@ B -> B -> R, 1
 
 Contexte programme : Programme scolaire français (Seconde, Première, Terminale).`;
 
-        // Chaîne de fallback: OpenAI → DeepSeek → GLM-5
-        const providers = [];
+        // Chaîne de fallback: Claude → OpenAI → DeepSeek → GLM-5
+        const providers: any[] = [];
+
+        if (anthropicKey) {
+            providers.push({
+                name: 'Claude',
+                model: 'claude-3-5-sonnet-latest',
+                key: anthropicKey,
+                temperature: 0,
+                isAnthropic: true
+            });
+        }
 
         if (openaiKey) {
             providers.push({
@@ -1075,35 +1127,73 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                 const connectController = new AbortController();
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
-                const response = await fetch(provider.url, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                let responseStream: ReadableStream | null = null;
+                let streamMatched = false;
+
+                if (provider.isAnthropic) {
+                    const anthropic = new Anthropic({ apiKey: provider.key });
+                    
+                    const stream = await anthropic.messages.create({
+                        max_tokens: 8192,
+                        messages: messages as any,
                         model: provider.model,
-                        messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
-                        stream: true,
+                        system: reasoningPrompt,
                         temperature: provider.temperature,
-                        // seed pour la reproductibilité (OpenAI seulement)
-                        ...(provider.name === 'OpenAI' ? { seed: 42 } : {}),
-                    }),
-
-                    signal: connectController.signal,
-                });
-
-                clearTimeout(connectTimeout); // Connexion établie → annuler le timeout
-
-                if (response.ok) {
+                        stream: true
+                    }, { signal: connectController.signal });
+                    
+                    clearTimeout(connectTimeout);
                     console.log(`${provider.name} responded successfully`);
-                    // Streamer sans AbortSignal → le stream peut durer sans se couper
-                    return new Response(response.body, {
+                    
+                    responseStream = new ReadableStream({
+                        async start(controller) {
+                            try {
+                                for await (const chunk of stream) {
+                                    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+                                        const openaiChunk = { choices: [{ delta: { content: chunk.delta.text } }] };
+                                        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+                                    }
+                                }
+                                controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                                controller.close();
+                            } catch (e) {
+                                controller.error(e);
+                            }
+                        }
+                    });
+                    streamMatched = true;
+                } else {
+                    const response = await fetch(provider.url, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${provider.key}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: provider.model,
+                            messages: [{ role: 'system', content: reasoningPrompt }, ...messages],
+                            stream: true,
+                            temperature: provider.temperature,
+                            ...(provider.name === 'OpenAI' ? { seed: 42 } : {}),
+                        }),
+                        signal: connectController.signal,
+                    });
+
+                    clearTimeout(connectTimeout);
+
+                    if (response.ok) {
+                        console.log(`${provider.name} responded successfully`);
+                        responseStream = response.body;
+                        streamMatched = true;
+                    } else {
+                        const errorText = await response.text();
+                        const shortErr = errorText.slice(0, 300);
+                        console.warn(`${provider.name} failed with status ${response.status}: ${shortErr}`);
+                        lastError = `${provider.name} HTTP ${response.status}: ${shortErr}`;
+                    }
+                }
+
+                if (streamMatched && responseStream) {
+                    return new Response(responseStream, {
                         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
                     });
-                } else {
-                    clearTimeout(connectTimeout);
-                    const errorText = await response.text();
-                    const shortErr = errorText.slice(0, 300);
-                    console.warn(`${provider.name} failed with status ${response.status}: ${shortErr}`);
-                    lastError = `${provider.name} HTTP ${response.status}: ${shortErr}`;
                 }
             } catch (err) {
                 console.warn(`${provider.name} error:`, err);

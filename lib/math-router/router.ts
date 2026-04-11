@@ -121,8 +121,10 @@ async function callMathEngine(
                 if (!res.ok) return { mathBlock: null, textSummary: null, error: `HTTP ${res.status}` };
                 const data = await res.json();
                 let aiContext;
-                if (intent.intent === 'factorize' && niveau !== 'seconde') {
+                if (intent.intent === 'factorize' && (niveau && niveau.toLowerCase() !== 'seconde' && niveau.toLowerCase() !== '2de')) {
                     aiContext = "⚠️ EXIGENCE PÉDAGOGIQUE : Si l'expression est un polynôme du second degré ax² + bx + c ou s'y ramène, tu DOIS ABSOLUMENT détailler le calcul du discriminant Δ = b² - 4ac, puis calculer les racines x1 et x2, avant de conclure sur la forme factorisée a(x-x1)(x-x2). N'utilise JAMAIS les racines évidentes ou les formules directes sans montrer le passage par Δ.";
+                } else if ((intent.intent === 'solve_equation' || intent.intent === 'factorize') && (niveau && (niveau.toLowerCase() === 'seconde' || niveau.toLowerCase() === '2de'))) {
+                    aiContext = "⛔⛔⛔ DANGER PÉDAGOGIQUE ROUGE ⛔⛔⛔\nSi l'expression est un trinôme du second degré (avec x²) et que l'élève demande de la résoudre ou de la factoriser, MÊME SI tu vois le résultat calculé par le moteur au-dessus, TU NE DOIS PAS LE LUI DONNER ! Tu DOIS lui dire explicitement : 'En Seconde, la résolution sans forme factorisée est impossible car le discriminant n'est pas au programme. As-tu une indication ?' NE LUI DONNE SURTOUT PAS LES RACINES MAGIQUES (pas de factorisation par observation !).";
                 }
                 return { mathBlock: data.aaaBlock ?? null, aiContext, textSummary: null, error: data.error };
             }

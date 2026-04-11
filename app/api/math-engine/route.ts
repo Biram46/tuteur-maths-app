@@ -140,9 +140,12 @@ export async function POST(req: NextRequest) {
 
             // ───────────────────────────────────────────────────────
             case 'variation_table': {
-                // ── Stratégie hybride (mise à jour) : 100% Python/SymPy pour f'(x), puis JS/Python pour le signe ──
+                // ── Garde pédagogique : en Seconde, PAS de dérivée ──
+                // Le moteur JS variation-engine.ts gère les fonctions de référence et affines
+                // sans dérivée. On saute l'appel /derivative inutile.
+                const isSeconde = niveau === 'seconde' || niveau === 'seconde_sthr';
                 let derivativeExprForSympy: string | undefined;
-                try {
+                if (!isSeconde) try {
                     const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
                     if (pythonApiUrl) {
                         const drRes = await fetch(`${pythonApiUrl}/derivative`, {
@@ -233,8 +236,10 @@ export async function POST(req: NextRequest) {
                 }
 
                 // ── Mettre à profit le nouveau module Python SymPy ──
+                // ── Garde pédagogique : en Seconde, PAS de dérivée ──
+                const isSecondeCombo = niveau === 'seconde' || niveau === 'seconde_sthr';
                 let derivativeExprForSympy: string | undefined;
-                try {
+                if (!isSecondeCombo) try {
                     const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
                     if (pythonApiUrl) {
                         const drRes = await fetch(`${pythonApiUrl}/derivative`, {

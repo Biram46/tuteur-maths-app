@@ -2,10 +2,13 @@ import { fixLatexContent } from '@/lib/latex-fixer';
 import { patchMarkdownTables, stripDdx } from './math-text-utils';
 import type { ChatMessage } from '@/lib/perplexity';
 import { MutableRefObject } from 'react';
+import type { NiveauLycee } from '@/lib/niveaux';
+import { getNiveauInfo } from '@/lib/niveaux';
 
 interface StreamOptions {
     messages: ChatMessage[];
     baseContext?: string;
+    niveau?: NiveauLycee | null;
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
     setLoading?: (v: boolean) => void;
     setIsTalking?: (v: boolean) => void;
@@ -34,6 +37,7 @@ interface StreamOptions {
 export async function streamPerplexityResponse({
     messages,
     baseContext,
+    niveau,
     setMessages,
     setLoading,
     setIsTalking,
@@ -54,10 +58,15 @@ export async function streamPerplexityResponse({
     }
 
     try {
+        // Build context object with level_label for the system prompt
+        const contextPayload = niveau
+            ? { level_label: getNiveauInfo(niveau).label, raw: baseContext || '' }
+            : (baseContext || undefined);
+
         const response = await fetch('/api/perplexity', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages, context: baseContext }),
+            body: JSON.stringify({ messages, context: contextPayload }),
         });
 
         if (!response.ok) {

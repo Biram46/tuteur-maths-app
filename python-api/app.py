@@ -1348,19 +1348,19 @@ def solve_equation():
                     factor_details.append({'type': 'seconde_facteur_commun', 'roots': ['0', sol_inner_l]})
                     seconde_solved = True
 
-                # Cas 3 : déjà factorisé en produit d'affines (ex: (x-3)(x+2)=0)
-                elif factored_s.is_Mul:
+                # Cas 3 : L'équation était DÉJÀ donnée sous forme factorisée (ex: (x-3)(x+2)=0)
+                elif lhs_sym.is_Mul and getattr(rhs_sym, 'is_zero', rhs_sym == 0):
                     lin_factors = []
-                    for arg in factored_s.args:
+                    for arg in lhs_sym.args:
                         if arg.is_number: continue
                         fp = arg.as_poly(x)
                         if fp and fp.degree() == 1:
                             lin_factors.append(arg)
                     if len(lin_factors) >= 2:
                         steps.append(
-                            '**Etape 3 - Méthode (Seconde — produit de facteurs affines)**\n\n'
-                            f'$f(x) = {fact_l} = 0$\n\n'
-                            '(Factorisation obtenue par observation, sans discriminant)'
+                            '**Etape 3 - Méthode (Seconde — équation produit nul)**\n\n'
+                            f'L\'équation est un produit de facteurs nul :\n\n'
+                            f'$f(x) = {sp.latex(lhs_sym)} = 0$'
                         )
                         sol_parts = []
                         for lf in lin_factors:
@@ -1371,6 +1371,7 @@ def solve_equation():
                                 sol_parts.append(f'${sp.latex(lf)} = 0 \\Rightarrow x = {sp.latex(s)}$')
                         steps.append(
                             '**Etape 4 - Solutions**\n\n' +
+                            'Un produit de facteurs est nul si et seulement si l\'un au moins de ses facteurs est nul.\n\n' +
                             '\n\n'.join(sol_parts) + '\n\n' +
                             f'**Conclusion :** $S = \\left\\{{{" ; ".join(sp.latex(s) for s in all_solutions)}\\right\\}}$'
                         )

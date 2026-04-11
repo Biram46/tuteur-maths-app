@@ -319,10 +319,10 @@ function buildAIContext(
             break;
 
         case 'quadratic':
-            lines.push(`Méthode : propriété du polynôme du second degré (PAS la dérivée).`);
-            lines.push(`Explique : calcul de l'abscisse du sommet x_s = -b/(2a), et de son ordonnée f(x_s) (soit en évaluant f(x_s), soit via la formule f(x_s) = -Δ/(4a)). Utilise le signe de a pour déterminer si c'est un minimum ou maximum.`);
-            lines.push(`NE CALCULE PAS ET NE MENTIONNE PAS les racines (x1, x2), c'est hors-sujet et inutile pour dresser un tableau de variations !`);
-            lines.push(`NE PARLE PAS de dérivée pour un polynôme du second degré.`);
+            lines.push(`Méthode : propriété du polynôme du second degré — utilise la FORME CANONIQUE (PAS la dérivée).`);
+            lines.push(`Explique : écriture sous la forme f(x) = a(x - α)² + β avec α = -b/(2a) (abscisse du sommet) et β = f(α) (ordonnée du sommet, ou β = -Δ/(4a)). Utilise le signe de a pour déterminer si c'est un minimum ou maximum.`);
+            lines.push(`⛔ NE CALCULE PAS ET NE MENTIONNE PAS les racines (x1, x2), c'est hors-sujet et inutile pour dresser un tableau de variations !`);
+            lines.push(`⛔ NE PARLE PAS de dérivée pour un polynôme du second degré — utilise UNIQUEMENT la forme canonique.`);
             break;
 
         case 'general':
@@ -408,10 +408,29 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
                 break;
 
             case 'quadratic':
+                // En Seconde : les trinômes ax²+bx+c (b≠0 ou c≠0) sont HORS PROGRAMME
+                // Seule la fonction de référence x² est autorisée (déjà gérée par reference_x2)
+                if (niveau === 'seconde' || niveau === 'seconde_sthr') {
+                    return {
+                        success: false,
+                        error: `⛔ En Seconde, le tableau de variations d'un trinôme du second degré (ax²+bx+c) nécessite la forme canonique qui n'est pas au programme. Seules les fonctions de référence (x², x³, √x, 1/x) sont étudiées en Seconde.`,
+                        extrema: [],
+                        needsAI: true,
+                    };
+                }
                 result = handleQuadratic(expression, detection.quadratic!, niveau, rules, input.title);
                 break;
 
             case 'general':
+                // En Seconde : les fonctions générales nécessitent la dérivée → hors programme
+                if (niveau === 'seconde' || niveau === 'seconde_sthr') {
+                    return {
+                        success: false,
+                        error: `⛔ En Seconde, seules les fonctions de référence (affine, x², x³, √x, 1/x) ont un tableau de variations au programme. Cette fonction nécessite la dérivée pour être étudiée, ce qui n'est pas au programme de Seconde.`,
+                        extrema: [],
+                        needsAI: true,
+                    };
+                }
                 result = handleGeneral(expression, niveau, rules, input.searchDomain, input);
                 break;
 

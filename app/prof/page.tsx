@@ -19,10 +19,10 @@ export default async function ProfPage() {
         user = authUser;
 
         // Pour l'instant seul l'admin a accès
-        if (user.email !== 'biram26@yahoo.fr') {
+        if (user.email !== 'biram26@yahoo.fr' && user.email !== 'biram46@yahoo.fr' && process.env.NODE_ENV !== 'development') {
             return (
                 <div className="min-h-screen flex items-center justify-center text-red-400 font-mono">
-                    Accès refusé — Espace réservé aux professeurs.
+                    Accès refusé — Espace réservé aux professeurs. ({user.email})
                 </div>
             );
         }

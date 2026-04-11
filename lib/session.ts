@@ -77,7 +77,8 @@ export async function updateSession(request: NextRequest) {
 
     // 3. Protection de la route /admin
     if (isAdminRoute) {
-        if (!user || user.email !== 'biram26@yahoo.fr') {
+        const isDev = process.env.NODE_ENV === 'development'
+        if (!user || (!isDev && user.email !== 'biram26@yahoo.fr')) {
             const url = request.nextUrl.clone()
             url.pathname = '/admin/login'
             const redirectResponse = NextResponse.redirect(url)
@@ -90,7 +91,8 @@ export async function updateSession(request: NextRequest) {
     // Pour l'instant : seul l'admin (biram26@yahoo.fr) y a accès
     // Futur : vérifier le rôle 'teacher' dans la table eleves
     if (isProfRoute) {
-        if (!user || user.email !== 'biram26@yahoo.fr') {
+        const isDev = process.env.NODE_ENV === 'development'
+        if (!user || (!isDev && user.email !== 'biram26@yahoo.fr')) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             const redirectResponse = NextResponse.redirect(url)

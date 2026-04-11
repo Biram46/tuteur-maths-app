@@ -335,6 +335,68 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     // Get current content for display
     const currentContent = isInteractif ? generatedHtml : generatedLatex;
 
+    // Fonction de nettoyage du LaTeX pour le rendu visuel
+    const cleanLatexForPreview = (latex: string) => {
+        if (!latex) return '';
+        let content = latex;
+
+        // 1. Extraire le contenu entre \begin{document} et \end{document}
+        const docMatch = content.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
+        if (docMatch) {
+            content = docMatch[1];
+        }
+
+        // 2. Nettoyage des commandes LaTeX courantes pour le rendu Markdown
+        content = content
+            // Titres
+            .replace(/\\section\*?\{([\s\S]*?)\}/g, '# $1')
+            .replace(/\\subsection\*?\{([\s\S]*?)\}/g, '## $1')
+            .replace(/\\subsubsection\*?\{([\s\S]*?)\}/g, '### $1')
+            
+            // Formatage texte
+            .replace(/\\textit\{([\s\S]*?)\}/g, '*$1*')
+            .replace(/\\textbf\{([\s\S]*?)\}/g, '**$1**')
+            .replace(/\\uline\{([\s\S]*?)\}/g, '_$1_')
+            
+            // Listes
+            .replace(/\\begin\{itemize\}/g, '\n')
+            .replace(/\\end\{itemize\}/g, '\n')
+            .replace(/\\item/g, '- ')
+            .replace(/\\begin\{enumerate\}/g, '\n')
+            .replace(/\\end\{enumerate\}/g, '\n')
+            
+            // Environnements spéciaux (Mimimaths style)
+            .replace(/\\begin\{definition\}(\[.*?\])?/g, '> [!NOTE]\n> **Définition$1** : ')
+            .replace(/\\end\{definition\}/g, '\n')
+            .replace(/\\begin\{propriete\}(\[.*?\])?/g, '> [!IMPORTANT]\n> **Propriété$1** : ')
+            .replace(/\\end\{propriete\}/g, '\n')
+            .replace(/\\begin\{exemple\}(\[.*?\])?/g, '> [!TIP]\n> **Exemple$1** : ')
+            .replace(/\\end\{exemple\}/g, '\n')
+            .replace(/\\begin\{methode\}(\[.*?\])?/g, '> [!NOTE]\n> **Méthode$1** : ')
+            .replace(/\\end\{methode\}/g, '\n')
+            .replace(/\\begin\{theoreme\}(\[.*?\])?/g, '> [!WARNING]\n> **Théorème$1** : ')
+            .replace(/\\end\{theoreme\}/g, '\n')
+            .replace(/\\begin\{tcolorbox\}(\[.*?\])?/g, '\n<div className="border-2 border-indigo-500/30 p-4 rounded-xl my-4 bg-indigo-500/5">\n')
+            .replace(/\\end\{tcolorbox\}/g, '\n</div>\n')
+            
+            // Mathématiques complexes (Align, etc.)
+            .replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (match, p1) => `\n$$\n\\begin{aligned}${p1}\\end{aligned}\n$$\n`)
+            .replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, '\n$$\n$1\n$$\n')
+            .replace(/\\\[([\s\S]*?)\\\]/g, '\n$$\n$1\n$$\n')
+            .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$') // On force le mode math pour éviter les textes bruts
+            
+            // Nettoyage final des commandes typeset
+            .replace(/\\reponse/g, '\n\n> 📝 **Cadre de réponse attendu**\n\n')
+            .replace(/\\vspace\{.*?\}/g, '\n')
+            .replace(/\\hspace\{.*?\}/g, ' ')
+            .replace(/\\newline/g, '\n')
+            .replace(/\\\\/g, '\n')
+            .replace(/%[^\n]*/g, '') // Supprimer les commentaires
+            .replace(/\{(\w)\}/g, '$1'); // Nettoyer les accolades superflues autour de lettres seules
+
+        return content;
+    };
+
     return (
         <div className="flex flex-col h-full">
             {/* ── HEADER CONTEXTUEL ──────────────────────────── */}
@@ -385,7 +447,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             {/* ── ZONE PRINCIPALE ────────────────────────────── */}
             <div className="flex-1 overflow-hidden flex">
                 {/* Chat messages */}
-                <div className={`flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar ${showPreview ? 'w-1/2 border-r border-white/5' : 'w-full'}`}>
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${showPreview ? 'w-1/3' : 'w-full'}`}>
+                    <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 text-center">
                             <div className="text-5xl mb-4">🎓</div>
@@ -471,30 +534,48 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     )}
 
                     <div ref={messagesEndRef} className="h-4" />
+                    </div>
                 </div>
 
-                {/* Preview panel */}
+                {/* Dual Preview panel (Code + Rendered) */}
                 {showPreview && currentContent && (
-                    <div className="w-1/2 overflow-y-auto p-5 bg-white/[0.01] custom-scrollbar">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                {isInteractif ? 'Aperçu HTML' : 'Aperçu LaTeX'}
-                            </h3>
-                            <span className="text-[10px] text-slate-600">
-                                {currentContent.length} caractères
-                            </span>
+                    <div className="w-2/3 flex flex-col border-l border-white/5 bg-slate-950/20 overflow-hidden">
+                        {/* Header Tabs/Labels */}
+                        <div className="shrink-0 flex items-center bg-black/20 border-b border-white/5">
+                            <div className="flex-1 flex border-r border-white/5 overflow-hidden">
+                                <div className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/[0.02]">
+                                    {isInteractif ? 'Code Source HTML' : 'Code Source LaTeX'}
+                                </div>
+                            </div>
+                            <div className="flex-1 px-4 py-2 text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest bg-emerald-500/5">
+                                Rendu Pédagogique Mimimaths
+                            </div>
                         </div>
-                        {isInteractif ? (
-                            <iframe
-                                srcDoc={currentContent}
-                                className="w-full h-[calc(100vh-200px)] border-0 rounded-lg bg-white"
-                                title="Aperçu HTML"
-                            />
-                        ) : (
-                            <pre className="text-xs text-slate-400 font-mono bg-black/30 rounded-xl p-4 overflow-x-auto whitespace-pre-wrap border border-white/5 leading-relaxed">
-                                {currentContent}
-                            </pre>
-                        )}
+
+                        {/* Content Area - Side by Side or Stacked */}
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Left part: Code */}
+                            <div className="flex-1 overflow-y-auto p-4 border-r border-white/5 custom-scrollbar bg-black/20">
+                                <pre className="text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">
+                                    {currentContent}
+                                </pre>
+                            </div>
+
+                            {/* Right part: Rendered Visual */}
+                            <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
+                                <div className="prose prose-slate max-w-none text-slate-900 math-rendered">
+                                    {isInteractif ? (
+                                        <iframe
+                                            srcDoc={currentContent}
+                                            className="w-full h-full min-h-[800px] border-0"
+                                            title="Aperçu HTML"
+                                        />
+                                    ) : (
+                                        renderContent(cleanLatexForPreview(currentContent))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
