@@ -12,7 +12,7 @@ async function main() {
         const stream = await anthropic.messages.create({
             max_tokens: 1024,
             messages: [{ role: 'user', content: 'Dis un seul mot : bonjour' }],
-            model: 'claude-3-5-sonnet-20240620',
+            model: 'claude-3-5-sonnet-latest',
         });
         console.log("Response:", stream);
     } catch (e: any) {

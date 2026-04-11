@@ -386,13 +386,11 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$') // On force le mode math pour éviter les textes bruts
             
             // Nettoyage final des commandes typeset
-            .replace(/\\reponse/g, '\n\n> 📝 **Cadre de réponse attendu**\n\n')
+            .replace(/\\reponse/g, '\n\n> ✍️ **Cadre de réponse attendu**\n\n')
             .replace(/\\vspace\{.*?\}/g, '\n')
             .replace(/\\hspace\{.*?\}/g, ' ')
             .replace(/\\newline/g, '\n')
-            .replace(/\\\\/g, '\n')
-            .replace(/%[^\n]*/g, '') // Supprimer les commentaires
-            .replace(/\{(\w)\}/g, '$1'); // Nettoyer les accolades superflues autour de lettres seules
+            .replace(/%[^\n]*/g, ''); // Supprimer les commentaires
 
         return content;
     };
