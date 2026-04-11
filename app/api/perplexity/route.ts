@@ -1084,7 +1084,7 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
         if (anthropicKey) {
             providers.push({
                 name: 'Claude',
-                model: 'claude-3-5-sonnet-latest',
+                model: 'claude-sonnet-4-6',
                 key: anthropicKey,
                 temperature: 0,
                 isAnthropic: true
