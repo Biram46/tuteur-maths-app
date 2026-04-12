@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabaseAction'
+import { isAdminEmail } from '@/lib/api-auth'
 import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
@@ -67,8 +68,8 @@ export async function adminLogin(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    // Vérifier que l'email est celui du professeur
-    if (email !== 'biram26@yahoo.fr') {
+    // Vérifier que l'email est celui d'un admin
+    if (!isAdminEmail(email)) {
         redirect('/admin/login?error=' + encodeURIComponent('Accès refusé. Seul le professeur peut se connecter ici.'))
     }
 

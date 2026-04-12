@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
+import { sanitizeRagContext } from '@/lib/api-auth';
 
 // Config segment Next.js supprimée pour compatibilité Turbopack
 /**
@@ -37,10 +38,12 @@ export async function POST(request: NextRequest) {
 
         // RAG Search for official curriculum based on last message
         const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || '';
-        const ragContext = await searchProgrammeRAG(lastUserMessage, context);
+        const levelLabel = typeof context?.level_label === 'string' ? context.level_label : '';
+        const rawRagContext = await searchProgrammeRAG(lastUserMessage, levelLabel);
+        // Sanitiser le contexte RAG pour prévenir l'injection de prompt
+        const ragContext = sanitizeRagContext(rawRagContext);
 
         // Résoudre le niveau et injecter les contraintes IA spécifiques
-        const levelLabel = context?.level_label || '';
         const detectedNiveau = detectNiveauFromText(levelLabel) || detectNiveauFromText(lastUserMessage);
         const niveauConstraints = detectedNiveau ? getContraintesIA(detectedNiveau) : '';
         console.log('[Perplexity] level_label reçu:', JSON.stringify(levelLabel), '→ niveau détecté:', detectedNiveau);

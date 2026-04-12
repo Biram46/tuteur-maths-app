@@ -58,6 +58,7 @@ export interface VariationTableResult {
 type FunctionCategory =
     | 'affine'               // ax + b
     | 'reference_x2'         // x²
+    | 'reference_neg_x2'     // -x²
     | 'reference_x3'         // x³
     | 'reference_sqrt'       // √x
     | 'reference_inv'        // 1/x
@@ -87,6 +88,11 @@ function detectFunctionCategory(expr: string): {
     // f(x) = x²
     if (isExactMatch(san, testPoints.filter(x => x !== 0), x => x * x)) {
         return { category: 'reference_x2' };
+    }
+
+    // f(x) = -x²
+    if (isExactMatch(san, testPoints.filter(x => x !== 0), x => -(x * x))) {
+        return { category: 'reference_neg_x2' };
     }
 
     // f(x) = x³
@@ -294,6 +300,12 @@ function buildAIContext(
             lines.push(`NE calcule PAS la dérivée (propriété connue par le programme).`);
             break;
 
+        case 'reference_neg_x2':
+            lines.push(`Méthode : f(x) = -x² est de la forme ax² avec a = -1 (négatif). Le sens de variation est INVERSÉ par rapport à x².`);
+            lines.push(`Explique : comme a < 0, la parabole est tournée vers le bas. f est croissante sur ]-∞ ; 0] puis décroissante sur [0 ; +∞[, avec un MAXIMUM en 0 valant 0.`);
+            lines.push(`NE calcule PAS la dérivée (propriété déduite du signe de a dans ax²).`);
+            break;
+
         case 'reference_x3':
             lines.push(`Méthode : propriétés connues de la fonction de référence x³.`);
             lines.push(`Explique : fonction de référence, croissante sur ℝ.`);
@@ -389,6 +401,10 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
 
             case 'reference_x2':
                 result = handleReferenceX2(expression, rules, input.title);
+                break;
+
+            case 'reference_neg_x2':
+                result = handleReferenceNegX2(expression, rules, input.title);
                 break;
 
             case 'reference_x3':
@@ -544,6 +560,39 @@ function handleReferenceX2(
         aaaBlock: tableSpecToAAA(tableSpec),
         method: 'Fonction de référence x² : décroissante sur ]-∞ ; 0], croissante sur [0 ; +∞[, minimum en 0',
         extrema: [{ x: 0, y: 0, type: 'min' }],
+    };
+}
+
+// ── f(x) = -x² ──
+function handleReferenceNegX2(
+    expression: string,
+    rules: NiveauRules,
+    title?: string
+): VariationTableResult {
+    const rows: TableRow[] = [];
+
+    // Croissante sur ]-∞ ; 0], décroissante sur [0 ; +∞[, maximum en 0
+    const varValues: string[] = [];
+    if (rules.showLimitsAtInfinity) varValues.push('-inf');
+    varValues.push('nearrow');
+    varValues.push('0');      // f(0) = 0 — maximum
+    varValues.push('searrow');
+    if (rules.showLimitsAtInfinity) varValues.push('-inf');
+
+    rows.push({ label: 'f(x)', type: 'variation', values: varValues });
+
+    const tableSpec: TableSpec = {
+        xValues: ['-inf', '0', '+inf'],
+        rows,
+        title: title ?? `Tableau de variations de f(x) = ${expression}`,
+    };
+
+    return {
+        success: true,
+        tableSpec,
+        aaaBlock: tableSpecToAAA(tableSpec),
+        method: 'Fonction ax² avec a = -1 : sens de variation inversé par rapport à x², croissante sur ]-∞ ; 0], décroissante sur [0 ; +∞[, maximum en 0',
+        extrema: [{ x: 0, y: 0, type: 'max' }],
     };
 }
 

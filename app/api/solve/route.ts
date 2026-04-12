@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/api-auth';
 
 // Durée max de la fonction Vercel (secondes) — nécessaire pour le cold start Render
 export const maxDuration = 60;
@@ -13,6 +14,12 @@ export const maxDuration = 60;
 const PYTHON_API = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 export async function POST(request: NextRequest) {
+    // Vérification d'authentification
+    const user = await getAuthUser();
+    if (!user) {
+        return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
+    }
+
     // Timeout généreux pour gérer le cold start Render (plan gratuit ~30s)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 55_000);

@@ -17,6 +17,8 @@ import { createClient } from '@supabase/supabase-js';
 
 async function vectorSearch(query: string, level?: string): Promise<string | null> {
     try {
+        // Sécuriser level : garantir que c'est une string
+        const safeLevel = typeof level === 'string' ? level : '';
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENAI_API_KEY) {
             console.warn("[RAG] Missing API keys for vector search. Falling back to lexical.");
             return null;
@@ -51,7 +53,7 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
 
         // 2. Build filter
         const filter: Record<string, string> = {};
-        if (level) {
+        if (safeLevel) {
             const levelMap: Record<string, string> = {
                 'seconde': 'seconde',
                 '2nde': 'seconde',
@@ -65,7 +67,7 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
                 'tle_expert': 'tle_expert',
                 'tle_stmg': 'tle_stmg',
             };
-            const mappedLevel = levelMap[level.toLowerCase()] || level.toLowerCase();
+            const mappedLevel = levelMap[safeLevel.toLowerCase()] || safeLevel.toLowerCase();
             filter.niveau = mappedLevel;
         }
 
@@ -155,12 +157,13 @@ function createChunk(level: string, text: string): Chunk {
 function lexicalSearch(query: string, level?: string): string {
     initDB();
 
+    const safeLevel = typeof level === 'string' ? level : '';
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) return "";
 
     const scored = db.map(chunk => {
         let levelScore = 1;
-        if (level && chunk.level.toLowerCase().includes(level.toLowerCase())) {
+        if (safeLevel && chunk.level.toLowerCase().includes(safeLevel.toLowerCase())) {
             levelScore = 2;
         }
 

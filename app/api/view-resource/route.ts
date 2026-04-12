@@ -1,12 +1,25 @@
 
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUser, isUrlSafe } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
+    // Vérification d'authentification
+    const user = await getAuthUser();
+    if (!user) {
+        return new NextResponse("Authentification requise", { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const url = searchParams.get("url");
 
     if (!url) {
         return new NextResponse("URL parameter is missing", { status: 400 });
+    }
+
+    // Protection SSRF : valider l'URL avant de la proxyfier
+    const urlCheck = isUrlSafe(url);
+    if (!urlCheck.safe) {
+        return new NextResponse(`URL non autorisée : ${urlCheck.reason}`, { status: 403 });
     }
 
     try {

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
+import { sanitizeRagContext } from '@/lib/api-auth';
 
 export const runtime = 'edge';
 
@@ -74,7 +75,8 @@ NIVEAU TERMINALE — TOUTES MÉTHODES AUTORISÉES :
 
 async function getSystemPrompt(context: ProfContext, existingContent?: string, messages?: any[]): Promise<string> {
     const lastUserMessage = messages?.filter((m: any) => m.role === 'user').pop()?.content || '';
-    const ragContext = await searchProgrammeRAG(lastUserMessage, context.level_label);
+    const rawRagContext = await searchProgrammeRAG(lastUserMessage, context.level_label);
+    const ragContext = sanitizeRagContext(rawRagContext);
     
     const base = `Tu es un assistant de mise en forme LaTeX pour un professeur de mathématiques en lycée français.
 

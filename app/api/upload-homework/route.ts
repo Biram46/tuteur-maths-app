@@ -1,14 +1,47 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Tesseract from 'tesseract.js';
+import { getAuthUser } from '@/lib/api-auth';
+
+// Limites de sécurité
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_MIME_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+    'image/gif',
+    'text/plain',
+    'application/pdf',
+];
 
 export async function POST(req: NextRequest) {
+    // Vérification d'authentification
+    const user = await getAuthUser();
+    if (!user) {
+        return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+    }
+
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+        }
+
+        // Validation de la taille du fichier
+        if (file.size > MAX_FILE_SIZE) {
+            return NextResponse.json({
+                error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite : 10MB.`
+            }, { status: 413 });
+        }
+
+        // Validation du type MIME
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+            return NextResponse.json({
+                error: `Type de fichier non autorisé (${file.type}). Formats acceptés : images, PDF, texte.`
+            }, { status: 415 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());

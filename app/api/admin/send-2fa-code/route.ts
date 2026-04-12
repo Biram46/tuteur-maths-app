@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseAction';
+import { isAdminEmail } from '@/lib/api-auth';
 import { create2FASession, checkRateLimit } from '@/lib/admin2fa';
 
 export async function POST(req: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Vérifier que c'est l'admin
-    if (user.email !== 'biram26@yahoo.fr') {
+    if (!isAdminEmail(user.email)) {
       return NextResponse.json(
         { success: false, error: 'Accès refusé' },
         { status: 403 }

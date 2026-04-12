@@ -25,6 +25,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/api-auth';
 import { generateSignTable } from '@/lib/math-engine/sign-table-engine';
 import { generateVariationTable } from '@/lib/math-engine/variation-engine';
 import { generateGraphData } from '@/lib/math-engine/graph-engine';
@@ -56,6 +57,12 @@ interface MathEngineRequest {
 // ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+    // Vérification d'authentification
+    const user = await getAuthUser();
+    if (!user) {
+        return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
+    }
+
     try {
         const body: MathEngineRequest = await req.json();
         const { type, expression, niveau, options = {} } = body;
