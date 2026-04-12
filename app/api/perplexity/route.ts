@@ -1145,32 +1145,39 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
 
                 if (provider.isAnthropic) {
                     const anthropic = new Anthropic({ apiKey: provider.key });
-                    
+
                     const stream = await anthropic.messages.create({
-                        max_tokens: 8192,
+                        max_tokens: 16384,
                         messages: messages as any,
                         model: provider.model,
                         system: reasoningPrompt,
                         temperature: provider.temperature,
                         stream: true
                     }, { signal: connectController.signal });
-                    
+
                     clearTimeout(connectTimeout);
                     console.log(`${provider.name} responded successfully`);
-                    
+
                     responseStream = new ReadableStream({
                         async start(controller) {
                             try {
                                 for await (const chunk of stream) {
-                                    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-                                        const openaiChunk = { choices: [{ delta: { content: chunk.delta.text } }] };
-                                        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+                                    // Traiter tous les types de chunks pertinents
+                                    if (chunk.type === 'content_block_delta') {
+                                        if (chunk.delta.type === 'text_delta') {
+                                            const openaiChunk = { choices: [{ delta: { content: chunk.delta.text } }] };
+                                            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+                                        }
+                                        // Ignorer les autres types de delta (thinking, etc.)
                                     }
+                                    // content_block_start, content_block_stop, message_start, message_delta, message_stop
+                                    // sont gérés silencieusement — seul le contenu textuel nous intéresse
                                 }
                                 controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
                                 controller.close();
                             } catch (e) {
-                                controller.error(e);
+                                console.error(`[Stream] ${provider.name} stream error:`, e);
+                                try { controller.close(); } catch {}
                             }
                         }
                     });

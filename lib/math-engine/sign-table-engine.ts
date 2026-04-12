@@ -801,18 +801,25 @@ function buildIntervalBounds(
 
 /**
  * Détermine si un point critique est une valeur interdite pour un facteur donné.
+ * Utilise une tolérance relative pour gérer les nombres à différentes échelles.
  */
 function isDiscontinuityPoint(factor: FactorAnalysis, cp: number): boolean {
-    if (factor.type === 'denominator' && factor.zeros.some(z => Math.abs(z - cp) < 1e-6)) return true;
-    if (factor.discontinuities.some(d => Math.abs(d - cp) < 1e-6)) return true;
+    const tol = (a: number, b: number) => {
+        const scale = Math.max(Math.abs(a), Math.abs(b), 1);
+        return Math.abs(a - b) < 1e-6 * scale;
+    };
+    if (factor.type === 'denominator' && factor.zeros.some(z => tol(z, cp))) return true;
+    if (factor.discontinuities.some(d => tol(d, cp))) return true;
     return false;
 }
 
 /**
  * Détermine si un point critique est un zéro du facteur.
+ * Utilise une tolérance relative pour gérer les nombres à différentes échelles.
  */
 function isZeroPoint(factor: FactorAnalysis, cp: number): boolean {
-    return factor.zeros.some(z => Math.abs(z - cp) < 1e-6);
+    const scale = Math.max(Math.abs(cp), 1);
+    return factor.zeros.some(z => Math.abs(z - cp) < 1e-6 * scale);
 }
 
 /**

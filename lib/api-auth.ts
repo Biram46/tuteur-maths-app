@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabaseAction';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Récupère l'utilisateur authentifié depuis les cookies.
@@ -20,6 +21,81 @@ export async function getAuthUser() {
     } catch {
         return null;
     }
+}
+
+// ─── Rate limiting simple (en mémoire, par utilisateur) ───────
+
+interface RateLimitEntry { count: number; resetAt: number; }
+
+declare global {
+    // eslint-disable-next-line no-var
+    var _rateLimitStore: Map<string, RateLimitEntry> | undefined;
+}
+
+function getRateLimitStore(): Map<string, RateLimitEntry> {
+    if (!global._rateLimitStore) {
+        global._rateLimitStore = new Map();
+    }
+    return global._rateLimitStore;
+}
+
+/**
+ * Rate limiting par utilisateur.
+ * @param userId - ID de l'utilisateur (ou IP si non authentifié)
+ * @param maxRequests - Max requêtes par fenêtre
+ * @param windowMs - Fenêtre en millisecondes
+ * @returns { allowed: boolean, remaining: number }
+ */
+export function checkRateLimit(
+    userId: string,
+    maxRequests = 30,
+    windowMs = 60_000
+): { allowed: boolean; remaining: number } {
+    const store = getRateLimitStore();
+    const now = Date.now();
+
+    // Nettoyer les entrées expirées
+    for (const [key, entry] of store) {
+        if (now > entry.resetAt) store.delete(key);
+    }
+
+    const entry = store.get(userId);
+    if (!entry || now > entry.resetAt) {
+        store.set(userId, { count: 1, resetAt: now + windowMs });
+        return { allowed: true, remaining: maxRequests - 1 };
+    }
+
+    if (entry.count >= maxRequests) {
+        return { allowed: false, remaining: 0 };
+    }
+
+    entry.count++;
+    return { allowed: true, remaining: maxRequests - entry.count };
+}
+
+/**
+ * Helper combiné : auth + rate limit pour les routes API.
+ * Retourne une réponse d'erreur si non autorisé, ou l'utilisateur si OK.
+ */
+export async function authWithRateLimit(
+    request: NextRequest,
+    maxRequests = 30,
+    windowMs = 60_000
+): Promise<{ user: any } | NextResponse> {
+    const user = await getAuthUser();
+    if (!user) {
+        return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
+    }
+
+    const { allowed, remaining } = checkRateLimit(user.id, maxRequests, windowMs);
+    if (!allowed) {
+        return NextResponse.json(
+            { success: false, error: 'Trop de requêtes. Réessayez dans un instant.' },
+            { status: 429, headers: { 'Retry-After': String(Math.ceil(windowMs / 1000)) } }
+        );
+    }
+
+    return { user };
 }
 
 /**

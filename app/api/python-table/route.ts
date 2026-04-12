@@ -28,18 +28,24 @@ interface PendingTable {
 declare global {
     // eslint-disable-next-line no-var
     var _pythonTableStore: Map<string, PendingTable> | undefined;
+    // eslint-disable-next-line no-var
+    var _pythonTableStoreLock: boolean | undefined;
 }
 
 function getStore(): Map<string, PendingTable> {
     if (!global._pythonTableStore) {
         global._pythonTableStore = new Map();
     }
-    // Nettoyer les entrées > 10 minutes
+    // Nettoyer les entrées > 10 minutes (sans mutation concurrente)
     const now = Date.now();
+    const toDelete: string[] = [];
     for (const [key, val] of global._pythonTableStore) {
         if (now - val.createdAt > 10 * 60 * 1000) {
-            global._pythonTableStore.delete(key);
+            toDelete.push(key);
         }
+    }
+    for (const key of toDelete) {
+        global._pythonTableStore.delete(key);
     }
     return global._pythonTableStore;
 }

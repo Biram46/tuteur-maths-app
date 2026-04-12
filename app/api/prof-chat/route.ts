@@ -1082,7 +1082,7 @@ export async function POST(request: NextRequest) {
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
                 const stream = await anthropic.messages.create({
-                    max_tokens: 8192,
+                    max_tokens: 16384,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
                     system: systemPrompt,
@@ -1097,15 +1097,18 @@ export async function POST(request: NextRequest) {
                     async start(controller) {
                         try {
                             for await (const chunk of stream) {
-                                if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-                                    const encoded = new TextEncoder().encode(chunk.delta.text);
-                                    controller.enqueue(encoded);
+                                if (chunk.type === 'content_block_delta') {
+                                    if (chunk.delta.type === 'text_delta') {
+                                        const encoded = new TextEncoder().encode(chunk.delta.text);
+                                        controller.enqueue(encoded);
+                                    }
                                 }
                             }
                             controller.close();
                             console.log('[Prof-Chat] ✅ Claude stream terminé');
                         } catch (e) {
-                            controller.error(e);
+                            console.error('[Prof-Chat] Stream error:', e);
+                            try { controller.close(); } catch {}
                         }
                     }
                 });

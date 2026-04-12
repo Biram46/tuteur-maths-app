@@ -260,6 +260,9 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                 const bufferLength = analyser.frequencyBinCount;
                 const dataArray = new Uint8Array(bufferLength);
 
+                // Stocker l'ObjectURL pour la révoquer plus tard
+                const blobUrl = url;
+
                 const updateVolume = () => {
                     if (analyserRef.current && isTalking) {
                         analyserRef.current.getByteFrequencyData(dataArray);
@@ -275,6 +278,8 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                     setSpeechVolume(0);
                     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
                     if (sourceRef.current) sourceRef.current.disconnect();
+                    // Révoquer l'ObjectURL pour libérer la mémoire
+                    if (blobUrl && blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
                 };
 
                 audio.onplay = () => { setIsTalking(true); updateVolume(); };

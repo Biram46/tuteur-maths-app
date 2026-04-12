@@ -25,7 +25,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/api-auth';
+import { authWithRateLimit } from '@/lib/api-auth';
 import { generateSignTable } from '@/lib/math-engine/sign-table-engine';
 import { generateVariationTable } from '@/lib/math-engine/variation-engine';
 import { generateGraphData } from '@/lib/math-engine/graph-engine';
@@ -57,11 +57,9 @@ interface MathEngineRequest {
 // ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-    // Vérification d'authentification
-    const user = await getAuthUser();
-    if (!user) {
-        return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
-    }
+    // Vérification d'authentification + rate limiting (30 req/min)
+    const authResult = await authWithRateLimit(req, 30, 60_000);
+    if (authResult instanceof NextResponse) return authResult;
 
     try {
         const body: MathEngineRequest = await req.json();
@@ -408,7 +406,7 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
         console.error('[MathEngine] Erreur:', err);
         return NextResponse.json(
             { success: false, error: err.message ?? 'Erreur interne du moteur' },
-            { status: 500 }
+            { status: 503 }
         );
     }
 }
