@@ -2,10 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { createClient } from "@/lib/supabaseBrowser";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 import "katex/dist/katex.min.css";
 import Link from "next/link";
 
@@ -50,12 +53,23 @@ function ResourceContent() {
             if (data && data.type === 'quiz-result') {
                 console.log("📝 Résultat reçu du module interactif :", data);
 
+                // Récupérer l'email de l'élève connecté
+                let studentEmail: string | null = null;
+                try {
+                    const supabase = createClient();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    studentEmail = user?.email || null;
+                } catch (e) {
+                    console.warn("Impossible de récupérer l'email élève:", e);
+                }
+
                 const payload = {
                     quiz_id: data.chapterId || "quiz-externe",
                     niveau: level || "Niveau Inconnu",
                     chapitre: title || "Module Interactif",
                     note_finale: data.note,
-                    details: data.details
+                    details: data.details,
+                    student_email: studentEmail,
                 };
 
                 try {
@@ -222,7 +236,7 @@ function ResourceContent() {
                     <div className="bg-white text-slate-900 rounded-xl shadow-2xl p-8 sm:p-12 prose prose-slate max-w-none print:shadow-none print:p-0">
                         <ReactMarkdown
                             remarkPlugins={[remarkMath, remarkGfm]}
-                            rehypePlugins={[rehypeKatex]}
+                            rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                             components={{
                                 table: ({ node, ...props }) => (
                                     <div className="my-6 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
