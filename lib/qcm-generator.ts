@@ -200,7 +200,8 @@ function genProbabilites(): QcmQuestion {
         let opts = shuffle([correct, `$${pA}$`, `$${(pA/2).toFixed(1)}$`, `$1$`]);
         return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Un événement et son contraire constituent l'univers entier dont la somme des probabilités est $1$. Donc $P(A) = 1 - P(\\overline{A}) = ${(1-pA).toFixed(1)}$.`};
     } else {
-        let pB = randInt(1, 9) / 10;
+        // Contrainte : P(A) + P(B) <= 1 pour des événements incompatibles valides
+        let pB = randInt(1, Math.max(1, Math.round((1 - pA) * 10))) / 10;
         let question = `Si deux événements $A$ et $B$ sont incompatibles $\\big($avec $P(A)=${pA}$ et $P(B)=${pB}\\big)$, que vaut $P(A \\cup B)$ ?`;
         let correct = `$${(pA+pB).toFixed(1)}$`;
         let fake = pA*pB;
