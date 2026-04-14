@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { createClient } from "@/lib/supabaseBrowser";
+import { createBrowserClient } from "@supabase/ssr";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
@@ -56,7 +56,10 @@ function ResourceContent() {
                 // Récupérer l'email de l'élève connecté
                 let studentEmail: string | null = null;
                 try {
-                    const supabase = createClient();
+                    const supabase = createBrowserClient(
+                        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                    );
                     const { data: { user } } = await supabase.auth.getUser();
                     studentEmail = user?.email || null;
                 } catch (e) {
