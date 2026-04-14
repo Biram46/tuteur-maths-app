@@ -311,7 +311,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">EXERCICES INTERACTIFS</h3>
                                         <p className="text-sm text-slate-400 mb-6 flex-1">
-                                            Testez vos connaissances en temps réel avec des quiz et jeux mathématiques.
+                                            Préparez vos contrôles avec des exercices interactifs pour réviser efficacement.
                                         </p>
 
                                         <div className="space-y-2 mt-auto">
