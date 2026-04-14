@@ -676,7 +676,7 @@ export default function AdminDashboard({ initialData }: Props) {
                             <table className="w-full text-left">
                                 <thead className="bg-cyan-500/5 border-b border-cyan-500/10 font-['Orbitron'] text-[10px] text-cyan-400 uppercase tracking-widest">
                                     <tr>
-                                        <th className="px-8 py-6">Élève ID</th>
+                                        <th className="px-8 py-6">Élève</th>
                                         <th className="px-8 py-6">Module / Exercice</th>
                                         <th className="px-8 py-6">Data Point</th>
                                         <th className="px-8 py-6">Timestamp</th>
@@ -688,11 +688,11 @@ export default function AdminDashboard({ initialData }: Props) {
                                         <tr key={result.id} className="hover:bg-cyan-500/5 transition-colors">
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-cyan-500/20" title={String(result.id)}>
-                                                        #{String(result.id).substring(0, 4)}
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-cyan-500/20" title={result.student_email || String(result.id)}>
+                                                        {(result.student_email || "?").substring(0, 2).toUpperCase()}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-slate-200 font-medium text-xs font-mono">{result.quiz_id.substring(0, 8)}...</span>
+                                                        <span className="text-slate-200 font-medium text-xs">{result.student_email || "Anonyme"}</span>
                                                     </div>
                                                 </div>
                                             </td>

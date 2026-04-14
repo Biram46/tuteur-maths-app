@@ -40,6 +40,7 @@ export type QuizResult = {
     details: any;
     chapter_id: string | null;
     exercise_id: string | null;
+    student_email: string | null;
 };
 
 export type QcmResult = {
