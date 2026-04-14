@@ -1,0 +1,232 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{CORRIGÉ DU SUJET 3}\end{center}
+
+\section*{PREMIÈRE PARTIE : AUTOMATISMES -- QCM}
+
+\subsection*{Question 1}
+$3x - (5 - 2x) = 3x - 5 + 2x = 5x - 5$ \hfill \boxed{B}
+
+\subsection*{Question 2}
+$15 \times \dfrac{100}{6} = \dfrac{1500}{6} = 250$ km \hfill \boxed{D}
+
+\subsection*{Question 3}
+$\dfrac{2}{3} + \dfrac{3}{2} = \dfrac{4}{6} + \dfrac{9}{6} = \dfrac{13}{6}$ \hfill \boxed{C}
+
+\subsection*{Question 4}
+Sur le graphique,  $f(-1) = 2$ \hfill \boxed{D}
+
+\subsection*{Question 5}
+$P = \dfrac{3}{6} = \dfrac{1}{2}$ \hfill \boxed{C}
+
+\subsection*{Question 6}
+$1,1 \times 0,9 = 0,99$, soit une baisse de $1\%$ \hfill \boxed{B}
+
+\subsection*{Question 7}
+Série ordonnée : $2;5;7;8;10;12;15$, médiane = $8$ \hfill \boxed{B}
+
+\subsection*{Question 8}
+$(2x-3)^2 = 4x^2 - 12x + 9$ \hfill \boxed{A}
+
+\subsection*{Question 9}
+Baisse de $25\%$ : coefficient $0,75$ \hfill \boxed{B}
+
+\subsection*{Question 10}
+$x^2 = 9 \iff x = 3$ ou $x = -3$ \hfill \boxed{C}
+
+\subsection*{Question 11}
+$40\% = 0,4$ \hfill \boxed{B}
+
+\subsection*{Question 12}
+Coefficient directeur négatif : $f$ est décroissante \hfill \boxed{B}
+
+\newpage
+
+\section*{DEUXIÈME PARTIE}
+
+\subsection*{Exercice 1 : Étude d'une fonction exponentielle}
+
+\begin{enumerate}
+\item \textbf{Calcul de la dérivée.}
+\begin{enumerate}
+\item $f(x) = e^{2x} - 2e^x + 1$
+\[
+f'(x) = 2e^{2x} - 2e^x
+\]
+\item $f'(x) = 2e^x(e^x - 1)$
+\end{enumerate}
+
+\item \textbf{Étude des variations.}
+\begin{enumerate}
+\item Pour tout $x \in \mathbb{R}$, $e^x > 0$, donc $2e^x > 0$. Le signe de $f'(x)$ est celui de $(e^x - 1)$.
+\[
+e^x - 1 > 0 \iff e^x > 1 \iff x > 0
+\]
+\[
+e^x - 1 < 0 \iff e^x < 1 \iff x < 0
+\]
+Ainsi $f'(x) < 0$ sur $]-\infty;0[$, $f'(0)=0$, $f'(x) > 0$ sur $]0;+\infty[$.
+
+\item Tableau de variations :
+\[
+\begin{array}{c|ccccc}
+x & -\infty & & 0 & & +\infty \\
+\hline
+f'(x) & & - & 0 & + & \\
+\hline
+& +\infty & & & & \\
+f(x) & & \searrow & & \nearrow & \\
+& & & 0 & & \\
+\end{array}
+\]
+Avec $f(0) = e^0 - 2e^0 + 1 = 1 - 2 + 1 = 0$.
+\end{enumerate}
+
+\item \textbf{Étude du signe de $f(x)$.}
+\begin{enumerate}
+\item $f(x) = e^{2x} - 2e^x + 1 = (e^x)^2 - 2e^x + 1 = (e^x - 1)^2$.
+\item Un carré est toujours positif ou nul. Donc $f(x) \geq 0$ pour tout $x \in \mathbb{R}$, et $f(x) = 0$ $\iff$ $e^x - 1 = 0$ $\iff$ $x = 0$.
+\end{enumerate}
+
+\item \textbf{Application.}
+\begin{enumerate}
+\item $f'(0) = 2e^0(e^0 - 1) = 2 \times 1 \times 0 = 0$. $f(0) = 0$.
+La tangente au point d'abscisse $0$ a pour équation :
+\[
+y = f'(0)(x - 0) + f(0) = 0 \times x + 0 = 0
+\]
+La tangente est l'axe des abscisses $y = 0$.
+
+\item Tracé de la courbe :
+
+\begin{center}
+\begin{tikzpicture}[scale=1.2]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -2, xmax = 2,
+        ymin = -0.5, ymax = 4,
+        xtick = {-2,-1,0,1,2},
+        ytick = {0,1,2,3,4},
+        grid = both,
+        grid style = {gray!30},
+        width = 10cm,
+        height = 8cm,
+        samples = 100,
+        smooth
+    ]
+        \addplot[thick, domain=-2:2] {exp(2*x) - 2*exp(x) + 1};
+        \addplot[thick, red, domain=-2:2] {0};
+        \addplot[only marks, mark=*, mark size=2] coordinates {(0,0)};
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+\end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\subsection*{Exercice 2 : Produit scalaire et géométrie}
+
+\begin{enumerate}
+\item \textbf{Calculs de vecteurs.}
+\begin{enumerate}
+\item $\overrightarrow{AB} \begin{pmatrix} 5-1 \\ -1-2 \end{pmatrix} = \begin{pmatrix} 4 \\ -3 \end{pmatrix}$ \\
+$\overrightarrow{CD} \begin{pmatrix} 0-(-2) \\ 4-3 \end{pmatrix} = \begin{pmatrix} 2 \\ 1 \end{pmatrix}$
+
+\item $\overrightarrow{AB} \cdot \overrightarrow{CD} = 4 \times 2 + (-3) \times 1 = 8 - 3 = 5$
+
+\item Les droites $(AB)$ et $(CD)$ ne sont pas perpendiculaires car le produit scalaire n'est pas nul. Elles ne sont pas parallèles car les vecteurs ne sont pas colinéaires ($\dfrac{4}{2} \neq \dfrac{-3}{1}$).
+\end{enumerate}
+
+\item \textbf{Projection orthogonale.}
+\begin{enumerate}
+\item $H$ projeté orthogonal de $D$ sur $(AB)$ : $\overrightarrow{AH}$ est colinéaire à $\overrightarrow{AB}$ et $\overrightarrow{DH} \perp \overrightarrow{AB}$.
+Soit $\overrightarrow{AH} = t \overrightarrow{AB}$ avec $t \in \mathbb{R}$.
+
+\item $\overrightarrow{AD} \begin{pmatrix} 0-1 \\ 4-2 \end{pmatrix} = \begin{pmatrix} -1 \\ 2 \end{pmatrix}$
+\[
+\overrightarrow{AD} \cdot \overrightarrow{AB} = (-1) \times 4 + 2 \times (-3) = -4 - 6 = -10
+\]
+
+\item $\overrightarrow{AD} \cdot \overrightarrow{AB} = \overrightarrow{AH} \cdot \overrightarrow{AB}$ car $\overrightarrow{HD} \perp \overrightarrow{AB}$.
+\[
+\overrightarrow{AH} \cdot \overrightarrow{AB} = (t \overrightarrow{AB}) \cdot \overrightarrow{AB} = t \|\overrightarrow{AB}\|^2
+\]
+$\|\overrightarrow{AB}\|^2 = 4^2 + (-3)^2 = 16 + 9 = 25$
+Donc $t \times 25 = -10 \implies t = -\dfrac{10}{25} = -\dfrac{2}{5}$
+
+Ainsi $AH = |t| \times \|\overrightarrow{AB}\| = \dfrac{2}{5} \times 5 = 2$.
+\end{enumerate}
+
+\item \textbf{Équation de droite et distance.}
+\begin{enumerate}
+\item $\overrightarrow{AB}(4;-3)$ est un vecteur directeur. Un vecteur normal est $\vec{n}(3;4)$.
+Équation cartésienne : $3x + 4y + c = 0$. Avec $A(1;2)$ : $3 \times 1 + 4 \times 2 + c = 0 \implies 3 + 8 + c = 0 \implies c = -11$.
+Donc $(AB) : 3x + 4y - 11 = 0$.
+
+\item Distance de $D(0;4)$ à $(AB)$ :
+\[
+d(D, (AB)) = \frac{|3 \times 0 + 4 \times 4 - 11|}{\sqrt{3^2 + 4^2}} = \frac{|0 + 16 - 11|}{\sqrt{25}} = \frac{5}{5} = 1
+\]
+On trouve $DH = 1$, ce qui est cohérent avec la projection : $H$ est sur $(AB)$ à 2 unités de $A$ dans le sens opposé à $\overrightarrow{AB}$.
+\end{enumerate}
+
+\item \textbf{Cercle.}
+\begin{enumerate}
+\item Équation du cercle de centre $D(0;4)$ et rayon $5$ :
+\[
+(x - 0)^2 + (y - 4)^2 = 25 \quad \text{soit} \quad x^2 + (y - 4)^2 = 25
+\]
+
+\item $A(1;2)$ : $1^2 + (2 - 4)^2 = 1 + (-2)^2 = 1 + 4 = 5 \neq 25$. Donc $A$ n'appartient pas au cercle.
+\end{enumerate}
+\end{enumerate}
+
+\vspace{1cm}
+
+\textbf{Barème indicatif :}
+\begin{itemize}
+\item Automatismes : 6 points (0,5 pt par question)
+\item Exercice 1 : 7 points
+  \begin{itemize}
+  \item 1a) 1 pt
+  \item 1b) 0,5 pt
+  \item 2a) 1 pt
+  \item 2b) 1,5 pts
+  \item 3a) 1 pt
+  \item 3b) 0,5 pt
+  \item 4a) 1 pt
+  \item 4b) 0,5 pt
+  \end{itemize}
+\item Exercice 2 : 7 points
+  \begin{itemize}
+  \item 1a) 1 pt
+  \item 1b) 0,5 pt
+  \item 1c) 0,5 pt
+  \item 2a) 0,5 pt
+  \item 2b) 1 pt
+  \item 2c) 1,5 pts
+  \item 3a) 1 pt
+  \item 3b) 0,5 pt
+  \item 4a) 0,5 pt
+  \item 4b) 0,5 pt
+  \end{itemize}
+\end{itemize}
+
+\end{document}

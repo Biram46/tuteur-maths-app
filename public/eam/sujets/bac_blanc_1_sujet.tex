@@ -1,0 +1,338 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{Épreuve anticipée de mathématiques}\end{center}
+\begin{center}\textbf{Voie générale : candidats suivant l'enseignement de spécialité de mathématiques.}\end{center}
+
+\begin{center}
+\textbf{Durée : 2 heures. L'usage de la calculatrice n'est pas autorisé.}
+\end{center}
+
+\section*{PREMIÈRE PARTIE : AUTOMATISMES -- QCM (6 pts)}
+
+\textit{Pour cette première partie, aucune justification n'est demandée et une seule réponse est possible par question. Pour chaque question, reportez son numéro sur votre copie et indiquez votre réponse.}
+
+\begin{enumerate}
+
+\item Si $a > 0$ alors :
+\begin{itemize}
+\item[A.] $a = a^2$
+\item[B.] $a \leq a^2$
+\item[C.] $a \geq a^2$
+\item[D.] $a \leq a^2$ ou $a^2 \geq a$ Cela dépend de la valeur de $a$.
+\end{itemize}
+
+\item Dans une classe de 30 élèves, 12 sont des filles. La proportion de filles est :
+\begin{itemize}
+\item[A.] $12\%$
+\item[B.] $25\%$
+\item[C.] $30\%$
+\item[D.] $40\%$
+\end{itemize}
+
+\item Le prix d'un article est multiplié par $1,11$. Cela signifie que l'article a subi :
+\begin{itemize}
+\item[A.] une hausse de $1,11\%$
+\item[B.] une hausse de $11\%$
+\item[C.] une baisse de $1,11\%$
+\item[D.] une baisse de $11\%$
+\end{itemize}
+
+\item On donne ci-dessous la courbe représentative d'une fonction $f$ définie sur $[-4;4]$.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -4.5, xmax = 5.5,
+        ymin = -2.5, ymax = 3.5,
+        xtick = {-4,-3,-2,-1,0,1,2,3,4,5},
+        ytick = {-2,-1,0,1,2,3},
+        grid = both,
+        grid style = {gray!30},
+        width = 12cm,
+        height = 8cm,
+        samples = 200,
+        smooth
+    ]
+        % Courbe passant par (1;2) et par (-2;0) et (3;0)
+        % f(x) = -0.2x^3 + 0.1x^2 + 1.2x + 1.2
+        % Vérification : f(1) = -0.2 + 0.1 + 1.2 + 1.2 = 2.3 (trop haut)
+        % Ajustement pour f(1)=2 : f(x) = -0.2x^3 + 0.2x^2 + 1.2x + 1.2
+        % f(1) = -0.2 + 0.2 + 1.2 + 1.2 = 2.4 (encore trop haut)
+        % Correction : f(x) = -0.2x^3 + 0.2x^2 + 1.0x + 1.0
+        % f(1) = -0.2 + 0.2 + 1.0 + 1.0 = 2.0 (ok)
+        % f(-2) = -0.2*(-8) + 0.2*4 + 1.0*(-2) + 1.0 = 1.6 + 0.8 - 2 + 1 = 1.4 (pas 0)
+        % Pour avoir f(-2)=0 et f(3)=0 et f(1)=2, utilisons une fonction polynomiale de degré 3 passant par ces points
+        % Par calcul : f(x) = -0.13333x^3 - 0.2x^2 + 1.3333x + 1.0667
+        % f(1) = -0.13333 - 0.2 + 1.3333 + 1.0667 = 2.0667 (proche)
+        % Version plus simple : courbe passant par (-2;0), (1;2), (3;0)
+        % f(x) = -0.25(x+2)(x-3)(x+1) + 0.5
+        \addplot[thick, domain=-4:5] { -0.25*(x+2)*(x-3)*(x+1)-0.5  };
+        
+        % Point à l'abscisse 1
+        \addplot[only marks, mark=*, mark size=2] coordinates {(1,2)};
+        
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+$f(0)$ est égal à :
+\begin{itemize}
+\item[A.] $-1$
+\item[B.] $1$
+\item[C.] $0$
+\item[D.] $2$
+\end{itemize}
+
+\item On a représenté ci-dessous les effectifs des différentes LV1 dans un établissement.
+
+\begin{center}
+\begin{tikzpicture}
+    \begin{axis}[ybar, ymin=0, ymax=100, width=10cm, height=6cm,
+        xtick={1,2,3,4}, xticklabels={Anglais, Espagnol, Allemand, Italien},
+        ylabel={Effectifs}, xlabel={Langues}]
+        \addplot coordinates {(1,85) (2,50) (3,30) (4,20)};
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+La LV1 la plus suivie dans cet établissement est :
+\begin{itemize}
+\item[A.] l'espagnol
+\item[B.] l'allemand
+\item[C.] l'anglais
+\item[D.] l'italien
+\end{itemize}
+
+\item On lance trois fois un dé équilibré. La probabilité d'obtenir au moins un 6 est environ $0,19$. On peut alors affirmer que la probabilité de n'obtenir aucun 6 lors des trois lancers est égale à :
+\begin{itemize}
+\item[A.] $0,81$
+\item[B.] $0,91$
+\item[C.] $1,19$
+\item[D.] $0,19$
+\end{itemize}
+
+\item On interroge un groupe de 300 personnes sur le thème de la lecture. Les réponses sont consignées dans le tableau ci-dessous :
+
+\[
+\begin{array}{|c|c|c|c|}
+\hline
+& \text{Lit au moins une heure par semaine} & \text{Lit moins d'une heure par semaine} & \text{Total} \\
+\hline
+\text{Moins de 30 ans} & 20 & 80 & 100 \\
+\hline
+\text{Entre 30 et 50 ans} & 80 & 40 & 120 \\
+\hline
+\text{50 ans et plus} & 70 & 10 & 80 \\
+\hline
+\text{Total} & 170 & 130 & 300 \\
+\hline
+\end{array}
+\]
+
+On choisit une personne de ce groupe au hasard et on définit les événements suivants : $L$ « la personne lit au moins une heure par semaine », $A_1$ « la personne a moins de 30 ans », $A_2$ « la personne a entre 30 et 50 ans » et $A_3$ « la personne a plus de 50 ans ».
+
+$\dfrac{70}{80}$ correspond à la valeur de :
+\begin{itemize}
+\item[A.] $P(A_3)$
+\item[B.] $P(L \cap A_3)$
+\item[C.] $P_{A_3}(L)$
+\item[D.] $P_L(A_3)$
+\end{itemize}
+
+\item Un ingénieur calcule la vitesse maximale $V$ d'un train à grande vitesse en km/h. Il est plus vraisemblable qu'il trouve :
+\begin{itemize}
+\item[A.] $V = 25$
+\item[B.] $V = 90$
+\item[C.] $V = 350$
+\item[D.] $V = 1240$
+\end{itemize}
+
+\item La fonction $f$ définie sur $\mathbb{R}$ par $f(x) = 3x - 1$ admet pour tableau de signe :
+\begin{itemize}
+\item[A.] 
+$\begin{array}{c|ccc}
+x & -\infty & \frac{1}{3} & +\infty \\ \hline
+f(x) & - & 0 & +
+\end{array}$
+\item[B.]
+$\begin{array}{c|ccc}
+x & -\infty & \frac{1}{3} & +\infty \\ \hline
+f(x) & + & 0 & -
+\end{array}$
+\item[C.]
+$\begin{array}{c|ccc}
+x & -\infty & 0 & +\infty \\ \hline
+f(x) & - & 0 & +
+\end{array}$
+\item[D.]
+$\begin{array}{c|ccc}
+x & -\infty & 0 & +\infty \\ \hline
+f(x) & + & 0 & -
+\end{array}$
+\end{itemize}
+
+\item Un potager de 30 m$^2$ représente $\dfrac{2}{7}$ de la surface d'un jardin. Le jardin a une surface totale égale à :
+\begin{itemize}
+\item[A.] 27 m$^2$
+\item[B.] 105 m$^2$
+\item[C.] 210 m$^2$
+\item[D.] 140 m$^2$
+\end{itemize}
+
+\item Lors d'un été très chaud, le niveau d'une nappe phréatique baisse de $30\%$ au mois de juillet puis de $20\%$ au mois d'août. Le niveau a globalement baissé de :
+\begin{itemize}
+\item[A.] $6\%$
+\item[B.] $44\%$
+\item[C.] $50\%$
+\item[D.] $56\%$
+\end{itemize}
+
+\item On considère la courbe d'équation $y = \dfrac{6}{x}$. Déterminer le point qui n'appartient pas à cette courbe :
+\begin{itemize}
+\item[A.] $M(2;3)$
+\item[B.] $N(3;3)$
+\item[C.] $P(1;6)$
+\item[D.] $Q\left(\dfrac{1}{2};12\right)$
+\end{itemize}
+
+\end{enumerate}
+
+\newpage
+
+\section*{DEUXIÈME PARTIE (14 pts)}
+
+\subsection*{Exercice 1}
+
+Une balle est lancée en l'air à l'instant $t = 0$ (exprimé en secondes). Sa hauteur $h(t)$ (exprimée en mètres) est donnée par :
+\[
+h(t) = -4t^2 + 16t + 2
+\]
+
+\begin{enumerate}
+\item On donne ci-dessous la courbe représentative de la fonction $h$.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.7]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $t$,
+        ylabel = $h(t)$,
+        xmin = -0.5, xmax = 5.5,
+        ymin = -1, ymax = 20,
+        xtick = {0,1,2,3,4},
+        ytick = {0,5,10,15},
+        grid = both,
+        grid style = {gray!30},
+        width = 12cm,
+        height = 8cm,
+        samples = 100,
+        smooth
+    ]
+        \addplot[thick, domain=0:4.2] {-4*x^2 + 16*x + 2};
+        
+        % Points remarquables
+        \addplot[only marks, mark=*, mark size=2] coordinates {(0,2) (2,18)};
+        
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+Déterminer avec la précision permise par le graphique :
+\begin{enumerate}
+\item[a)] La hauteur initiale $h_0$ à partir de laquelle la balle est lancée ;
+\item[b)] La hauteur maximale $h_m$ atteinte par la balle ;
+\item[c)] Le temps $t_m$ au bout duquel la hauteur maximale est atteinte ;
+\item[d)] Le temps $t_1$ au bout duquel la balle touche le sol.
+\end{enumerate}
+
+\item On se propose de retrouver par le calcul les résultats de la première question.
+\begin{enumerate}
+\item[a)] Calculer la hauteur initiale $h_0$ à partir de laquelle la balle est lancée.
+\item[b)] Calculer le temps au bout duquel la hauteur maximale $t_m$ est atteinte. En déduire la hauteur maximale $h_m$ atteinte par la balle.
+\item[c)] Calculer avec la précision permise par l'aide au calcul ci-contre, le temps $t_1$ au bout duquel la balle touche le sol.
+
+\textit{Aide au calcul :} $16^2 = 256$ ; $\sqrt{288} = 12\sqrt{2}$ et $1,5\sqrt{2} \approx 2,12$
+\end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\subsection*{Exercice 2}
+
+\subsubsection*{Partie A}
+
+On considère une feuille de papier carrée dont l'aire est de $1024$ cm$^2$. On plie cette feuille en deux, on obtient ainsi un rectangle dont l'aire est la moitié de l'aire de départ.
+
+\begin{center}
+\begin{tikzpicture}
+    % Feuille initiale
+    \draw (0,0) rectangle (4,4);
+    \node at (2,2) {$a_0 = 1024$ cm$^2$};
+    \draw[->] (4.5,2) -- (5.5,2);
+    
+    % Après 1 pliage
+    \draw (6,0) rectangle (10,2);
+    \node at (8,1) {$a_1 = 512$ cm$^2$};
+    \draw[->] (10.5,1) -- (11.5,1);
+    
+    % Après 2 pliages
+    \draw (12,0) rectangle (14,2);
+    \node at (13,1) {$a_2 = 256$ cm$^2$};
+\end{tikzpicture}
+\end{center}
+
+On note $a_0$ l'aire de la feuille initiale et $a_1$ l'aire de la feuille après un pliage.
+
+\begin{enumerate}
+\item Calculer $a_1$ puis $a_2$.
+\item Justifier que pour tout entier naturel $n$, $a_{n+1} = \dfrac{1}{2} a_n$.
+\item En déduire l'expression de $a_n$ en fonction de $n$.
+\item Calculer l'aire du carré obtenu après 10 pliages.
+\end{enumerate}
+
+\subsubsection*{Partie B -- Étude de l'aire totale}
+
+Pour tout entier naturel $n$, on note $S_n$ la somme des $(n+1)$ aires des carrés successifs obtenus lors de $n$ pliages :
+\[
+S_n = a_0 + a_1 + \ldots + a_n
+\]
+
+\begin{enumerate}
+\item Montrer que pour tout entier naturel $n$ :
+\[
+S_n = 2^{11} \left(1 - \frac{1}{2^{n+1}}\right) = 2048 \left(1 - \frac{1}{2^{n+1}}\right)
+\]
+
+\item On donne ci-contre des valeurs de termes de la suite $(S_n)$ obtenues à l'aide d'une calculatrice.
+\[
+\begin{array}{|c|c|}
+\hline
+n & S_n \\
+\hline
+5 & 2016 \\
+10 & 2047,5 \\
+15 & 2047,96875 \\
+20 & 2047,9990234375 \\
+\hline
+\end{array}
+\]
+Conjecturer le comportement des termes $S_n$ lorsque $n$ tend vers $+\infty$. Interpréter ce résultat dans le contexte de l'exercice.
+\end{enumerate}
+
+\end{document}

@@ -49,6 +49,10 @@ next-env.d.ts
 *.out
 *.toc
 *.synctex.gz
+
+# Exception: EAM sujets et corrigés (doivent être déployés)
+!public/eam/**/*.pdf
+!public/eam/**/*.tex
 test-converter.ps1
 test_*.mjs
 test_*.js

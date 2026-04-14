@@ -1,0 +1,279 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{statistics}
+
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{Épreuve anticipée de mathématiques}\end{center}
+\begin{center}\textbf{Voie générale : candidats suivant l'enseignement de spécialité de mathématiques.}\end{center}
+
+\begin{center}
+\textbf{Durée : 2 heures. L'usage de la calculatrice n'est pas autorisé.}
+\end{center}
+
+\section*{PREMIÈRE PARTIE : AUTOMATISMES -- QCM (6 pts)}
+
+\textit{Pour cette première partie, aucune justification n'est demandée et une seule réponse est possible par question. Pour chaque question, reportez son numéro sur votre copie et indiquez votre réponse.}
+
+\begin{enumerate}
+
+\item On peut affirmer que :
+\begin{itemize}
+\item[A.] $\dfrac{11}{12} < \dfrac{12}{13}$
+\item[B.] $\dfrac{11}{12} = \dfrac{12}{13}$
+\item[C.] $\dfrac{11}{12} > \dfrac{12}{13}$
+\item[D.] Il est impossible de comparer ces deux nombres.
+\end{itemize}
+
+\item Un drapeau a une aire de 2 m$^2$. Cela représente :
+\begin{itemize}
+\item[A.] $0,002$ cm$^2$
+\item[B.] $0,2$ cm$^2$
+\item[C.] $200$ cm$^2$
+\item[D.] $20\,000$ cm$^2$
+\end{itemize}
+
+\item Une boîte contient 20 billes. Dans cette boîte la proportion de billes vertes est égale à $0,3$. Le nombre de billes vertes dans la boîte est égal à :
+\begin{itemize}
+\item[A.] $6$
+\item[B.] $3$
+\item[C.] $5$
+\item[D.] $17$
+\end{itemize}
+
+\item Le matin à 7h00 il fait $12^\circ$C. À 10h00 la température a augmenté de $30\%$. À 10h00 il fait :
+\begin{itemize}
+\item[A.] $15^\circ$C
+\item[B.] $16^\circ$C
+\item[C.] $15,6^\circ$C
+\item[D.] $42^\circ$C
+\end{itemize}
+
+\item On donne ci-contre la courbe représentative d'une fonction $g$.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -4, xmax = 4,
+        ymin = -1, ymax = 4,
+        xtick = {-3,-2,-1,0,1,2,3},
+        ytick = {1,2,3},
+        grid = both,
+        grid style = {gray!30},
+        width = 10cm,
+        height = 8cm,
+        samples = 100,
+        smooth
+    ]
+        % Parabole passant par (-3;1), (0;2), (2;1)
+        \addplot[thick, domain=-3.5:3.5] {-(1/9)*x^2 + 2};
+        
+        % Point d'ordonnée 1
+        \addplot[only marks, mark=*, mark size=2] coordinates {(-3,1) (3,1)};
+        
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+On veut déterminer graphiquement les antécédents de 1 par $g$. On peut affirmer que :
+\begin{itemize}
+\item[A.] 1 n'a pas d'antécédent
+\item[B.] 3 est l'antécédent de 1
+\item[C.] $-3$ et $3$ sont les antécédents de 1
+\item[D.] 1 a le même antécédent que $-2$
+\end{itemize}
+
+\item Parmi les nombres ci-dessous, lequel ne peut pas être une probabilité :
+\begin{itemize}
+\item[A.] $10^{-3}$
+\item[B.] $\dfrac{20}{19}$
+\item[C.] $\dfrac{1}{9}$
+\item[D.] $\sqrt{2}$
+\end{itemize}
+
+\item On a résumé les effectifs d'un club de tennis de table en fonction de l'âge des adhérents dans le diagramme ci-contre.
+
+\begin{center}
+\begin{tikzpicture}
+    \begin{axis}[ybar, ymin=0, ymax=25, width=10cm, height=6cm,
+        xtick={1,2,3,4}, xticklabels={[0;20[, [20;40[, [40;60[, [60;80[},
+        ylabel={Effectifs}, xlabel={Âge (ans)}]
+        \addplot coordinates {(1,5) (2,15) (3,20) (4,15)};
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+Parmi les 4 propositions ci-dessous, déterminer celle qui est assurément fausse :
+\begin{itemize}
+\item[A.] L'âge moyen des adhérents est de 27 ans.
+\item[B.] Certains adhérents ont plus de 70 ans.
+\item[C.] La moitié des adhérents a entre 20 et 40 ans.
+\item[D.] Le troisième quartile de la série est égal à 54.
+\end{itemize}
+
+\item La forme factorisée de $(a+1)^2 - 3(a+1)$ est :
+\begin{itemize}
+\item[A.] $-(a+1)$
+\item[B.] $(a+1)(-a-2)$
+\item[C.] $(a+1)(a-2)$
+\item[D.] $a^2 - a - 2$
+\end{itemize}
+
+\item Un train a diminué sa vitesse de $20\%$ à cause d'un incident sur la voie. Pour retrouver le niveau d'avant l'incident, le conducteur doit augmenter la vitesse de :
+\begin{itemize}
+\item[A.] $20\%$
+\item[B.] $25\%$
+\item[C.] $30\%$
+\item[D.] $40\%$
+\end{itemize}
+
+\item La courbe représentative d'une fonction affine non constante est :
+\begin{itemize}
+\item[A.] une parabole
+\item[B.] une droite horizontale
+\item[C.] une droite oblique
+\item[D.] une droite verticale
+\end{itemize}
+
+\item On lance un dé truqué dont les probabilités d'apparition de chaque face sont données dans le tableau ci-dessous :
+\[
+\begin{array}{|c|c|c|c|c|c|c|}
+\hline
+\text{Face} & 1 & 2 & 3 & 4 & 5 & 6 \\
+\hline
+\text{Probabilité} & 0,1 & 0,1 & 0,25 & 0,3 & 0,15 & 0,1 \\
+\hline
+\end{array}
+\]
+La probabilité d'obtenir un nombre inférieur ou égal à 4 est :
+\begin{itemize}
+\item[A.] $0,25$
+\item[B.] $0,3$
+\item[C.] $0,65$
+\item[D.] $0,75$
+\end{itemize}
+
+\end{enumerate}
+
+\newpage
+
+\section*{DEUXIÈME PARTIE (14 pts)}
+
+\subsection*{Exercice 1}
+
+À partir du printemps 2026, Lina gère un bassin d'irrigation contenant au départ $1000$ m$^3$ d'eau. Chaque année, à cause de l'évaporation et des fuites, $20\%$ du volume d'eau est perdu. En fin d'été, Lina rajoute $40$ m$^3$ d'eau dans le bassin.
+
+Pour tout entier naturel $n$, on note $u_n$ le volume d'eau (en m$^3$) dans le bassin au début du printemps de l'année $2026+n$. Ainsi $u_0 = 1000$.
+
+\begin{enumerate}
+\item Calculer le volume d'eau du bassin au printemps 2027 suivant ce modèle.
+\item Justifier que, pour tout entier naturel $n$, $u_{n+1} = 0,8 u_n + 40$.
+\item Justifier que la suite $(u_n)$ n'est pas arithmétique.
+\item On considère la suite $(v_n)$ définie pour tout entier naturel $n$ par $v_n = u_n - 200$.
+\begin{enumerate}
+\item Montrer que la suite $(v_n)$ est géométrique de raison $0,8$.
+\item En déduire l'expression de $v_n$ en fonction de $n$.
+\item En déduire que, pour tout entier naturel $n$, $u_n = 800 \times 0,8^n + 200$.
+\end{enumerate}
+\item À l'aide d'un tableur, on a obtenu les valeurs arrondies au centième suivantes :
+\[
+\begin{array}{|c|c|}
+\hline
+n & u_n \\
+\hline
+5 & 409,83 \\
+10 & 273,09 \\
+15 & 228,36 \\
+20 & 206,59 \\
+25 & 201,05 \\
+30 & 200,17 \\
+\hline
+\end{array}
+\]
+\begin{enumerate}
+\item Conjecturer le comportement des termes de $(u_n)$ lorsque $n$ tend vers $+\infty$.
+\item Interpréter ce comportement dans le contexte de l'exercice.
+\end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\subsection*{Exercice 2}
+
+Soit $f$ la fonction définie pour tout nombre réel $x \neq -\frac{1}{2}$ par
+\[
+f(x) = \frac{3x - 3}{2x + 1}.
+\]
+
+\begin{enumerate}
+\item On admet que $f$ est dérivable sur $\mathbb{R}\setminus\left\{-\frac{1}{2}\right\}$. Montrer que pour tout $x \neq -\frac{1}{2}$,
+\[
+f'(x) = \frac{9}{(2x+1)^2}.
+\]
+
+\item En déduire les variations de $f$ sur son ensemble de définition.
+
+\item On note $\mathcal{C}$ la courbe représentative de $f$.
+\begin{enumerate}
+\item Montrer que $\mathcal{C}$ admet exactement deux tangentes de coefficients directeurs égaux à $1$.
+\item Déterminer l'équation réduite de chacune de ces tangentes.
+\end{enumerate}
+
+\item Tracer ci-dessous la courbe $\mathcal{C}$ et ses deux tangentes.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.6]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -5, xmax = 5,
+        ymin = -5, ymax = 5,
+        xtick = {-4,-3,-2,-1,0,1,2,3,4},
+        ytick = {-4,-3,-2,-1,0,1,2,3,4},
+        grid = both,
+        grid style = {gray!30},
+        width = 12cm,
+        height = 12cm,
+        samples = 100,
+        smooth,
+        clip = false
+    ]
+        % Asymptote verticale
+        \addplot[dashed] coordinates {(-0.5,-5) (-0.5,5)};
+        
+        % Courbe de f
+        \addplot[thick, domain=-5:-0.6] {(3*x-3)/(2*x+1)};
+        \addplot[thick, domain=-0.4:5] {(3*x-3)/(2*x+1)};
+        
+        % Tangentes (à tracer après calcul)
+        % y = x - 1 et y = x + 5
+        \addplot[blue, thick, domain=-5:5] {x-1};
+        \addplot[blue, thick, domain=-5:5] {x+5};
+        
+        % Points de tangence
+        \addplot[only marks, mark=*, mark size=2, red] coordinates {(1,0) (-2,3)};
+        
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+\end{enumerate}
+
+\end{document}

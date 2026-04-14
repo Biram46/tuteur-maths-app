@@ -1,0 +1,231 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{statistics}
+
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\begin{document}
+
+\begin{center}\Large\textbf{Épreuve anticipée de mathématiques}\end{center}
+\begin{center}\textbf{Voie générale : candidats suivant l'enseignement de spécialité de mathématiques.}\end{center}
+
+\begin{center}
+\textbf{Durée : 2 heures. L'usage de la calculatrice n'est pas autorisé.}
+\end{center}
+
+\section*{PREMIÈRE PARTIE : AUTOMATISMES -- QCM (6 pts)}
+
+\textit{Pour cette première partie, aucune justification n'est demandée et une seule réponse est possible par question. Pour chaque question, reportez son numéro sur votre copie et indiquez votre réponse.}
+
+\begin{enumerate}
+
+\item L'expression $3x - (5 - 2x)$ est égale à :
+\begin{itemize}
+\item[A.] $x - 5$
+\item[B.] $5x - 5$
+\item[C.] $x + 5$
+\item[D.] $5x + 5$
+\end{itemize}
+
+\item Une voiture consomme $6$ L pour $100$ km. Quelle distance peut-elle parcourir avec $15$ L de carburant ?
+\begin{itemize}
+\item[A.] $90$ km
+\item[B.] $150$ km
+\item[C.] $200$ km
+\item[D.] $250$ km
+\end{itemize}
+
+\item Le nombre $\dfrac{2}{3} + \dfrac{3}{2}$ est égal à :
+\begin{itemize}
+\item[A.] $\dfrac{5}{5}$
+\item[B.] $\dfrac{5}{6}$
+\item[C.] $\dfrac{13}{6}$
+\item[D.] $\dfrac{6}{5}$
+\end{itemize}
+
+\item On donne ci-dessous la courbe représentative d'une fonction $f$ définie sur $[-3;4]$.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \begin{axis}[
+        axis lines = middle,
+        xlabel = $x$,
+        ylabel = $y$,
+        xmin = -3.5, xmax = 4.5,
+        ymin = -2.5, ymax = 4.5,
+        xtick = {-3,-2,-1,0,1,2,3,4},
+        ytick = {-2,-1,0,1,2,3,4},
+        grid = both,
+        grid style = {gray!30},
+        width = 12cm,
+        height = 8cm,
+        samples = 100,
+        smooth
+    ]
+        \addplot[thick, domain=-3:4] {0.1*x^3 - 0.4*x^2 - 0.4*x + 2.1};
+        \addplot[only marks, mark=*, mark size=2] coordinates {(-1,1.5)};
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+$f(-1)$ est égal à :
+\begin{itemize}
+\item[A.] $-1$
+\item[B.] $0$
+\item[C.] $1$
+\item[D.] $2$
+\end{itemize}
+
+\item On lance un dé équilibré à 6 faces. La probabilité d'obtenir un nombre pair est :
+\begin{itemize}
+\item[A.] $\dfrac{1}{6}$
+\item[B.] $\dfrac{1}{3}$
+\item[C.] $\dfrac{1}{2}$
+\item[D.] $\dfrac{2}{3}$
+\end{itemize}
+
+\item Une population augmente de $10\%$ puis diminue de $10\%$. Globalement, elle a :
+\begin{itemize}
+\item[A.] augmenté de $1\%$
+\item[B.] diminué de $1\%$
+\item[C.] augmenté de $0\%$
+\item[D.] diminué de $0,5\%$
+\end{itemize}
+
+\item On considère la série statistique suivante : $2; 5; 7; 8; 10; 12; 15$. Sa médiane est :
+\begin{itemize}
+\item[A.] $7$
+\item[B.] $8$
+\item[C.] $9$
+\item[D.] $10$
+\end{itemize}
+
+\item La forme développée de $(2x - 3)^2$ est :
+\begin{itemize}
+\item[A.] $4x^2 - 12x + 9$
+\item[B.] $4x^2 - 6x + 9$
+\item[C.] $4x^2 - 12x - 9$
+\item[D.] $4x^2 + 12x + 9$
+\end{itemize}
+
+\item Une baisse de $25\%$ correspond à un coefficient multiplicateur de :
+\begin{itemize}
+\item[A.] $0,25$
+\item[B.] $0,75$
+\item[C.] $1,25$
+\item[D.] $1,75$
+\end{itemize}
+
+\item L'équation $x^2 = 9$ a pour solutions :
+\begin{itemize}
+\item[A.] $3$ seulement
+\item[B.] $-3$ seulement
+\item[C.] $3$ et $-3$
+\item[D.] aucune solution
+\end{itemize}
+
+\item Dans un groupe, $40\%$ des personnes sont des femmes. On choisit une personne au hasard. La probabilité que ce soit une femme est :
+\begin{itemize}
+\item[A.] $0,04$
+\item[B.] $0,4$
+\item[C.] $4$
+\item[D.] $40$
+\end{itemize}
+
+\item La fonction $f$ définie sur $\mathbb{R}$ par $f(x) = -2x + 5$ est :
+\begin{itemize}
+\item[A.] croissante sur $\mathbb{R}$
+\item[B.] décroissante sur $\mathbb{R}$
+\item[C.] constante sur $\mathbb{R}$
+\item[D.] ni croissante ni décroissante
+\end{itemize}
+
+\end{enumerate}
+
+\newpage
+
+\section*{DEUXIÈME PARTIE (14 pts)}
+
+\subsection*{Exercice 1 : Étude d'une fonction exponentielle (7 points)}
+
+Soit $f$ la fonction définie sur $\mathbb{R}$ par :
+\[
+f(x) = e^{2x} - 2e^x + 1
+\]
+
+\begin{enumerate}
+\item \textbf{Calcul de la dérivée.}
+\begin{enumerate}
+\item Calculer $f'(x)$ pour tout $x \in \mathbb{R}$.
+\item Factoriser $f'(x)$ sous la forme $2e^x (e^x - 1)$.
+\end{enumerate}
+
+\item \textbf{Étude des variations.}
+\begin{enumerate}
+\item Déterminer le signe de $f'(x)$ sur $\mathbb{R}$.
+\item Dresser le tableau de variations de $f$ sur $\mathbb{R}$.
+\end{enumerate}
+
+\item \textbf{Étude du signe de $f(x)$.}
+\begin{enumerate}
+\item Montrer que $f(x) = (e^x - 1)^2$.
+\item En déduire le signe de $f(x)$ sur $\mathbb{R}$.
+\end{enumerate}
+
+\item \textbf{Application.}
+\begin{enumerate}
+\item Déterminer l'équation réduite de la tangente à la courbe $\mathcal{C}_f$ au point d'abscisse $0$.
+\item Tracer dans un repère orthogonal la courbe $\mathcal{C}_f$ et sa tangente au point d'abscisse $0$ (on prendra 2 cm pour 1 unité en abscisse et 2 cm pour 1 unité en ordonnée).
+\end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\subsection*{Exercice 2 : Produit scalaire et géométrie (7 points)}
+
+Dans le plan muni d'un repère orthonormé $(O; \vec{i}, \vec{j})$, on considère les points suivants :
+\[
+A(1; 2), \quad B(5; -1), \quad C(-2; 3), \quad D(0; 4)
+\]
+
+\begin{enumerate}
+\item \textbf{Calculs de vecteurs.}
+\begin{enumerate}
+\item Calculer les coordonnées des vecteurs $\overrightarrow{AB}$ et $\overrightarrow{CD}$.
+\item Calculer le produit scalaire $\overrightarrow{AB} \cdot \overrightarrow{CD}$.
+\item Que peut-on en déduire sur les droites $(AB)$ et $(CD)$ ?
+\end{enumerate}
+
+\item \textbf{Projection orthogonale.}
+\begin{enumerate}
+\item Soit $H$ le projeté orthogonal de $D$ sur la droite $(AB)$. Donner une relation vectorielle liant $\overrightarrow{AH}$ et $\overrightarrow{AB}$.
+\item Calculer $\overrightarrow{AD} \cdot \overrightarrow{AB}$ en utilisant les coordonnées.
+\item En déduire la longueur $AH$.
+\end{enumerate}
+
+\item \textbf{Équation de droite et distance.}
+\begin{enumerate}
+\item Déterminer une équation cartésienne de la droite $(AB)$.
+\item Calculer la distance du point $D$ à la droite $(AB)$. Vérifier la cohérence avec la question 2.
+\end{enumerate}
+
+\item \textbf{Cercle.}
+\begin{enumerate}
+\item Déterminer une équation du cercle $\mathcal{C}$ de centre $D$ et de rayon $5$.
+\item Le point $A$ appartient-il à ce cercle ? Justifier.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}
