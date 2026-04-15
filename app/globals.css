@@ -934,3 +934,70 @@ svg foreignObject .katex * {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   QCM CORRECTION — Text Visibility (overrides prose-invert)
+   ═══════════════════════════════════════════════════════════════ */
+
+.math-prose {
+  --tw-prose-body: #f8fafc;
+  --tw-prose-headings: #ffffff;
+  --tw-prose-lead: #f1f5f9;
+  --tw-prose-links: #93c5fd;
+  --tw-prose-bold: #ffffff;
+  --tw-prose-counters: #94a3b8;
+  --tw-prose-bullets: #94a3b8;
+  --tw-prose-hr: #334155;
+  --tw-prose-quotes: #f1f5f9;
+  --tw-prose-quote-borders: #334155;
+  --tw-prose-captions: #94a3b8;
+  --tw-prose-code: #ffffff;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: #1e293b;
+  --tw-prose-th-borders: #334155;
+  --tw-prose-td-borders: #334155;
+}
+
+.math-prose p,
+.math-prose li,
+.math-prose td,
+.math-prose th,
+.math-prose span {
+  color: var(--tw-prose-body) !important;
+}
+
+.math-prose h1, .math-prose h2, .math-prose h3,
+.math-prose h4, .math-prose h5, .math-prose h6 {
+  color: var(--tw-prose-headings) !important;
+}
+
+.math-prose strong, .math-prose b {
+  color: var(--tw-prose-bold) !important;
+}
+
+.math-prose .katex,
+.math-prose .katex * {
+  color: inherit !important;
+}
+
+/* Correction "Bonne Réponse" — vert plus lisible */
+.math-prose.text-emerald-200 {
+  --tw-prose-body: #a7f3d0;
+  --tw-prose-bold: #d1fae5;
+}
+.math-prose.text-emerald-200 p,
+.math-prose.text-emerald-200 li,
+.math-prose.text-emerald-200 span {
+  color: #a7f3d0 !important;
+}
+
+/* Correction "Explication" — bleu plus lisible */
+.math-prose.text-sky-200 {
+  --tw-prose-body: #bae6fd;
+  --tw-prose-bold: #e0f2fe;
+}
+.math-prose.text-sky-200 p,
+.math-prose.text-sky-200 li,
+.math-prose.text-sky-200 span {
+  color: #bae6fd !important;
+}

@@ -658,14 +658,13 @@ export default function MathTable({ data, title }: MathTableProps) {
 
     // ── SVG principal ────────────────────────────────────────────
     return (
-        <div className="w-full overflow-x-auto my-6 custom-scrollbar-horizontal">
-            <div style={{ minWidth: `${totalWidth}px` }}>
-                <svg
-                    width={totalWidth}
-                    height={totalHeight}
-                    viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-                    style={{ display: 'block', fontFamily: 'serif' }}
-                >
+        <div className="w-full overflow-x-auto my-6 custom-scrollbar-horizontal" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <svg
+                width={totalWidth}
+                height={totalHeight}
+                viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+                style={{ display: 'block', fontFamily: 'serif', minWidth: `${totalWidth}px` }}
+            >
                     {/* ── Marqueurs flèches ── */}
                     <defs>
                         {/* Flèche axe X */}
@@ -790,6 +789,5 @@ export default function MathTable({ data, title }: MathTableProps) {
                     )}
                 </svg>
             </div>
-        </div>
     );
 }
