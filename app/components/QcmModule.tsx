@@ -5,6 +5,8 @@ import { QcmQuestion, generateRandomQcmSession } from '@/lib/qcm-data';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 import 'katex/dist/katex.min.css';
 import { useRouter } from 'next/navigation';
 import MathTable from './MathTable';
@@ -217,7 +219,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             <div className="flex-1">
                                                 <div className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Question {idx + 1}</div>
                                                 <div className="text-lg text-slate-100 font-medium prose prose-invert max-w-none math-prose">
-                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.question).content}</ReactMarkdown>
+                                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.question).content}</ReactMarkdown>
                                                 </div>
                                             </div>
                                         </div>
@@ -239,7 +241,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 <div className="text-slate-200 prose prose-invert math-prose">
                                                     {hasUserAnswered ? (
                                                         <>
-                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
                                                             {q.optionsTableData?.[userAnswerIdx] && (
                                                                 <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
                                                             )}
@@ -256,7 +258,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 <div className="text-green-100 prose prose-invert math-prose">
                                                     {q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length ? (
                                                         <>
-                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
+                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
                                                             {q.optionsTableData?.[q.correctAnswerIndex] && (
                                                                 <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
                                                             )}
@@ -274,7 +276,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                         {q.explanation && (
                                             <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-100 prose prose-invert math-prose text-sm">
                                                 <span className="font-bold text-blue-400 block mb-1">Explication :</span>
-                                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{fixLatexContent(q.explanation).content}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.explanation).content}</ReactMarkdown>
                                             </div>
                                         )}
                                     </div>
@@ -305,7 +307,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                             <div className="mt-12 text-lg lg:text-xl text-slate-100 font-medium leading-relaxed prose prose-invert prose-p:my-2 bg-transparent max-w-none math-prose">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
+                                    rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                 >
                                     {fixLatexContent(currentQuestion.question).content}
                                 </ReactMarkdown>
@@ -347,7 +349,7 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             <div className="flex-1 overflow-x-auto custom-scrollbar math-prose text-slate-200">
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkMath]}
-                                                    rehypePlugins={[rehypeKatex]}
+                                                    rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                                 >
                                                     {fixLatexContent(opt).content}
                                                 </ReactMarkdown>

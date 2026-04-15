@@ -5,6 +5,8 @@ import { ChatMessage } from '@/lib/perplexity';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 
 interface MessageItemProps {
     msg: ChatMessage;
@@ -80,7 +82,7 @@ const MessageItem = memo(function MessageItem({
                         <div className="message-content-wrapper">
                             <ReactMarkdown
                                 remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
+                                rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                 components={{
                                     p: ({ ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                 }}

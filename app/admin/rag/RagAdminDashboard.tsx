@@ -19,6 +19,8 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 import 'katex/dist/katex.min.css';
 import MathTable from '@/app/components/MathTable';
 import MathGraph from '@/app/components/MathGraph';
@@ -313,7 +315,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                                     <div className="prose prose-invert prose-sm max-w-none math-rendered">
                                                         <ReactMarkdown
                                                             remarkPlugins={[remarkMath, remarkGfm]}
-                                                            rehypePlugins={[rehypeKatex, rehypeRaw]}
+                                                            rehypePlugins={[rehypeKatex, rehypeRaw, [rehypeSanitize, katexSanitizeSchema]]}
                                                             components={({
                                                                 mathtable: ({ node, ...props }: any) => {
                                                                     try {
@@ -525,7 +527,7 @@ export default function RagAdminDashboard({ initialDocs }: { initialDocs: RagDoc
                                             <div className="prose max-w-none prose-slate">
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkMath, remarkGfm]}
-                                                    rehypePlugins={[rehypeKatex, rehypeRaw]}
+                                                    rehypePlugins={[rehypeKatex, rehypeRaw, [rehypeSanitize, katexSanitizeSchema]]}
                                                     components={({
                                                         mathtable: ({ node, ...props }: any) => {
                                                             try {

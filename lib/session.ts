@@ -100,5 +100,30 @@ export async function updateSession(request: NextRequest) {
         }
     }
 
+    // ── Headers de sécurité ──
+    const cspHeader = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com",
+        "font-src 'self' https://cdn.jsdelivr.net",
+        "connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://generativelanguage.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com",
+        "frame-src 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ].join('; ')
+
+    response.headers.set('Content-Security-Policy', cspHeader)
+    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+
+    if (request.nextUrl.protocol === 'https:') {
+        response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+    }
+
     return response
 }

@@ -5,6 +5,8 @@ import type { ProfContext, ChatMessageProf, ProfResourceType } from '@/lib/prof-
 import { RESOURCE_TYPE_LABELS } from '@/lib/prof-types';
 import { saveDraft, uploadProfFile } from '../actions';
 import { useFigureRenderer } from '@/app/hooks/useFigureRenderer';
+import { extractBestLatex, extractBestHtml } from '@/lib/latex-extract';
+import { convertTabularToHtml, convertTkzTabToMathtable, convertPgfplotsToMathgraph } from '@/lib/latex-env-converters';
 
 interface ProfChatbotProps {
     context: ProfContext;
@@ -20,6 +22,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
     const [contentType, setContentType] = useState<'latex' | 'html'>('latex');
     const [showPreview, setShowPreview] = useState(false);
+    const [previewTab, setPreviewTab] = useState<'code' | 'render'>('render');
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
 
@@ -135,48 +138,26 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
 
             // Extract content based on resource type
             if (isInteractif) {
-                // For interactive: extract HTML (plusieurs formats possibles)
-                let htmlContent: string | null = null;
-
-                // 1. Essayer d'extraire d'un bloc markdown ```html ou ```HTML
-                const htmlBlockMatch = fullContent.match(/```html?\s*\n([\s\S]*?)```/i);
-                if (htmlBlockMatch) {
-                    htmlContent = htmlBlockMatch[1];
-                }
-                // 2. Chercher un document HTML complet (DOCTYPE ou <html)
-                else if (fullContent.includes('<!DOCTYPE html') || fullContent.includes('<!doctype html') || /<html[\s>]/i.test(fullContent)) {
-                    // Extraire tout le contenu HTML
-                    const htmlStartMatch = fullContent.match(/(<!DOCTYPE html[\s\S]*)/i);
-                    if (htmlStartMatch) {
-                        htmlContent = htmlStartMatch[1];
-                        // Nettoyer le texte après </html> si présent
-                        const htmlEndMatch = htmlContent.match(/([\s\S]*<\/html>)/i);
-                        if (htmlEndMatch) {
-                            htmlContent = htmlEndMatch[1];
-                        }
-                    } else {
-                        htmlContent = fullContent;
-                    }
-                }
-
+                const htmlContent = extractBestHtml(fullContent);
                 if (htmlContent) {
-                    setGeneratedHtml(htmlContent.trim());
+                    setGeneratedHtml(htmlContent);
                     setContentType('html');
                 } else {
-                    // Fallback: afficher le contenu brut
-                    setGeneratedHtml(fullContent);
-                    setContentType('html');
+                    // Fallback : l'IA a produit du LaTeX au lieu de HTML
+                    const latexContent = extractBestLatex(fullContent);
+                    if (latexContent) {
+                        setGeneratedLatex(latexContent);
+                        setContentType('latex');
+                    } else {
+                        setGeneratedHtml(fullContent);
+                        setContentType('html');
+                    }
                 }
                 setShowPreview(true);
             } else {
-                // For other types: extract LaTeX
-                const latexMatch = fullContent.match(/```latex\n([\s\S]*?)```/);
-                if (latexMatch) {
-                    setGeneratedLatex(latexMatch[1]);
-                    setContentType('latex');
-                } else if (fullContent.includes('\\documentclass') || fullContent.includes('\\begin{document}')) {
-                    // Full LaTeX content without markdown
-                    setGeneratedLatex(fullContent);
+                const latexContent = extractBestLatex(fullContent);
+                if (latexContent) {
+                    setGeneratedLatex(latexContent);
                     setContentType('latex');
                 }
                 setShowPreview(true);
@@ -300,7 +281,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
 
     // ── Sauvegarder le brouillon ─────────────────────────────
     const handleSaveDraft = useCallback(async () => {
-        const content = isInteractif ? generatedHtml : generatedLatex;
+        const content = contentType === 'html' ? generatedHtml : generatedLatex;
         if (!content) return;
         setSavingDraft(true);
         try {
@@ -317,85 +298,327 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         } finally {
             setSavingDraft(false);
         }
-    }, [isInteractif, generatedHtml, generatedLatex, teacherId, sequenceId, context]);
+    }, [contentType, generatedHtml, generatedLatex, teacherId, sequenceId, context]);
 
     // ── Télécharger le fichier ──────────────────────────────────
     const handleDownload = useCallback(() => {
-        const content = isInteractif ? generatedHtml : generatedLatex;
+        const content = contentType === 'html' ? generatedHtml : generatedLatex;
         if (!content) return;
-        const blob = new Blob([content], { type: isInteractif ? 'text/html' : 'text/x-latex' });
+        const blob = new Blob([content], { type: contentType === 'html' ? 'text/html' : 'text/x-latex' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${context.resource_type}_${context.chapter_title.replace(/\s+/g, '_')}.${isInteractif ? 'html' : 'tex'}`;
+        a.download = `${context.resource_type}_${context.chapter_title.replace(/\s+/g, '_')}.${contentType === 'html' ? 'html' : 'tex'}`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [isInteractif, generatedHtml, generatedLatex, context]);
+    }, [contentType, generatedHtml, generatedLatex, context]);
 
     // Get current content for display
-    const currentContent = isInteractif ? generatedHtml : generatedLatex;
+    const currentContent = contentType === 'html' ? generatedHtml : generatedLatex;
+    // Detect actual format for rendering (HTML vs LaTeX)
+    const isHtmlContent = !!(currentContent && (
+        currentContent.trim().startsWith('<!DOCTYPE') ||
+        currentContent.trim().startsWith('<html') ||
+        currentContent.trim().startsWith('<HTML')
+    ));
 
-    // Fonction de nettoyage du LaTeX pour le rendu visuel
+    // Fonction de nettoyage du LaTeX pour le rendu visuel professionnel
     const cleanLatexForPreview = (latex: string) => {
         if (!latex) return '';
         let content = latex;
 
-        // 1. Extraire le contenu entre \begin{document} et \end{document}
+        // ── PHASE 0 : Supprimer tout le préambule LaTeX ──────────────
+        // Supprimer tout ce qui précède \begin{document}
         const docMatch = content.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
         if (docMatch) {
             content = docMatch[1];
+        } else {
+            // Pas de \begin{document} — supprimer quand même le préambule
+            const dcMatch = content.match(/\\documentclass[\s\S]*?(?=\\begin\{document\}|\\section|\\subsection|\\begin\{(?:definition|propriete|exemple|methode|theoreme|remarque|tcolorbox|itemize|enumerate|center|figure|align))/);
+            if (dcMatch) {
+                content = content.substring(dcMatch[0].length);
+            }
         }
 
-        // 2. Nettoyage des commandes LaTeX courantes pour le rendu Markdown
+        // ── PHASE 1 : Supprimer les résidus de préambule ────────────
+        content = content
+            .replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\inputenc\{[^}]*\}/g, '')
+            .replace(/\\fontenc\{[^}]*\}/g, '')
+            .replace(/\\babel\{[^}]*\}/g, '')
+            .replace(/\\geometry\{[^}]*\}/g, '')
+            .replace(/\\pgfplotsset\{[^}]*\}/g, '')
+            .replace(/\\definecolor\{[^}]*\}\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\newcommand\{[^}]*\}(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\renewcommand\{[^}]*\}(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\newtcolorbox\{[^}]*\}(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\titleformat\{[^}]*\}\{[^}]*\}\{[^}]*\}\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\setlength\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\settowidth\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\pagestyle\{[^}]*\}/g, '')
+            .replace(/\\thispagestyle\{[^}]*\}/g, '')
+            .replace(/\\pagebreak/g, '')
+            .replace(/\\linebreak/g, '\n')
+            .replace(/\\columnbreak/g, '')
+            .replace(/\\selectlanguage\{[^}]*\}/g, '')
+            .replace(/\\begin\{document\}/g, '')
+            .replace(/\\end\{document\}/g, '');
+
+        // ── PHASE 2 : Conversion des environnements LaTeX complexes ──
+        // a) Tikzpicture : tkz-tab → <mathtable>, pgfplots → <mathgraph>, autre → placeholder
+        content = content.replace(
+            /\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g,
+            (tikzBlock) => {
+                if (tikzBlock.includes('\\tkzTabInit')) return convertTkzTabToMathtable(tikzBlock);
+                if (tikzBlock.includes('\\begin{axis}')) return convertPgfplotsToMathgraph(tikzBlock);
+                return '\n<div class="preview-figure-placeholder">Figure TikZ</div>\n';
+            }
+        );
+
+        // b) Tabular → HTML <table>
+        content = content.replace(
+            /\\begin\{(?:center\}\s*)?tabular\}\{[^}]*\}[\s\S]*?\\end\{tabular\}(?:\s*\\end\{center\})?/g,
+            (tabBlock) => convertTabularToHtml(tabBlock)
+        );
+
+        // c) Normaliser les <mathtable data='...' /> générés par l'IA
+        content = content.replace(
+            /(<mathtable\s+data=')([\s\S]*?)('\s*\/>)/g,
+            (_match, prefix: string, jsonStr: string, suffix: string) => {
+                try {
+                    const unescaped = jsonStr
+                        .replace(/&#39;/g, "'")
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>');
+                    const data = JSON.parse(unescaped);
+                    if (data.xValues && data.rows) {
+                        const N = data.xValues.length;
+                        for (const row of data.rows) {
+                            if (row.type === 'sign' && row.content.length === 2 * N - 1) {
+                                row.content = row.content.slice(1, -1);
+                            }
+                        }
+                    }
+                    const escaped = JSON.stringify(data).replace(/'/g, '&#39;');
+                    return `${prefix}${escaped}${suffix}`;
+                } catch {
+                    return _match;
+                }
+            }
+        );
+
+        // ── PHASE 3 : En-tête de document \fbox{\parbox{...}{...}} ──
+        {
+            const fboxRegex = /\\fbox\{\\parbox\{[^}]*\}\{/g;
+            let fboxResult = '';
+            let lastIdx = 0;
+            let fboxMatch;
+            while ((fboxMatch = fboxRegex.exec(content)) !== null) {
+                fboxResult += content.substring(lastIdx, fboxMatch.index);
+                const bodyStart = fboxMatch.index + fboxMatch[0].length;
+                let depth = 1;
+                let pos = bodyStart;
+                while (pos < content.length && depth > 0) {
+                    if (content[pos] === '{') depth++;
+                    else if (content[pos] === '}') depth--;
+                    pos++;
+                }
+                if (depth === 0) {
+                    const body = content.substring(bodyStart, pos - 1);
+                    let endPos = pos;
+                    if (endPos < content.length && content[endPos] === '}') endPos++;
+                    const cleaned = body
+                        .replace(/\\centering/g, '')
+                        .replace(/\\Large\s*/g, '')
+                        .replace(/\\large\s*/g, '')
+                        .replace(/\\textwidth/g, '')
+                        .replace(/\\\\?\[[\d.]+\s*(?:pt|cm|mm|em|ex)\]/g, '\n')
+                        .replace(/\$[^\$]*\$/g, '')
+                        .replace(/\n{3,}/g, '\n\n')
+                        .trim();
+                    fboxResult += `\n\n<div class="preview-header-box">\n\n${cleaned}\n\n</div>\n\n`;
+                    lastIdx = endPos;
+                } else {
+                    fboxResult += fboxMatch[0];
+                    lastIdx = bodyStart;
+                }
+            }
+            fboxResult += content.substring(lastIdx);
+            content = fboxResult;
+        }
+
+        // ── PHASE 4 : Espacements LaTeX \\<dim> — AVANT la conversion maths ──
+        content = content.replace(/\\\\?\[[\d.]+\s*(?:pt|cm|mm|em|ex)\]/g, '\n');
+
+        // ── PHASE 5 : Supprimer les commandes de formatage brutes ────
+        content = content
+            // Tailles de police
+            .replace(/\\(?:footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, '')
+            // \displaystyle, \textstyle
+            .replace(/\\displaystyle/g, '')
+            .replace(/\\textstyle/g, '')
+            // \left / \right (délimiteurs de taille)
+            .replace(/\\left\(/g, '(')
+            .replace(/\\right\)/g, ')')
+            .replace(/\\left\[/g, '[')
+            .replace(/\\right\]/g, ']')
+            .replace(/\\left\\{/g, '\\{')
+            .replace(/\\right\\}/g, '\\}')
+            .replace(/\\left\|/g, '|')
+            .replace(/\\right\|/g, '|')
+            .replace(/\\left\\lfloor/g, '⌊')
+            .replace(/\\right\\rfloor/g, '⌋')
+            .replace(/\\left\\lceil/g, '⌈')
+            .replace(/\\right\\rceil/g, '⌉')
+            .replace(/\\left\\langle/g, '⟨')
+            .replace(/\\right\\rangle/g, '⟩')
+            // Tailles de délimiteurs \Big, \bigg, etc.
+            .replace(/\\(?:Big|big|Bigg|bigg)[lr]?\b/g, '')
+            // \phantom
+            .replace(/\\phantom\{[^}]*\}/g, '')
+            // \hfill, \hfill\null
+            .replace(/\\hfill(?:\\null)?/g, '')
+            // \color{...} et \color[...]{...}
+            .replace(/\\color(?:\[[^\]]*\])?\{[^}]*\}/g, '')
+            // \boxed{...} → encadré
+            .replace(/\\boxed\{([^}]*)\}/g, '**$1**')
+            // \text{...}, \mathrm{...}, \operatorname{...}, \textup{...}
+            .replace(/\\text\{([^}]*)\}/g, '$1')
+            .replace(/\\mathrm\{([^}]*)\}/g, '$1')
+            .replace(/\\operatorname\{([^}]*)\}/g, '$1')
+            .replace(/\\textup\{([^}]*)\}/g, '$1')
+            .replace(/\\textbf\{([^}]*)\}/g, '**$1**')
+            .replace(/\\textit\{([^}]*)\}/g, '*$1*')
+            .replace(/\\textrm\{([^}]*)\}/g, '$1')
+            .replace(/\\mathbb\{([^}]*)\}/g, '$$$1$$')
+            .replace(/\\mathcal\{([^}]*)\}/g, '$1')
+            .replace(/\\mathbf\{([^}]*)\}/g, '**$1**')
+            .replace(/\\mathit\{([^}]*)\}/g, '*$1*')
+            .replace(/\\boldsymbol\{([^}]*)\}/g, '**$1**')
+            // Espacement mathématique
+            .replace(/\\quad/g, '  ')
+            .replace(/\\qquad/g, '    ')
+            .replace(/\\,/g, ' ')
+            .replace(/\\;/g, ' ')
+            .replace(/\\!/g, '')
+            .replace(/\\>/g, ' ')
+            // \phantom{...}
+            .replace(/\\phantom\{[^}]*\}/g, '')
+            // multicols
+            .replace(/\\begin\{multicols\}\{[^}]*\}/g, '')
+            .replace(/\\end\{multicols\}/g, '')
+            // minipage
+            .replace(/\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\end\{minipage\}/g, '');
+
+        // ── PHASE 6 : Environnements structurels → Markdown/HTML ────
         content = content
             // Titres
-            .replace(/\\section\*?\{([\s\S]*?)\}/g, '# $1')
-            .replace(/\\subsection\*?\{([\s\S]*?)\}/g, '## $1')
-            .replace(/\\subsubsection\*?\{([\s\S]*?)\}/g, '### $1')
-            
-            // Nettoyage de l'en-tête du cours (tcolorbox) pour un joli rendu
+            .replace(/\\section\*?\{([\s\S]*?)\}/g, '\n\n# $1\n\n')
+            .replace(/\\subsection\*?\{([\s\S]*?)\}/g, '\n\n## $1\n\n')
+            .replace(/\\subsubsection\*?\{([\s\S]*?)\}/g, '\n\n### $1\n\n')
+            .replace(/\\paragraph\*?\{([\s\S]*?)\}/g, '\n\n#### $1\n\n')
+
+            // En-tête tcolorbox du cours
             .replace(/\{\\Large\\bfseries\\color\{.*?\}([^{]*?)\}/g, '### $1')
             .replace(/\{\\normalsize([^{]*?)\}/g, '**$1**')
-            .replace(/\\\[0\.3cm\]/g, '')
 
             // Formatage texte
-            .replace(/\\textit\{([\s\S]*?)\}/g, '*$1*')
-            .replace(/\\textbf\{([\s\S]*?)\}/g, '**$1**')
-            .replace(/\\uline\{([\s\S]*?)\}/g, '_$1_')
-            
+            .replace(/\\uline\{([\s\S]*?)\}/g, '<u>$1</u>')
+            .replace(/\\underline\{([\s\S]*?)\}/g, '<u>$1</u>')
+            .replace(/\\emph\{([\s\S]*?)\}/g, '*$1*')
+
             // Listes
-            .replace(/\\begin\{itemize\}/g, '\n')
+            .replace(/\\begin\{itemize\}(\[.*?\])?/g, '\n')
             .replace(/\\end\{itemize\}/g, '\n')
-            .replace(/\\item/g, '- ')
-            .replace(/\\begin\{enumerate\}/g, '\n')
+            .replace(/\\begin\{enumerate\}(\[.*?\])?/g, '\n')
             .replace(/\\end\{enumerate\}/g, '\n')
-            
-            // Environnements spéciaux (Mimimaths style) - Note: on DOIT utiliser 'class' et non 'className' car c'est du raw HTML pour rehype
-            .replace(/\\begin\{definition\}(\[.*?\])?/g, '\n<div class="border-l-4 border-blue-500 bg-blue-500/10 p-4 rounded-r-lg my-4">\n**Définition$1** : ')
-            .replace(/\\end\{definition\}/g, '\n</div>\n')
-            .replace(/\\begin\{propriete\}(\[.*?\])?/g, '\n<div class="border-l-4 border-green-500 bg-green-500/10 p-4 rounded-r-lg my-4">\n**Propriété$1** : ')
-            .replace(/\\end\{propriete\}/g, '\n</div>\n')
-            .replace(/\\begin\{exemple\}(\[.*?\])?/g, '\n<div class="border-l-4 border-orange-500 bg-orange-500/10 p-4 rounded-r-lg my-4">\n**Exemple$1** : ')
-            .replace(/\\end\{exemple\}/g, '\n</div>\n')
-            .replace(/\\begin\{methode\}(\[.*?\])?/g, '\n<div class="border-l-4 border-purple-500 bg-purple-500/10 p-4 rounded-r-lg my-4">\n**Méthode$1** : ')
-            .replace(/\\end\{methode\}/g, '\n</div>\n')
-            .replace(/\\begin\{theoreme\}(\[.*?\])?/g, '\n<div class="border-l-4 border-emerald-600 bg-emerald-600/10 p-4 rounded-r-lg my-4">\n**Théorème$1** : ')
-            .replace(/\\end\{theoreme\}/g, '\n</div>\n')
-            .replace(/\\begin\{tcolorbox\}(\[.*?\])?/g, '\n<div class="border-2 border-indigo-500/30 p-4 rounded-xl my-4 bg-indigo-500/5">\n')
-            .replace(/\\end\{tcolorbox\}/g, '\n</div>\n')
-            
-            // Mathématiques complexes (Align, etc.)
-            .replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (match, p1) => `\n$$\n\\begin{aligned}${p1}\\end{aligned}\n$$\n`)
+            .replace(/\\item\s*/g, '- ')
+
+            // Environnements spéciaux (encadrés colorés)
+            .replace(/\\begin\{definition\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-definition">\n\n**Définition$1** :\n\n')
+            .replace(/\\end\{definition\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{propriete\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-propriete">\n\n**Propriété$1** :\n\n')
+            .replace(/\\end\{propriete\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{exemple\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-exemple">\n\n**Exemple$1** :\n\n')
+            .replace(/\\end\{exemple\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{methode\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-methode">\n\n**Méthode$1** :\n\n')
+            .replace(/\\end\{methode\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{theoreme\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-theoreme">\n\n**Théorème$1** :\n\n')
+            .replace(/\\end\{theoreme\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{remarque\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-remarque">\n\n**Remarque$1** :\n\n')
+            .replace(/\\end\{remarque\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{tcolorbox\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{tcolorbox\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{encadre\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{encadre\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{preuve\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-preuve">\n\n**Preuve$1** :\n\n')
+            .replace(/\\end\{preuve\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{demonstration\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-preuve">\n\n**Démonstration$1** :\n\n')
+            .replace(/\\end\{demonstration\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{corollaire\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-propriete">\n\n**Corollaire$1** :\n\n')
+            .replace(/\\end\{corollaire\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{lemme\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-definition">\n\n**Lemme$1** :\n\n')
+            .replace(/\\end\{lemme\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{notation\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-remarque">\n\n**Notation$1** :\n\n')
+            .replace(/\\end\{notation\}/g, '\n\n</div>\n\n');
+
+        // ── PHASE 7 : Mathématiques ─────────────────────────────────
+        content = content
+            // \begin{cases} → block math
+            .replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (match, p1) => `$$\n\\begin{cases}${p1}\\end{cases}\n$$\n`)
+            // \begin{align*} → aligned math
+            .replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (_match, p1) => `$$\n\\begin{aligned}${p1}\\end{aligned}\n$$\n`)
+            // \begin{equation*} → block math
             .replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, '\n$$\n$1\n$$\n')
+            // \begin{gather*} → block math
+            .replace(/\\begin\{gather\*?\}([\s\S]*?)\\end\{gather\*?\}/g, (_match, p1) => `$$\n\\begin{gathered}${p1}\\end{gathered}\n$$\n`)
+            // \begin{array}{...} → matrix
+            .replace(/\\begin\{array\}\{[^}]*\}([\s\S]*?)\\end\{array\}/g, (_match, p1) => `$$\n\\begin{matrix}${p1}\\end{matrix}\n$$\n`)
+            // \begin{pmatrix}, \begin{bmatrix}, \begin{vmatrix}
+            .replace(/\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g, (_match, p1) => `$$\n\\begin{pmatrix}${p1}\\end{pmatrix}\n$$\n`)
+            .replace(/\\begin\{bmatrix\}([\s\S]*?)\\end\{bmatrix\}/g, (_match, p1) => `$$\n\\begin{bmatrix}${p1}\\end{bmatrix}\n$$\n`)
+            .replace(/\\begin\{vmatrix\}([\s\S]*?)\\end\{vmatrix\}/g, (_match, p1) => `$$\n\\begin{vmatrix}${p1}\\end{vmatrix}\n$$\n`)
+            // \[...\] → block math
             .replace(/\\\[([\s\S]*?)\\\]/g, '\n$$\n$1\n$$\n')
-            .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$') // On force le mode math pour éviter les textes bruts
-            
-            // Nettoyage final des commandes typeset
-            .replace(/\\reponse/g, '\n\n> ✍️ **Cadre de réponse attendu**\n\n')
-            .replace(/\\vspace\{.*?\}/g, '\n')
-            .replace(/\\hspace\{.*?\}/g, ' ')
+            // \(...\) → inline math
+            .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+
+        // ── PHASE 8 : Nettoyage final ───────────────────────────────
+        content = content
+            // \reponse → placeholder
+            .replace(/\\reponse/g, '\n\n> **Cadre de réponse**\n\n')
+            // Espacements
+            .replace(/\\vspace\*?\{.*?\}/g, '\n')
+            .replace(/\\hspace\*?\{.*?\}/g, ' ')
             .replace(/\\newline/g, '\n')
-            .replace(/%[^\n]*/g, ''); // Supprimer les commentaires
+            .replace(/\\newpage/g, '\n---\n')
+            .replace(/\\par\b/g, '\n\n')
+            .replace(/\\medskip/g, '\n')
+            .replace(/\\bigskip/g, '\n')
+            .replace(/\\smallskip/g, '\n')
+            .replace(/\\setcounter\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\stepcounter\{[^}]*\}/g, '')
+            .replace(/\\noindent/g, '')
+            .replace(/\\indent/g, '')
+            // center
+            .replace(/\\begin\{center\}\s*\\end\{center\}/g, '')
+            .replace(/\\begin\{center\}\s*/g, '\n\n<div style="text-align:center">\n\n')
+            .replace(/\\end\{center\}/g, '\n\n</div>\n\n')
+            // Commentaires LaTeX
+            .replace(/%[^\n]*/g, '')
+            // Espacements résiduels
+            .replace(/\\{1,3}\[\d+(?:\.\d+)?\s*(?:pt|cm|mm|em|ex)\]/g, '\n')
+            // fbox/parbox résiduels
+            .replace(/\\fbox\{[\s\S]*?\}/g, (m) => m.replace(/\\fbox\{|\\parbox\{[^}]*\}\{|\\centering|\\textwidth|\\Large\s*|\\large\s*/g, '').replace(/\{|\}/g, ''))
+            // \  (backslash+espace = espace insécable LaTeX)
+            .replace(/\\ /g, ' ')
+            // Nettoyer les doubles accolades résiduelles
+            .replace(/\}\}/g, '}')
+            // Nettoyer les lignes vides excessives
+            .replace(/\n{4,}/g, '\n\n\n');
 
         return content;
     };
@@ -429,7 +652,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                 onClick={handleDownload}
                                 className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-cyan-400 hover:bg-cyan-500/10 transition-all"
                             >
-                                ⬇ {isInteractif ? '.html' : '.tex'}
+                                ⬇ {isHtmlContent ? '.html' : '.tex'}
                             </button>
                             <button
                                 onClick={handleSaveDraft}
@@ -450,7 +673,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             {/* ── ZONE PRINCIPALE ────────────────────────────── */}
             <div className="flex-1 overflow-hidden flex">
                 {/* Chat messages */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${showPreview ? 'w-1/3' : 'w-full'}`}>
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${showPreview ? 'w-2/5' : 'w-full'}`}>
                     <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 text-center">
@@ -540,44 +763,70 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     </div>
                 </div>
 
-                {/* Dual Preview panel (Code + Rendered) */}
+                {/* Preview panel with Tabs */}
                 {showPreview && currentContent && (
-                    <div className="w-2/3 flex flex-col border-l border-white/5 bg-slate-950/20 overflow-hidden">
-                        {/* Header Tabs/Labels */}
-                        <div className="shrink-0 flex items-center bg-black/20 border-b border-white/5">
-                            <div className="flex-1 flex border-r border-white/5 overflow-hidden">
-                                <div className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/[0.02]">
-                                    {isInteractif ? 'Code Source HTML' : 'Code Source LaTeX'}
-                                </div>
-                            </div>
-                            <div className="flex-1 px-4 py-2 text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest bg-emerald-500/5">
-                                Rendu Pédagogique Mimimaths
-                            </div>
+                    <div className="w-3/5 flex flex-col border-l border-white/5 bg-slate-950/20 overflow-hidden">
+                        {/* Tab Header */}
+                        <div className="shrink-0 flex items-center bg-black/30 border-b border-white/5">
+                            <button
+                                onClick={() => setPreviewTab('render')}
+                                className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                    previewTab === 'render'
+                                        ? 'text-emerald-400 bg-emerald-500/10 border-b-2 border-emerald-400'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                }`}
+                            >
+                                <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                                Apercu Rendu
+                            </button>
+                            <button
+                                onClick={() => setPreviewTab('code')}
+                                className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                    previewTab === 'code'
+                                        ? 'text-amber-400 bg-amber-500/10 border-b-2 border-amber-400'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                }`}
+                            >
+                                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                                {isHtmlContent ? 'Source HTML' : 'Source LaTeX'}
+                            </button>
+                            {previewTab === 'code' && (
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(currentContent)}
+                                    className="ml-auto mr-3 px-2.5 py-1 rounded text-[10px] text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-all"
+                                    title="Copier le code"
+                                >
+                                    Copier
+                                </button>
+                            )}
                         </div>
 
-                        {/* Content Area - Side by Side or Stacked */}
-                        <div className="flex-1 flex overflow-hidden">
-                            {/* Left part: Code */}
-                            <div className="flex-1 overflow-y-auto p-4 border-r border-white/5 custom-scrollbar bg-black/20">
-                                <pre className="text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">
-                                    {currentContent}
-                                </pre>
-                            </div>
-
-                            {/* Right part: Rendered Visual */}
-                            <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
-                                <div className="prose prose-slate max-w-none text-slate-900 math-rendered">
-                                    {isInteractif ? (
-                                        <iframe
-                                            srcDoc={currentContent}
-                                            className="w-full h-full min-h-[800px] border-0"
-                                            title="Aperçu HTML"
-                                        />
-                                    ) : (
-                                        renderContent(cleanLatexForPreview(currentContent))
-                                    )}
+                        {/* Tab Content */}
+                        <div className="flex-1 overflow-hidden">
+                            {previewTab === 'render' && (
+                                <div className="h-full overflow-y-auto bg-white custom-scrollbar">
+                                    <div className="preview-rendered p-8 max-w-none">
+                                        {isHtmlContent ? (
+                                            <iframe
+                                                srcDoc={currentContent}
+                                                className="w-full border-0"
+                                                style={{ minHeight: '800px' }}
+                                                title="Apercu HTML"
+                                                sandbox="allow-scripts allow-same-origin"
+                                            />
+                                        ) : (
+                                            renderContent(cleanLatexForPreview(currentContent))
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+                            {previewTab === 'code' && (
+                                <div className="h-full overflow-y-auto bg-[#0f172a] custom-scrollbar">
+                                    <pre className="preview-code-panel">
+                                        {currentContent}
+                                    </pre>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

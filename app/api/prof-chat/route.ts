@@ -4,6 +4,7 @@ import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 import { sanitizeRagContext } from '@/lib/api-auth';
+import { trackAIUsage } from '@/lib/ai-usage-tracker';
 
 export const runtime = 'edge';
 
@@ -845,6 +846,27 @@ RÈGLES :
 }
 
 // ─────────────────────────────────────────────────────────────
+// HELPERS — Backoff exponentiel pour le fallback IA
+// ─────────────────────────────────────────────────────────────
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Attente exponentielle entre les tentatives de fallback IA.
+ * Base 1s, plafond 8s, jitter aléatoire ±20%.
+ */
+async function backoffDelay(attempt: number): Promise<void> {
+    const baseMs = 1000;
+    const maxMs = 8000;
+    const delay = Math.min(baseMs * Math.pow(2, attempt), maxMs);
+    const jitter = delay * (0.8 + Math.random() * 0.4); // ±20%
+    console.log(`[Prof-Chat] ⏳ Backoff attempt ${attempt + 1}: ${Math.round(jitter)}ms`);
+    await sleep(jitter);
+}
+
+// ─────────────────────────────────────────────────────────────
 // STREAMING SSE — Parseur générique (OpenAI & DeepSeek)
 // ─────────────────────────────────────────────────────────────
 
@@ -996,10 +1018,13 @@ export async function POST(request: NextRequest) {
                     console.log(`[Prof-Chat] 📎 Contenus de fichiers joints avec anti-refus (${allFilesText.length} caractères)`);
                 }
 
-                enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (la balise <!DOCTYPE html> ou \\documentclass). Le système frontend va planter si tu écris du texte normal avant !
+                enrichedContent += `\n\n⛔ RÈGLE VITALE POUR CETTE GÉNÉRATION : AUCUNE INTRODUCTION, AUCUNE EXPLICATION (ex: "Je vais générer le fichier", "Veuillez patienter"). TU DOIS COMMENCER TA RÉPONSE IMMÉDIATEMENT PAR LE CODE ATTENDU (${context.resource_type === 'interactif' ? 'la balise <!DOCTYPE html>' : 'la balise \\documentclass'}). Le système frontend va planter si tu écris du texte normal avant !
 ⛔ RÈGLE ANTI-PARESSE ABSOLUE : IL T'EST STRICTEMENT INTERDIT d'utiliser des commentaires comme "<!-- More questions here -->" ou "// More answers here". Tu as un crédit de 32000 tokens ! TU DOIS ABSOLUMENT TAPER CHAQUE QUESTION de la première à la dernière, y compris si on te demande 20 questions. L'application VA CRASHER si tu coupes le code. NE FAIS AUCUN RACCOURCI. SI LE PROFESSEUR DEMANDE 20 QUESTIONS, TU EN GÉNÈRES 20 — PAS 10, PAS 15.
-✅ OBLIGATION DE FORMATAGE: Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions, méthodes et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras markdown (ex: **Propriété**)! C'est CRUCIAL pour le rendu visuel du site. Ton code doit être 100% LaTeX.
-⛔ INTERDICTION DE TEXTE POST-CODE : IL EST STRICTEMENT INTERDIT de rajouter une "version Markdown" ou de discuter en dessous de ton \`\\end{document}\`. TU NE DOIS GÉNÉRER QUE LE CODE LATEX COMPILABLE ET RIEN D'AUTRE ! Tout texte après la balise de fin corrompra le téléchargement du professeur.`;
+${context.resource_type === 'interactif'
+    ? `⛔ RÈGLE ABSOLUE POUR LES INTERACTIFS : TU DOIS GÉNÉRER UNIQUEMENT DU HTML INTERACTIF AVEC KATEX — JAMAIS DE LATEX ! Pas de \\documentclass, pas de \\begin{document}, pas d'environnements LaTeX. Le résultat doit être un fichier HTML COMPLET et AUTONOME avec des <input>, des boutons, du JavaScript pour la validation, et des formules en $$...$$ pour KaTeX.`
+    : `✅ OBLIGATION DE FORMATAGE: Tu DOIS OBLIGATOIREMENT encadrer TOUTES les propriétés, définitions, méthodes et théorèmes avec les environnements tcolorbox (\`\\begin{propriete}\`, \`\\begin{definition}\`, \`\\begin{exemple}\`, etc.). NE LES REMPLACE PAS par du gras markdown (ex: **Propriété**)! C'est CRUCIAL pour le rendu visuel du site. Ton code doit être 100% LaTeX.
+⛔ INTERDICTION DE TEXTE POST-CODE : IL EST STRICTEMENT INTERDIT de rajouter une "version Markdown" ou de discuter en dessous de ton \`\\end{document}\`. TU NE DOIS GÉNÉRER QUE LE CODE LATEX COMPILABLE ET RIEN D'AUTRE ! Tout texte après la balise de fin corrompra le téléchargement du professeur.`
+}`;
 
                 return {
                     ...m,
@@ -1017,64 +1042,27 @@ export async function POST(request: NextRequest) {
             })),
         ];
 
-        // ── ÉTAPE 3 : Streaming direct — DeepSeek-R1 (principal) ou GPT-4o (fallback)
-        // Le pipeline 2 passes causait des 504 sur Vercel (timeout).
+        // ── ÉTAPE 3 : Streaming direct — Claude 4.6 (principal) → GPT-4o → DeepSeek V3
         // On stream directement la réponse au client pour un TTFB rapide.
 
         const anthropicKey = process.env.ANTHROPIC_API_KEY;
         const deepseekKey = process.env.DEEPSEEK_API_KEY;
         const openaiKey = process.env.OPENAI_API_KEY;
 
-        if (!deepseekKey && !openaiKey && !anthropicKey) {
+        if (!anthropicKey && !openaiKey && !deepseekKey) {
             return new Response(
-                JSON.stringify({ error: 'Aucune clé API configurée (ANTHROPIC_API_KEY, DEEPSEEK_API_KEY ou OPENAI_API_KEY)' }),
+                JSON.stringify({ error: 'Aucune clé API configurée (ANTHROPIC_API_KEY, OPENAI_API_KEY ou DEEPSEEK_API_KEY)' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // ── TENTATIVE 0 : GPT-4o en streaming direct ─────────────
-        if (openaiKey) {
-            try {
-                console.log('[Prof-Chat] 🧠 GPT-4o : streaming direct au client...');
-                const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${openaiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o',
-                        messages: apiMessages,
-                        stream: true,
-                        temperature: 0.4,
-                        max_tokens: 16384,
-                    }),
-                });
-
-                if (gptResponse.ok) {
-                    console.log('[Prof-Chat] ✅ GPT-4o connecté — streaming...');
-                    const stream = createSSEStream(gptResponse, 'GPT-4o');
-                    return new Response(stream, {
-                        headers: {
-                            'Content-Type': 'text/plain; charset=utf-8',
-                            'Transfer-Encoding': 'chunked',
-                            'X-AI-Provider': 'GPT-4o',
-                        },
-                    });
-                } else {
-                    const errText = await gptResponse.text();
-                    console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
-                }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
-            }
-        }
-
-        // ── TENTATIVE 1 : Claude 4.6 en streaming direct ─────────────
+        // ── TENTATIVE 0 : Claude Sonnet 4.6 en streaming direct (PRINCIPAL) ─────
+        const trackCtx = { level_label: context.level_label, resource_type: context.resource_type };
         if (anthropicKey) {
+            const t0 = Date.now();
             try {
-                console.log('[Prof-Chat] 🧠 Claude 4.6 : streaming direct au client...');
-                const anthropic = new Anthropic({ 
+                console.log('[Prof-Chat] 🧠 Claude Sonnet 4.6 : streaming direct au client...');
+                const anthropic = new Anthropic({
                     apiKey: anthropicKey,
                     defaultHeaders: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' }
                 });
@@ -1082,7 +1070,7 @@ export async function POST(request: NextRequest) {
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
                 const stream = await anthropic.messages.create({
-                    max_tokens: 16384,
+                    max_tokens: 32000,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
                     system: systemPrompt,
@@ -1092,6 +1080,7 @@ export async function POST(request: NextRequest) {
 
                 clearTimeout(connectTimeout);
                 console.log('[Prof-Chat] ✅ Claude connecté — streaming...');
+                trackAIUsage({ provider: 'Claude', model: 'claude-sonnet-4-6', route: '/api/prof-chat', success: true, latencyMs: Date.now() - t0, ...trackCtx });
 
                 const responseStream = new ReadableStream({
                     async start(controller) {
@@ -1122,17 +1111,59 @@ export async function POST(request: NextRequest) {
                 });
             } catch (err: any) {
                 console.warn(`[Prof-Chat] ⚠️ Claude error: ${err.message}`);
+                trackAIUsage({ provider: 'Claude', model: 'claude-sonnet-4-6', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
+                await backoffDelay(0);
             }
         }
 
-
-
-        // ── TENTATIVE 2 : DeepSeek V3 en fallback ──────────
-        // Note: On utilise deepseek-chat (V3) au lieu de deepseek-reasoner (R1)
-        // car R1 a une phase de raisonnement silencieuse (~60s) qui cause des timeouts.
-        if (deepseekKey) {
+        // ── TENTATIVE 1 : GPT-4o en fallback ─────────────
+        if (openaiKey) {
+            const t0 = Date.now();
             try {
-                console.log('[Prof-Chat] 🔄 Fallback — DeepSeek V3 : streaming direct...');
+                console.log('[Prof-Chat] 🔄 Fallback — GPT-4o : streaming direct...');
+                const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${openaiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: apiMessages,
+                        stream: true,
+                        temperature: 0.3,
+                        max_tokens: 16384,
+                    }),
+                });
+
+                if (gptResponse.ok) {
+                    console.log('[Prof-Chat] ✅ GPT-4o connecté — streaming...');
+                    trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: true, latencyMs: Date.now() - t0, ...trackCtx });
+                    const stream = createSSEStream(gptResponse, 'GPT-4o');
+                    return new Response(stream, {
+                        headers: {
+                            'Content-Type': 'text/plain; charset=utf-8',
+                            'Transfer-Encoding': 'chunked',
+                            'X-AI-Provider': 'GPT-4o',
+                        },
+                    });
+                } else {
+                    const errText = await gptResponse.text();
+                    console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
+                    trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: `HTTP ${gptResponse.status}`, ...trackCtx });
+                }
+            } catch (err: any) {
+                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
+                trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
+                await backoffDelay(1);
+            }
+        }
+
+        // ── TENTATIVE 2 : DeepSeek V3 en dernier recours ──────────
+        if (deepseekKey) {
+            const t0 = Date.now();
+            try {
+                console.log('[Prof-Chat] 🔄 Dernier recours — DeepSeek V3 : streaming direct...');
                 const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -1150,6 +1181,7 @@ export async function POST(request: NextRequest) {
 
                 if (dsResponse.ok) {
                     console.log('[Prof-Chat] ✅ DeepSeek V3 connecté — streaming...');
+                    trackAIUsage({ provider: 'DeepSeek', model: 'deepseek-chat', route: '/api/prof-chat', success: true, latencyMs: Date.now() - t0, ...trackCtx });
                     const stream = createSSEStream(dsResponse, 'DeepSeek-V3');
                     return new Response(stream, {
                         headers: {
@@ -1161,6 +1193,7 @@ export async function POST(request: NextRequest) {
                 }
             } catch (err: any) {
                 console.warn(`[Prof-Chat] ⚠️ DeepSeek error: ${err.message}`);
+                trackAIUsage({ provider: 'DeepSeek', model: 'deepseek-chat', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
             }
         }
 

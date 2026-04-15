@@ -16,6 +16,8 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 import { fixLatexContent } from '@/lib/latex-fixer';
 
 
@@ -227,7 +229,7 @@ export function useFigureRenderer() {
                                     {geoComputed.map((r, i) => (
                                         <div key={i} className={`py-1 ${i === 0 ? 'text-base' : 'text-sm opacity-80'}`}
                                             style={{ borderBottom: i === 0 && geoComputed.length > 1 ? '1px dashed rgba(139,92,246,0.2)' : 'none', paddingBottom: i === 0 ? '6px' : '2px', marginBottom: i === 0 ? '4px' : '0' }}>
-                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                                 components={{ p: ({ ...props }) => <p className="text-violet-200 m-0 text-center" {...props} /> }}>
                                                 {`$$${r.label}\\; ${r.latex}${r.approx ? `\\approx ${r.approx}` : ''}$$`}
                                             </ReactMarkdown>
@@ -714,7 +716,7 @@ export function useFigureRenderer() {
                                             style={{ borderBottom: i === 0 && computedResults.length > 1 ? '1px dashed rgba(139,92,246,0.2)' : 'none', paddingBottom: i === 0 ? '6px' : '2px', marginBottom: i === 0 ? '4px' : '0' }}>
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkMath]}
-                                                rehypePlugins={[rehypeKatex]}
+                                                rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                                 components={{ p: ({ ...props }) => <p className="text-violet-200 m-0 text-center" {...props} /> }}
                                             >
                                                 {`$$${r}$$`}
@@ -1258,7 +1260,7 @@ export function useFigureRenderer() {
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
                     <ReactMarkdown
                         remarkPlugins={[remarkMath, remarkGfm]}
-                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                        rehypePlugins={[rehypeKatex, rehypeRaw, [rehypeSanitize, katexSanitizeSchema]]}
                         components={({
                                 p: ({ node, ...props }: any) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
                                 mathtable: ({ node, ...props }: any) => {

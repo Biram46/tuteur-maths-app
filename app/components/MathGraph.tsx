@@ -6,6 +6,8 @@ import { evalAt } from '@/lib/math-engine/expression-parser';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 
 /**
  * Moteur de Graphique Mathématique Professionnel "Quantum Graph"
@@ -895,7 +897,7 @@ export default function MathGraph({
                         color: 'white', fontSize: dimensions.width < 400 ? 13 : 16, fontWeight: 'bold',
                         textShadow: '0px 0px 4px #020617'
                     }}>
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                             components={{ p: ({ ...props }) => <p style={{ margin: 0 }} {...props} /> }}>
                             {title.includes('$') || title.includes('\\') 
                                 ? `$$${title.replace(/\\$/g, '').replace(/(\blog\()|(\bsqrt\()|(\bpi\b)/g, (m) => m === 'log(' ? '\\ln(' : m === 'sqrt(' ? '\\sqrt{' : '\\pi ')}$$` 

@@ -444,6 +444,225 @@ svg foreignObject .katex * {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   PROF CHATBOT — Professional Preview Panel Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Header box for documents */
+.preview-header-box {
+    border: 2px solid #818cf8;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04));
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    margin: 1.5rem 0;
+    text-align: center;
+    font-weight: 600;
+    color: #312e81;
+}
+
+/* Colored boxes for definitions, properties, etc. */
+.preview-box {
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    border-left-width: 4px;
+}
+.preview-box-definition {
+    border-left-color: #3b82f6;
+    background: #eff6ff;
+}
+.preview-box-propriete {
+    border-left-color: #22c55e;
+    background: #f0fdf4;
+}
+.preview-box-exemple {
+    border-left-color: #f97316;
+    background: #fff7ed;
+}
+.preview-box-methode {
+    border-left-color: #a855f7;
+    background: #faf5ff;
+}
+.preview-box-theoreme {
+    border-left-color: #059669;
+    background: #ecfdf5;
+}
+.preview-box-remarque {
+    border-left-color: #6b7280;
+    background: #f9fafb;
+}
+.preview-box-tcolorbox {
+    border: 2px solid #a5b4fc;
+    background: #eef2ff;
+    border-radius: 0.75rem;
+}
+.preview-box-preuve {
+    border-left-color: #6366f1;
+    background: #eef2ff;
+}
+
+/* Figure placeholder */
+.preview-figure-placeholder {
+    border-left: 4px solid #f59e0b;
+    background: #fffbeb;
+    padding: 0.75rem 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+    color: #92400e;
+}
+
+/* Rendered preview content (white background) */
+.preview-rendered {
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.8;
+}
+.preview-rendered > div:first-child {
+    /* Remove extra top margin from first child */
+    margin-top: 0;
+}
+.preview-rendered p {
+    color: #1e293b;
+    margin-bottom: 1em;
+    line-height: 1.75;
+}
+.preview-rendered p:last-child {
+    margin-bottom: 0;
+}
+.preview-rendered strong,
+.preview-rendered b {
+    color: #0f172a;
+    font-weight: 700;
+}
+.preview-rendered em,
+.preview-rendered i {
+    color: #475569;
+}
+.preview-rendered h1 {
+    font-size: 1.5em;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 1.5em 0 0.5em;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.3em;
+}
+.preview-rendered h2 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 1.25em 0 0.4em;
+}
+.preview-rendered h3 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #334155;
+    margin: 1em 0 0.3em;
+}
+.preview-rendered h4 {
+    font-size: 1em;
+    font-weight: 700;
+    color: #475569;
+    margin: 0.75em 0 0.3em;
+}
+.preview-rendered ul,
+.preview-rendered ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+    color: #1e293b;
+}
+.preview-rendered ul {
+    list-style-type: disc;
+}
+.preview-rendered ol {
+    list-style-type: decimal;
+}
+.preview-rendered li {
+    color: #1e293b;
+    margin-bottom: 0.2em;
+}
+.preview-rendered li::marker {
+    color: #6366f1;
+}
+.preview-rendered blockquote {
+    border-left: 3px solid #6366f1;
+    padding: 0.75rem 1rem;
+    margin: 1em 0;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+.preview-rendered hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 1.5em 0;
+}
+.preview-rendered code {
+    color: #7c3aed !important;
+    background: #f5f3ff !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+.preview-rendered pre {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px;
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+}
+.preview-rendered pre code {
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    padding: 0;
+}
+.preview-rendered a {
+    color: #4f46e5 !important;
+    text-decoration: underline;
+}
+.preview-rendered table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+.preview-rendered th,
+.preview-rendered td {
+    border: 1px solid #e2e8f0;
+    padding: 0.5em 0.75em;
+    color: #1e293b;
+}
+.preview-rendered th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #0f172a;
+}
+/* KaTeX in preview — dark text on white bg */
+.preview-rendered .katex {
+    color: #1e293b !important;
+    font-size: 1.08em;
+}
+.preview-rendered .katex-display {
+    color: #1e293b !important;
+    margin: 1.2em 0;
+    font-size: 1.15em;
+}
+/* Code source panel styling */
+.preview-code-panel {
+    background: #0f172a;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    tab-size: 2;
+    border-radius: 0;
+    overflow-x: auto;
+    padding: 1.25rem;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    CHAT MESSAGES — Typography & Visibility in Dark Mode
    Replaces Tailwind prose classes (oklch color issues in TWv4)
    ═══════════════════════════════════════════════════════════════ */

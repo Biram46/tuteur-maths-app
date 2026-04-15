@@ -19,6 +19,8 @@ import type {
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeSanitize from 'rehype-sanitize';
+import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 
 // ─── Re-exports pour compatibilité ──────────────────────────────────────────
 export type { GeoPoint, GeoSegment, GeoLine, GeoCircle };
@@ -668,7 +670,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                     color: 'rgba(148,163,184,0.85)', fontSize: 13, fontWeight: 600,
                     textShadow: '0px 0px 4px #020617'
                 }}>
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                         components={{ p: ({ ...props }) => <p style={{ margin: 0 }} {...props} /> }}>
                         {scene.title.includes('$') || scene.title.includes('\\') 
                             ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 
@@ -780,7 +782,7 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
                         {!scene.title ? 'Figure géométrique' : (
-                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                 components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
                                 {scene.title.includes('$') || scene.title.includes('\\') 
                                     ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 

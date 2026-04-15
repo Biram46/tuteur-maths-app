@@ -190,7 +190,7 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
 
             {/* ── VUE CHATBOT ───────────────────────────────────── */}
             {viewMode === 'chat' && profContext && sequenceId && (
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 340px)', minHeight: '500px' }}>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 280px)', minHeight: '500px' }}>
                     <ProfChatbot
                         context={profContext}
                         sequenceId={sequenceId}
