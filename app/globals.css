@@ -981,8 +981,13 @@ svg foreignObject .katex * {
 }
 
 /* Cacher le fallback MathML (lecteurs d'écran) pour éviter le doublon visuel */
-.math-prose .katex .katex-mathml {
+.katex .katex-mathml {
   display: none !important;
+  position: absolute !important;
+  clip: rect(1px, 1px, 1px, 1px) !important;
+  height: 1px !important;
+  width: 1px !important;
+  overflow: hidden !important;
 }
 
 /* Correction "Bonne Réponse" — vert plus lisible */
