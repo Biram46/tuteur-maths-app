@@ -1752,8 +1752,8 @@ export function generateRandomQcmSession(numberOfQuestions: number = 12): QcmQue
         catQuestions.sort((a,b) => (b.questionGraphData ? 1 : 0) - (a.questionGraphData ? 1 : 0));
         
         for (let i = 0; i < questionsPerCategory; i++) {
-            // 30% de généré procéduralement, 70% issu de la base fixe (pour favoriser l'apparition des diagrammes en test)
-            if (Math.random() < 0.3 || i >= catQuestions.length) {
+            // 70% de généré procéduralement, 30% issu de la base fixe
+            if (Math.random() < 0.7 || i >= catQuestions.length) {
                 selected.push(generateProceduralQuestion(cat as QcmCategory));
             } else {
                 selected.push(catQuestions[i]);
