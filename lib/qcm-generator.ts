@@ -34,7 +34,7 @@ function genCalcul(): QcmQuestion {
             correct,
             `$${a*a}x^2 + ${b*b}$`,
             `$${a*a}x^2 ${a*b > 0 ? '+' : ''}${a*b}x + ${b*b}$`,
-            `$${2*a}x^2 ${2*a*b > 0 ? '+' : ''}${2*a*b}x + ${b*b}$`
+            `$${a}x^2 ${2*a*b > 0 ? '+' : ''}${2*a*b}x + ${b*b}$`
         ]);
         return {
             id, category: cat, question, options: opts,

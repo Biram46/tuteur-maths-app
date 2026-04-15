@@ -661,10 +661,9 @@ export default function MathTable({ data, title }: MathTableProps) {
         <div className="w-full overflow-x-auto my-6 custom-scrollbar-horizontal">
             <div style={{ minWidth: `${totalWidth}px` }}>
                 <svg
-                    width="100%"
+                    width={totalWidth}
                     height={totalHeight}
                     viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-                    preserveAspectRatio="xMinYMid meet"
                     style={{ display: 'block', fontFamily: 'serif' }}
                 >
                     {/* ── Marqueurs flèches ── */}

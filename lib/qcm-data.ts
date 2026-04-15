@@ -1728,6 +1728,703 @@ export const qcmDatabase: QcmQuestion[] = [
             "$1$"
         ],
         correctAnswerIndex: 2
+    },
+    // --- SUJET AUTOMATISMES 15/04/2026 ---
+    // Bloc A — Calcul numérique et algébrique
+    {
+        id: "auto-avril26-q1",
+        category: "Calcul numérique et algébrique",
+        question: "Laquelle de ces expressions est égale à $\\dfrac{3}{4} - \\dfrac{1}{6}$ ?",
+        options: [
+            "$\\dfrac{2}{10}$",
+            "$\\dfrac{7}{12}$",
+            "$\\dfrac{1}{3}$",
+            "$\\dfrac{5}{12}$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{3}{4} - \\dfrac{1}{6} = \\dfrac{9}{12} - \\dfrac{2}{12} = \\dfrac{7}{12}$"
+    },
+    {
+        id: "auto-avril26-q2",
+        category: "Calcul numérique et algébrique",
+        question: "On a $2^3 \\times 2^{-5} =$",
+        options: [
+            "$2^{-2}$",
+            "$2^{-15}$",
+            "$4^{-2}$",
+            "$2^{8}$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$2^{3+(-5)} = 2^{-2}$"
+    },
+    {
+        id: "auto-avril26-q3",
+        category: "Calcul numérique et algébrique",
+        question: "Quelle est la forme factorisée de $x^2 - 9$ ?",
+        options: [
+            "$(x-3)^2$",
+            "$(x+3)(x-3)$",
+            "$(x-9)(x+1)$",
+            "$(x+3)^2$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$x^2 - 9 = (x-3)(x+3)$"
+    },
+    // Bloc B — Évolutions et pourcentages
+    {
+        id: "auto-avril26-q4",
+        category: "Évolutions et variations",
+        question: "Augmenter une valeur de $15\\,\\%$ revient à la multiplier par :",
+        options: [
+            "$1{,}015$",
+            "$1{,}15$",
+            "$0{,}85$",
+            "$15$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$+15\\%$ $\\rightarrow$ coefficient multiplicateur $1{,}15$"
+    },
+    {
+        id: "auto-avril26-q5",
+        category: "Évolutions et variations",
+        question: "Un article coûtait $80$\\,€. Son prix augmente de $20\\,\\%$, puis diminue de $20\\,\\%$. Son prix final est :",
+        options: [
+            "$80$\\,€",
+            "$76{,}80$\\,€",
+            "$96$\\,€",
+            "$64$\\,€"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$80 \\times 1{,}2 \\times 0{,}8 = 76{,}80$\\,€"
+    },
+    {
+        id: "auto-avril26-q6",
+        category: "Évolutions et variations",
+        question: "Le taux d'évolution global de deux évolutions successives de $+10\\,\\%$ puis $-10\\,\\%$ est :",
+        options: [
+            "$0\\,\\%$",
+            "$-1\\,\\%$",
+            "$+1\\,\\%$",
+            "$-20\\,\\%$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$1{,}1 \\times 0{,}9 = 0{,}99$ $\\rightarrow$ taux global $-1\\%$"
+    },
+    // Bloc C — Fonctions et représentations
+    {
+        id: "auto-avril26-q7",
+        category: "Fonctions",
+        question: "La fonction $f$ définie par $f(x) = -2x + 5$ est :",
+        options: [
+            "croissante sur $\\mathbb{R}$",
+            "décroissante sur $\\mathbb{R}$",
+            "ni croissante ni décroissante",
+            "paire"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "Coefficient directeur $-2 < 0$ donc $f$ décroissante sur $\\mathbb{R}$"
+    },
+    {
+        id: "auto-avril26-q8",
+        category: "Fonctions",
+        question: "La droite d'équation $y = 3x - 2$ passe par le point :",
+        options: [
+            "$(1\\,;\\,2)$",
+            "$(0\\,;\\,3)$",
+            "$(2\\,;\\,4)$",
+            "$(1\\,;\\,1)$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$f(2) = 3(2) - 2 = 4$ $\\checkmark$"
+    },
+    {
+        id: "auto-avril26-q9",
+        category: "Fonctions",
+        question: "On considère $f(x) = x^2 - 4x + 3$. La valeur de $f(0)$ est :",
+        options: [
+            "$-1$",
+            "$0$",
+            "$3$",
+            "$4$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$f(0) = 0 - 0 + 3 = 3$"
+    },
+    // Bloc D — Probabilités et statistiques
+    {
+        id: "auto-avril26-q10",
+        category: "Statistiques",
+        question: "Une série de 5 valeurs est : $2\\,;\\,5\\,;\\,7\\,;\\,8\\,;\\,3$. Sa moyenne est :",
+        options: [
+            "$5$",
+            "$6$",
+            "$7$",
+            "$4{,}5$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$(2+5+7+8+3) \\div 5 = 25 \\div 5 = 5$"
+    },
+    {
+        id: "auto-avril26-q11",
+        category: "Probabilités",
+        question: "On lance un dé équilibré à 6 faces. La probabilité d'obtenir un nombre pair est :",
+        options: [
+            "$\\dfrac{1}{6}$",
+            "$\\dfrac{1}{3}$",
+            "$\\dfrac{1}{2}$",
+            "$\\dfrac{2}{3}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$P(\\text{pair}) = \\dfrac{3}{6} = \\dfrac{1}{2}$"
+    },
+    {
+        id: "auto-avril26-q12",
+        category: "Probabilités",
+        question: "Dans une classe, $25\\,\\%$ des élèves ont une note supérieure à 15. Sur 32 élèves, combien cela représente-t-il ?",
+        options: [
+            "$6$",
+            "$8$",
+            "$10$",
+            "$12$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$32 \\times 0{,}25 = 8$"
+    },
+    // Bloc E — Formules : isoler une variable
+    {
+        id: "auto-avril26-q13",
+        category: "Calcul numérique et algébrique",
+        question: "La loi des gaz parfaits est $PV = nRT$. Exprimer $T$ en fonction des autres variables :",
+        options: [
+            "$T = PV - nR$",
+            "$T = \\dfrac{nR}{PV}$",
+            "$T = \\dfrac{PV}{nR}$",
+            "$T = \\dfrac{P}{nRV}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$PV = nRT \\Rightarrow T = \\dfrac{PV}{nR}$"
+    },
+    {
+        id: "auto-avril26-q14",
+        category: "Calcul numérique et algébrique",
+        question: "La loi d'Ohm est $U = RI$, avec $I \\neq 0$. Exprimer $R$ :",
+        options: [
+            "$R = UI$",
+            "$R = U - I$",
+            "$R = \\dfrac{I}{U}$",
+            "$R = \\dfrac{U}{I}$"
+        ],
+        correctAnswerIndex: 3,
+        explanation: "$U = RI \\Rightarrow R = \\dfrac{U}{I}$"
+    },
+    {
+        id: "auto-avril26-q15",
+        category: "Calcul numérique et algébrique",
+        question: "La vitesse moyenne est $v = \\dfrac{d}{t}$. Exprimer $d$ en fonction de $v$ et $t$ :",
+        options: [
+            "$d = \\dfrac{v}{t}$",
+            "$d = v + t$",
+            "$d = vt$",
+            "$d = \\dfrac{t}{v}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$v = \\dfrac{d}{t} \\Rightarrow d = vt$"
+    },
+    {
+        id: "auto-avril26-q16",
+        category: "Calcul numérique et algébrique",
+        question: "L'énergie cinétique est $E_c = \\dfrac{1}{2}mv^2$, avec $v \\neq 0$. Exprimer $m$ :",
+        options: [
+            "$m = \\dfrac{2E_c}{v^2}$",
+            "$m = \\dfrac{E_c}{2v^2}$",
+            "$m = 2E_c v^2$",
+            "$m = \\dfrac{v^2}{2E_c}$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$E_c = \\dfrac{1}{2}mv^2 \\Rightarrow m = \\dfrac{2E_c}{v^2}$"
+    },
+    {
+        id: "auto-avril26-q17",
+        category: "Calcul numérique et algébrique",
+        question: "On a $\\Pi = \\dfrac{nRT}{V}$. Exprimer $n$ en fonction des autres variables :",
+        options: [
+            "$n = \\Pi RT - V$",
+            "$n = \\dfrac{\\Pi V}{RT}$",
+            "$n = \\dfrac{RT}{\\Pi V}$",
+            "$n = \\Pi VRT$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\Pi = \\dfrac{nRT}{V} \\Rightarrow n = \\dfrac{\\Pi V}{RT}$"
+    },
+    // Bloc F — Expressions algébriques : réduire / simplifier
+    {
+        id: "auto-avril26-q18",
+        category: "Calcul numérique et algébrique",
+        question: "Réduire l'expression $3x + 2 - 5x + 7$ :",
+        options: [
+            "$-2x + 9$",
+            "$8x + 9$",
+            "$-2x - 5$",
+            "$2x + 9$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$3x - 5x = -2x$ et $2 + 7 = 9$"
+    },
+    {
+        id: "auto-avril26-q19",
+        category: "Calcul numérique et algébrique",
+        question: "Développer et réduire $(x + 3)^2 - (x-1)(x+1)$ :",
+        options: [
+            "$6x + 10$",
+            "$6x + 8$",
+            "$2x^2 + 6x + 8$",
+            "$6x + 9$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$(x^2 + 6x + 9) - (x^2 - 1) = 6x + 10$"
+    },
+    {
+        id: "auto-avril26-q20",
+        category: "Calcul numérique et algébrique",
+        question: "Simplifier $\\dfrac{x^2 - 4}{x - 2}$ pour $x \\neq 2$ :",
+        options: [
+            "$x - 2$",
+            "$x + 2$",
+            "$\\dfrac{x}{2}$",
+            "$x^2 + 2$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{(x-2)(x+2)}{x-2} = x+2$"
+    },
+    {
+        id: "auto-avril26-q21",
+        category: "Calcul numérique et algébrique",
+        question: "Pour $x \\neq 0$ et $y \\neq 0$, simplifier :\n$\\dfrac{x+y}{x} - \\dfrac{(x-y)^2}{xy}$",
+        options: [
+            "$\\dfrac{y^2 + 4xy - x^2}{xy}$",
+            "$\\dfrac{2y^2 + 4xy - x^2}{xy}$",
+            "$\\dfrac{3y - x}{y}$",
+            "$\\dfrac{3x - y}{x}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$\\dfrac{y(x+y) - (x-y)^2}{xy} = \\dfrac{3xy - x^2}{xy} = \\dfrac{3y - x}{y}$"
+    },
+    {
+        id: "auto-avril26-q22",
+        category: "Calcul numérique et algébrique",
+        question: "Développer et réduire $(2x - 1)(3x + 4)$ :",
+        options: [
+            "$6x^2 + 5x - 4$",
+            "$6x^2 - 5x + 4$",
+            "$5x^2 + 5x - 4$",
+            "$6x^2 + 5x + 4$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$6x^2 + 8x - 3x - 4 = 6x^2 + 5x - 4$"
+    },
+    {
+        id: "auto-avril26-q23",
+        category: "Calcul numérique et algébrique",
+        question: "Factoriser $4x^2 - 1$ :",
+        options: [
+            "$(2x - 1)^2$",
+            "$(4x - 1)(x + 1)$",
+            "$(2x - 1)(2x + 1)$",
+            "$2(2x^2 - 1)$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$4x^2 - 1 = (2x)^2 - 1^2 = (2x-1)(2x+1)$"
+    },
+    // --- SUJET QCM 30 QUESTIONS (sujet1.tex) ---
+    {
+        id: "sujet1-q1",
+        category: "Calcul numérique et algébrique",
+        question: "La valeur de $\\dfrac{2}{3} + \\dfrac{5}{6}$ est :",
+        options: [
+            "$\\dfrac{7}{9}$",
+            "$\\dfrac{9}{6}$",
+            "$\\dfrac{3}{2}$",
+            "$\\dfrac{7}{18}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$\\dfrac{2}{3} + \\dfrac{5}{6} = \\dfrac{4}{6} + \\dfrac{5}{6} = \\dfrac{9}{6} = \\dfrac{3}{2}$"
+    },
+    {
+        id: "sujet1-q2",
+        category: "Calcul numérique et algébrique",
+        question: "$(2x - 3)^2$ est égal à :",
+        options: [
+            "$4x^2 - 9$",
+            "$4x^2 - 6x + 9$",
+            "$4x^2 - 12x + 9$",
+            "$4x^2 + 12x + 9$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$(2x-3)^2 = (2x)^2 - 2 \\times 2x \\times 3 + 3^2 = 4x^2 - 12x + 9$"
+    },
+    {
+        id: "sujet1-q3",
+        category: "Calcul numérique et algébrique",
+        question: "La forme factorisée de $x^2 - 25$ est :",
+        options: [
+            "$(x-5)^2$",
+            "$(x+5)^2$",
+            "$(x-25)(x+25)$",
+            "$(x-5)(x+5)$"
+        ],
+        correctAnswerIndex: 3,
+        explanation: "$x^2 - 25 = x^2 - 5^2 = (x-5)(x+5)$"
+    },
+    {
+        id: "sujet1-q4",
+        category: "Calcul numérique et algébrique",
+        question: "L'équation $3x + 2 = 5x - 4$ a pour solution :",
+        options: [
+            "$x = 3$",
+            "$x = -3$",
+            "$x = 1$",
+            "$x = 6$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$3x + 2 = 5x - 4 \\Leftrightarrow 2 + 4 = 5x - 3x \\Leftrightarrow 6 = 2x \\Leftrightarrow x = 3$"
+    },
+    {
+        id: "sujet1-q5",
+        category: "Calcul numérique et algébrique",
+        question: "La solution de $\\dfrac{3}{x} = 6$ est :",
+        options: [
+            "$x = 2$",
+            "$x = \\dfrac{1}{2}$",
+            "$x = 18$",
+            "$x = 0{,}5$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{3}{x} = 6 \\Leftrightarrow 3 = 6x \\Leftrightarrow x = \\dfrac{3}{6} = \\dfrac{1}{2}$"
+    },
+    {
+        id: "sujet1-q6",
+        category: "Fonctions",
+        question: "Le signe de $f(x) = 2x - 6$ pour $x > 3$ est :",
+        options: [
+            "positif",
+            "négatif",
+            "nul",
+            "impossible à déterminer"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$f(x) = 2x - 6 = 2(x - 3)$. Pour $x > 3$, $x - 3 > 0$ donc $f(x) > 0$."
+    },
+    {
+        id: "sujet1-q7",
+        category: "Calcul numérique et algébrique",
+        question: "$10^{-3} \\times 10^5$ est égal à :",
+        options: [
+            "$10^{-15}$",
+            "$10^{-2}$",
+            "$10^{2}$",
+            "$10^{8}$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$10^{-3} \\times 10^5 = 10^{-3+5} = 10^2$"
+    },
+    {
+        id: "sujet1-q8",
+        category: "Évolutions et variations",
+        question: "Augmenter un prix de $10\\,\\%$ revient à le multiplier par :",
+        options: [
+            "$0{,}1$",
+            "$1{,}1$",
+            "$0{,}9$",
+            "$1{,}01$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$+10\\%$ $\\rightarrow$ coefficient multiplicateur $1 + 0{,}1 = 1{,}1$"
+    },
+    {
+        id: "sujet1-q9",
+        category: "Évolutions et variations",
+        question: "Une baisse de $20\\,\\%$ suivie d'une hausse de $20\\,\\%$ correspond à :",
+        options: [
+            "une hausse de $4\\,\\%$",
+            "une baisse de $4\\,\\%$",
+            "aucun changement",
+            "une baisse de $0\\,\\%$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$0{,}8 \\times 1{,}2 = 0{,}96$ $\\rightarrow$ baisse de $4\\,\\%$"
+    },
+    {
+        id: "sujet1-q10",
+        category: "Fonctions",
+        question: "L'image de $2$ par la fonction $f(x) = 3x - 5$ est :",
+        options: [
+            "$1$",
+            "$-1$",
+            "$11$",
+            "$0$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$f(2) = 3 \\times 2 - 5 = 6 - 5 = 1$"
+    },
+    {
+        id: "sujet1-q11",
+        category: "Statistiques",
+        question: "La médiane de la série $3, 7, 8, 10, 12$ est :",
+        options: [
+            "$7$",
+            "$8$",
+            "$9$",
+            "$10$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "La série est déjà ordonnée (5 valeurs). La médiane est la 3ᵉ valeur : $8$."
+    },
+    {
+        id: "sujet1-q12",
+        category: "Probabilités",
+        question: "La probabilité de tirer un as dans un jeu de 32 cartes est :",
+        options: [
+            "$\\dfrac{1}{32}$",
+            "$\\dfrac{4}{32}$",
+            "$\\dfrac{1}{6}$",
+            "$\\dfrac{1}{4}$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "Il y a 4 as dans un jeu de 32 cartes : $P = \\dfrac{4}{32} = \\dfrac{1}{8}$"
+    },
+    {
+        id: "sujet1-q13",
+        category: "Probabilités",
+        question: "Si $P(A) = 0{,}3$, alors $P(\\overline{A})$ vaut :",
+        options: [
+            "$0{,}7$",
+            "$0{,}3$",
+            "$1$",
+            "$0$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$P(\\overline{A}) = 1 - P(A) = 1 - 0{,}3 = 0{,}7$"
+    },
+    {
+        id: "sujet1-q14",
+        category: "Fonctions",
+        question: "La droite d'équation $y = 2x + 1$ a pour coefficient directeur :",
+        options: [
+            "$1$",
+            "$2$",
+            "$x$",
+            "$3$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "Dans $y = ax + b$, le coefficient directeur est $a = 2$."
+    },
+    {
+        id: "sujet1-q15",
+        category: "Calcul numérique et algébrique",
+        question: "$\\dfrac{2}{3} \\times \\dfrac{9}{4}$ est égal à :",
+        options: [
+            "$\\dfrac{18}{12}$",
+            "$\\dfrac{3}{2}$",
+            "$\\dfrac{6}{7}$",
+            "$\\dfrac{11}{7}$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{2}{3} \\times \\dfrac{9}{4} = \\dfrac{18}{12} = \\dfrac{3}{2}$"
+    },
+    {
+        id: "sujet1-q16",
+        category: "Calcul numérique et algébrique",
+        question: "L'équation $x^2 = 16$ a pour solutions :",
+        options: [
+            "$x=4$ seulement",
+            "$x=-4$ seulement",
+            "$x=4$ ou $x=-4$",
+            "$x=8$ ou $x=-8$"
+        ],
+        correctAnswerIndex: 2,
+        explanation: "$x^2 = 16 \\Leftrightarrow x = \\sqrt{16} = 4$ ou $x = -\\sqrt{16} = -4$"
+    },
+    {
+        id: "sujet1-q17",
+        category: "Calcul numérique et algébrique",
+        question: "$-(a - b)$ est égal à :",
+        options: [
+            "$-a - b$",
+            "$b - a$",
+            "$a + b$",
+            "$-a + b$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$-(a - b) = -a + b = b - a$"
+    },
+    {
+        id: "sujet1-q18",
+        category: "Calcul numérique et algébrique",
+        question: "$5$ heures en minutes correspondent à :",
+        options: [
+            "$300$",
+            "$500$",
+            "$60$",
+            "$360$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$5 \\times 60 = 300$ minutes"
+    },
+    {
+        id: "sujet1-q19",
+        category: "Statistiques",
+        question: "La moyenne de $12$, $15$, $18$ est :",
+        options: [
+            "$12$",
+            "$15$",
+            "$18$",
+            "$16$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$\\dfrac{12 + 15 + 18}{3} = \\dfrac{45}{3} = 15$"
+    },
+    {
+        id: "sujet1-q20",
+        category: "Probabilités",
+        question: "$P(A \\cap B) = 0{,}2$ et $P(A) = 0{,}5$, alors $P_A(B)$ vaut :",
+        options: [
+            "$0{,}1$",
+            "$0{,}4$",
+            "$0{,}7$",
+            "$0{,}3$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$P_A(B) = \\dfrac{P(A \\cap B)}{P(A)} = \\dfrac{0{,}2}{0{,}5} = 0{,}4$"
+    },
+    {
+        id: "sujet1-q21",
+        category: "Fonctions",
+        question: "La représentation graphique de $f(x) = 4$ est :",
+        options: [
+            "une droite horizontale",
+            "une droite verticale",
+            "une parabole",
+            "une hyperbole"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$f(x) = 4$ est une fonction constante. Sa représentation est une droite horizontale passant par $y = 4$."
+    },
+    {
+        id: "sujet1-q22",
+        category: "Proportions et pourcentages",
+        question: "$25\\,\\%$ d'une quantité de $200$ euros est :",
+        options: [
+            "$25$",
+            "$50$",
+            "$75$",
+            "$100$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$200 \\times 0{,}25 = 50$"
+    },
+    {
+        id: "sujet1-q23",
+        category: "Calcul numérique et algébrique",
+        question: "$3 \\times 10^2 + 4 \\times 10^1$ est égal à :",
+        options: [
+            "$34$",
+            "$340$",
+            "$304$",
+            "$3004$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$3 \\times 100 + 4 \\times 10 = 300 + 40 = 340$"
+    },
+    {
+        id: "sujet1-q24",
+        category: "Calcul numérique et algébrique",
+        question: "Résoudre $x(x - 3) = 0$ donne :",
+        options: [
+            "$x=0$ ou $x=3$",
+            "$x=0$ ou $x=-3$",
+            "$x=3$ seulement",
+            "$x=0$ seulement"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "Un produit est nul si l'un de ses facteurs est nul : $x = 0$ ou $x - 3 = 0$ soit $x = 3$."
+    },
+    {
+        id: "sujet1-q25",
+        category: "Calcul numérique et algébrique",
+        question: "L'inéquation $-2x + 4 > 0$ a pour solution :",
+        options: [
+            "$x > 2$",
+            "$x < 2$",
+            "$x > -2$",
+            "$x < -2$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$-2x + 4 > 0 \\Leftrightarrow -2x > -4 \\Leftrightarrow x < 2$ (on divise par $-2$, le sens change)."
+    },
+    {
+        id: "sujet1-q26",
+        category: "Calcul numérique et algébrique",
+        question: "Si $v = \\dfrac{d}{t}$, alors $d$ vaut :",
+        options: [
+            "$v \\times t$",
+            "$\\dfrac{v}{t}$",
+            "$\\dfrac{t}{v}$",
+            "$v + t$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$v = \\dfrac{d}{t} \\Leftrightarrow d = v \\times t$"
+    },
+    {
+        id: "sujet1-q27",
+        category: "Statistiques",
+        question: "Dans un diagramme circulaire, $50\\,\\%$ représentent :",
+        options: [
+            "un angle droit",
+            "$180^\\circ$",
+            "$90^\\circ$",
+            "$360^\\circ$"
+        ],
+        correctAnswerIndex: 1,
+        explanation: "$50\\,\\%$ de $360^\\circ = 180^\\circ$"
+    },
+    {
+        id: "sujet1-q28",
+        category: "Calcul numérique et algébrique",
+        question: "$1$ litre en $m^3$ vaut :",
+        options: [
+            "$10^{-3}$",
+            "$10^{3}$",
+            "$1$",
+            "$0{,}1$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "$1$ litre $= 1$ dm³ $= 10^{-3}$ m³"
+    },
+    {
+        id: "sujet1-q29",
+        category: "Fonctions",
+        question: "La fonction affine passant par $(0\\,;\\,1)$ et $(2\\,;\\,5)$ est :",
+        options: [
+            "$y = 2x + 1$",
+            "$y = x + 1$",
+            "$y = 4x + 1$",
+            "$y = 2x - 1$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "Coefficient directeur : $a = \\dfrac{5 - 1}{2 - 0} = 2$. Ordonnée à l'origine : $b = 1$. Donc $y = 2x + 1$."
+    },
+    {
+        id: "sujet1-q30",
+        category: "Évolutions et variations",
+        question: "Le taux réciproque d'une hausse de $25\\,\\%$ est une baisse de :",
+        options: [
+            "$20\\,\\%$",
+            "$25\\,\\%$",
+            "$30\\,\\%$",
+            "$50\\,\\%$"
+        ],
+        correctAnswerIndex: 0,
+        explanation: "CM = $1{,}25$. CM réciproque $= \\dfrac{1}{1{,}25} = 0{,}8$ $\\rightarrow$ baisse de $20\\,\\%$."
     }
 ];
 

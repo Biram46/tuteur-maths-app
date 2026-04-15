@@ -217,8 +217,8 @@ export default function QcmModule({ userName }: { userName: string }) {
                                                 {isCorrect ? '✓' : '✗'}
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Question {idx + 1}</div>
-                                                <div className="text-lg text-slate-100 font-medium prose prose-invert max-w-none math-prose">
+                                                <div className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Question {idx + 1}</div>
+                                                <div className="text-lg text-white font-medium prose prose-invert max-w-none math-prose">
                                                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.question).content}</ReactMarkdown>
                                                 </div>
                                             </div>
@@ -237,35 +237,19 @@ export default function QcmModule({ userName }: { userName: string }) {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                                             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Ton Choix</div>
-                                                <div className="text-slate-200 prose prose-invert math-prose">
+                                                <div className="text-xs text-slate-300 font-bold uppercase tracking-wider mb-2">Ton Choix</div>
+                                                <div className="text-slate-50 prose prose-invert math-prose">
                                                     {hasUserAnswered ? (
-                                                        <>
-                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
-                                                            {q.optionsTableData?.[userAnswerIdx] && (
-                                                                <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
-                                                            )}
-                                                            {q.optionsGraphData?.[userAnswerIdx] && (
-                                                                <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
-                                                            )}
-                                                        </>
+                                                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[userAnswerIdx]).content}</ReactMarkdown>
                                                     ) : <span className="text-slate-500 italic">Aucune réponse</span>}
                                                 </div>
                                             </div>
 
                                             <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
-                                                <div className="text-xs text-green-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse</div>
-                                                <div className="text-green-100 prose prose-invert math-prose">
+                                                <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse</div>
+                                                <div className="text-emerald-200 prose prose-invert math-prose">
                                                     {q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length ? (
-                                                        <>
-                                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
-                                                            {q.optionsTableData?.[q.correctAnswerIndex] && (
-                                                                <div className="mt-4 w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
-                                                            )}
-                                                            {q.optionsGraphData?.[q.correctAnswerIndex] && (
-                                                                <div className="mt-4 w-full max-w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
-                                                            )}
-                                                        </>
+                                                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.options[q.correctAnswerIndex]).content}</ReactMarkdown>
                                                     ) : (
                                                         <span className="text-slate-400 italic">Réponse non disponible</span>
                                                     )}
@@ -273,9 +257,38 @@ export default function QcmModule({ userName }: { userName: string }) {
                                             </div>
                                         </div>
 
+                                        {/* Tableaux d'options en pleine largeur (hors grille) */}
+                                        {(hasUserAnswered && (q.optionsTableData?.[userAnswerIdx] || q.optionsGraphData?.[userAnswerIdx])) ||
+                                         (q.optionsTableData?.[q.correctAnswerIndex] || q.optionsGraphData?.[q.correctAnswerIndex]) ? (
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {hasUserAnswered && (q.optionsTableData?.[userAnswerIdx] || q.optionsGraphData?.[userAnswerIdx]) && (
+                                                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                                        <div className="text-xs text-slate-300 font-bold uppercase tracking-wider mb-2">Ton Choix — Tableau</div>
+                                                        {q.optionsTableData?.[userAnswerIdx] && (
+                                                            <div className="w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[userAnswerIdx]} /></div>
+                                                        )}
+                                                        {q.optionsGraphData?.[userAnswerIdx] && (
+                                                            <div className="mt-2 w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[userAnswerIdx]} /></div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {(q.optionsTableData?.[q.correctAnswerIndex] || q.optionsGraphData?.[q.correctAnswerIndex]) && (
+                                                    <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
+                                                        <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Bonne Réponse — Tableau</div>
+                                                        {q.optionsTableData?.[q.correctAnswerIndex] && (
+                                                            <div className="w-full overflow-x-auto bg-slate-50 p-2 rounded-xl qcm-table-scroll"><MathTable data={q.optionsTableData[q.correctAnswerIndex]} /></div>
+                                                        )}
+                                                        {q.optionsGraphData?.[q.correctAnswerIndex] && (
+                                                            <div className="mt-2 w-full overflow-x-auto"><MathGraph {...q.optionsGraphData[q.correctAnswerIndex]} /></div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : null}
+
                                         {q.explanation && (
-                                            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-100 prose prose-invert math-prose text-sm">
-                                                <span className="font-bold text-blue-400 block mb-1">Explication :</span>
+                                            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sky-200 prose prose-invert math-prose text-sm">
+                                                <span className="font-bold text-sky-300 block mb-1">Explication :</span>
                                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{fixLatexContent(q.explanation).content}</ReactMarkdown>
                                             </div>
                                         )}
@@ -420,6 +433,11 @@ const GlobalStyles = () => (
             width: 100%;
             overflow-x: auto;
             white-space: nowrap;
+        }
+        /* KaTeX hérite de la couleur du parent pour être lisible en correction */
+        .math-prose .katex,
+        .math-prose .katex * {
+            color: inherit !important;
         }
         .qcm-table-scroll {
             -webkit-overflow-scrolling: touch;
