@@ -3,6 +3,22 @@
  * Constructeurs de prompts pour réduire la taille de useMathRouter.
  */
 
+interface SignFactor {
+    type: 'numerator' | 'denominator';
+    label: string;
+    root?: number;
+}
+
+interface SignTableEngineData {
+    factors: SignFactor[];
+    effectiveConst?: number;
+    discriminantSteps?: { factor: string; steps: string[] }[];
+    zeros?: number[];
+    forbiddenValues?: number[];
+    fxValues?: string[];
+    aaaBlock?: string;
+}
+
 import { ChatMessage } from '@/lib/perplexity';
 import { NiveauLycee } from '@/lib/niveaux';
 import { prettifyExpr } from './math-text-utils';
@@ -97,7 +113,7 @@ export function buildNiveauConstraints(exerciceNiveau: string, niveauLabel: stri
  * Construit les instructions détaillées pour forcer l'IA à expliquer
  * correctement le tableau de signes généré.
  */
-export function buildSignTableInstructions(engineData: any, expr: string, tableBlock: string, inputText: string): string {
+export function buildSignTableInstructions(engineData: SignTableEngineData, expr: string, tableBlock: string, inputText: string): string {
     const parts: string[] = [];
     parts.push(`[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] ⚠️ Le tableau de signes de f(x) = ${expr} est DÉJÀ AFFICHÉ au-dessus. NE GÉNÈRE AUCUN tableau.`);
     parts.push(`\n**VOICI LE TABLEAU EXACT GÉNÉRÉ PAR LE MOTEUR (blocs @@@) :**\n${tableBlock}\n`);
@@ -105,8 +121,8 @@ export function buildSignTableInstructions(engineData: any, expr: string, tableB
     // Factorisation SymPy
     if (engineData.factors?.length) {
         let factorizationStr = '';
-        const numFactors = engineData.factors.filter((f: any) => f.type === 'numerator').map((f: any) => f.label);
-        const denFactors = engineData.factors.filter((f: any) => f.type === 'denominator').map((f: any) => f.label);
+        const numFactors = engineData.factors.filter(f => f.type === 'numerator').map(f => f.label);
+        const denFactors = engineData.factors.filter(f => f.type === 'denominator').map(f => f.label);
         const constPart = engineData.effectiveConst && Math.abs(engineData.effectiveConst - 1) > 1e-10 && Math.abs(engineData.effectiveConst + 1) > 1e-10
             ? `${engineData.effectiveConst} × ` : '';
         if (numFactors.length > 0) {

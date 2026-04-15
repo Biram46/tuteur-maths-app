@@ -341,11 +341,30 @@ export interface GraphCurve {
 /**
  * Interface pour l'état du graphique.
  */
+export interface GraphIntersection {
+    x: number;
+    y: number;
+    label: string;
+}
+
+export interface GraphPositionRelative {
+    interval: [number, number];
+    fAbove: boolean;
+}
+
+export interface GraphTangent {
+    x0: number;
+    y0: number;
+    slope: number;
+    equation: string;
+    interval: [number, number];
+}
+
 export interface GraphState {
     curves: GraphCurve[];
-    intersections: any[];
-    positionsRelatives: any[];
-    tangent: any;
+    intersections: GraphIntersection[] | '__COMPUTE__';
+    positionsRelatives: GraphPositionRelative[];
+    tangent: GraphTangent | null;
     title: string;
 }
 

@@ -242,7 +242,7 @@ export function useMathRouter({
                     setIsTalking(true);
 
                     // ── Extraire le domaine (intervalle) s'il est spécifié ──
-                    const vOptions: any = {};
+                    const vOptions: Record<string, unknown> = {};
                     const intMatch = cleanedInput.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
                     if (intMatch) {
                         vOptions.searchDomain = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
@@ -268,8 +268,8 @@ export function useMathRouter({
                                     // Construire un contexte riche avec la factorisation SymPy
                                     const ctxParts: string[] = [];
                                     if (data.factors?.length) {
-                                        const numF = data.factors.filter((f: any) => f.type === 'numerator').map((f: any) => f.label);
-                                        const denF = data.factors.filter((f: any) => f.type === 'denominator').map((f: any) => f.label);
+                                        const numF = data.factors.filter((f: { type: string }) => f.type === 'numerator').map((f: { label: string }) => f.label);
+                                        const denF = data.factors.filter((f: { type: string }) => f.type === 'denominator').map((f: { label: string }) => f.label);
                                         if (numF.length > 0) ctxParts.push(`Factorisation : f(x) = ${data.effectiveConst && data.effectiveConst < -1e-10 ? data.effectiveConst + ' × ' : ''}${numF.join(' × ')}`);
                                         if (denF.length > 0) ctxParts.push(`Dénominateur : ${denF.join(' × ')}`);
                                     }
@@ -317,7 +317,7 @@ export function useMathRouter({
                                     if (data.success && data.aaaBlock) {
                                         signTableBlock = data.aaaBlock.replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
                                         signCtx = `\nInfo : f'(x) = ${derivExprForSympy}` + (data.discriminantSteps?.length
-                                            ? '\n' + data.discriminantSteps.map((s: any) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            ? '\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
                                             : '');
                                     }
                                 }
@@ -339,7 +339,7 @@ export function useMathRouter({
                                     signTableBlock = data.aaaBlock;
                                     signCtx = `\nInfo: tableau de signes de f(x) = ${exprClean} pré-calculé` +
                                         (data.discriminantSteps?.length
-                                            ? '\n' + data.discriminantSteps.map((s: any) => `- Δ de ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            ? '\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `- Δ de ${s.factor}: ${s.steps.join('; ')}`).join('\n')
                                             : '');
                                     console.log(`[ExerciceMode] ✅ Tableau de signes f(x) via ${data.engine || 'moteur'}`);
                                 } else {
@@ -885,7 +885,7 @@ RÈGLES ABSOLUES :
                 .replace(/\s+$/g, '').replace(/[.!?,;]+$/g, '');
 
 
-            let vOptions: any = {};
+            let vOptions: Record<string, unknown> = {};
             const intMatch = inputCleaned.match(/\[\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*\]/);
             if (intMatch) {
                 vOptions.searchDomain = [parseFloat(intMatch[1]), parseFloat(intMatch[2])];
@@ -1123,7 +1123,7 @@ RÈGLES ABSOLUES :
                 // Nettoyage d'expression commun (LaTeX, Unicode, français → mathjs)
 
                 // Charger l'état précédent du graphe
-                let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
+                let graphState: GraphState = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
                 try {
                     const stored = safeLSGet('graphState');
                     if (stored) graphState = JSON.parse(stored);
@@ -1277,7 +1277,7 @@ RÈGLES ABSOLUES :
                             const interceptRound = Math.round((y0 - slope * x0) * 10000) / 10000;
 
                             // S'assurer que la courbe est tracée
-                            if (!graphState.curves.some((c: any) => c.expression === tangExpr)) {
+                            if (!graphState.curves.some(c => c.expression === tangExpr)) {
                                 graphState = {
                                     curves: [{
                                         id: 'curve-0',
@@ -1328,7 +1328,7 @@ RÈGLES ABSOLUES :
                         graphState.intersections = '__COMPUTE__';
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `📊 Recherche des intersections entre ${graphState.curves.map((c: any) => c.name).join(' et ')}. Regarde la fenêtre graphique !`
+                            content: `📊 Recherche des intersections entre ${graphState.curves.map(c => c.name).join(' et ')}. Regarde la fenêtre graphique !`
                         }]);
                     } else {
                         setMessages(prev => [...prev, {
@@ -1449,7 +1449,7 @@ RÈGLES ABSOLUES :
                 }
 
                 // Demander à l'IA d'expliquer
-                const curvesDesc = graphState.curves.map((c: any) => c.name).join(', ');
+                const curvesDesc = graphState.curves.map(c => c.name).join(', ');
                 let aiSystemPrompt = `[SYSTÈME] Un graphique a été ouvert dans une fenêtre séparée avec ${curvesDesc}. Ne génère AUCUN graphique toi-même.`;
 
                 if (wantsResolve) {
