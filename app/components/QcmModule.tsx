@@ -72,13 +72,17 @@ export default function QcmModule({ userName }: { userName: string }) {
         fin = isFinished,
         scr = score
     ) => {
-        localStorage.setItem('qcm_session', JSON.stringify({
-            questions: qs,
-            answers: ans,
-            currentIndex: idx,
-            isFinished: fin,
-            score: scr
-        }));
+        try {
+            localStorage.setItem('qcm_session', JSON.stringify({
+                questions: qs,
+                answers: ans,
+                currentIndex: idx,
+                isFinished: fin,
+                score: scr
+            }));
+        } catch (e) {
+            console.warn('QCM: impossible de sauvegarder la session (quota dépassé ?)', e);
+        }
     };
 
     const handleSelectOption = (idx: number) => {

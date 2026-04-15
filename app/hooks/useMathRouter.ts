@@ -42,9 +42,23 @@ import {
 // Référence globale à la fenêtre géomètre pour éviter les doublons
 let _geoWindowRef: Window | null = null;
 
+//  Helpers localStorage safe ─────
+function safeLSGet(key: string): string | null {
+    try { return localStorage.getItem(key); }
+    catch { return null; }
+}
+function safeLSSet(key: string, value: string): void {
+    try { localStorage.setItem(key, value); }
+    catch (e) { console.warn('localStorage.setItem failed:', e); }
+}
+function safeLSRemove(key: string): void {
+    try { localStorage.removeItem(key); }
+    catch { /* noop */ }
+}
+
 //  Utilitaire local ─────
 
-//  Interface 
+//  Interface
 
 export interface UseMathRouterDeps {
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
@@ -379,7 +393,7 @@ export function useMathRouter({
                                     intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
                                     title: `f(x) = ${prettyName}`,
                                 };
-                                localStorage.setItem('graphState', JSON.stringify(gs));
+                                safeLSSet('graphState', JSON.stringify(gs));
                                 console.log(`[ExerciceMode] 📊 graphState stocké dans localStorage:`, JSON.stringify(gs).substring(0, 200));
                                 // Envoyer via BroadcastChannel
                                 try {
@@ -517,7 +531,7 @@ RÈGLES ABSOLUES :
                                 intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
                                 title: `Courbe de f(x) = ${prettyName}`,
                             };
-                            localStorage.setItem('graphState', JSON.stringify(gs));
+                            safeLSSet('graphState', JSON.stringify(gs));
                             try {
                                 const bch = new BroadcastChannel('mimimaths-graph');
                                 bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
@@ -896,7 +910,7 @@ RÈGLES ABSOLUES :
                             intersections: [] as any[], positionsRelatives: [] as any[], tangent: null,
                             title: `f(x) = ${prettyName}`,
                         };
-                        localStorage.setItem('graphState', JSON.stringify(gs));
+                        safeLSSet('graphState', JSON.stringify(gs));
                         const bch = new BroadcastChannel('mimimaths-graph');
                         bch.postMessage({ type: 'UPDATE_GRAPH', state: gs }); bch.close();
                         try { window.open('/graph', 'mimimaths-graph', 'width=1100,height=700,menubar=no,toolbar=no'); } catch {}
@@ -1111,7 +1125,7 @@ RÈGLES ABSOLUES :
                 // Charger l'état précédent du graphe
                 let graphState: any = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
                 try {
-                    const stored = localStorage.getItem('graphState');
+                    const stored = safeLSGet('graphState');
                     if (stored) graphState = JSON.parse(stored);
                 } catch { /* ignore */ }
 
@@ -1120,7 +1134,7 @@ RÈGLES ABSOLUES :
                 // ═══════════════════════════════════════════════════════
                 if (wantsEffacerGraph) {
                     graphState = { curves: [], intersections: [], positionsRelatives: [], tangent: null, title: '' };
-                    localStorage.setItem('graphState', JSON.stringify(graphState));
+                    safeLSSet('graphState', JSON.stringify(graphState));
                     const ch = new BroadcastChannel('mimimaths-graph');
                     ch.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
                     ch.close();
@@ -1419,7 +1433,7 @@ RÈGLES ABSOLUES :
                 // ═══════════════════════════════════════════════════════
                 // ENVOI AU GRAPHIQUE + IA
                 // ═══════════════════════════════════════════════════════
-                localStorage.setItem('graphState', JSON.stringify(graphState));
+                safeLSSet('graphState', JSON.stringify(graphState));
                 const graphChannel = new BroadcastChannel('mimimaths-graph');
                 graphChannel.postMessage({ type: 'UPDATE_GRAPH', state: graphState });
                 graphChannel.close();
@@ -1487,7 +1501,7 @@ RÈGLES ABSOLUES :
                     try {
                         const keys = Object.keys(localStorage).filter(k => k.startsWith('geo_scene_')).sort();
                         if (keys.length > 0) {
-                            const lastScene = JSON.parse(localStorage.getItem(keys[keys.length - 1]) || '{}');
+                            const lastScene = JSON.parse(safeLSGet(keys[keys.length - 1]) || '{}');
                             if (lastScene.raw) previousGeoBlock = lastScene.raw;
                         }
                     } catch { /* ignore */ }
@@ -1496,7 +1510,7 @@ RÈGLES ABSOLUES :
                     try {
                         Object.keys(localStorage)
                             .filter(k => k.startsWith('geo_scene_'))
-                            .forEach(k => localStorage.removeItem(k));
+                            .forEach(k => safeLSRemove(k));
                     } catch { /* ignore */ }
                 }
 
@@ -1996,7 +2010,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
 
                                             try {
                                                 // Stocker dans localStorage (partagé entre fenêtres)
-                                                localStorage.setItem(sceneKey, JSON.stringify({ raw: block }));
+                                                safeLSSet(sceneKey, JSON.stringify({ raw: block }));
                                                 // Envoyer via BroadcastChannel
                                                 const ch = new BroadcastChannel(GEO_CHANNEL);
                                                 ch.postMessage({ type: 'UPDATE_GEO', raw: block, key: sceneKey });
