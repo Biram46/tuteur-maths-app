@@ -980,6 +980,11 @@ svg foreignObject .katex * {
   color: inherit !important;
 }
 
+/* Cacher le fallback MathML (lecteurs d'écran) pour éviter le doublon visuel */
+.math-prose .katex .katex-mathml {
+  display: none !important;
+}
+
 /* Correction "Bonne Réponse" — vert plus lisible */
 .math-prose.text-emerald-200 {
   --tw-prose-body: #a7f3d0;
