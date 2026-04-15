@@ -99,17 +99,35 @@ export async function authWithRateLimit(
 }
 
 /**
- * Vérifie si un email correspond à un admin.
+ * Vérifie si un utilisateur est admin.
+ * Priorité :
+ *   1. Rôle dans app_metadata (mis à jour via la table user_roles + trigger)
+ *   2. Fallback sur ADMIN_EMAILS dans .env (rétrocompatible)
+ */
+export function isAdmin(
+    user: { email?: string; app_metadata?: Record<string, unknown> } | null
+): boolean {
+    if (!user) return false;
+
+    // 1. Vérifier le rôle dans les claims JWT (source de vérité)
+    const role = user.app_metadata?.role;
+    if (role === 'admin') return true;
+
+    // 2. Fallback : vérification par email (rétrocompatible)
+    return isAdminEmail(user.email);
+}
+
+/**
+ * Vérifie si un email correspond à un admin (fallback legacy).
  * Utilise la variable d'environnement ADMIN_EMAILS (séparés par des virgules).
  * Fallback sur biram26@yahoo.fr si la variable n'est pas définie.
  */
 export function isAdminEmail(email: string | undefined): boolean {
     if (!email) return false;
-    const isDev = process.env.NODE_ENV === 'development';
     const adminEmails = (process.env.ADMIN_EMAILS || 'biram26@yahoo.fr')
         .split(',')
         .map(e => e.trim().toLowerCase());
-    return isDev || adminEmails.includes(email.toLowerCase());
+    return adminEmails.includes(email.toLowerCase());
 }
 
 /**

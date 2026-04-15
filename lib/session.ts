@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { isAdminEmail } from '@/lib/api-auth'
+import { isAdmin } from '@/lib/api-auth'
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
@@ -66,7 +66,7 @@ export async function updateSession(request: NextRequest) {
     // 2. Si déjà connecté et sur une page de login public, rediriger vers l'espace approprié
     if (user && (isStudentLoginPage || isAdminLoginPage)) {
         const url = request.nextUrl.clone()
-        if (isAdminEmail(user.email)) {
+        if (isAdmin(user)) {
             url.pathname = '/admin'
         } else {
             url.pathname = '/'
@@ -78,7 +78,7 @@ export async function updateSession(request: NextRequest) {
 
     // 3. Protection de la route /admin
     if (isAdminRoute) {
-        if (!user || !isAdminEmail(user.email)) {
+        if (!user || !isAdmin(user)) {
             const url = request.nextUrl.clone()
             url.pathname = '/admin/login'
             const redirectResponse = NextResponse.redirect(url)
@@ -91,7 +91,7 @@ export async function updateSession(request: NextRequest) {
     // Pour l'instant : seuls les admins y ont accès
     // Futur : vérifier le rôle 'teacher' dans la table eleves
     if (isProfRoute) {
-        if (!user || !isAdminEmail(user.email)) {
+        if (!user || !isAdmin(user)) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             const redirectResponse = NextResponse.redirect(url)

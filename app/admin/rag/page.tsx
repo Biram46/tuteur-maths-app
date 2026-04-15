@@ -5,7 +5,7 @@ import { logout } from "@/app/auth/actions";
 import { cookies } from "next/headers";
 import { checkTrustedDevice, generateDeviceFingerprint } from "@/lib/admin2fa";
 import { headers } from "next/headers";
-import { isAdminEmail } from "@/lib/api-auth";
+import { isAdmin } from "@/lib/api-auth";
 import RagAdminDashboard from "./RagAdminDashboard";
 import { fetchRagDocuments, RagDocument } from "./actions";
 
@@ -23,7 +23,7 @@ export default async function RagAdminPage() {
         user = authUser;
 
         // Strict Admin Check
-        if (!isAdminEmail(user.email)) {
+        if (!isAdmin(user)) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
                     Access Denied: You do not have administrator privileges.

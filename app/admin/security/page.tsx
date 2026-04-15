@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabaseAction';
 import { redirect } from 'next/navigation';
 import { getTrustedDevices, getAuditLogs } from '@/lib/admin2fa';
-import { isAdminEmail } from '@/lib/api-auth';
+import { isAdmin } from '@/lib/api-auth';
 import SecurityDashboard from './SecurityDashboard';
 
 export default async function SecurityPage() {
@@ -19,7 +19,7 @@ export default async function SecurityPage() {
         user = authUser;
 
         // Strict Admin Check
-        if (!isAdminEmail(user.email)) {
+        if (!isAdmin(user)) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
                     Access Denied: You do not have administrator privileges.

@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import { checkTrustedDevice, generateDeviceFingerprint, create2FASession } from "@/lib/admin2fa";
 import { headers } from "next/headers";
 import { getEAMSujets } from "./actions";
-import { isAdminEmail } from "@/lib/api-auth";
+import { isAdmin } from "@/lib/api-auth";
 
 export default async function AdminPage() {
     // Check Authentication
@@ -24,7 +24,7 @@ export default async function AdminPage() {
         user = authUser;
 
         // Strict Admin Check
-        if (!isAdminEmail(user.email)) {
+        if (!isAdmin(user)) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
                     Access Denied: You do not have administrator privileges.
