@@ -103,7 +103,9 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             setPendingFileName(null);
 
             if (!response.ok) {
-                throw new Error(`Erreur ${response.status}`);
+                // Pour 503, le body contient un message utilisateur lisible
+                const errorText = await response.text().catch(() => '');
+                throw new Error(errorText || `Erreur ${response.status}`);
             }
 
             // Streaming

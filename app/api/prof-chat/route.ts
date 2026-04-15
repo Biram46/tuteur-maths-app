@@ -866,6 +866,51 @@ async function backoffDelay(attempt: number): Promise<void> {
     await sleep(jitter);
 }
 
+/**
+ * Vrai si l'erreur est transitoire (retryable).
+ * 429 = rate limit, 500/502/503 = serveur temporairement down, réseau = timeout/abort
+ */
+function isRetryableError(err: any): boolean {
+    if (!err) return false;
+    const msg = (err.message || '').toLowerCase();
+    const status = err.status || err.httpStatus || 0;
+    // Erreurs HTTP retryables
+    if ([429, 500, 502, 503].includes(status)) return true;
+    // Erreurs réseau (timeout, abort, connection reset)
+    if (msg.includes('timeout') || msg.includes('abort') || msg.includes('econnreset') || msg.includes('fetch failed')) return true;
+    // Rate limiting dans le message
+    if (msg.includes('rate') || msg.includes('overloaded') || msg.includes('capacity')) return true;
+    return false;
+}
+
+const MAX_RETRIES_PER_PROVIDER = 2;
+
+/**
+ * Exécute fn() avec retry automatique sur erreurs transitoires.
+ * Retourne le résultat ou null si toutes les tentatives échouent.
+ */
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    providerName: string,
+    onRetry?: (attempt: number) => Promise<void>
+): Promise<T | null> {
+    for (let attempt = 0; attempt <= MAX_RETRIES_PER_PROVIDER; attempt++) {
+        try {
+            return await fn();
+        } catch (err: any) {
+            const retryable = isRetryableError(err);
+            if (!retryable || attempt === MAX_RETRIES_PER_PROVIDER) {
+                console.warn(`[Prof-Chat] ⚠️ ${providerName} ${retryable ? 'tentatives épuisées' : 'erreur non-retryable'}: ${err.message}`);
+                if (onRetry) await onRetry(attempt);
+                return null;
+            }
+            console.warn(`[Prof-Chat] ⚠️ ${providerName} erreur transitoire (tentative ${attempt + 1}/${MAX_RETRIES_PER_PROVIDER}): ${err.message}`);
+            await backoffDelay(attempt);
+        }
+    }
+    return null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // STREAMING SSE — Parseur générique (OpenAI & DeepSeek)
 // ─────────────────────────────────────────────────────────────
@@ -1059,8 +1104,8 @@ ${context.resource_type === 'interactif'
         // ── TENTATIVE 0 : Claude Sonnet 4.6 en streaming direct (PRINCIPAL) ─────
         const trackCtx = { level_label: context.level_label, resource_type: context.resource_type };
         if (anthropicKey) {
-            const t0 = Date.now();
-            try {
+            const claudeResult = await withRetry(async () => {
+                const t0 = Date.now();
                 console.log('[Prof-Chat] 🧠 Claude Sonnet 4.6 : streaming direct au client...');
                 const anthropic = new Anthropic({
                     apiKey: anthropicKey,
@@ -1109,17 +1154,17 @@ ${context.resource_type === 'interactif'
                         'X-AI-Provider': 'Claude',
                     },
                 });
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ Claude error: ${err.message}`);
-                trackAIUsage({ provider: 'Claude', model: 'claude-sonnet-4-6', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
-                await backoffDelay(0);
-            }
+            }, 'Claude', async (attempt) => {
+                trackAIUsage({ provider: 'Claude', model: 'claude-sonnet-4-6', route: '/api/prof-chat', success: false, latencyMs: 0, error: `retry ${attempt + 1}`, ...trackCtx });
+            });
+
+            if (claudeResult) return claudeResult;
         }
 
         // ── TENTATIVE 1 : GPT-4o en fallback ─────────────
         if (openaiKey) {
-            const t0 = Date.now();
-            try {
+            const gptResult = await withRetry(async () => {
+                const t0 = Date.now();
                 console.log('[Prof-Chat] 🔄 Fallback — GPT-4o : streaming direct...');
                 const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -1149,20 +1194,23 @@ ${context.resource_type === 'interactif'
                     });
                 } else {
                     const errText = await gptResponse.text();
+                    const retryable = [429, 500, 502, 503].includes(gptResponse.status);
                     console.warn(`[Prof-Chat] ⚠️ GPT-4o HTTP ${gptResponse.status}: ${errText.slice(0, 200)}`);
                     trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: `HTTP ${gptResponse.status}`, ...trackCtx });
+                    if (retryable) throw { message: `HTTP ${gptResponse.status}`, status: gptResponse.status };
+                    return null;
                 }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ GPT-4o error: ${err.message}`);
-                trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
-                await backoffDelay(1);
-            }
+            }, 'GPT-4o', async (attempt) => {
+                trackAIUsage({ provider: 'OpenAI', model: 'gpt-4o', route: '/api/prof-chat', success: false, latencyMs: 0, error: `retry ${attempt + 1}`, ...trackCtx });
+            });
+
+            if (gptResult) return gptResult;
         }
 
         // ── TENTATIVE 2 : DeepSeek V3 en dernier recours ──────────
         if (deepseekKey) {
-            const t0 = Date.now();
-            try {
+            const dsResult = await withRetry(async () => {
+                const t0 = Date.now();
                 console.log('[Prof-Chat] 🔄 Dernier recours — DeepSeek V3 : streaming direct...');
                 const dsResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
                     method: 'POST',
@@ -1190,16 +1238,24 @@ ${context.resource_type === 'interactif'
                             'X-AI-Provider': 'DeepSeek-V3',
                         },
                     });
+                } else {
+                    const retryable = [429, 500, 502, 503].includes(dsResponse.status);
+                    console.warn(`[Prof-Chat] ⚠️ DeepSeek HTTP ${dsResponse.status}`);
+                    trackAIUsage({ provider: 'DeepSeek', model: 'deepseek-chat', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: `HTTP ${dsResponse.status}`, ...trackCtx });
+                    if (retryable) throw { message: `HTTP ${dsResponse.status}`, status: dsResponse.status };
+                    return null;
                 }
-            } catch (err: any) {
-                console.warn(`[Prof-Chat] ⚠️ DeepSeek error: ${err.message}`);
-                trackAIUsage({ provider: 'DeepSeek', model: 'deepseek-chat', route: '/api/prof-chat', success: false, latencyMs: Date.now() - t0, error: err.message?.slice(0, 200), ...trackCtx });
-            }
+            }, 'DeepSeek', async (attempt) => {
+                trackAIUsage({ provider: 'DeepSeek', model: 'deepseek-chat', route: '/api/prof-chat', success: false, latencyMs: 0, error: `retry ${attempt + 1}`, ...trackCtx });
+            });
+
+            if (dsResult) return dsResult;
         }
 
+        console.error('[Prof-Chat] ❌ Tous les providers ont échoué après retries');
         return new Response(
-            JSON.stringify({ error: 'Toutes les IA sont indisponibles' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
+            '⚠️ Service temporairement indisponible. Les serveurs IA sont surchargés — veuillez réessayer dans quelques secondes.',
+            { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
         );
 
     } catch (error: any) {
