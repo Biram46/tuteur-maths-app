@@ -105,10 +105,10 @@ export async function updateSession(request: NextRequest) {
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com",
+        "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co",
         "font-src 'self' https://cdn.jsdelivr.net",
-        "connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://generativelanguage.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com",
-        "frame-src 'none'",
+        "connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://generativelanguage.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com https://*.supabase.co https://tuteur-maths-app-api.onrender.com",
+        "frame-src https://*.supabase.co https://docs.google.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -116,7 +116,6 @@ export async function updateSession(request: NextRequest) {
     ].join('; ')
 
     response.headers.set('Content-Security-Policy', cspHeader)
-    response.headers.set('X-Frame-Options', 'DENY')
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
