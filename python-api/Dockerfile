@@ -1,6 +1,12 @@
 FROM python:3.11-slim
 
-# TeX Live + poppler pour la compilation LaTeX → PDF → PNG
+# 1) Binaires TeX Live (contient pdflatex) + poppler
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    texlive-binaries \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2) Packages TeX Live (séparé pour limiter le pic RAM sur Render free 512 MB)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base \
     texlive-latex-recommended \
@@ -9,7 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-science \
     texlive-pictures \
     texlive-fonts-recommended \
-    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
