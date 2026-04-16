@@ -130,12 +130,9 @@ function ResourceContent() {
     const isDocx = lowerUrl.endsWith('.docx');
     const isTex = lowerUrl.endsWith('.tex');
 
-    // Utilisation directe de l'URL standard (le stockage gère les headers corrects)
-    // MAIS pour l'HTML qui peut être servi en text/plain par Supabase, on utilise notre proxy
+    // Pour le HTML interactif, charger directement l'URL publique Supabase
+    // (le bucket est public, pas besoin du proxy qui exige une authentification)
     let displayUrl = url;
-    if (isInteractive) {
-        displayUrl = `/api/view-resource?url=${encodeURIComponent(url)}`;
-    }
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
