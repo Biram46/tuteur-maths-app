@@ -1772,6 +1772,7 @@ def domain():
 import subprocess
 import tempfile
 import base64
+import shutil
 
 # Commandes LaTeX dangereuses (interdites même avec -no-shell-escape)
 _LATEX_BLACKLIST = re.compile(
