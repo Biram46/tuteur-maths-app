@@ -1844,34 +1844,46 @@ def latex_preview():
             with open(tex_path, 'w', encoding='utf-8') as f:
                 f.write(full_doc)
 
-            # pdflatex — 2 passes pour les références
-            for _ in range(2):
-                result = subprocess.run(
+            # pdflatex — 1 passe (Render free = 0.1 CPU, 2 passes timeout)
+            # 2e passe uniquement si le document a des \label/\ref
+            needs_second_pass = r'\label' in full_doc or r'\ref' in full_doc
+
+            result = subprocess.run(
+                ['pdflatex', '-no-shell-escape', '-halt-on-error',
+                 '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
+                capture_output=True, text=True, timeout=45,
+                cwd=tmpdir,
+            )
+
+            if result.returncode != 0:
+                log_path = os.path.join(tmpdir, 'preview.log')
+                error_msg = ''
+                if os.path.exists(log_path):
+                    with open(log_path, 'r', encoding='utf-8', errors='replace') as lf:
+                        lines = lf.readlines()
+                        error_lines = []
+                        for i, line in enumerate(lines):
+                            if line.startswith('!'):
+                                error_lines.append(line.rstrip())
+                                for j in range(i + 1, min(i + 4, len(lines))):
+                                    if lines[j].startswith('!') or lines[j].startswith('l.'):
+                                        error_lines.append(lines[j].rstrip())
+                                break
+                        error_msg = '\n'.join(error_lines[-5:]) if error_lines else result.stdout[-500:]
+                return jsonify({
+                    'success': False,
+                    'error': 'Erreur de compilation LaTeX',
+                    'log': error_msg[:1000],
+                }), 400
+
+            # 2e passe si nécessaire (références croisées)
+            if needs_second_pass:
+                subprocess.run(
                     ['pdflatex', '-no-shell-escape', '-halt-on-error',
                      '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
-                    capture_output=True, text=True, timeout=25,
+                    capture_output=True, text=True, timeout=45,
                     cwd=tmpdir,
                 )
-                if result.returncode != 0:
-                    log_path = os.path.join(tmpdir, 'preview.log')
-                    error_msg = ''
-                    if os.path.exists(log_path):
-                        with open(log_path, 'r', encoding='utf-8', errors='replace') as lf:
-                            lines = lf.readlines()
-                            error_lines = []
-                            for i, line in enumerate(lines):
-                                if line.startswith('!'):
-                                    error_lines.append(line.rstrip())
-                                    for j in range(i + 1, min(i + 4, len(lines))):
-                                        if lines[j].startswith('!') or lines[j].startswith('l.'):
-                                            error_lines.append(lines[j].rstrip())
-                                    break
-                            error_msg = '\n'.join(error_lines[-5:]) if error_lines else result.stdout[-500:]
-                    return jsonify({
-                        'success': False,
-                        'error': 'Erreur de compilation LaTeX',
-                        'log': error_msg[:1000],
-                    }), 400
 
             pdf_path = os.path.join(tmpdir, 'preview.pdf')
             if not os.path.exists(pdf_path):
@@ -1884,7 +1896,7 @@ def latex_preview():
             png_prefix = os.path.join(tmpdir, 'preview')
             subprocess.run(
                 ['pdftoppm', '-png', '-r', str(dpi), '-single-file', pdf_path, png_prefix],
-                capture_output=True, timeout=15,
+                capture_output=True, timeout=20,
             )
             png_path = png_prefix + '.png'
             if not os.path.exists(png_path):

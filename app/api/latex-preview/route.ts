@@ -10,6 +10,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+
 const PYTHON_API = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 export async function POST(req: NextRequest) {
