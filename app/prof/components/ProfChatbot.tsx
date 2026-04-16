@@ -22,7 +22,10 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
     const [contentType, setContentType] = useState<'latex' | 'html'>('latex');
     const [showPreview, setShowPreview] = useState(false);
-    const [previewTab, setPreviewTab] = useState<'code' | 'render'>('render');
+    const [previewTab, setPreviewTab] = useState<'code' | 'render' | 'pdf'>('render');
+    const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
+    const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
+    const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
 
@@ -44,6 +47,46 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Compilation PDF automatique quand l'onglet PDF est actif et que le LaTeX change
+    useEffect(() => {
+        if (previewTab !== 'pdf' || !generatedLatex) return;
+        let cancelled = false;
+
+        const compilePdf = async () => {
+            setPdfPreviewLoading(true);
+            setPdfPreviewError(null);
+            setPdfPreviewImage(null);
+
+            try {
+                const resp = await fetch('/api/latex-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ latex: generatedLatex }),
+                });
+
+                if (cancelled) return;
+
+                const data = await resp.json();
+                if (data.success && data.image) {
+                    setPdfPreviewImage(data.image);
+                } else {
+                    setPdfPreviewError(data.error || 'Erreur de compilation');
+                }
+            } catch {
+                if (!cancelled) {
+                    setPdfPreviewError('Service indisponible');
+                }
+            } finally {
+                if (!cancelled) {
+                    setPdfPreviewLoading(false);
+                }
+            }
+        };
+
+        compilePdf();
+        return () => { cancelled = true; };
+    }, [previewTab, generatedLatex]);
 
     // Get content to send based on type
     const getContentToSend = useCallback((): string | undefined => {
@@ -616,11 +659,167 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             // fbox/parbox résiduels
             .replace(/\\fbox\{[\s\S]*?\}/g, (m) => m.replace(/\\fbox\{|\\parbox\{[^}]*\}\{|\\centering|\\textwidth|\\Large\s*|\\large\s*/g, '').replace(/\{|\}/g, ''))
             // \  (backslash+espace = espace insécable LaTeX)
-            .replace(/\\ /g, ' ')
+            .replace(/\\ /g, ' ');
+
+        // ── PHASE 9 : Nettoyage des commandes LaTeX résiduelles ────
+        // Cette phase attrape toutes les commandes LaTeX qui n'ont pas été
+        // converties par les phases précédentes et qui apparaissent en texte brut.
+
+        // 9a) Commandes avec accolade unique : \label{...}, \ref{...}, \footnote{...}, etc.
+        content = content
+            .replace(/\\(?:label|ref|eqref|pageref|cite|index|footnote|marginpar|caption)\{[^}]*\}/g, '')
+            // \textcolor{color}{text} → text
+            .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \colorbox{color}{text} → text
+            .replace(/\\colorbox\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \fcolorbox{c1}{c2}{text} → text
+            .replace(/\\fcolorbox\{[^}]*\}\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \footnotetext{...}, \footnotemark
+            .replace(/\\footnotetext\{[^}]*\}/g, '')
+            .replace(/\\footnotemark/g, '')
+            // \hypertarget{...}{text} / \hyperlink{...}{text}
+            .replace(/\\hypertarget\{[^}]*\}\{([^}]*)\}/g, '$1')
+            .replace(/\\hyperlink\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \url{...}
+            .replace(/\\url\{([^}]*)\}/g, '$1')
+            // \href{url}{text}
+            .replace(/\\href\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \rule{w}{h}
+            .replace(/\\rule\{[^}]*\}\{[^}]*\}/g, '')
+            // \mbox{...}, \makebox{...}{...}
+            .replace(/\\mbox\{([^}]*)\}/g, '$1')
+            .replace(/\\makebox\{[^}]*\}\{([^}]*)\}/g, '$1')
+            // \raisebox{...}{text}
+            .replace(/\\raisebox\{[^}]*\}\{([^}]*)\}/g, '$1');
+
+        // 9b) Environnements non convertis : figure, table, quote, flushleft, flushright, etc.
+        content = content
+            .replace(/\\begin\{figure\}(?:\[[^\]]*\])?/g, '')
+            .replace(/\\end\{figure\}/g, '')
+            .replace(/\\begin\{table\}(?:\[[^\]]*\])?/g, '')
+            .replace(/\\end\{table\}/g, '')
+            .replace(/\\begin\{quote\}/g, '<blockquote>')
+            .replace(/\\end\{quote\}/g, '</blockquote>')
+            .replace(/\\begin\{flushleft\}/g, '<div style="text-align:left">')
+            .replace(/\\end\{flushleft\}/g, '</div>')
+            .replace(/\\begin\{flushright\}/g, '<div style="text-align:right">')
+            .replace(/\\end\{flushright\}/g, '</div>')
+            .replace(/\\begin\{verbatim\}([\s\S]*?)\\end\{verbatim\}/g, '<pre>$1</pre>')
+            .replace(/\\begin\{lstlisting\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{lstlisting\}/g, '<pre>$1</pre>')
+            .replace(/\\begin\{abstract\}/g, '<div class="preview-box">')
+            .replace(/\\end\{abstract\}/g, '</div>');
+
+        // 9c) Commandes de formatage résiduelles à 1 argument → texte seul
+        content = content
+            .replace(/\\underline\{([^}]*)\}/g, '<u>$1</u>')
+            .replace(/\\uline\{([^}]*)\}/g, '<u>$1</u>')
+            .replace(/\\dotuline\{([^}]*)\}/g, '$1')
+            .replace(/\\uuline\{([^}]*)\}/g, '$1')
+            .replace(/\\sout\{([^}]*)\}/g, '~~$1~~')
+            .replace(/\\xout\{([^}]*)\}/g, '$1')
+            .replace(/\\textsuperscript\{([^}]*)\}/g, '<sup>$1</sup>')
+            .replace(/\\textsubscript\{([^}]*)\}/g, '<sub>$1</sub>')
+            .replace(/\\framebox\{[^}]*\}\{?([^}]*)\}?/g, '$1')
+            .replace(/\\circle\{[^}]*\}/g, '')
+            .replace(/\\line\([^)]*\)/g, '');
+
+        // 9d) Nettoyage des commandes LaTeX orphelines restantes (catch-all)
+        // Supprime les commandes \command{...} non-mathématiques qui trainent
+        // en dehors des blocs $...$ et $$...$$.
+        // On procède en 2 passes : d'abord les commandes à accolades imbriquées,
+        // puis les commandes simples.
+        const stripNonMathCommands = (str: string): string => {
+            // Helper : vérifie si une position est dans un bloc math $...$ ou $$...$$
+            const isInMath = (s: string, pos: number): boolean => {
+                let inInline = false;
+                let inDisplay = false;
+                let k = 0;
+                while (k < pos) {
+                    if (s[k] === '$' && s[k + 1] === '$') { inDisplay = !inDisplay; k += 2; continue; }
+                    if (s[k] === '$') { inInline = !inInline; }
+                    k++;
+                }
+                return inInline || inDisplay;
+            };
+
+            // Passe 1 : commandes à accolades (ex: \unknown{...})
+            // On répète car le nettoyage peut révéler de nouvelles commandes
+            let result = str;
+            for (let pass = 0; pass < 3; pass++) {
+                const prev = result;
+                result = result.replace(
+                    /\\([a-zA-Z@]+)\s*(\{[^}]*\})/g,
+                    (match, cmd, _arg, offset) => {
+                        // Commandes KaTeX valides à préserver dans les blocs math
+                        const mathCommands = new Set([
+                            'frac', 'dfrac', 'tfrac', 'sqrt', 'root',
+                            'vec', 'overrightarrow', 'overline', 'underline', 'widehat', 'widetilde',
+                            'hat', 'tilde', 'dot', 'ddot', 'bar', 'breve', 'check', 'acute', 'grave',
+                            'mathbb', 'mathcal', 'mathbf', 'mathit', 'mathsf', 'mathtt', 'mathrm',
+                            'text', 'textrm', 'textbf', 'textit', 'textsf', 'texttt',
+                            'operatorname', 'boldsymbol',
+                            'binom', 'tbinom', 'dbinom', 'choose',
+                            'sum', 'prod', 'coprod', 'int', 'iint', 'iiint', 'oint',
+                            'lim', 'sup', 'inf', 'max', 'min', 'log', 'ln', 'exp',
+                            'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan',
+                            'sinh', 'cosh', 'tanh',
+                            'left', 'right', 'Big', 'big', 'Bigg', 'bigg',
+                            'begin', 'end',
+                            'color', 'cancel', 'bcancel', 'xcancel',
+                            'phantom', 'hphantom', 'vphantom',
+                            'overset', 'underset', 'stackrel', 'substack',
+                            'xleftarrow', 'xrightarrow',
+                            'boxed', 'colorbox', 'fcolorbox',
+                        ]);
+                        if (isInMath(result, offset)) return match;
+                        if (mathCommands.has(cmd)) return match;
+                        return ''; // Supprimer la commande non-math hors bloc $
+                    }
+                );
+                if (result === prev) break; // Plus de changements → on arrête
+            }
+
+            // Passe 2 : commandes sans accolades (ex: \hfill, \centering, etc.)
+            result = result.replace(
+                /\\([a-zA-Z@]+)(?![a-zA-Z{])/g,
+                (match, cmd, offset) => {
+                    if (isInMath(result, offset)) return match;
+                    // Commandes qui doivent être préservées même hors bloc math
+                    const keep = new Set([
+                        'section', 'subsection', 'subsubsection', 'paragraph',
+                        'begin', 'end',
+                    ]);
+                    if (keep.has(cmd)) return match;
+                    // Commandes connues de formatage → les ignorer (déjà traitées)
+                    const discard = new Set([
+                        'hfill', 'centering', 'raggedright', 'raggedleft',
+                        'noindent', 'indent', 'par', 'newline', 'linebreak',
+                        'newpage', 'pagebreak', 'columnbreak', 'clearpage',
+                        'medskip', 'bigskip', 'smallskip',
+                        'displaystyle', 'textstyle', 'scriptstyle', 'scriptscriptstyle',
+                    ]);
+                    if (discard.has(cmd)) return '';
+                    return match; // Commande inconnue → on garde (peut être KaTeX)
+                }
+            );
+
+            return result;
+        };
+
+        content = stripNonMathCommands(content);
+
+        // 9e) Nettoyage final des caractères spéciaux LaTeX
+        content = content
+            // ~~ (espace insécable LaTeX) → espace normal
+            .replace(/~(?!\{)/g, ' ')
+            // \\ en fin de ligne (saut de ligne LaTeX dans tableaux/align) → newline
+            .replace(/\\\\\s*/g, '\n')
             // Nettoyer les doubles accolades résiduelles
             .replace(/\}\}/g, '}')
             // Nettoyer les lignes vides excessives
-            .replace(/\n{4,}/g, '\n\n\n');
+            .replace(/\n{4,}/g, '\n\n\n')
+            // Espaces en début/fin de lignes
+            .replace(/[ \t]+$/gm, '');
 
         return content;
     };
@@ -792,6 +991,19 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                 <div className="w-2 h-2 rounded-full bg-amber-400"></div>
                                 {isHtmlContent ? 'Source HTML' : 'Source LaTeX'}
                             </button>
+                            {!isHtmlContent && (
+                                <button
+                                    onClick={() => setPreviewTab('pdf')}
+                                    className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                        previewTab === 'pdf'
+                                            ? 'text-violet-400 bg-violet-500/10 border-b-2 border-violet-400'
+                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-violet-400"></div>
+                                    PDF
+                                </button>
+                            )}
                             {previewTab === 'code' && (
                                 <button
                                     onClick={() => navigator.clipboard.writeText(currentContent)}
@@ -827,6 +1039,40 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                     <pre className="preview-code-panel">
                                         {currentContent}
                                     </pre>
+                                </div>
+                            )}
+                            {previewTab === 'pdf' && (
+                                <div className="h-full overflow-y-auto bg-slate-900 custom-scrollbar flex items-start justify-center p-4">
+                                    {pdfPreviewLoading ? (
+                                        <div className="flex flex-col items-center justify-center gap-3 py-20 text-slate-400">
+                                            <div className="w-8 h-8 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                                            <span className="text-xs uppercase tracking-widest font-bold">Compilation PDF en cours...</span>
+                                            <span className="text-[10px] text-slate-600">pdflatex sur le serveur Render</span>
+                                        </div>
+                                    ) : pdfPreviewError ? (
+                                        <div className="flex flex-col items-center gap-3 py-20 text-red-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                            </svg>
+                                            <span className="text-sm">{pdfPreviewError}</span>
+                                            <button
+                                                onClick={() => setPreviewTab('pdf')}
+                                                className="mt-2 px-4 py-1.5 rounded-lg bg-violet-500/20 text-violet-400 text-xs hover:bg-violet-500/30 transition-all"
+                                            >
+                                                Réessayer
+                                            </button>
+                                        </div>
+                                    ) : pdfPreviewImage ? (
+                                        <img
+                                            src={pdfPreviewImage}
+                                            alt="Apercu PDF compilé"
+                                            className="max-w-full shadow-2xl rounded"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 py-20 text-slate-500">
+                                            <span className="text-xs">Cliquez sur l&apos;onglet PDF pour compiler le LaTeX</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

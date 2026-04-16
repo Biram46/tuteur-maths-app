@@ -1,11 +1,10 @@
 services:
   - type: web
     name: tuteur-maths-python-api
-    runtime: python
-    rootDir: python-api
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    runtime: docker
+    dockerfilePath: ./python-api/Dockerfile
+    dockerContext: python-api
     plan: free
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: PORT
+        value: "10000"

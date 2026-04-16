@@ -1018,7 +1018,15 @@ def compute_geo(points_data, commands):
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'sympy_version': sp.__version__})
+    import shutil
+    has_pdflatex = shutil.which('pdflatex') is not None
+    has_pdftoppm = shutil.which('pdftoppm') is not None
+    return jsonify({
+        'status': 'ok',
+        'sympy_version': sp.__version__,
+        'pdflatex': has_pdflatex,
+        'pdftoppm': has_pdftoppm,
+    })
 
 
 def _sign_of(expr):
@@ -1740,6 +1748,148 @@ def domain():
             'forbiddenPoints': forbidden_points,
         })
 
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc()[:800],
+        }), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# LATEX PREVIEW  —  Compilation pdflatex → PDF → PNG → base64
+# ─────────────────────────────────────────────────────────────
+
+import subprocess
+import tempfile
+import base64
+
+# Commandes LaTeX dangereuses (interdites même avec -no-shell-escape)
+_LATEX_BLACKLIST = re.compile(
+    r'\\(write18|input|include|immediate|openout|closeout|read|shellescape'
+    r'|special|verbatiminput|import|subimport|includefrom|subincludefrom'
+    r'|inputminted|minted)',
+    re.IGNORECASE,
+)
+
+_DEFAULT_PREAMBLE = r"""\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\pagestyle{empty}
+\begin{document}
+"""
+
+_DEFAULT_END = r"\end{document}"
+
+@app.route('/latex-preview', methods=['POST'])
+def latex_preview():
+    """
+    Compile du LaTeX en PDF, convertit en PNG, retourne l'image en base64.
+    Body: { "latex": "...", "dpi": 150 }
+    Sécurité : -no-shell-escape, input max 50 KB, timeout 25 s,
+               blocage commandes dangereuses.
+    """
+    try:
+        if not shutil.which('pdflatex'):
+            return jsonify({'success': False, 'error': 'pdflatex non installé'}), 503
+
+        data = request.get_json()
+        if not data or 'latex' not in data:
+            return jsonify({'success': False, 'error': 'latex manquant'}), 400
+
+        latex_code = data['latex']
+        if len(latex_code) > 50_000:
+            return jsonify({'success': False, 'error': 'LaTeX trop long (max 50 Ko)'}), 400
+
+        dpi = min(int(data.get('dpi', 150)), 300)
+
+        # Sécurité : bloquer les commandes dangereuses
+        if _LATEX_BLACKLIST.search(latex_code):
+            return jsonify({'success': False, 'error': 'Commande LaTeX interdite'}), 400
+
+        # Construire le document complet si besoin
+        if r'\documentclass' in latex_code:
+            full_doc = latex_code
+        else:
+            full_doc = _DEFAULT_PREAMBLE + latex_code + '\n' + _DEFAULT_END
+
+        # Compilation dans un répertoire temporaire
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tex_path = os.path.join(tmpdir, 'preview.tex')
+            with open(tex_path, 'w', encoding='utf-8') as f:
+                f.write(full_doc)
+
+            # pdflatex — 2 passes pour les références
+            for _ in range(2):
+                result = subprocess.run(
+                    ['pdflatex', '-no-shell-escape', '-halt-on-error',
+                     '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
+                    capture_output=True, text=True, timeout=25,
+                    cwd=tmpdir,
+                )
+                if result.returncode != 0:
+                    log_path = os.path.join(tmpdir, 'preview.log')
+                    error_msg = ''
+                    if os.path.exists(log_path):
+                        with open(log_path, 'r', encoding='utf-8', errors='replace') as lf:
+                            lines = lf.readlines()
+                            error_lines = []
+                            for i, line in enumerate(lines):
+                                if line.startswith('!'):
+                                    error_lines.append(line.rstrip())
+                                    for j in range(i + 1, min(i + 4, len(lines))):
+                                        if lines[j].startswith('!') or lines[j].startswith('l.'):
+                                            error_lines.append(lines[j].rstrip())
+                                    break
+                            error_msg = '\n'.join(error_lines[-5:]) if error_lines else result.stdout[-500:]
+                    return jsonify({
+                        'success': False,
+                        'error': 'Erreur de compilation LaTeX',
+                        'log': error_msg[:1000],
+                    }), 400
+
+            pdf_path = os.path.join(tmpdir, 'preview.pdf')
+            if not os.path.exists(pdf_path):
+                return jsonify({'success': False, 'error': 'PDF non généré'}), 500
+
+            # PDF → PNG via pdftoppm
+            if not shutil.which('pdftoppm'):
+                return jsonify({'success': False, 'error': 'pdftoppm non installé'}), 503
+
+            png_prefix = os.path.join(tmpdir, 'preview')
+            subprocess.run(
+                ['pdftoppm', '-png', '-r', str(dpi), '-single-file', pdf_path, png_prefix],
+                capture_output=True, timeout=15,
+            )
+            png_path = png_prefix + '.png'
+            if not os.path.exists(png_path):
+                return jsonify({'success': False, 'error': 'PNG non généré'}), 500
+
+            with open(png_path, 'rb') as img_f:
+                img_b64 = base64.b64encode(img_f.read()).decode('ascii')
+
+            return jsonify({
+                'success': True,
+                'image': f'data:image/png;base64,{img_b64}',
+            })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': 'Compilation trop longue (timeout)'}), 408
     except Exception as e:
         return jsonify({
             'success': False,
