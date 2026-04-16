@@ -1019,13 +1019,22 @@ def compute_geo(points_data, commands):
 @app.route('/health', methods=['GET'])
 def health():
     import shutil
-    has_pdflatex = shutil.which('pdflatex') is not None
-    has_pdftoppm = shutil.which('pdftoppm') is not None
+    import glob as globmod
+    # Recherche étendue de pdflatex
+    pdflatex_which = shutil.which('pdflatex')
+    pdflatex_direct = os.path.exists('/usr/bin/pdflatex')
+    # Chercher partout
+    pdflatex_find = globmod.glob('/usr/**/pdflatex', recursive=True)[:5]
     return jsonify({
         'status': 'ok',
         'sympy_version': sp.__version__,
-        'pdflatex': has_pdflatex,
-        'pdftoppm': has_pdftoppm,
+        'pdflatex': pdflatex_which is not None,
+        'pdflatex_path': pdflatex_which,
+        'pdflatex_usr_bin': pdflatex_direct,
+        'pdflatex_find': pdflatex_find,
+        'pdftoppm': shutil.which('pdftoppm') is not None,
+        'path': os.environ.get('PATH', ''),
+        'texlive_latex_base': os.path.exists('/usr/share/doc/texlive-latex-base'),
     })
 
 
