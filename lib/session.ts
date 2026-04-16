@@ -104,15 +104,15 @@ export async function updateSession(request: NextRequest) {
     const cspHeader = [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://r2cdn.perplexity.ai",
         "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co",
-        "font-src 'self' https://cdn.jsdelivr.net",
-        "connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://generativelanguage.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com https://*.supabase.co https://tuteur-maths-app-api.onrender.com",
+        "font-src 'self' https://cdn.jsdelivr.net https://r2cdn.perplexity.ai",
+        "connect-src 'self' https://api.anthropic.com https://api.openai.com https://api.deepseek.com https://generativelanguage.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com https://*.supabase.co https://tuteur-maths-app-api.onrender.com https://api.perplexity.ai",
         "frame-src 'self' https://*.supabase.co https://docs.google.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
-        "frame-ancestors 'none'",
+        "frame-ancestors 'self'",
     ].join('; ')
 
     response.headers.set('Content-Security-Policy', cspHeader)
