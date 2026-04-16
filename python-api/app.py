@@ -1851,7 +1851,7 @@ def latex_preview():
             result = subprocess.run(
                 ['pdflatex', '-no-shell-escape', '-halt-on-error',
                  '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
-                capture_output=True, text=True, timeout=45,
+                capture_output=True, timeout=45,
                 cwd=tmpdir,
             )
 
@@ -1869,7 +1869,7 @@ def latex_preview():
                                     if lines[j].startswith('!') or lines[j].startswith('l.'):
                                         error_lines.append(lines[j].rstrip())
                                 break
-                        error_msg = '\n'.join(error_lines[-5:]) if error_lines else result.stdout[-500:]
+                        error_msg = '\n'.join(error_lines[-5:]) if error_lines else result.stdout[-500:].decode('utf-8', errors='replace')
                 return jsonify({
                     'success': False,
                     'error': 'Erreur de compilation LaTeX',
@@ -1881,7 +1881,7 @@ def latex_preview():
                 subprocess.run(
                     ['pdflatex', '-no-shell-escape', '-halt-on-error',
                      '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
-                    capture_output=True, text=True, timeout=45,
+                    capture_output=True, timeout=45,
                     cwd=tmpdir,
                 )
 
