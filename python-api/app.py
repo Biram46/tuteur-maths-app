@@ -1894,13 +1894,29 @@ def latex_preview():
                 return jsonify({'success': False, 'error': 'pdftoppm non installé'}), 503
 
             png_prefix = os.path.join(tmpdir, 'preview')
-            subprocess.run(
+            conv = subprocess.run(
                 ['pdftoppm', '-png', '-r', str(dpi), '-single-file', pdf_path, png_prefix],
                 capture_output=True, timeout=20,
             )
+            if conv.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': f'pdftoppm erreur (code {conv.returncode})',
+                    'stderr': conv.stderr.decode('utf-8', errors='replace')[:500],
+                    'pdf_exists': os.path.exists(pdf_path),
+                    'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
+                }), 500
+
             png_path = png_prefix + '.png'
             if not os.path.exists(png_path):
-                return jsonify({'success': False, 'error': 'PNG non généré'}), 500
+                # Lister les fichiers générés pour le debug
+                generated = os.listdir(tmpdir)
+                return jsonify({
+                    'success': False,
+                    'error': 'PNG non généré',
+                    'files_in_tmpdir': generated,
+                    'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
+                }), 500
 
             with open(png_path, 'rb') as img_f:
                 img_b64 = base64.b64encode(img_f.read()).decode('ascii')
