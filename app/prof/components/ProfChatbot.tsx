@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { ProfContext, ChatMessageProf, ProfResourceType } from '@/lib/prof-types';
 import { RESOURCE_TYPE_LABELS } from '@/lib/prof-types';
-import { saveDraft, uploadProfFile } from '../actions';
+import { saveDraft, saveDraftPdf, uploadProfFile } from '../actions';
 import { useFigureRenderer } from '@/app/hooks/useFigureRenderer';
 import { extractBestLatex, extractBestHtml } from '@/lib/latex-extract';
 import { convertTabularToHtml, convertTkzTabToMathtable, convertPgfplotsToMathgraph } from '@/lib/latex-env-converters';
@@ -330,13 +330,24 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         if (!content) return;
         setSavingDraft(true);
         try {
-            await saveDraft({
+            // Sauvegarder le fichier LaTeX/HTML
+            const { resourceId } = await saveDraft({
                 teacherId,
                 sequenceId,
                 chapterId: context.chapter_id,
                 resourceType: context.resource_type,
                 content,
             });
+
+            // Compiler et sauvegarder le PDF (uniquement pour le LaTeX)
+            if (contentType === 'latex' && generatedLatex) {
+                saveDraftPdf(resourceId, generatedLatex).then(result => {
+                    if (!result.success) {
+                        console.warn('PDF preview non sauvegardé:', result.error);
+                    }
+                }).catch(() => {});
+            }
+
             setDraftSaved(true);
         } catch (err: any) {
             console.error('Erreur sauvegarde brouillon:', err);

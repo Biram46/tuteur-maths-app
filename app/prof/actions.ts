@@ -377,6 +377,73 @@ export async function updateDraftContent(resourceId: string, newContent: string)
 }
 
 /**
+ * Compile le LaTeX en PDF et sauvegarde l'image dans le brouillon.
+ * Appelé après saveDraft quand l'onglet PDF est actif.
+ */
+export async function saveDraftPdf(resourceId: string, latex: string): Promise<{ success: boolean; pdfUrl?: string; error?: string }> {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) return { success: false, error: 'Bucket non configuré' };
+
+    try {
+        // 1. Compiler via l'API Python
+        const apiUrl = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
+        const resp = await fetch(`${apiUrl}/latex-preview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latex, dpi: 150 }),
+            signal: AbortSignal.timeout(60_000),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.text();
+            return { success: false, error: `Compilation échouée: ${err.slice(0, 200)}` };
+        }
+
+        const data = await resp.json();
+        if (!data.success || !data.image) {
+            return { success: false, error: data.error || 'Pas d\'image générée' };
+        }
+
+        // 2. Décoder base64 → buffer
+        const base64Data = data.image.replace(/^data:image\/png;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // 3. Upload dans Supabase Storage
+        const timestamp = Date.now();
+        const filePath = `prof/drafts/${resourceId}_${timestamp}_preview.png`;
+
+        const { error: uploadError } = await supabaseServer.storage
+            .from(bucketName)
+            .upload(filePath, buffer, {
+                contentType: 'image/png',
+                upsert: true,
+            });
+
+        if (uploadError) return { success: false, error: `Upload échoué: ${uploadError.message}` };
+
+        // 4. URL publique
+        const { data: { publicUrl } } = supabaseServer.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+
+        // 5. Mettre à jour la ressource avec pdf_url
+        const { error: dbError } = await supabaseServer
+            .from('resources')
+            .update({ pdf_url: publicUrl })
+            .eq('id', resourceId);
+
+        if (dbError) return { success: false, error: `DB erreur: ${dbError.message}` };
+
+        revalidatePath("/prof");
+        return { success: true, pdfUrl: publicUrl };
+
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { success: false, error: msg };
+    }
+}
+
+/**
  * Dépublie une ressource (publié → brouillon)
  */
 export async function unpublishResource(resourceId: string) {
