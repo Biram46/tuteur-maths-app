@@ -1890,6 +1890,7 @@ def latex_preview():
                 return jsonify({'success': False, 'error': 'PDF non généré'}), 500
 
             # PDF → PNG via pdftoppm
+            # pdftoppm nomme le fichier: {prefix}-{page_number}.png
             if not shutil.which('pdftoppm'):
                 return jsonify({'success': False, 'error': 'pdftoppm non installé'}), 503
 
@@ -1898,25 +1899,25 @@ def latex_preview():
                 ['pdftoppm', '-png', '-r', str(dpi), '-single-file', pdf_path, png_prefix],
                 capture_output=True, timeout=20,
             )
-            if conv.returncode != 0:
-                return jsonify({
-                    'success': False,
-                    'error': f'pdftoppm erreur (code {conv.returncode})',
-                    'stderr': conv.stderr.decode('utf-8', errors='replace')[:500],
-                    'pdf_exists': os.path.exists(pdf_path),
-                    'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
-                }), 500
 
-            png_path = png_prefix + '.png'
+            # pdftoppm génère: preview.png (avec -single-file) ou preview-1.png (sans)
+            png_path = os.path.join(tmpdir, 'preview.png')
             if not os.path.exists(png_path):
-                # Lister les fichiers générés pour le debug
-                generated = os.listdir(tmpdir)
-                return jsonify({
-                    'success': False,
-                    'error': 'PNG non généré',
-                    'files_in_tmpdir': generated,
-                    'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
-                }), 500
+                png_path = os.path.join(tmpdir, 'preview-1.png')
+            if not os.path.exists(png_path):
+                # Dernier essai : chercher tout .png dans tmpdir
+                all_pngs = [f for f in os.listdir(tmpdir) if f.endswith('.png')]
+                if all_pngs:
+                    png_path = os.path.join(tmpdir, all_pngs[0])
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'PNG non généré',
+                        'conv_returncode': conv.returncode,
+                        'conv_stderr': conv.stderr.decode('utf-8', errors='replace')[:500],
+                        'files_in_tmpdir': os.listdir(tmpdir),
+                        'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
+                    }), 500
 
             with open(png_path, 'rb') as img_f:
                 img_b64 = base64.b64encode(img_f.read()).decode('ascii')
