@@ -1,14 +1,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser, isUrlSafe } from "@/lib/api-auth";
+import { isUrlSafe } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
-    // Vérification d'authentification
-    const user = await getAuthUser();
-    if (!user) {
-        return new NextResponse("Authentification requise", { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const url = searchParams.get("url");
 
@@ -31,19 +25,23 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        const contentType = response.headers.get("content-type");
         const buffer = await response.arrayBuffer();
 
-        // On force le text/html si c'est ce qu'on attend, 
-        // ou on se fie à l'extension si le content-type est générique
-        let finalContentType = contentType;
-        if (url.toLowerCase().endsWith(".html")) {
+        // Supabase sert les HTML en text/plain — forcer text/html
+        let finalContentType = "application/octet-stream";
+        const lowerUrl = url.toLowerCase();
+        if (lowerUrl.endsWith(".html") || lowerUrl.endsWith(".htm")) {
             finalContentType = "text/html; charset=utf-8";
+        } else if (lowerUrl.endsWith(".pdf")) {
+            finalContentType = "application/pdf";
+        } else {
+            const ct = response.headers.get("content-type");
+            if (ct) finalContentType = ct;
         }
 
         return new NextResponse(buffer, {
             headers: {
-                "Content-Type": finalContentType || "application/octet-stream",
+                "Content-Type": finalContentType,
                 "Cache-Control": "public, max-age=3600",
             },
         });
