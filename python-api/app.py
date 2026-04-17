@@ -1856,13 +1856,15 @@ def latex_preview():
             needs_second_pass = r'\label' in full_doc or r'\ref' in full_doc
 
             result = subprocess.run(
-                ['pdflatex', '-no-shell-escape', '-halt-on-error',
+                ['pdflatex', '-no-shell-escape',
                  '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
                 capture_output=True, timeout=45,
                 cwd=tmpdir,
             )
 
-            if result.returncode != 0:
+            # Vérifier si le PDF a été généré (même avec des erreurs non fatales)
+            pdf_path = os.path.join(tmpdir, 'preview.pdf')
+            if result.returncode != 0 and not os.path.exists(pdf_path):
                 log_path = os.path.join(tmpdir, 'preview.log')
                 error_msg = ''
                 if os.path.exists(log_path):
@@ -1886,7 +1888,7 @@ def latex_preview():
             # 2e passe si nécessaire (références croisées)
             if needs_second_pass:
                 subprocess.run(
-                    ['pdflatex', '-no-shell-escape', '-halt-on-error',
+                    ['pdflatex', '-no-shell-escape',
                      '-interaction=nonstopmode', '-output-directory', tmpdir, tex_path],
                     capture_output=True, timeout=45,
                     cwd=tmpdir,
