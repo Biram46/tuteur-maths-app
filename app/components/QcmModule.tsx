@@ -20,7 +20,85 @@ export default function QcmModule() {
     const correctionRef = useRef<HTMLDivElement>(null);
 
     const handleDownloadPdf = () => {
-        window.print();
+        if (!correctionRef.current || score === null) return;
+
+        // Récupérer les styles KaTeX
+        const katexLinks: string[] = [];
+        document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+            const href = (link as HTMLLinkElement).href;
+            if (href.includes('katex') || href.includes('KaTeX')) {
+                katexLinks.push(`<link rel="stylesheet" href="${href}" />`);
+            }
+        });
+        if (katexLinks.length === 0) {
+            katexLinks.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />');
+        }
+
+        // Cloner la correction et nettoyer
+        const clone = correctionRef.current.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('button').forEach(b => b.remove());
+
+        const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        const timeStr = new Date().toLocaleString('fr-FR');
+
+        const fullHtml = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Correction QCM - ${studentName}</title>
+${katexLinks.join('\n')}
+<style>
+@page { size: A4; margin: 18mm 15mm 22mm 15mm; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; color: #0f172a; line-height: 1.55; margin: 0; padding: 0; background: #fff; }
+.print-header { text-align: center; border-bottom: 3px solid #22d3ee; padding-bottom: 14px; margin-bottom: 22px; }
+.print-header h1 { font-size: 22pt; font-weight: 800; color: #0f172a; margin: 0 0 5px; }
+.print-header .sub { font-size: 10pt; color: #64748b; }
+.print-header .score { font-size: 36pt; font-weight: 900; color: #16a34a; margin-top: 8px; }
+.correction-item { margin-bottom: 16px; page-break-inside: avoid; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+.correct { border-color: #86efac; background: #f0fdf4; }
+.incorrect { border-color: #fca5a5; background: #fef2f2; }
+.role-label { font-size: 8pt; color: #64748b; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.msg-content, .msg-content * { color: #000 !important; }
+.katex { color: #000 !important; }
+.katex-display { margin: 0.7em 0 !important; }
+strong, b { font-weight: 700; }
+h2, h3 { margin-top: 0.5em; margin-bottom: 0.3em; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #d1d5db; padding: 6px 10px; text-align: center; }
+th { background: #f1f5f9; font-weight: 600; }
+svg { max-width: 100% !important; height: auto !important; }
+.print-btn { display: block; margin: 20px auto; padding: 12px 32px; background: #22d3ee; color: #fff; font-size: 14pt; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; }
+@media print { .print-btn { display: none !important; } }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Enregistrer en PDF</button>
+<div class="print-header">
+  <h1>CORRECTION QCM</h1>
+  <div class="sub">${studentName} — ${studentClass} · ${dateStr}</div>
+  <div class="score">${score} / 20</div>
+</div>
+${clone.innerHTML}
+<div style="text-align:center;font-size:7pt;color:#94a3b8;margin-top:30px;">Correction QCM Entraîne-toi · ${timeStr}</div>
+</body>
+</html>`;
+
+        const blob = new Blob([fullHtml], { type: 'text/html; charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        const printWin = window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+
+        if (!printWin) {
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `correction_qcm_${studentName.replace(/\s+/g, '_')}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        }
     };
 
     const [studentName, setStudentName] = useState('');
@@ -300,7 +378,7 @@ export default function QcmModule() {
                         </button>
                     )}
 
-                    <div ref={correctionRef} className="qcm-print-area w-full text-left pt-12 border-t border-slate-700/50">
+                    <div ref={correctionRef} className="w-full text-left pt-12 border-t border-slate-700/50">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-3 flex-1">
                                 <span>🔍</span> Correction détaillée — {score}/20
@@ -569,23 +647,6 @@ const GlobalStyles = () => (
         }
         .qcm-table-scroll::-webkit-scrollbar-thumb:hover {
             background: #64748b;
-        }
-
-        /* Print: masquer tout sauf la correction */
-        @media print {
-            body { background: white !important; }
-            body > * { display: none !important; }
-            .qcm-print-area,
-            .qcm-print-area * {
-                display: block !important;
-                color: black !important;
-                background: white !important;
-                border-color: #ccc !important;
-            }
-            .qcm-print-area .math-prose .katex,
-            .qcm-print-area .math-prose .katex * {
-                color: black !important;
-            }
         }
     `}</style>
 )
