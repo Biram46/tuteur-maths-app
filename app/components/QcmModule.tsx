@@ -216,13 +216,9 @@ ${clone.innerHTML}
 
         setScore(finalScoreSur20);
         setIsFinished(true);
-        setIsSaved(false);
         saveSession(questions, answers, currentIndex, true, finalScoreSur20, false);
-        setIsSubmitting(false);
-    };
 
-    const handleSave = async () => {
-        setIsSubmitting(true);
+        // Auto-envoyer la note au professeur
         try {
             await fetch('/api/submit-qcm', {
                 method: 'POST',
@@ -230,14 +226,14 @@ ${clone.innerHTML}
                 body: JSON.stringify({
                     studentName,
                     studentClass,
-                    score,
-                    scoreBase: questions.filter(q => answers[q.id] === q.correctAnswerIndex).length,
+                    score: finalScoreSur20,
+                    scoreBase: total,
                     totalQuestions: questions.length,
                     date: new Date().toISOString()
                 })
             });
             setIsSaved(true);
-            saveSession(questions, answers, currentIndex, true, score, true);
+            saveSession(questions, answers, currentIndex, true, finalScoreSur20, true);
         } catch (e) {
             console.error("Erreur enregistrement QCM:", e);
         }
@@ -345,7 +341,9 @@ ${clone.innerHTML}
                         {studentName} — {studentClass}
                     </p>
                     <p className="text-slate-500 mb-8 max-w-lg mx-auto text-sm">
-                        {isSaved ? 'Tes résultats ont été enregistrés et transmis à ton professeur.' : 'Sauvegarde tes résultats pour les transmettre à ton professeur.'}
+                        {isSaved
+                            ? 'Tes résultats ont été enregistrés et transmis à ton professeur.'
+                            : 'Envoi de tes résultats en cours...'}
                     </p>
 
                     <div className="p-6 bg-slate-800/80 rounded-2xl border border-slate-700 w-full max-w-sm shrink-0 mb-8">
@@ -355,42 +353,28 @@ ${clone.innerHTML}
                         </div>
                     </div>
 
-                    {!isSaved ? (
-                        <button
-                            onClick={handleSave}
-                            disabled={isSubmitting}
-                            className="mb-4 px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:opacity-90 text-white font-bold rounded-xl shadow-lg shadow-green-500/20 disabled:opacity-50 transition-all uppercase tracking-widest text-sm"
-                        >
-                            {isSubmitting ? 'Enregistrement...' : 'Sauvegarder ma note'}
-                        </button>
-                    ) : (
-                        <div className="mb-4 px-6 py-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm font-bold">
-                            Note sauvegardée
+                    {isSaved && (
+                        <div className="flex flex-col items-center gap-4 mb-8">
+                            <button
+                                onClick={handleDownloadPdf}
+                                className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:opacity-90 text-white font-bold rounded-xl shadow-lg shadow-green-500/20 transition-all uppercase tracking-widest text-sm"
+                            >
+                                Telecharger la correction (PDF)
+                            </button>
+                            <button
+                                onClick={startNewSession}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs"
+                            >
+                                Refaire un entraînement
+                            </button>
                         </div>
                     )}
 
-                    {isSaved && (
-                        <button
-                            onClick={startNewSession}
-                            className="mb-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs"
-                        >
-                            Refaire un entraînement
-                        </button>
-                    )}
-
                     <div ref={correctionRef} className="w-full text-left pt-12 border-t border-slate-700/50">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-3 flex-1">
+                        <div className="mb-8">
+                            <h3 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-3">
                                 <span>🔍</span> Correction détaillée — {score}/20
                             </h3>
-                            {isSaved && (
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    className="shrink-0 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold"
-                                >
-                                    PDF
-                                </button>
-                            )}
                         </div>
                         <div className="space-y-12">
                             {questions.map((q, idx) => {
