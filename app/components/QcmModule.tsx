@@ -19,39 +19,49 @@ export default function QcmModule() {
     const router = useRouter();
     const correctionRef = useRef<HTMLDivElement>(null);
 
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
+
     const handleDownloadPdf = async () => {
-        if (!correctionRef.current) return;
-        const html2canvas = (await import('html2canvas')).default;
-        const jsPDF = (await import('jspdf')).default;
+        if (!correctionRef.current || downloadingPdf) return;
+        setDownloadingPdf(true);
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        const el = correctionRef.current;
-        const canvas = await html2canvas(el, {
-            scale: 2,
-            backgroundColor: '#0f172a',
-            useCORS: true,
-        });
+            const el = correctionRef.current;
+            const canvas = await html2canvas(el, {
+                scale: 2,
+                backgroundColor: '#0f172a',
+                useCORS: true,
+            });
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pageWidth - 20;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pageWidth - 20;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        let heightLeft = imgHeight;
-        let position = 10;
+            let heightLeft = imgHeight;
+            let position = 10;
 
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - 20);
-
-        while (heightLeft > 0) {
-            position = -(pageHeight - 20 - 10) + position;
-            pdf.addPage();
             pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
             heightLeft -= (pageHeight - 20);
-        }
 
-        pdf.save(`correction_qcm_${studentName.replace(/\s+/g, '_')}.pdf`);
+            while (heightLeft > 0) {
+                position = -(pageHeight - 20 - 10) + position;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= (pageHeight - 20);
+            }
+
+            pdf.save(`correction_qcm_${studentName.replace(/\s+/g, '_')}.pdf`);
+        } catch (err) {
+            console.error('Erreur génération PDF:', err);
+            alert('Erreur lors de la génération du PDF. Réessaie.');
+        } finally {
+            setDownloadingPdf(false);
+        }
     };
 
     const [studentName, setStudentName] = useState('');
@@ -339,9 +349,10 @@ export default function QcmModule() {
                             {isSaved && (
                                 <button
                                     onClick={handleDownloadPdf}
-                                    className="shrink-0 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold"
+                                    disabled={downloadingPdf}
+                                    className="shrink-0 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold disabled:opacity-50"
                                 >
-                                    PDF
+                                    {downloadingPdf ? 'Génération...' : 'PDF'}
                                 </button>
                             )}
                         </div>
