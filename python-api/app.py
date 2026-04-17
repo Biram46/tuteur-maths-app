@@ -1931,9 +1931,14 @@ def latex_preview():
             with open(png_path, 'rb') as img_f:
                 img_b64 = base64.b64encode(img_f.read()).decode('ascii')
 
+            # Retourner aussi le PDF brut pour téléchargement
+            with open(pdf_path, 'rb') as pdf_f:
+                pdf_b64 = base64.b64encode(pdf_f.read()).decode('ascii')
+
             return jsonify({
                 'success': True,
                 'image': f'data:image/png;base64,{img_b64}',
+                'pdf': pdf_b64,
             })
 
     except subprocess.TimeoutExpired:

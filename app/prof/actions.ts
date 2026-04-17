@@ -408,28 +408,52 @@ export async function saveDraftPdf(resourceId: string, latex: string): Promise<{
         const base64Data = data.image.replace(/^data:image\/png;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // 3. Upload dans Supabase Storage
+        // 3. Upload aperçu PNG dans Supabase Storage
         const timestamp = Date.now();
-        const filePath = `prof/drafts/${resourceId}_${timestamp}_preview.png`;
+        const pngPath = `prof/drafts/${resourceId}_${timestamp}_preview.png`;
 
         const { error: uploadError } = await supabaseServer.storage
             .from(bucketName)
-            .upload(filePath, buffer, {
+            .upload(pngPath, buffer, {
                 contentType: 'image/png',
                 upsert: true,
             });
 
         if (uploadError) return { success: false, error: `Upload échoué: ${uploadError.message}` };
 
-        // 4. URL publique
+        // 4. Upload le vrai PDF si disponible
+        let pdfUrl: string | undefined;
+        if (data.pdf) {
+            const pdfBuffer = Buffer.from(data.pdf, 'base64');
+            const pdfPath = `prof/drafts/${resourceId}_${timestamp}_preview.pdf`;
+
+            const { error: pdfUploadError } = await supabaseServer.storage
+                .from(bucketName)
+                .upload(pdfPath, pdfBuffer, {
+                    contentType: 'application/pdf',
+                    upsert: true,
+                });
+
+            if (!pdfUploadError) {
+                const { data: { publicUrl: pdfPublicUrl } } = supabaseServer.storage
+                    .from(bucketName)
+                    .getPublicUrl(pdfPath);
+                pdfUrl = pdfPublicUrl;
+            }
+        }
+
+        // 5. URL publique de l'aperçu PNG
         const { data: { publicUrl } } = supabaseServer.storage
             .from(bucketName)
-            .getPublicUrl(filePath);
+            .getPublicUrl(pngPath);
 
-        // 5. Mettre à jour la ressource avec pdf_url
+        // 6. Mettre à jour la ressource avec pdf_url (le vrai PDF) et image_url (aperçu PNG)
         const { error: dbError } = await supabaseServer
             .from('resources')
-            .update({ pdf_url: publicUrl })
+            .update({
+                pdf_url: pdfUrl || publicUrl,
+                image_url: publicUrl,
+            })
             .eq('id', resourceId);
 
         if (dbError) return { success: false, error: `DB erreur: ${dbError.message}` };
