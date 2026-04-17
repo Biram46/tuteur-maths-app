@@ -1787,6 +1787,7 @@ _DEFAULT_PREAMBLE = r"""\documentclass[12pt,a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathrsfs}
 \usepackage{geometry}
 \geometry{margin=2cm}
 \usepackage{xcolor}

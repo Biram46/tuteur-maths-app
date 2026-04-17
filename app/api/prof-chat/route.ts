@@ -112,7 +112,7 @@ PACKAGES LaTeX OBLIGATOIRES dans le préambule :
 \\\\usepackage[french]{babel}
 \\\\usepackage[T1]{fontenc}
 \\\\usepackage[utf8]{inputenc}
-\\\\usepackage{amsmath, amssymb}
+\\\\usepackage{amsmath, amssymb, mathrsfs}
 \\\\usepackage[dvipsnames]{xcolor}
 \\\\usepackage{tikz}
 \\\\usepackage{pgfplots}
@@ -710,7 +710,7 @@ MODÈLE LATEX DS À UTILISER :
 \\\\usepackage[french]{babel}
 \\\\usepackage[T1]{fontenc}
 \\\\usepackage[utf8]{inputenc}
-\\\\usepackage{amsmath, amssymb}
+\\\\usepackage{amsmath, amssymb, mathrsfs}
 \\\\usepackage{tikz}
 \\\\usepackage{pgfplots}
 \\\\pgfplotsset{compat=1.18}
@@ -751,7 +751,7 @@ MODÈLE LATEX EAM À UTILISER :
 \\\\usepackage[french]{babel}
 \\\\usepackage[T1]{fontenc}
 \\\\usepackage[utf8]{inputenc}
-\\\\usepackage{amsmath, amssymb}
+\\\\usepackage{amsmath, amssymb, mathrsfs}
 \\\\usepackage{tikz}
 \\\\usepackage{pgfplots}
 \\\\pgfplotsset{compat=1.18}
