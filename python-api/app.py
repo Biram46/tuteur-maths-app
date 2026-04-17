@@ -1898,38 +1898,37 @@ def latex_preview():
             if not os.path.exists(pdf_path):
                 return jsonify({'success': False, 'error': 'PDF non généré'}), 500
 
-            # PDF → PNG via pdftoppm
-            # pdftoppm nomme le fichier: {prefix}-{page_number}.png
+            # PDF → PNG via pdftoppm (toutes les pages)
             if not shutil.which('pdftoppm'):
                 return jsonify({'success': False, 'error': 'pdftoppm non installé'}), 503
 
             png_prefix = os.path.join(tmpdir, 'preview')
             conv = subprocess.run(
-                ['pdftoppm', '-png', '-r', str(dpi), '-f', '1', '-l', '1', pdf_path, png_prefix],
-                capture_output=True, timeout=20,
+                ['pdftoppm', '-png', '-r', str(dpi), pdf_path, png_prefix],
+                capture_output=True, timeout=30,
             )
 
-            # pdftoppm génère: preview-1.png
-            png_path = os.path.join(tmpdir, 'preview-1.png')
-            if not os.path.exists(png_path):
-                png_path = os.path.join(tmpdir, 'preview.png')
-            if not os.path.exists(png_path):
-                # Dernier essai : chercher tout .png dans tmpdir
-                all_pngs = [f for f in os.listdir(tmpdir) if f.endswith('.png')]
-                if all_pngs:
-                    png_path = os.path.join(tmpdir, all_pngs[0])
-                else:
-                    return jsonify({
-                        'success': False,
-                        'error': 'PNG non généré',
-                        'conv_returncode': conv.returncode,
-                        'conv_stderr': conv.stderr.decode('utf-8', errors='replace')[:500],
-                        'files_in_tmpdir': os.listdir(tmpdir),
-                        'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
-                    }), 500
+            # Collecter tous les PNG générés (preview-1.png, preview-2.png, ...)
+            all_pngs = sorted(
+                [f for f in os.listdir(tmpdir) if f.endswith('.png')],
+                key=lambda f: int(re.search(r'-(\d+)\.png$', f).group(1)) if re.search(r'-(\d+)\.png$', f) else 0
+            )
 
-            with open(png_path, 'rb') as img_f:
-                img_b64 = base64.b64encode(img_f.read()).decode('ascii')
+            if not all_pngs:
+                return jsonify({
+                    'success': False,
+                    'error': 'PNG non généré',
+                    'conv_returncode': conv.returncode,
+                    'conv_stderr': conv.stderr.decode('utf-8', errors='replace')[:500],
+                    'files_in_tmpdir': os.listdir(tmpdir),
+                    'pdf_size': os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0,
+                }), 500
+
+            images = []
+            for png_name in all_pngs:
+                with open(os.path.join(tmpdir, png_name), 'rb') as img_f:
+                    img_b64 = base64.b64encode(img_f.read()).decode('ascii')
+                    images.append(f'data:image/png;base64,{img_b64}')
 
             # Retourner aussi le PDF brut pour téléchargement
             with open(pdf_path, 'rb') as pdf_f:
@@ -1937,7 +1936,8 @@ def latex_preview():
 
             return jsonify({
                 'success': True,
-                'image': f'data:image/png;base64,{img_b64}',
+                'images': images,
+                'image': images[0] if images else None,  # rétro-compatibilité
                 'pdf': pdf_b64,
             })
 

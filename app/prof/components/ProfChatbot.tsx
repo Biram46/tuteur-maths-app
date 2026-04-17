@@ -23,7 +23,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [contentType, setContentType] = useState<'latex' | 'html'>('latex');
     const [showPreview, setShowPreview] = useState(false);
     const [previewTab, setPreviewTab] = useState<'code' | 'render' | 'pdf'>('render');
-    const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
+    const [pdfPreviewImages, setPdfPreviewImages] = useState<string[]>([]);
+    const [pdfPreviewPdf, setPdfPreviewPdf] = useState<string | null>(null);
     const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
     const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
     const [savingDraft, setSavingDraft] = useState(false);
@@ -56,7 +57,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         const compilePdf = async () => {
             setPdfPreviewLoading(true);
             setPdfPreviewError(null);
-            setPdfPreviewImage(null);
+            setPdfPreviewImages([]);
+            setPdfPreviewPdf(null);
 
             try {
                 const resp = await fetch('/api/latex-preview', {
@@ -68,8 +70,9 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 if (cancelled) return;
 
                 const data = await resp.json();
-                if (data.success && data.image) {
-                    setPdfPreviewImage(data.image);
+                if (data.success && (data.images || data.image)) {
+                    setPdfPreviewImages(data.images || [data.image]);
+                    if (data.pdf) setPdfPreviewPdf(data.pdf);
                 } else {
                     setPdfPreviewError(data.error || 'Erreur de compilation');
                 }
@@ -368,6 +371,21 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         a.click();
         URL.revokeObjectURL(url);
     }, [contentType, generatedHtml, generatedLatex, context]);
+
+    // ── Télécharger le PDF compilé ──────────────────────────────
+    const handleDownloadPdf = useCallback(() => {
+        if (!pdfPreviewPdf) return;
+        const binary = atob(pdfPreviewPdf);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${context.resource_type}_${context.chapter_title.replace(/\s+/g, '_')}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [pdfPreviewPdf, context]);
 
     // Get current content for display
     const currentContent = contentType === 'html' ? generatedHtml : generatedLatex;
@@ -866,6 +884,14 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                             >
                                 ⬇ {isHtmlContent ? '.html' : '.tex'}
                             </button>
+                            {!isHtmlContent && pdfPreviewPdf && (
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                                >
+                                    ⬇ .pdf
+                                </button>
+                            )}
                             <button
                                 onClick={handleSaveDraft}
                                 disabled={savingDraft || draftSaved}
@@ -1073,12 +1099,15 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                                 Réessayer
                                             </button>
                                         </div>
-                                    ) : pdfPreviewImage ? (
-                                        <img
-                                            src={pdfPreviewImage}
-                                            alt="Apercu PDF compilé"
-                                            className="max-w-full shadow-2xl rounded"
-                                        />
+                                    ) : pdfPreviewImages.length > 0 ? (
+                                        pdfPreviewImages.map((img, i) => (
+                                            <img
+                                                key={i}
+                                                src={img}
+                                                alt={`Page ${i + 1}`}
+                                                className="max-w-full shadow-2xl rounded"
+                                            />
+                                        ))
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 py-20 text-slate-500">
                                             <span className="text-xs">Cliquez sur l&apos;onglet PDF pour compiler le LaTeX</span>
