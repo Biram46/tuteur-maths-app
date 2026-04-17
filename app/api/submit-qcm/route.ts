@@ -4,19 +4,20 @@ import { createClient } from '@/lib/supabaseAction';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { score, scoreBase, totalQuestions, date } = body;
-        
+        const { score, scoreBase, totalQuestions, date, studentName, studentClass } = body;
+
         // Connexion Supabase
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         const studentEmail = user?.email || 'eleve_anonyme@example.com';
-        
+
         // Insertion dans la BDD
-        // NB : Il faudra créer la table "qcm_results" si elle n'existe pas
         const { error } = await supabase.from('qcm_results').insert([
             {
                 student_email: studentEmail,
+                student_name: studentName || null,
+                student_class: studentClass || null,
                 score: score,
                 score_base: scoreBase,
                 total_questions: totalQuestions,

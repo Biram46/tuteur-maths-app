@@ -766,10 +766,13 @@ export default function AdminDashboard({ initialData }: Props) {
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-emerald-500/20" title={String(result.id)}>
-                                                        {(result.student_email || "?").substring(0, 2).toUpperCase()}
+                                                        {(result.student_name || result.student_email || "?").substring(0, 2).toUpperCase()}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-slate-200 font-medium text-xs font-mono">{result.student_email}</span>
+                                                        <span className="text-slate-200 font-medium text-xs">{result.student_name || result.student_email}</span>
+                                                        {result.student_class && (
+                                                            <span className="text-emerald-400/70 text-[10px] font-bold uppercase tracking-wider">{result.student_class}</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>

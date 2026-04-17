@@ -46,6 +46,8 @@ export type QuizResult = {
 export type QcmResult = {
     id: string;
     student_email: string;
+    student_name: string | null;
+    student_class: string | null;
     score: number;
     score_base: number;
     total_questions: number;
