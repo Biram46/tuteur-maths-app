@@ -19,49 +19,8 @@ export default function QcmModule() {
     const router = useRouter();
     const correctionRef = useRef<HTMLDivElement>(null);
 
-    const [downloadingPdf, setDownloadingPdf] = useState(false);
-
-    const handleDownloadPdf = async () => {
-        if (!correctionRef.current || downloadingPdf) return;
-        setDownloadingPdf(true);
-        try {
-            const html2canvas = (await import('html2canvas')).default;
-            const { jsPDF } = await import('jspdf');
-
-            const el = correctionRef.current;
-            const canvas = await html2canvas(el, {
-                scale: 2,
-                backgroundColor: '#0f172a',
-                useCORS: true,
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pageWidth - 20;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            let heightLeft = imgHeight;
-            let position = 10;
-
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= (pageHeight - 20);
-
-            while (heightLeft > 0) {
-                position = -(pageHeight - 20 - 10) + position;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= (pageHeight - 20);
-            }
-
-            pdf.save(`correction_qcm_${studentName.replace(/\s+/g, '_')}.pdf`);
-        } catch (err) {
-            console.error('Erreur génération PDF:', err);
-            alert('Erreur lors de la génération du PDF. Réessaie.');
-        } finally {
-            setDownloadingPdf(false);
-        }
+    const handleDownloadPdf = () => {
+        window.print();
     };
 
     const [studentName, setStudentName] = useState('');
@@ -341,7 +300,7 @@ export default function QcmModule() {
                         </button>
                     )}
 
-                    <div ref={correctionRef} className="w-full text-left pt-12 border-t border-slate-700/50">
+                    <div ref={correctionRef} className="qcm-print-area w-full text-left pt-12 border-t border-slate-700/50">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-3 flex-1">
                                 <span>🔍</span> Correction détaillée — {score}/20
@@ -349,10 +308,9 @@ export default function QcmModule() {
                             {isSaved && (
                                 <button
                                     onClick={handleDownloadPdf}
-                                    disabled={downloadingPdf}
-                                    className="shrink-0 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold disabled:opacity-50"
+                                    className="shrink-0 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all uppercase tracking-widest text-xs font-bold"
                                 >
-                                    {downloadingPdf ? 'Génération...' : 'PDF'}
+                                    PDF
                                 </button>
                             )}
                         </div>
@@ -611,6 +569,23 @@ const GlobalStyles = () => (
         }
         .qcm-table-scroll::-webkit-scrollbar-thumb:hover {
             background: #64748b;
+        }
+
+        /* Print: masquer tout sauf la correction */
+        @media print {
+            body { background: white !important; }
+            body > * { display: none !important; }
+            .qcm-print-area,
+            .qcm-print-area * {
+                display: block !important;
+                color: black !important;
+                background: white !important;
+                border-color: #ccc !important;
+            }
+            .qcm-print-area .math-prose .katex,
+            .qcm-print-area .math-prose .katex * {
+                color: black !important;
+            }
         }
     `}</style>
 )
