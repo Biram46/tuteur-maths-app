@@ -1905,14 +1905,14 @@ def latex_preview():
 
             png_prefix = os.path.join(tmpdir, 'preview')
             conv = subprocess.run(
-                ['pdftoppm', '-png', '-r', str(dpi), '-single-file', pdf_path, png_prefix],
+                ['pdftoppm', '-png', '-r', str(dpi), '-f', '1', '-l', '1', pdf_path, png_prefix],
                 capture_output=True, timeout=20,
             )
 
-            # pdftoppm génère: preview.png (avec -single-file) ou preview-1.png (sans)
-            png_path = os.path.join(tmpdir, 'preview.png')
+            # pdftoppm génère: preview-1.png
+            png_path = os.path.join(tmpdir, 'preview-1.png')
             if not os.path.exists(png_path):
-                png_path = os.path.join(tmpdir, 'preview-1.png')
+                png_path = os.path.join(tmpdir, 'preview.png')
             if not os.path.exists(png_path):
                 # Dernier essai : chercher tout .png dans tmpdir
                 all_pngs = [f for f in os.listdir(tmpdir) if f.endswith('.png')]
