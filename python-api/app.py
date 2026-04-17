@@ -1836,6 +1836,12 @@ def latex_preview():
         # Construire le document complet si besoin
         if r'\documentclass' in latex_code:
             full_doc = latex_code
+            # Injecter les packages manquants courants avant \begin{document}
+            for pkg in [r'\usepackage{mathrsfs}', r'\usepackage{amsfonts}']:
+                if pkg not in full_doc:
+                    full_doc = full_doc.replace(
+                        r'\begin{document}', pkg + '\n' + r'\begin{document}', 1
+                    )
         else:
             full_doc = _DEFAULT_PREAMBLE + latex_code + '\n' + _DEFAULT_END
 
