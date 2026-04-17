@@ -2,6 +2,9 @@
   "functions": {
     "app/api/prof-chat/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/latex-preview/route.ts": {
+      "maxDuration": 120
     }
   }
 }

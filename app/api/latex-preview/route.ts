@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const PYTHON_API = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
 
@@ -26,12 +26,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Timeout 55s — cold start Render + compilation pdflatex
+        // Timeout 110s — cold start Render + compilation pdflatex + conversion multi-pages
         const resp = await fetch(`${PYTHON_API}/latex-preview`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ latex, dpi: body.dpi ?? 150 }),
-            signal: AbortSignal.timeout(55_000),
+            signal: AbortSignal.timeout(110_000),
         });
 
         if (!resp.ok) {
