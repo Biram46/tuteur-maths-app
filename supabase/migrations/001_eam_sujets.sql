@@ -26,7 +26,7 @@ CREATE POLICY "Écriture admin des sujets EAM" ON eam_sujets
     FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Index pour optimiser les requêtes par date
-CREATE INDEX IF NOT EXISTS idx_eam_sujets_date ON eam_sujets(date_sujet DESC);
+CREATE INDEX IF NOT EXISTS idx_eam_sujets_date ON eam_sujets(date_sujet ASC);
 
 -- Trigger pour mettre à jour updated_at automatiquement
 CREATE OR REPLACE FUNCTION update_updated_at_column()
