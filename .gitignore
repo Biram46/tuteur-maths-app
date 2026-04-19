@@ -87,3 +87,17 @@ vitest_out.txt
 python_backend_*.txt
 
 .vercel
+
+claude-glm.ps1
+.env
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock
+.claude/settings.json
+
+# Dev helper scripts
+claude-pro.ps1
+proxy.js
+
+# Rapports internes
+analysis_report.md
