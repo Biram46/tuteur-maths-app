@@ -3,8 +3,50 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 import type { ProfResourceType } from "@/lib/prof-types";
+import { appendFileSync } from "fs";
 
 
+
+// ─────────────────────────────────────────────────────────────
+// CHAPITRES (création depuis l'espace prof)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Crée un nouveau chapitre pour un niveau donné (utilisable depuis l'espace prof)
+ */
+export async function createChapterFromProf(
+    levelId: string,
+    title: string,
+    position?: number
+): Promise<{ id: string; title: string; level_id: string; position: number; code: string; published: boolean }> {
+    if (!levelId || !title?.trim()) {
+        throw new Error("Niveau et titre sont obligatoires.");
+    }
+
+    const code = title.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 50);
+
+    const { data, error } = await supabaseServer
+        .from("chapters")
+        .insert([{
+            level_id: levelId,
+            title: title.trim(),
+            code,
+            position: position || 99,
+            published: false,
+        }])
+        .select()
+        .single();
+
+    if (error) throw new Error(`Erreur création chapitre: ${error.message}`);
+
+    revalidatePath("/prof");
+    revalidatePath("/admin");
+    return data!;
+}
 
 // ─────────────────────────────────────────────────────────────
 // SÉQUENCES
@@ -191,33 +233,182 @@ export async function saveDraft(params: {
 // PUBLICATION
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// NOMMAGE DES RESSOURCES
+// ─────────────────────────────────────────────────────────────
+
 /**
- * Publie une seule ressource (brouillon → publié)
+ * Génère le nom de fichier normalisé d'une ressource pour l'espace élève.
+ * Conventions : cours_chap_classe | feuille_chap_classe_N | ds_chap_classe | eam_chap_classe
  */
-export async function publishResource(resourceId: string) {
+function buildResourceFileName(
+    label: string | null,
+    chapterCode: string | null,
+    chapterTitle: string | null,
+    levelCode: string | null,
+): string {
+    const slugify = (s: string) =>
+        s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+    const chap = slugify(chapterCode || chapterTitle || 'chap');
+    const classe = slugify(levelCode || 'classe');
+    const l = (label || '').toLowerCase();
+
+    if (l.includes('feuille') || (l.includes('exercice') && !l.includes('interactif'))) {
+        const numMatch = l.match(/n[°o]?\s*(\d+)/i);
+        const num = numMatch ? numMatch[1] : '1';
+        return `feuille_${chap}_${classe}_${num}`;
+    }
+    if (l.includes('devoir')) return `ds_${chap}_${classe}`;
+    if (l.includes('epreuve') || l.includes('épreuve') || l.includes('eam')) return `eam_${chap}_${classe}`;
+    return `cours_${chap}_${classe}`;
+}
+
+/**
+ * Publie une seule ressource (brouillon → publié).
+ * S'assure qu'un PDF est disponible (compile le LaTeX si besoin)
+ * et nomme le fichier selon la convention cours/feuille_chap_classe_N.
+ * Retourne { pdfUrl } si le PDF a été généré, { pdfError } sinon.
+ */
+export async function publishResource(resourceId: string): Promise<{ pdfUrl?: string; pdfError?: string }> {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    const _log = (msg: string) => {
+        const line = `[${new Date().toISOString()}] ${msg}\n`;
+        try { appendFileSync('C:\\Users\\HP\\Documents\\projet\\tuteur-maths-app\\publish-debug.log', line, 'utf8'); } catch(e) { console.warn('_log fail:', e); }
+        console.log(msg);
+    };
+
+    // 1. Récupérer la ressource complète
+    const { data: resource, error: fetchErr } = await supabaseServer
+        .from("resources")
+        .select("sequence_id, chapter_id, kind, label, latex_url, pdf_url, created_by")
+        .eq("id", resourceId)
+        .single();
+
+    if (fetchErr || !resource) throw new Error("Ressource introuvable");
+
+    // 2. Résoudre chapitre + niveau pour construire le nom de fichier
+    let chapterCode: string | null = null;
+    let chapterTitle: string | null = null;
+    let levelCode: string | null = null;
+
+    if (resource.chapter_id) {
+        const { data: chap } = await supabaseServer
+            .from("chapters").select("code, title")
+            .eq("id", resource.chapter_id).single();
+        chapterCode = chap?.code ?? null;
+        chapterTitle = chap?.title ?? null;
+    }
+
+    if (resource.sequence_id) {
+        const { data: seq } = await supabaseServer
+            .from("sequences").select("level_id")
+            .eq("id", resource.sequence_id).single();
+        if (seq?.level_id) {
+            const { data: lvl } = await supabaseServer
+                .from("levels").select("code")
+                .eq("id", seq.level_id).single();
+            levelCode = lvl?.code ?? null;
+        }
+    }
+
+    const properFileName = buildResourceFileName(resource.label, chapterCode, chapterTitle, levelCode);
+
+    // 3. Compiler le LaTeX en PDF et l'uploader avec le bon nom (sauf interactif)
+    const isInteractif = resource.kind === 'interactif';
+    let generatedPdfUrl: string | undefined;
+    let pdfErrorMsg: string | undefined;
+
+    if (!isInteractif && bucketName && resource.latex_url) {
+        try {
+            _log(`[publishResource] Démarrage compilation pour "${properFileName}"…`);
+            _log(`[publishResource] latex_url = ${resource.latex_url}`);
+
+            const latexResp = await fetch(resource.latex_url);
+            if (!latexResp.ok) throw new Error(`Impossible de charger le .tex (HTTP ${latexResp.status})`);
+            const latex = await latexResp.text();
+            _log(`[publishResource] LaTeX récupéré (${latex.length} chars)`);
+
+            const apiUrl = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
+            _log(`[publishResource] Compilation via ${apiUrl}`);
+
+            const compileResp = await fetch(`${apiUrl}/latex-preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latex, dpi: 150 }),
+                signal: AbortSignal.timeout(120_000),
+            });
+
+            if (!compileResp.ok) {
+                const errText = await compileResp.text().catch(() => '');
+                throw new Error(`API ${compileResp.status}: ${errText.slice(0, 300)}`);
+            }
+
+            const data = await compileResp.json();
+            _log(`[publishResource] Réponse API — success=${data.success} has_pdf=${!!data.pdf} error=${data.error}`);
+            if (!data.success || !data.pdf) {
+                throw new Error(data.error || 'Pas de PDF retourné par l\'API');
+            }
+
+            const pdfBuffer = Buffer.from(data.pdf, 'base64');
+            const teacherPrefix = resource.created_by ?? 'shared';
+            const pdfPath = `students/${teacherPrefix}/${properFileName}.pdf`;
+            const texPath = `students/${teacherPrefix}/${properFileName}.tex`;
+            _log(`[publishResource] Upload PDF → ${pdfPath} (${pdfBuffer.length} bytes)`);
+
+            const { error: upErr } = await supabaseServer.storage
+                .from(bucketName)
+                .upload(pdfPath, pdfBuffer, { contentType: 'application/pdf', upsert: true });
+
+            if (upErr) throw new Error(`Upload Storage: ${upErr.message}`);
+
+            // Upload aussi le .tex dans l'espace élèves
+            _log(`[publishResource] Upload LaTeX → ${texPath} (${latex.length} chars)`);
+            const { error: texUpErr } = await supabaseServer.storage
+                .from(bucketName)
+                .upload(texPath, latex, { contentType: 'text/x-latex', upsert: true });
+            if (texUpErr) _log(`[publishResource] ⚠️ Upload .tex échoué : ${texUpErr.message}`);
+
+            const { data: { publicUrl } } = supabaseServer.storage
+                .from(bucketName).getPublicUrl(pdfPath);
+
+            const { data: { publicUrl: texPublicUrl } } = supabaseServer.storage
+                .from(bucketName).getPublicUrl(texPath);
+
+            const { error: dbErr } = await supabaseServer
+                .from("resources")
+                .update({ pdf_url: publicUrl, latex_url: texPublicUrl })
+                .eq("id", resourceId);
+
+            if (dbErr) throw new Error(`DB update pdf_url/latex_url: ${dbErr.message}`);
+
+            generatedPdfUrl = publicUrl;
+            _log(`[publishResource] ✅ PDF publié : ${publicUrl}`);
+        } catch (pdfErr) {
+            pdfErrorMsg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
+            _log(`[publishResource] ❌ Erreur PDF : ${pdfErrorMsg}`);
+        }
+    } else {
+        _log(`[publishResource] Skipped — isInteractif=${isInteractif} bucketName=${bucketName} latex_url=${resource.latex_url}`);
+    }
+
+    // 4. Publier la ressource (même si PDF a échoué)
     const { error } = await supabaseServer
         .from("resources")
-        .update({
-            status: 'published',
-            published_at: new Date().toISOString(),
-        })
+        .update({ status: 'published', published_at: new Date().toISOString() })
         .eq("id", resourceId);
 
     if (error) throw new Error(`Erreur publication: ${error.message}`);
 
-    // Recalculer le statut de la séquence associée
-    const { data: resource } = await supabaseServer
-        .from("resources")
-        .select("sequence_id")
-        .eq("id", resourceId)
-        .single();
-
-    if (resource?.sequence_id) {
+    if (resource.sequence_id) {
         await recalculateSequenceStatus(resource.sequence_id);
     }
 
     revalidatePath("/prof");
-    revalidatePath("/");  // Rafraîchir l'espace élève
+    revalidatePath("/");
+    return { pdfUrl: generatedPdfUrl, pdfError: pdfErrorMsg };
 }
 
 /**
@@ -261,36 +452,15 @@ export async function publishSequence(sequenceId: string) {
 }
 
 /**
- * Publie plusieurs ressources par leurs IDs (utilisé par le bouton "Tout valider")
+ * Publie plusieurs ressources par leurs IDs (utilisé par le bouton "Tout valider").
+ * Génère le PDF pour chaque ressource via publishResource.
  */
 export async function publishResourcesByIds(resourceIds: string[]) {
     if (!resourceIds.length) return;
 
-    const now = new Date().toISOString();
-
-    const { error } = await supabaseServer
-        .from("resources")
-        .update({
-            status: 'published',
-            published_at: now,
-        })
-        .in("id", resourceIds)
-        .eq("status", "draft");
-
-    if (error) throw new Error(`Erreur publication: ${error.message}`);
-
-    // Recalculer le statut de toutes les séquences concernées
-    const { data: resources } = await supabaseServer
-        .from("resources")
-        .select("sequence_id")
-        .in("id", resourceIds);
-
-    const sequenceIds = [...new Set(
-        (resources || []).map((r: { sequence_id: string | null }) => r.sequence_id).filter(Boolean)
-    )];
-
-    for (const seqId of sequenceIds) {
-        await recalculateSequenceStatus(seqId as string);
+    // Publier chaque ressource avec génération PDF (en séquentiel pour ne pas surcharger l'API)
+    for (const id of resourceIds) {
+        await publishResource(id);
     }
 
     revalidatePath("/prof");

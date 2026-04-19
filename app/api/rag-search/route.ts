@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authWithRateLimit } from '@/lib/api-auth';
 
 /**
  * API Route: POST /api/rag-search
@@ -18,23 +19,30 @@ const supabase = createClient(
 );
 
 async function getEmbedding(text: string): Promise<number[]> {
-    const res = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'text-embedding-ada-002',
-            input: text
-        })
-    });
-    const result = await res.json();
-    if (result.error) throw new Error(result.error.message);
-    return result.data[0].embedding;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+        const res = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ model: 'text-embedding-ada-002', input: text }),
+            signal: controller.signal,
+        });
+        const result = await res.json();
+        if (result.error) throw new Error(result.error.message);
+        return result.data[0].embedding;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function POST(req: NextRequest) {
+    const auth = await authWithRateLimit(req, 30, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { query, level, match_count = 5 } = await req.json();
 

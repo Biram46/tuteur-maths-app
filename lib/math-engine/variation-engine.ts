@@ -424,29 +424,10 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
                 break;
 
             case 'quadratic':
-                // En Seconde : les trinômes ax²+bx+c (b≠0 ou c≠0) sont HORS PROGRAMME
-                // Seule la fonction de référence x² est autorisée (déjà gérée par reference_x2)
-                if (niveau === 'seconde' || niveau === 'seconde_sthr') {
-                    return {
-                        success: false,
-                        error: `⛔ En Seconde, le tableau de variations d'un trinôme du second degré (ax²+bx+c) nécessite la forme canonique qui n'est pas au programme. Seules les fonctions de référence (x², x³, √x, 1/x) sont étudiées en Seconde.`,
-                        extrema: [],
-                        needsAI: true,
-                    };
-                }
                 result = handleQuadratic(expression, detection.quadratic!, niveau, rules, input.title);
                 break;
 
             case 'general':
-                // En Seconde : les fonctions générales nécessitent la dérivée → hors programme
-                if (niveau === 'seconde' || niveau === 'seconde_sthr') {
-                    return {
-                        success: false,
-                        error: `⛔ En Seconde, seules les fonctions de référence (affine, x², x³, √x, 1/x) ont un tableau de variations au programme. Cette fonction nécessite la dérivée pour être étudiée, ce qui n'est pas au programme de Seconde.`,
-                        extrema: [],
-                        needsAI: true,
-                    };
-                }
                 result = handleGeneral(expression, niveau, rules, input.searchDomain, input);
                 break;
 

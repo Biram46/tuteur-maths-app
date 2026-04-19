@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeMathImageWithOpenAI } from "@/lib/openai-vision";
 import { analyzeMathImage } from "@/lib/gemini";
+import { authWithRateLimit } from "@/lib/api-auth";
 
 export async function POST(request: NextRequest) {
+    const auth = await authWithRateLimit(request, 15, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 1 minute timeout
 

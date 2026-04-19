@@ -43,7 +43,9 @@ export const katexSanitizeSchema: Schema = {
     ],
 
     attributes: {
-        '*': ['className', 'style', 'id'],
+        // aria-hidden : KaTeX génère <span class="katex-html" aria-hidden="true">
+        // ariaHidden est le nom HAST de l'attribut HTML aria-hidden
+        '*': ['className', 'style', 'id', 'ariaHidden', 'role', 'tabIndex', 'ariaLabel', 'xmlns'],
         'a': ['href', 'title', 'target', 'rel'],
         'img': ['src', 'alt', 'title', 'width', 'height'],
         'math': ['xmlns', 'display', 'mode'],

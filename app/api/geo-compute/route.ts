@@ -10,10 +10,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { authWithRateLimit } from '@/lib/api-auth';
 
 const PYTHON_API = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 export async function POST(req: NextRequest) {
+    const auth = await authWithRateLimit(req, 60, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = await req.json();
         const { points, commands } = body;

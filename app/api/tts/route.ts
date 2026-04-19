@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { authWithRateLimit } from '@/lib/api-auth';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const auth = await authWithRateLimit(req, 20, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { text, voice = 'nova' } = await req.json();
 

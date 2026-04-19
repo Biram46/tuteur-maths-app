@@ -126,8 +126,8 @@ export function fixLatexContent(content: string): LatexFixerResult {
         }
         return result;
     };
-    // Appliquer seulement si le simple regex n'a pas tout capturé
-    if (fixed.includes('\\frac') && !fixed.includes('$\\frac')) {
+    // Appliquer pour toute frac non encore entourée de $
+    if (/(?<!\$)\\d?frac/.test(fixed)) {
         fixed = wrapFractionWithNestedBraces(fixed);
     }
     // Encapsuler \sqrt{...} ou \sqrt[n]{...}
@@ -140,7 +140,7 @@ export function fixLatexContent(content: string): LatexFixerResult {
     // IMPORTANT: Cette règle DOIT s'exécuter AVANT la règle des lettres grecques isolées
     // Sinon \Delta serait encapsulé seul en $\Delta$ et la formule serait brisée
     // Si l'IA envoie "\Delta = 25 - 24" sans $, on encapsule toute la formule
-    fixed = fixed.replace(/\\Delta\s*=\s*([^$\n]+?)(?=\s*$|\n|(?=\s+[A-Za-zÀ-ÿ]))/g, (match, expr, offset) => {
+    fixed = fixed.replace(/\\Delta\s*=\s*([^$\n]+?)(?=\s*$|\n|[,.;!?:](?:\s|$)|\s+[A-Za-zÀ-ÿ])/g, (match, expr, offset) => {
         if (isInsideMathBlock(fixed, offset as number)) return match;
         // Vérifier que l'expression n'est pas vide
         if (!expr || expr.trim().length === 0) return match;
@@ -159,11 +159,24 @@ export function fixLatexContent(content: string): LatexFixerResult {
         return `$${match}$`;
     });
 
+    // 4.5.3 Encapsuler les commandes vectorielles/accent et lettres grecques minuscules hors $
+    // Ces commandes sont fréquemment envoyées sans délimiteurs $ par l'IA.
+    // Commandes à 1 argument avec accolades : \vec{AB}, \overrightarrow{AB}, \overline{x}, \widehat{f}, \widetilde{u}, \mathbb{R}, \mathcal{F}
+    fixed = fixed.replace(/\\(?:vec|overrightarrow|overline|widehat|widetilde|mathbb|mathcal)\{[^}]*\}/g, (match, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        return `$${match}$`;
+    });
+    // Lettres grecques minuscules isolées (suivies d'espace, ponctuation, fin de ligne)
+    fixed = fixed.replace(/\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(?![a-zA-Z{])/g, (match, _greek, offset) => {
+        if (isInsideMathBlock(fixed, offset as number)) return match;
+        return `$${match}$`;
+    });
+
     // 4.6 Conversion du mot "delta" (sans backslash) vers $\Delta$
     // L'IA écrit parfois "delta = 12" au lieu de "$\Delta = 12$"
     // On ne convertit PAS si déjà dans un bloc $...$
     // ATTENTION: préserver l'espace avant "delta" s'il existe
-    fixed = fixed.replace(/(\s?)(delta)\b(?=[\s=])/gi, (match, space, word, offset) => {
+    fixed = fixed.replace(/(\s?)(delta)\b(?=\s*=)/gi, (match, space, word, offset) => {
         if (isInsideMathBlock(fixed, offset as number)) return match;
         // Préserver l'espace existant (ne pas en ajouter)
         return space + '$\\Delta$';
@@ -178,24 +191,53 @@ export function fixLatexContent(content: string): LatexFixerResult {
     fixed = fixed.replace(/\$\$\s*\$\$/g, '');
     // NOTE: on supprime la correction "$ " qui causait trop de bugs
 
-    // 5. \begin{aligned} et \begin{array} sans délimiteurs $$ → on les encadre
-    // L'IA envoie parfois \begin{aligned}...\end{aligned} sans $$ autour
-    // ⚠️ Idempotent : callback vérifie que l'environnement n'est PAS déjà dans un $$
-    fixed = fixed.replace(/(\\begin\{(?:aligned|array|cases|pmatrix|bmatrix)\}[\s\S]*?\\end\{(?:aligned|array|cases|pmatrix|bmatrix)\})/g, (matchEnv, _g1, offset, str) => {
-        const ctxBefore = str.substring(Math.max(0, offset - 15), offset).replace(/\s+/g, '');
-        const ctxAfter = str.substring(offset + matchEnv.length, offset + matchEnv.length + 15).replace(/\s+/g, '');
-        if (ctxBefore.endsWith('$$') || ctxAfter.startsWith('$$')) return matchEnv;
+    // 4.8 Correction des séparateurs de lignes dans les matrices
+    // L'IA génère parfois "\ " (un seul backslash) au lieu de "\\" dans pmatrix/bmatrix/vmatrix
+    // Ex : \begin{pmatrix} a \ b \end{pmatrix} → \begin{pmatrix} a \\ b \end{pmatrix}
+    fixed = fixed.replace(/(\\begin\{(?:pmatrix|bmatrix|vmatrix)\})([\s\S]*?)(\\end\{(?:pmatrix|bmatrix|vmatrix)\})/g, (_m, begin, content, end) => {
+        // Remplace "\ " (backslash seul + espace/newline) par "\\" seulement si ce n'est pas déjà "\\"
+        const fixedContent = content.replace(/\\(?![\\\w{,;!|])\s/g, '\\\\ ');
+        return begin + fixedContent + end;
+    });
+
+    // 5. Environnements LaTeX sans délimiteurs $$ → on les encadre
+    // L'IA envoie parfois \begin{align}...\end{align} sans $$ autour
+    // ⚠️ CRITIQUE : utilise isInsideMathBlock pour ne PAS entourer si déjà dans un $$
+    // (ctxBefore.endsWith('$$') ne suffit pas si l'env est loin du $$ ouvrant)
+    fixed = fixed.replace(/(\\begin\{(?:aligned?|array|cases|pmatrix|bmatrix|vmatrix|gather\*?|multline\*?|equation\*?|split|alignat\*?)\}[\s\S]*?\\end\{(?:aligned?|array|cases|pmatrix|bmatrix|vmatrix|gather\*?|multline\*?|equation\*?|split|alignat\*?)\})/g, (matchEnv, _g1, offset, str) => {
+        // Vérification précise : l'environnement est-il déjà dans un bloc $$ ... $$ ?
+        if (isInsideMathBlock(str, offset)) return matchEnv;
         return '\n$$\n' + matchEnv + '\n$$\n';
+    });
+
+    // 5.5 Normaliser les blocs $$ ... $$ multi-lignes
+    // remark-math v6 (math flow) exige que le $$ FERMANT soit sur sa propre ligne.
+    // Cas typique généré par l'IA :
+    //   $$\vec{AB} = \begin{pmatrix} 3 \\ 4 \end{pmatrix}$$   ← tout sur une ligne = OK
+    //   $$\vec{AB} = \begin{pmatrix} ...\n... \end{pmatrix}$$ ← closing $$ en fin de ligne = ✗
+    // Fix : mettre chaque $$ ouvrant/fermant sur sa propre ligne
+    fixed = fixed.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
+        // Une seule ligne : remark-math gère bien $$expr$$ inline display → ne pas toucher
+        if (!content.includes('\n')) return match;
+        const trimmed = content.trim();
+        if (!trimmed) return match;
+        // Multi-lignes : normaliser en bloc math flow
+        return `\n$$\n${trimmed}\n$$\n`;
     });
 
     // 6. Fix espace parasite juste après le $ ouvrant
     // remark-math refuse "$ expr" → on retire l'espace seulement après un $ OUVRANT
-    // Un $ ouvrant est précédé d'un espace, d'un saut de ligne ou d'un début de chaîne
-    // (pas d'un caractère alphanumérique comme dans "expr$")
-    // ⚠️ On utilise un simple remplacement non-destructif : on cherche UNIQUEMENT
-    // un $ précédé d'un non-alphanumérique ET suivi d'un espace PUIS d'un non-espace.
-    // Cela évite de couper du texte comme "100$ de budget" ou "f$ =...".
     fixed = fixed.replace(/((?:^|[\s([{,;:]))\$\s(?=[^\s$\n])/gm, '$1$');
+
+    // 6.5 Trim des espaces intérieurs dans les blocs inline $...$
+    // remark-math v6 (micromark) exige : pas d'espace après $ ouvrant NI avant $ fermant.
+    // Cas typique : \( x \) → $ x $ → étape 6 retire l'espace initial → $x $
+    // → cette étape retire l'espace AVANT le $ fermant pour corriger le cas résiduel.
+    // ⚠️ Ne touche PAS aux blocs display math $$ ... $$
+    fixed = fixed.replace(/(?<!\$)\$([^$\n]+)\$(?!\$)/g, (_match, inner) => {
+        const trimmed = inner.trim();
+        return trimmed ? `$${trimmed}$` : _match;
+    });
 
     // 7. Harmonisation des symboles DANS les blocs $...$ (inline uniquement)
     // Utilise [^$\n]+ pour ne pas traverser les fins de ligne ni d'autres blocs

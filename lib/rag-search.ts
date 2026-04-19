@@ -54,21 +54,7 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
         // 2. Build filter
         const filter: Record<string, string> = {};
         if (safeLevel) {
-            const levelMap: Record<string, string> = {
-                'seconde': 'seconde',
-                '2nde': 'seconde',
-                '1spe': '1spe',
-                'première': '1spe',
-                'premiere': '1spe',
-                '1stmg': '1stmg',
-                'tle_spe': 'tle_spe',
-                'terminale': 'tle_spe',
-                'tle_comp': 'tle_comp',
-                'tle_expert': 'tle_expert',
-                'tle_stmg': 'tle_stmg',
-            };
-            const mappedLevel = levelMap[safeLevel.toLowerCase()] || safeLevel.toLowerCase();
-            filter.niveau = mappedLevel;
+            filter.niveau = normalizeLevelLabel(safeLevel);
         }
 
         // 3. Search Supabase
@@ -98,6 +84,61 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
         console.warn("[RAG] Vector search error:", error);
         return null;
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NIVEAU NORMALIZATION — shared by both strategies
+// ═══════════════════════════════════════════════════════════════════
+
+const LEVEL_MAP: Record<string, string> = {
+    'seconde': 'seconde',
+    '2nde': 'seconde',
+    '2de': 'seconde',
+    '1spe': '1spe',
+    'première': '1spe',
+    'premiere': '1spe',
+    '1ère': '1spe',
+    '1ere': '1spe',
+    'première spécialité': '1spe',
+    'premiere specialite': '1spe',
+    '1stmg': '1stmg',
+    'première stmg': '1stmg',
+    'tle_spe': 'tle_spe',
+    'terminale': 'tle_spe',
+    'tle': 'tle_spe',
+    'terminale spécialité': 'tle_spe',
+    'terminale specialite': 'tle_spe',
+    'tle_comp': 'tle_comp',
+    'terminale complémentaire': 'tle_comp',
+    'terminale complementaire': 'tle_comp',
+    'tle_expert': 'tle_expert',
+    'terminale expert': 'tle_expert',
+    'terminale maths expertes': 'tle_expert',
+    'tle_stmg': 'tle_stmg',
+    'terminale stmg': 'tle_stmg',
+};
+
+function normalizeLevelLabel(label: string): string {
+    const lower = label.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents for matching
+        .replace(/[^\w\s]/g, '').trim();
+
+    // Exact match first (with accents stripped)
+    const stripped = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, '').trim();
+    if (LEVEL_MAP[stripped]) return LEVEL_MAP[stripped];
+
+    // Original lowercase exact match
+    const orig = label.toLowerCase().trim();
+    if (LEVEL_MAP[orig]) return LEVEL_MAP[orig];
+
+    // Partial match: find any key contained in the label
+    for (const [key, val] of Object.entries(LEVEL_MAP)) {
+        if (lower.includes(key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, ''))) {
+            return val;
+        }
+    }
+
+    return lower;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -134,15 +175,20 @@ function initDB() {
     console.log(`[RAG] Lexical DB initialized with ${db.length} chunks.`);
 }
 
-const STOP_WORDS = ['pour', 'avec', 'dans', 'sont', 'être', 'avoir', 'plus', 'moins',
-    'cette', 'fonction', 'point', 'nombre', 'deux', 'peut', 'classe',
-    'élèves', 'programme', 'mathématiques'];
+const STOP_WORDS = new Set(['pour', 'avec', 'dans', 'sont', 'etre', 'avoir', 'plus', 'moins',
+    'cette', 'point', 'nombre', 'deux', 'peut', 'classe',
+    'eleves', 'programme', 'mathematiques', 'faire', 'tout', 'comme']);
+
+// Termes maths courts à conserver impérativement même si ≤ 3 chars
+const MATH_TERMS = new Set(['sin', 'cos', 'tan', 'log', 'exp', 'inf', 'sup', 'det', 'deg',
+    'ln', 'pi', 'abs', 'gcd', 'dim', 'ker', 'mod']);
 
 function tokenize(text: string): string[] {
     return text.toLowerCase()
-        .replace(/[.,;!?()]/g, ' ')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[.,;!?()[\]{}]/g, ' ')
         .split(/\s+/)
-        .filter(w => w.length > 3 && !STOP_WORDS.includes(w));
+        .filter(w => (w.length > 3 || MATH_TERMS.has(w)) && !STOP_WORDS.has(w));
 }
 
 function createChunk(level: string, text: string): Chunk {
@@ -154,17 +200,21 @@ function createChunk(level: string, text: string): Chunk {
     };
 }
 
+// _LEVEL_MAP replaced by normalizeLevelLabel() above
+
 function lexicalSearch(query: string, level?: string): string {
     initDB();
+    if (db.length === 0) return "";
 
-    const safeLevel = typeof level === 'string' ? level : '';
+    const safeLevel = typeof level === 'string' ? level.trim() : '';
+    const mappedLevel = safeLevel ? normalizeLevelLabel(safeLevel) : '';
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) return "";
 
     const scored = db.map(chunk => {
         let levelScore = 1;
-        if (safeLevel && chunk.level.toLowerCase().includes(safeLevel.toLowerCase())) {
-            levelScore = 2;
+        if (mappedLevel && chunk.level.toLowerCase() === mappedLevel) {
+            levelScore = 3;
         }
 
         let matchCount = 0;
@@ -179,7 +229,7 @@ function lexicalSearch(query: string, level?: string): string {
 
     scored.sort((a, b) => b.score - a.score);
 
-    if (scored[0].score === 0) return "";
+    if (!scored[0] || scored[0].score === 0) return "";
 
     const topContexts = scored.slice(0, 3).map(s => s.chunk.text);
 

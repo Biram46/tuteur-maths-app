@@ -1774,6 +1774,58 @@ import tempfile
 import base64
 import shutil
 
+# Table de remplacement Unicode → LaTeX (hors math mode)
+_UNICODE_TO_LATEX = [
+    ('\u2713', r'$\checkmark$'),   # ✓
+    ('\u2714', r'$\checkmark$'),   # ✔
+    ('\u2717', r'$\times$'),       # ✗
+    ('\u2718', r'$\times$'),       # ✘
+    ('\u2192', r'$\rightarrow$'),  # →
+    ('\u2190', r'$\leftarrow$'),   # ←
+    ('\u2194', r'$\leftrightarrow$'),  # ↔
+    ('\u21d2', r'$\Rightarrow$'),  # ⇒
+    ('\u21d4', r'$\Leftrightarrow$'),  # ⇔
+    ('\u2264', r'$\leq$'),         # ≤
+    ('\u2265', r'$\geq$'),         # ≥
+    ('\u2260', r'$\neq$'),         # ≠
+    ('\u00d7', r'$\times$'),       # ×
+    ('\u00f7', r'$\div$'),         # ÷
+    ('\u00b0', r'$^\circ$'),       # °
+    ('\u2026', r'{\ldots}'),       # …
+    ('\u201c', r'{\og}'),          # "
+    ('\u201d', r'{\fg}'),          # "
+    ('\u2018', r"'"),              # '
+    ('\u2019', r"'"),              # '
+    ('\u2013', r'--'),             # –
+    ('\u2014', r'---'),            # —
+    ('\u00ab', r'{\og}'),          # «
+    ('\u00bb', r'{\fg}'),          # »
+    ('\u221e', r'$\infty$'),       # ∞
+    ('\u03b1', r'$\alpha$'),       # α
+    ('\u03b2', r'$\beta$'),        # β
+    ('\u03b3', r'$\gamma$'),       # γ
+    ('\u03b4', r'$\delta$'),       # δ
+    ('\u03c0', r'$\pi$'),          # π
+    ('\u03bb', r'$\lambda$'),      # λ
+    ('\u03bc', r'$\mu$'),          # μ
+    ('\u03c3', r'$\sigma$'),       # σ
+    ('\u03a9', r'$\Omega$'),       # Ω
+    ('\u2208', r'$\in$'),          # ∈
+    ('\u2209', r'$\notin$'),       # ∉
+    ('\u2282', r'$\subset$'),      # ⊂
+    ('\u2229', r'$\cap$'),         # ∩
+    ('\u222a', r'$\cup$'),         # ∪
+    ('\u00b2', r'$^2$'),           # ²
+    ('\u00b3', r'$^3$'),           # ³
+    ('\u221a', r'$\sqrt{}$'),      # √
+]
+
+def _sanitize_unicode_for_latex(code: str) -> str:
+    """Remplace les caractères Unicode courants non supportés par pdflatex."""
+    for char, replacement in _UNICODE_TO_LATEX:
+        code = code.replace(char, replacement)
+    return code
+
 # Commandes LaTeX dangereuses (interdites même avec -no-shell-escape)
 _LATEX_BLACKLIST = re.compile(
     r'\\(write18|input|include|immediate|openout|closeout|read|shellescape'
@@ -1829,6 +1881,9 @@ def latex_preview():
 
         dpi = min(int(data.get('dpi', 150)), 300)
 
+        # Remplacer les caractères Unicode non supportés par pdflatex
+        latex_code = _sanitize_unicode_for_latex(latex_code)
+
         # Sécurité : bloquer les commandes dangereuses
         if _LATEX_BLACKLIST.search(latex_code):
             return jsonify({'success': False, 'error': 'Commande LaTeX interdite'}), 400
@@ -1837,10 +1892,16 @@ def latex_preview():
         if r'\documentclass' in latex_code:
             full_doc = latex_code
             # Injecter les packages manquants courants avant \begin{document}
-            for pkg in [r'\usepackage{mathrsfs}', r'\usepackage{amsfonts}']:
-                if pkg not in full_doc:
+            pkgs_to_inject = [
+                (r'\usepackage{mathrsfs}',        'mathrsfs'),
+                (r'\usepackage{amsfonts}',         'amsfonts'),
+                (r'\usepackage{amsthm}',           'amsthm'),
+                (r'\usepackage[most]{tcolorbox}',  'tcolorbox'),
+            ]
+            for pkg_cmd, pkg_name in pkgs_to_inject:
+                if pkg_name not in full_doc:
                     full_doc = full_doc.replace(
-                        r'\begin{document}', pkg + '\n' + r'\begin{document}', 1
+                        r'\begin{document}', pkg_cmd + '\n' + r'\begin{document}', 1
                     )
         else:
             full_doc = _DEFAULT_PREAMBLE + latex_code + '\n' + _DEFAULT_END

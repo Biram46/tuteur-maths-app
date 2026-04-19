@@ -64,8 +64,16 @@ export function convertTabularToHtml(match: string): string {
             return 'center';
         });
 
-        // Séparer les lignes (sur \\ mais pas \\\\ dans les maths)
-        const rows = body.split(/\\\\/)
+        // Protéger les \\ à l'intérieur des environnements matrix (pmatrix, bmatrix, etc.)
+        // pour ne pas les confondre avec les séparateurs de lignes du tabular
+        const MATROW = '\x00MATROW\x00';
+        const protectedBody = body.replace(
+            /\\begin\{(?:pmatrix|bmatrix|vmatrix|smallmatrix)\}[\s\S]*?\\end\{(?:pmatrix|bmatrix|vmatrix|smallmatrix)\}/g,
+            (m) => m.replace(/\\\\/g, MATROW)
+        );
+
+        // Séparer les lignes sur \\ ou \\[dim] (mais pas sur les \\ protégés dans les matrices)
+        const rows = protectedBody.split(/\\\\(?:\[[\d.]+\s*(?:pt|cm|mm|em|ex)\])?/)
             .map(r => r.trim())
             .filter(r => r && r !== '\\hline' && !/^\s*$/.test(r.replace(/\\hline/g, '')));
 
@@ -92,6 +100,9 @@ export function convertTabularToHtml(match: string): string {
                     colspan = parseInt(mc[1]);
                     cell = mc[2];
                 }
+
+                // Restaurer les \\ protégés dans les matrices
+                cell = cell.replace(new RegExp(MATROW, 'g'), '\\\\');
 
                 // Nettoyer les commandes de formatage simples
                 cell = cell.replace(/\\textbf\{([^}]*)\}/g, '**$1**');
@@ -242,7 +253,7 @@ export function convertTkzTabToMathtable(match: string): string {
         }
 
         const data = { xValues, rows };
-        return `<mathtable data='${escapeJsonAttr(data)}' />`;
+        return `<mathtable data='${escapeJsonAttr(data)}'></mathtable>`;
     } catch {
         return '<div style="padding:1rem;color:#94a3b8">Tableau de variations (erreur de conversion)</div>';
     }
@@ -319,7 +330,7 @@ export function convertPgfplotsToMathgraph(match: string): string {
                     domain,
                     title: 'Courbe',
                 };
-                return `<mathgraph data='${escapeJsonAttr(data)}' />`;
+                return `<mathgraph data='${escapeJsonAttr(data)}'></mathgraph>`;
             }
         }
 
@@ -328,7 +339,7 @@ export function convertPgfplotsToMathgraph(match: string): string {
         }
 
         const data: Record<string, unknown> = { functions, domain, title: 'Courbe' };
-        return `<mathgraph data='${escapeJsonAttr(data)}' />`;
+        return `<mathgraph data='${escapeJsonAttr(data)}'></mathgraph>`;
     } catch {
         return '<div style="padding:1rem;color:#94a3b8">Courbe (erreur de conversion)</div>';
     }

@@ -120,13 +120,12 @@ export function isAdmin(
 /**
  * Vérifie si un email correspond à un admin (fallback legacy).
  * Utilise la variable d'environnement ADMIN_EMAILS (séparés par des virgules).
- * Fallback sur biram26@yahoo.fr si la variable n'est pas définie.
  */
 export function isAdminEmail(email: string | undefined): boolean {
     if (!email) return false;
-    const adminEmails = (process.env.ADMIN_EMAILS || 'biram26@yahoo.fr')
-        .split(',')
-        .map(e => e.trim().toLowerCase());
+    const raw = process.env.ADMIN_EMAILS || '';
+    if (!raw.trim()) return false;
+    const adminEmails = raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
     return adminEmails.includes(email.toLowerCase());
 }
 

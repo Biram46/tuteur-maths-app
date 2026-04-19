@@ -76,7 +76,11 @@ NIVEAU TERMINALE — TOUTES MÉTHODES AUTORISÉES :
 
 async function getSystemPrompt(context: ProfContext, existingContent?: string, messages?: any[]): Promise<string> {
     const lastUserMessage = messages?.filter((m: any) => m.role === 'user').pop()?.content || '';
-    const rawRagContext = await searchProgrammeRAG(lastUserMessage, context.level_label);
+    // Requête RAG basée sur le chapitre (plus précis que le message utilisateur)
+    const ragQuery = context.chapter_title
+        ? `${context.chapter_title} ${lastUserMessage}`.slice(0, 300)
+        : lastUserMessage;
+    const rawRagContext = await searchProgrammeRAG(ragQuery, context.level_label);
     const ragContext = sanitizeRagContext(rawRagContext);
     
     const base = `Tu es un assistant de mise en forme LaTeX pour un professeur de mathématiques en lycée français.
@@ -107,12 +111,35 @@ RÈGLES LaTeX :
 - Notation française OBLIGATOIRE : virgule décimale (0,5), intervalles $]a ; b[$
 - Notation de Lagrange pour les dérivées : $f'(x)$, JAMAIS $\\\\frac{df}{dx}$
 
+⚠️ CORRECTIONS — RÈGLE ABSOLUE SUR LES DÉLIMITEURS MATH :
+- Dans la partie Corrections, CHAQUE formule doit être dans $...$ (inline) ou \\\\[...\\\\] (display).
+- ⛔ JAMAIS de formule LaTeX nue dans le texte : \\\\dfrac{...}{...} SEUL est une ERREUR.
+- ⛔ JAMAIS mélanger **gras markdown** et LaTeX. **\\\\dfrac{2}{3}** est STRICTEMENT INTERDIT.
+- ✅ Pour mettre un résultat en évidence, utiliser \\\\boxed{} DANS le math : $\\\\boxed{\\\\dfrac{2}{3}}$
+- ✅ Exemple CORRECT : On obtient $P_A(B) = \\\\dfrac{P(A\\\\cap B)}{P(A)} = \\\\dfrac{1/3}{1/2} = \\\\dfrac{2}{3}$.
+- ✅ Ou en display : \\\\[ P_A(B) = \\\\dfrac{P(A\\\\cap B)}{P(A)} = \\\\dfrac{2}{3} \\\\]
+
+⛔⛔ RÈGLES CRITIQUES — VECTEURS COLONNES (pmatrix) ⛔⛔
+1. Un \\\\begin{pmatrix} doit TOUJOURS être à l'intérieur d'un environnement math ($...$ ou $$...$$).
+   ✅ Correct inline : $\\\\vec{u}\\\\begin{pmatrix} x \\\\\\\\ y \\\\end{pmatrix}$
+   ✅ Correct display : $$\\\\overrightarrow{AB} = \\\\begin{pmatrix} x_B - x_A \\\\\\\\ y_B - y_A \\\\end{pmatrix}$$
+   ⛔ JAMAIS : $$\\\\vec{w}$$\\n\\\\begin{pmatrix}...\\\\end{pmatrix} ← pmatrix hors du $$
+
+2. Le séparateur de lignes dans pmatrix est \\\\\\\\ (deux backslashes), JAMAIS \\\\\ (trois).
+   ✅ Correct : \\\\begin{pmatrix} a \\\\\\\\ b \\\\end{pmatrix}
+   ⛔ Faux : \\\\begin{pmatrix} a \\\\\\ b \\\\end{pmatrix}
+
+3. Dans un $$...$$, NE JAMAIS imbriquer $...$. La commande \\\\sqrt{}, \\\\frac{}{} s'utilisent directement.
+   ✅ Correct : $$\\\\|\\\\vec{u}\\\\| = \\\\sqrt{x^2 + y^2}$$
+   ⛔ Faux : $$\\\\|\\\\vec{u}\\\\| = $\\\\sqrt{x^2 + y^2}$$
+
 PACKAGES LaTeX OBLIGATOIRES dans le préambule :
 \\\\documentclass[a4paper, 12pt]{article}
 \\\\usepackage[french]{babel}
 \\\\usepackage[T1]{fontenc}
 \\\\usepackage[utf8]{inputenc}
 \\\\usepackage{amsmath, amssymb, mathrsfs}
+\\\\usepackage{amsthm}
 \\\\usepackage[dvipsnames]{xcolor}
 \\\\usepackage{tikz}
 \\\\usepackage{pgfplots}
@@ -138,12 +165,13 @@ PACKAGES LaTeX OBLIGATOIRES dans le préambule :
 \\\\titleformat{\\\\subsection}{\\\\large\\\\bfseries\\\\color{defblue!80}}{\\\\thesubsection)\\\\;}{0.5em}{}
 
 % ── ENCADRÉS TCOLORBOX ──
-\\\\newtcolorbox{definition}[1][]{colback=defblue!5, colframe=defblue, fonttitle=\\\\bfseries, title=Définition, #1}
-\\\\newtcolorbox{propriete}[1][]{colback=propgreen!5, colframe=propgreen, fonttitle=\\\\bfseries, title=Propriété, #1}
-\\\\newtcolorbox{theoreme}[1][]{colback=propgreen!8, colframe=propgreen!80!black, fonttitle=\\\\bfseries, title=Théorème, #1}
-\\\\newtcolorbox{methode}[1][]{colback=methpurple!5, colframe=methpurple, fonttitle=\\\\bfseries, title=Méthode, #1}
-\\\\newtcolorbox{exemple}[1][]{colback=exorange!5, colframe=exorange, fonttitle=\\\\bfseries, title=Exemple, #1}
-\\\\newtcolorbox{remarque}[1][]{colback=remarkgray!5, colframe=remarkgray, fonttitle=\\\\bfseries, title=Remarque, #1}
+% IMPORTANT : NewTColorBox avec O{Titre par défaut} → \begin{definition}[Titre personnalisé] fonctionne
+\\\\NewTColorBox{definition}{O{Définition}}{colback=defblue!5, colframe=defblue, fonttitle=\\\\bfseries, title={#1}}
+\\\\NewTColorBox{propriete}{O{Propriété}}{colback=propgreen!5, colframe=propgreen, fonttitle=\\\\bfseries, title={#1}}
+\\\\NewTColorBox{theoreme}{O{Théorème}}{colback=propgreen!8, colframe=propgreen!80!black, fonttitle=\\\\bfseries, title={#1}}
+\\\\NewTColorBox{methode}{O{Méthode}}{colback=methpurple!5, colframe=methpurple, fonttitle=\\\\bfseries, title={#1}}
+\\\\NewTColorBox{exemple}{O{Exemple}}{colback=exorange!5, colframe=exorange, fonttitle=\\\\bfseries, title={#1}}
+\\\\NewTColorBox{remarque}{O{Remarque}}{colback=remarkgray!5, colframe=remarkgray, fonttitle=\\\\bfseries, title={#1}}
 
 ⚠️ FIGURES ET TABLEAUX DANS LE CHAT (IMPORTANT) :
 Lors de tes DISCUSSIONS avec le professeur dans le chat (en dehors du bloc \`\`\`latex ou \`\`\`html final), tu ne dois PAS utiliser TikZ directement pour tes explications.
@@ -711,6 +739,7 @@ MODÈLE LATEX DS À UTILISER :
 \\\\usepackage[T1]{fontenc}
 \\\\usepackage[utf8]{inputenc}
 \\\\usepackage{amsmath, amssymb, mathrsfs}
+\\\\usepackage{amsthm}
 \\\\usepackage{tikz}
 \\\\usepackage{pgfplots}
 \\\\pgfplotsset{compat=1.18}

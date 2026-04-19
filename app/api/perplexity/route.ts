@@ -4,13 +4,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
-import { sanitizeRagContext } from '@/lib/api-auth';
+import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 
-// Config segment Next.js supprimée pour compatibilité Turbopack
 /**
  * API STREAMING - mimimaths@i (Optimize for Gemini/Nano Banana)
  */
 export async function POST(request: NextRequest) {
+    const auth = await authWithRateLimit(request, 30, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { messages: rawMessages, context } = await request.json();
         if (rawMessages && rawMessages.length > 0) {
