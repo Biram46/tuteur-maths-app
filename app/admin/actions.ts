@@ -299,7 +299,7 @@ export async function getEAMSujets(): Promise<EAMSujet[]> {
     const { data, error } = await supabaseServer
         .from('eam_sujets')
         .select('*')
-        .order('date_sujet', { ascending: false });
+        .order('created_at', { ascending: true });
 
     if (error) {
         console.error("Error fetching EAM sujets:", error);
@@ -437,8 +437,7 @@ export async function createEAMSujetWithFiles(
                 });
 
             if (uploadError) {
-                console.error(`Erreur upload ${key}:`, uploadError);
-                continue; // Continue avec les autres fichiers
+                throw new Error(`Impossible d'uploader ${key} : ${uploadError.message}`);
             }
 
             const { data: { publicUrl } } = supabaseServer.storage

@@ -25,6 +25,7 @@ export default function DraftEditor({
     const [isPending, startTransition] = useTransition();
     const [saved, setSaved] = useState(false);
     const [published, setPublished] = useState(false);
+    const [pdfStatus, setPdfStatus] = useState<'ok' | 'error' | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Charger le contenu à l'ouverture
@@ -73,12 +74,13 @@ export default function DraftEditor({
                     await updateDraftContent(resourceId, content);
                     setOriginalContent(content);
                 }
-                await publishResource(resourceId);
+                const result = await publishResource(resourceId);
                 setPublished(true);
+                setPdfStatus(result.pdfUrl ? 'ok' : 'error');
                 setTimeout(() => {
                     onSaved?.();
                     onClose();
-                }, 1000);
+                }, 2000);
             } catch (e: any) {
                 setError(e.message);
             }
@@ -141,9 +143,14 @@ export default function DraftEditor({
                                 ✓ Sauvegardé
                             </span>
                         )}
-                        {published && (
+                        {published && pdfStatus === 'ok' && (
                             <span className="ml-2 text-green-400 text-xs font-bold animate-pulse">
-                                ✅ Publié !
+                                ✅ Publié avec PDF !
+                            </span>
+                        )}
+                        {published && pdfStatus === 'error' && (
+                            <span className="ml-2 text-yellow-400 text-xs font-bold animate-pulse">
+                                ⚠️ Publié — PDF non généré (voir logs)
                             </span>
                         )}
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import type { Level, Chapter } from '@/lib/data';
 import {
     RESOURCE_TYPE_LABELS,
@@ -9,6 +9,7 @@ import {
     type ProfResourceType,
     type ProfContext,
 } from '@/lib/prof-types';
+import { createChapterFromProf } from '@/app/prof/actions';
 
 interface ContextSelectorProps {
     levels: Level[];
@@ -33,8 +34,14 @@ export default function ContextSelector({
         initialContext?.resource_type || ''
     );
 
-    // Chapitres filtrés par niveau
-    const filteredChapters = chapters.filter(c => c.level_id === selectedLevelId);
+    const [localChapters, setLocalChapters] = useState<Chapter[]>(chapters);
+    const [showNewChapter, setShowNewChapter] = useState(false);
+    const [newChapterTitle, setNewChapterTitle] = useState('');
+    const [isPending, startTransition] = useTransition();
+    const [newChapterError, setNewChapterError] = useState('');
+
+    // Chapitres filtrés par niveau (local + prop)
+    const filteredChapters = localChapters.filter(c => c.level_id === selectedLevelId);
 
     // Types de ressources disponibles
     const selectedLevel = levels.find(l => l.id === selectedLevelId);
@@ -48,17 +55,24 @@ export default function ContextSelector({
         ...(isEamEligible ? ['eam' as ProfResourceType] : []),
     ];
 
+    // Sync localChapters when prop changes
+    useEffect(() => {
+        setLocalChapters(chapters);
+    }, [chapters]);
+
     // Reset chapitre quand le niveau change
     useEffect(() => {
         setSelectedChapterId('');
         setSelectedResourceType('');
+        setShowNewChapter(false);
+        setNewChapterTitle('');
     }, [selectedLevelId]);
 
     // Notifier le parent quand le contexte est complet
     useEffect(() => {
         if (selectedLevelId && selectedChapterId && selectedResourceType) {
             const level = levels.find(l => l.id === selectedLevelId);
-            const chapter = chapters.find(c => c.id === selectedChapterId);
+            const chapter = localChapters.find(c => c.id === selectedChapterId);
             if (level && chapter) {
                 onContextChange({
                     level_id: level.id,
@@ -72,7 +86,26 @@ export default function ContextSelector({
         } else {
             onContextChange(null);
         }
-    }, [selectedLevelId, selectedChapterId, selectedResourceType, levels, chapters, onContextChange]);
+    }, [selectedLevelId, selectedChapterId, selectedResourceType, levels, localChapters, onContextChange]);
+
+    function handleCreateChapter() {
+        if (!newChapterTitle.trim()) {
+            setNewChapterError('Le titre est obligatoire.');
+            return;
+        }
+        setNewChapterError('');
+        startTransition(async () => {
+            try {
+                const created = await createChapterFromProf(selectedLevelId, newChapterTitle.trim());
+                setLocalChapters(prev => [...prev, created as Chapter]);
+                setSelectedChapterId(created.id);
+                setShowNewChapter(false);
+                setNewChapterTitle('');
+            } catch (err: any) {
+                setNewChapterError(err.message || 'Erreur lors de la création.');
+            }
+        });
+    }
 
     return (
         <div className="space-y-4">
@@ -100,23 +133,59 @@ export default function ContextSelector({
 
                 {/* Chapitre */}
                 <div className="flex-1 min-w-0">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-1">
-                        Séquence / Chapitre
-                    </label>
-                    <select
-                        id="prof-chapter-select"
-                        value={selectedChapterId}
-                        onChange={e => setSelectedChapterId(e.target.value)}
-                        disabled={!selectedLevelId}
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/30 transition-all appearance-none cursor-pointer hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <option value="" className="bg-slate-900">— Sélectionnez un chapitre —</option>
-                        {filteredChapters.map(chapter => (
-                            <option key={chapter.id} value={chapter.id} className="bg-slate-900">
-                                {chapter.title}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            Séquence / Chapitre
+                        </label>
+                        {selectedLevelId && (
+                            <button
+                                type="button"
+                                onClick={() => setShowNewChapter(v => !v)}
+                                className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+                            >
+                                {showNewChapter ? '✕ Annuler' : '+ Nouveau'}
+                            </button>
+                        )}
+                    </div>
+                    {showNewChapter ? (
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newChapterTitle}
+                                onChange={e => setNewChapterTitle(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleCreateChapter()}
+                                placeholder="Titre du chapitre..."
+                                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.03] border border-indigo-500/30 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all placeholder:text-slate-600"
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCreateChapter}
+                                disabled={isPending}
+                                className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-all disabled:opacity-50"
+                            >
+                                {isPending ? '...' : 'Créer'}
+                            </button>
+                        </div>
+                    ) : (
+                        <select
+                            id="prof-chapter-select"
+                            value={selectedChapterId}
+                            onChange={e => setSelectedChapterId(e.target.value)}
+                            disabled={!selectedLevelId}
+                            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/30 transition-all appearance-none cursor-pointer hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <option value="" className="bg-slate-900">— Sélectionnez un chapitre —</option>
+                            {filteredChapters.map(chapter => (
+                                <option key={chapter.id} value={chapter.id} className="bg-slate-900">
+                                    {chapter.title}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    {newChapterError && (
+                        <p className="mt-1 px-1 text-[10px] text-red-400">{newChapterError}</p>
+                    )}
                 </div>
 
                 {/* Type de ressource */}

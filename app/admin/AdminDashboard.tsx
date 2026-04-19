@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { Level, Chapter, Resource, QuizResult, QcmResult } from "@/lib/data";
 import type { EAMSujet, EAMNiveau } from "./actions";
 import {
@@ -36,6 +36,21 @@ export default function AdminDashboard({ initialData }: Props) {
     const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
     const [editingEAMSujet, setEditingEAMSujet] = useState<EAMSujet | null>(null);
+
+    // Refs pour auto-scroll vers les formulaires d'édition
+    const resourceFormRef = useRef<HTMLDivElement>(null);
+    const levelFormRef = useRef<HTMLDivElement>(null);
+    const chapterFormRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (editingResource) resourceFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [editingResource]);
+    useEffect(() => {
+        if (editingLevel) levelFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [editingLevel]);
+    useEffect(() => {
+        if (editingChapter) chapterFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [editingChapter]);
 
     // States for converter
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -138,7 +153,7 @@ export default function AdminDashboard({ initialData }: Props) {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                                             </svg>
                                                         </button>
-                                                        <form action={deleteLevel}>
+                                                        <form action={deleteLevel} onSubmit={e => { if (!confirm(`Supprimer le niveau "${level.label}" ? Cette action est irréversible.`)) e.preventDefault(); }}>
                                                             <input type="hidden" name="id" value={level.id} />
                                                             <button type="submit" className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -155,10 +170,10 @@ export default function AdminDashboard({ initialData }: Props) {
                             </div>
 
                             {/* Form */}
-                            <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
+                            <div ref={levelFormRef} className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none"></div>
                                 <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">
-                                    {editingLevel ? 'Modifier le niveau' : 'Nouvel emplacement pédagogique'}
+                                    {editingLevel ? '✏️ Modifier le niveau' : 'Nouvel emplacement pédagogique'}
                                 </h3>
                                 <form action={createOrUpdateLevel} key={editingLevel?.id || 'new'} className="space-y-6">
                                     <input type="hidden" name="id" value={editingLevel?.id || ""} />
@@ -257,7 +272,7 @@ export default function AdminDashboard({ initialData }: Props) {
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                                                 </svg>
                                                             </button>
-                                                            <form action={deleteChapter}>
+                                                            <form action={deleteChapter} onSubmit={e => { if (!confirm(`Supprimer le chapitre "${chapter.title}" ? Cette action est irréversible.`)) e.preventDefault(); }}>
                                                                 <input type="hidden" name="id" value={chapter.id} />
                                                                 <button type="submit" className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -275,9 +290,9 @@ export default function AdminDashboard({ initialData }: Props) {
                             </div>
 
                             {/* Form */}
-                            <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
+                            <div ref={chapterFormRef} className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative overflow-hidden">
                                 <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">
-                                    {editingChapter ? 'Modifier le chapitre' : 'Séquencer le cours'}
+                                    {editingChapter ? '✏️ Modifier le chapitre' : 'Séquencer le cours'}
                                 </h3>
                                 <form action={createOrUpdateChapter} key={editingChapter?.id || 'new'} className="space-y-6">
                                     <input type="hidden" name="id" value={editingChapter?.id || ""} />
@@ -380,64 +395,74 @@ export default function AdminDashboard({ initialData }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-cyan-500/5">
-                                        {resources.map((r) => {
-                                            const ch = chapters.find(c => c.id === r.chapter_id);
-                                            const pf = levels.find(l => l.id === ch?.level_id);
+                                        {levels.map(level => {
+                                            const levelChapters = chapters.filter(c => c.level_id === level.id);
+                                            const levelResources = resources.filter(r => levelChapters.some(c => c.id === r.chapter_id));
+                                            if (levelResources.length === 0) return null;
                                             return (
-                                                <tr key={r.id} className="group hover:bg-cyan-500/5 transition-colors">
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-cyan-400 font-mono text-[10px] uppercase tracking-tighter">{pf?.code || '???'}</span>
-                                                            <span className="text-slate-300 text-xs font-medium">{ch?.title || '???'}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`px-2 py-0.5 rounded border text-[10px] font-mono uppercase ${r.kind === 'cours' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                                                            r.kind === 'interactif' ? 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30' :
-                                                                'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                                            }`}>
-                                                            {r.kind}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex gap-2 flex-wrap">
-                                                            {r.pdf_url && <span title={r.pdf_url} className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-[8px] text-red-400 font-bold">PDF</span>}
-                                                            {r.docx_url && <span title={r.docx_url} className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-[8px] text-blue-400 font-bold">DOC</span>}
-                                                            {r.latex_url && <span title={r.latex_url} className="w-8 h-8 rounded-lg bg-slate-500/10 border border-slate-500/30 flex items-center justify-center text-[8px] text-slate-300 font-bold">TEX</span>}
-                                                            {r.html_url && <span title={r.html_url} className="w-8 h-8 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center text-[8px] text-fuchsia-400 font-bold">HTML</span>}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <button
-                                                                onClick={() => setEditingResource(r)}
-                                                                className="p-2 text-cyan-400 hover:bg-cyan-500/20 rounded-lg transition-all"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                                                </svg>
-                                                            </button>
-                                                            <form action={deleteResource}>
-                                                                <input type="hidden" name="id" value={r.id} />
-                                                                <button type="submit" className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                                    </svg>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                                <React.Fragment key={level.id}>
+                                                    <tr className="bg-cyan-500/10">
+                                                        <td colSpan={4} className="px-6 py-2">
+                                                            <span className="text-cyan-400 font-['Orbitron'] text-[11px] uppercase tracking-widest font-bold">{level.code} — {level.label}</span>
+                                                        </td>
+                                                    </tr>
+                                                    {levelResources.map((r) => {
+                                                        const ch = chapters.find(c => c.id === r.chapter_id);
+                                                        return (
+                                                            <tr key={r.id} className="group hover:bg-cyan-500/5 transition-colors">
+                                                                <td className="px-6 py-4">
+                                                                    <span className="text-slate-300 text-xs font-medium">{ch?.title || '???'}</span>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <span className={`px-2 py-0.5 rounded border text-[10px] font-mono uppercase ${r.kind === 'cours' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                                        r.kind === 'interactif' ? 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30' :
+                                                                            'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                                                        }`}>
+                                                                        {r.kind}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="flex gap-2 flex-wrap">
+                                                                        {r.pdf_url && <span title={r.pdf_url} className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-[8px] text-red-400 font-bold">PDF</span>}
+                                                                        {r.docx_url && <span title={r.docx_url} className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-[8px] text-blue-400 font-bold">DOC</span>}
+                                                                        {r.latex_url && <span title={r.latex_url} className="w-8 h-8 rounded-lg bg-slate-500/10 border border-slate-500/30 flex items-center justify-center text-[8px] text-slate-300 font-bold">TEX</span>}
+                                                                        {r.html_url && <span title={r.html_url} className="w-8 h-8 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center text-[8px] text-fuchsia-400 font-bold">HTML</span>}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <button
+                                                                            onClick={() => setEditingResource(r)}
+                                                                            className="p-2 text-cyan-400 hover:bg-cyan-500/20 rounded-lg transition-all"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                                                            </svg>
+                                                                        </button>
+                                                                        <form action={deleteResource} onSubmit={e => { if (!confirm(`Supprimer cette ressource ? Cette action est irréversible.`)) e.preventDefault(); }}>
+                                                                            <input type="hidden" name="id" value={r.id} />
+                                                                            <button type="submit" className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </React.Fragment>
                                             );
                                         })}
                                     </tbody>
                                 </table>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                            <div ref={resourceFormRef} className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Manual Form */}
                                 <div className="bg-slate-900/60 rounded-3xl border border-cyan-500/20 p-8 shadow-2xl relative">
-                                    <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">Lien Externe / Manuel</h3>
+                                    <h3 className="text-lg font-bold font-['Orbitron'] text-cyan-100 mb-6 uppercase tracking-wider">{editingResource ? '✏️ Modifier la Ressource' : 'Lien Externe / Manuel'}</h3>
                                     <form action={createOrUpdateResource} key={editingResource?.id || 'new_manual'} className="space-y-6">
                                         <input type="hidden" name="id" value={editingResource?.id || ""} />
 

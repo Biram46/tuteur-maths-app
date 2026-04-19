@@ -82,7 +82,7 @@ const MessageItem = memo(function MessageItem({
                         <div className="message-content-wrapper">
                             <ReactMarkdown
                                 remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
+                                rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false, output: 'html' }], [rehypeSanitize, katexSanitizeSchema]]}
                                 components={{
                                     p: ({ ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                 }}

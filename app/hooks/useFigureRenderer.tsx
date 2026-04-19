@@ -1215,7 +1215,12 @@ export function useFigureRenderer() {
 
 
             // Bloc de code math-table ou format texte brut
-            const isMathTable = section.includes('math-table') || (section.includes('x:') && (section.includes('sign:') || section.includes('var:')));
+            // ⚠️ x: et sign:/var: doivent être en DÉBUT de ligne pour éviter les faux positifs
+            // (ex: texte explicatif "la ligne sign: f(x) pour x: -3" ne doit PAS être traité comme un tableau)
+            const isMathTable = section.includes('math-table') || (
+                /(?:^|\n)\s*x\s*:/i.test(section) &&
+                (/(?:^|\n)\s*sign\s*:/i.test(section) || /(?:^|\n)\s*var\s*:/i.test(section))
+            );
             if ((section.startsWith('```math-table') && section.endsWith('```')) || (isMathTable && !section.startsWith('@@@'))) {
                 let rawBlock = section;
                 if (section.startsWith('```math-table')) {
@@ -1260,7 +1265,7 @@ export function useFigureRenderer() {
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">
                     <ReactMarkdown
                         remarkPlugins={[remarkMath, remarkGfm]}
-                        rehypePlugins={[rehypeKatex, rehypeRaw, [rehypeSanitize, katexSanitizeSchema]]}
+                        rehypePlugins={[rehypeRaw, [rehypeKatex, { throwOnError: false, strict: false, output: 'html' }], [rehypeSanitize, katexSanitizeSchema]]}
                         components={({
                                 p: ({ node, ...props }: any) => <div className="mb-4 last:mb-0 leading-relaxed break-words" {...props} />,
                                 mathtable: ({ node, ...props }: any) => {

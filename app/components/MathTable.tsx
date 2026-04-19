@@ -195,9 +195,9 @@ function MathSvgText({
     const cleanLatex = latex.replace(/\$/g, '').trim();
     try { html = katex.renderToString(cleanLatex, { throwOnError: false, displayMode: false }); }
     catch { html = cleanLatex.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-    // Wrap KaTeX HTML with a style override to force dark text color
-    // This prevents the parent's text-slate-100 (light) from bleeding through
-    const styledHtml = `<style>.katex,.katex *,.katex .mord,.katex .mbin,.katex .mrel,.katex .mopen,.katex .mclose,.katex .mpunct,.katex .minner{color:${color}!important;}</style>${html}`;
+    // Sanitize color: only allow valid CSS color characters to prevent style injection
+    const safeColor = /^[a-zA-Z0-9#(),.\s%+-]+$/.test(color) ? color : '#1e293b';
+    const styledHtml = `<style>.katex,.katex *,.katex .mord,.katex .mbin,.katex .mrel,.katex .mopen,.katex .mclose,.katex .mpunct,.katex .minner{color:${safeColor}!important;}</style>${html}`;
     const W = 130; const H = fontSize * 2.2;
     return (
         <foreignObject x={x - W / 2} y={y - H / 2} width={W} height={H} style={{ overflow: 'visible' }}>

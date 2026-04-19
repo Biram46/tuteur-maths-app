@@ -414,10 +414,45 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             }
         }
 
+        // ── PHASE 0.5 : Convertir les accents LaTeX en Unicode ──────────
+        content = content
+            // Accents avec accolades : \'{e} → é
+            .replace(/\\'\{e\}/g, 'é').replace(/\\'\{E\}/g, 'É')
+            .replace(/\\`\{e\}/g, 'è').replace(/\\`\{E\}/g, 'È')
+            .replace(/\\`\{a\}/g, 'à').replace(/\\`\{A\}/g, 'À')
+            .replace(/\\`\{u\}/g, 'ù').replace(/\\`\{U\}/g, 'Ù')
+            .replace(/\\\^\{e\}/g, 'ê').replace(/\\\^\{E\}/g, 'Ê')
+            .replace(/\\\^\{o\}/g, 'ô').replace(/\\\^\{O\}/g, 'Ô')
+            .replace(/\\\^\{i\}/g, 'î').replace(/\\\^\{I\}/g, 'Î')
+            .replace(/\\\^\{u\}/g, 'û').replace(/\\\^\{U\}/g, 'Û')
+            .replace(/\\"\{e\}/g, 'ë').replace(/\\"\{i\}/g, 'ï')
+            .replace(/\\c\{c\}/g, 'ç').replace(/\\c\{C\}/g, 'Ç')
+            // Accents sans accolades : \'e → é, \`a → à, etc.
+            .replace(/\\'e/g, 'é').replace(/\\'E/g, 'É')
+            .replace(/\\`e/g, 'è').replace(/\\`E/g, 'È')
+            .replace(/\\`a/g, 'à').replace(/\\`A/g, 'À')
+            .replace(/\\`u/g, 'ù').replace(/\\`U/g, 'Ù')
+            .replace(/\\\^e/g, 'ê').replace(/\\\^E/g, 'Ê')
+            .replace(/\\\^o/g, 'ô').replace(/\\\^O/g, 'Ô')
+            .replace(/\\\^i/g, 'î').replace(/\\\^I/g, 'Î')
+            .replace(/\\\^u/g, 'û').replace(/\\\^U/g, 'Û')
+            .replace(/\\"e/g, 'ë').replace(/\\"i/g, 'ï')
+            // Notation décimale française {,} → virgule
+            .replace(/\{,\}/g, ',')
+            // Symboles monnaie et divers
+            .replace(/\\euro\b/g, '€')
+            .replace(/\\EUR\b/g, '€')
+            .replace(/\\text\{€\}/g, '€')
+            .replace(/\\text\{\euro\}/g, '€')
+            .replace(/\\degres?\b/g, '°')
+            .replace(/\\no\b/g, 'n°');
+
         // ── PHASE 1 : Supprimer les résidus de préambule ────────────
         content = content
             .replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, '')
             .replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\RequirePackage(\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\PassOptionsToPackage\{[^}]*\}\{[^}]*\}/g, '')
             .replace(/\\inputenc\{[^}]*\}/g, '')
             .replace(/\\fontenc\{[^}]*\}/g, '')
             .replace(/\\babel\{[^}]*\}/g, '')
@@ -436,6 +471,12 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\linebreak/g, '\n')
             .replace(/\\columnbreak/g, '')
             .replace(/\\selectlanguage\{[^}]*\}/g, '')
+            .replace(/\\tcbset\{[^}]*\}/g, '')
+            .replace(/\\tcbuselibrary\{[^}]*\}/g, '')
+            .replace(/\\makeatletter/g, '')
+            .replace(/\\makeatother/g, '')
+            .replace(/\\maketitle/g, '')
+            .replace(/\\tableofcontents/g, '')
             .replace(/\\begin\{document\}/g, '')
             .replace(/\\end\{document\}/g, '');
 
@@ -451,14 +492,15 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         );
 
         // b) Tabular → HTML <table>
+        // Gère \begin{tabular} seul OU \begin{center}\n\begin{tabular}...\end{tabular}\n\end{center}
         content = content.replace(
-            /\\begin\{(?:center\}\s*)?tabular\}\{[^}]*\}[\s\S]*?\\end\{tabular\}(?:\s*\\end\{center\})?/g,
+            /(?:\\begin\{center\}\s*)?\\begin\{tabular\}\{[^}]*\}[\s\S]*?\\end\{tabular\}(?:\s*\\end\{center\})?/g,
             (tabBlock) => convertTabularToHtml(tabBlock)
         );
 
-        // c) Normaliser les <mathtable data='...' /> générés par l'IA
+        // c) Normaliser les <mathtable data='...'></mathtable> générés par l'IA
         content = content.replace(
-            /(<mathtable\s+data=')([\s\S]*?)('\s*\/>)/g,
+            /(<mathtable\s+data=')([\s\S]*?)('(?:\s*\/>|>\s*<\/mathtable>))/g,
             (_match, prefix: string, jsonStr: string, suffix: string) => {
                 try {
                     const unescaped = jsonStr
@@ -476,7 +518,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                         }
                     }
                     const escaped = JSON.stringify(data).replace(/'/g, '&#39;');
-                    return `${prefix}${escaped}${suffix}`;
+                    return `${prefix}${escaped}'></mathtable>`;
                 } catch {
                     return _match;
                 }
@@ -529,7 +571,17 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         // ── PHASE 5 : Supprimer les commandes de formatage brutes ────
         content = content
             // Tailles de police
-            .replace(/\\(?:footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, '')
+            .replace(/\\(?:footnotesize|scriptsize|tiny|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, '')
+            // Déclarations de fonte sans argument
+            .replace(/\\(?:bfseries|itshape|scshape|slshape|upshape|mdseries|normalfont|rmfamily|sffamily|ttfamily|lmr|calligra)\b/g, '')
+            // protect, relax, leavevmode
+            .replace(/\\(?:protect|relax|leavevmode|strut)\b/g, '')
+            // Booktabs (hors tableaux)
+            .replace(/\\(?:toprule|midrule|bottomrule)(?:\[[^\]]*\])?/g, '')
+            .replace(/\\hline/g, '')
+            .replace(/\\cline\{[^}]*\}/g, '')
+            // vfill, hfil
+            .replace(/\\(?:vfill|hfil)\b/g, '')
             // \displaystyle, \textstyle
             .replace(/\\displaystyle/g, '')
             .replace(/\\textstyle/g, '')
@@ -556,21 +608,20 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\hfill(?:\\null)?/g, '')
             // \color{...} et \color[...]{...}
             .replace(/\\color(?:\[[^\]]*\])?\{[^}]*\}/g, '')
-            // \boxed{...} → encadré
-            .replace(/\\boxed\{([^}]*)\}/g, '**$1**')
+            // \boxed{...} → encadré (avec accolades imbriquées)
+            .replace(/\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}/g, '**$1**')
             // \text{...}, \mathrm{...}, \operatorname{...}, \textup{...}
-            .replace(/\\text\{([^}]*)\}/g, '$1')
-            .replace(/\\mathrm\{([^}]*)\}/g, '$1')
-            .replace(/\\operatorname\{([^}]*)\}/g, '$1')
-            .replace(/\\textup\{([^}]*)\}/g, '$1')
-            .replace(/\\textbf\{([^}]*)\}/g, '**$1**')
-            .replace(/\\textit\{([^}]*)\}/g, '*$1*')
-            .replace(/\\textrm\{([^}]*)\}/g, '$1')
-            .replace(/\\mathbb\{([^}]*)\}/g, '$$$1$$')
-            .replace(/\\mathcal\{([^}]*)\}/g, '$1')
-            .replace(/\\mathbf\{([^}]*)\}/g, '**$1**')
-            .replace(/\\mathit\{([^}]*)\}/g, '*$1*')
-            .replace(/\\boldsymbol\{([^}]*)\}/g, '**$1**')
+            .replace(/\\text\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\mathrm\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\operatorname\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\textup\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\textbf\{((?:[^{}]|\{[^{}]*\})*)\}/g, '**$1**')
+            .replace(/\\textit\{((?:[^{}]|\{[^{}]*\})*)\}/g, '*$1*')
+            .replace(/\\textrm\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\mathcal\{((?:[^{}]|\{[^{}]*\})*)\}/g, '$1')
+            .replace(/\\mathbf\{((?:[^{}]|\{[^{}]*\})*)\}/g, '**$1**')
+            .replace(/\\mathit\{((?:[^{}]|\{[^{}]*\})*)\}/g, '*$1*')
+            .replace(/\\boldsymbol\{((?:[^{}]|\{[^{}]*\})*)\}/g, '**$1**')
             // Espacement mathématique
             .replace(/\\quad/g, '  ')
             .replace(/\\qquad/g, '    ')
@@ -637,7 +688,36 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\begin\{lemme\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-definition">\n\n**Lemme$1** :\n\n')
             .replace(/\\end\{lemme\}/g, '\n\n</div>\n\n')
             .replace(/\\begin\{notation\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-remarque">\n\n**Notation$1** :\n\n')
-            .replace(/\\end\{notation\}/g, '\n\n</div>\n\n');
+            .replace(/\\end\{notation\}/g, '\n\n</div>\n\n')
+            // Exercices, corrections, solutions
+            .replace(/\\begin\{exercice\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-methode">\n\n**Exercice$1** :\n\n')
+            .replace(/\\end\{exercice\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{exercise\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-methode">\n\n**Exercise$1** :\n\n')
+            .replace(/\\end\{exercise\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{correction\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-remarque">\n\n**Correction$1** :\n\n')
+            .replace(/\\end\{correction\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{solution\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-remarque">\n\n**Solution$1** :\n\n')
+            .replace(/\\end\{solution\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{activite\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-exemple">\n\n**Activité$1** :\n\n')
+            .replace(/\\end\{activite\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{partie\}(\[.*?\])?/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{partie\}/g, '\n\n</div>\n\n')
+            // Cadres (mdframed, framed, shaded)
+            .replace(/\\begin\{mdframed\}(?:\[.*?\])?/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{mdframed\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{framed\}/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{framed\}/g, '\n\n</div>\n\n')
+            .replace(/\\begin\{shaded\}/g, '\n\n<div class="preview-box preview-box-tcolorbox">\n\n')
+            .replace(/\\end\{shaded\}/g, '\n\n</div>\n\n')
+            // Listes de questions
+            .replace(/\\begin\{questions\}(?:\[.*?\])?/g, '\n')
+            .replace(/\\end\{questions\}/g, '\n')
+            .replace(/\\begin\{subquestions\}(?:\[.*?\])?/g, '\n')
+            .replace(/\\end\{subquestions\}/g, '\n')
+            .replace(/\\begin\{description\}/g, '\n')
+            .replace(/\\end\{description\}/g, '\n')
+            .replace(/\\begin\{problems?\}(?:\[.*?\])?/g, '\n')
+            .replace(/\\end\{problems?\}/g, '\n');
 
         // ── PHASE 7 : Mathématiques ─────────────────────────────────
         content = content
@@ -646,7 +726,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             // \begin{align*} → aligned math
             .replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (_match, p1) => `$$\n\\begin{aligned}${p1}\\end{aligned}\n$$\n`)
             // \begin{equation*} → block math
-            .replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, '\n$$\n$1\n$$\n')
+            .replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, (_m, p1) => `\n$$\n${p1}\n$$\n`)
             // \begin{gather*} → block math
             .replace(/\\begin\{gather\*?\}([\s\S]*?)\\end\{gather\*?\}/g, (_match, p1) => `$$\n\\begin{gathered}${p1}\\end{gathered}\n$$\n`)
             // \begin{array}{...} → matrix
@@ -656,9 +736,53 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\begin\{bmatrix\}([\s\S]*?)\\end\{bmatrix\}/g, (_match, p1) => `$$\n\\begin{bmatrix}${p1}\\end{bmatrix}\n$$\n`)
             .replace(/\\begin\{vmatrix\}([\s\S]*?)\\end\{vmatrix\}/g, (_match, p1) => `$$\n\\begin{vmatrix}${p1}\\end{vmatrix}\n$$\n`)
             // \[...\] → block math
-            .replace(/\\\[([\s\S]*?)\\\]/g, '\n$$\n$1\n$$\n')
+            .replace(/\\\[([\s\S]*?)\\\]/g, (_m, p1) => `\n$$\n${p1}\n$$\n`)
             // \(...\) → inline math
             .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+
+        // ── PHASE 7.5 : Nettoyage ** et auto-encapsulation équations nues ───
+        // a) Supprimer les marqueurs **bold** qui brisent les commandes LaTeX
+        content = content
+            .replace(/\*\*(\\[a-zA-Z])/g, '$1')            // **\cmd → \cmd
+            .replace(/(\\[a-zA-Z]+\{[^}]*)\*\*/g, '$1');   // \cmd{..**} → \cmd{..}
+
+        // a2) Strip tous les ** à l'intérieur des blocs $$...$$ et $...$ déjà formés
+        content = content
+            .replace(/\$\$([\s\S]*?)\$\$/g, (_m, inner) => '$$' + inner.replace(/\*\*/g, '') + '$$')
+            .replace(/\$([^$\n]+)\$/g, (_m, inner) => '$' + inner.replace(/\*\*/g, '') + '$');
+
+        // a3) Fix fracs mal formées générées par l'IA : accolade fermante manquante
+        // Cas simple  : \dfrac{a{b}        → \dfrac{a}{b}
+        content = content.replace(
+            /\\(d?frac)\{([^{}]+)\{([^{}]+)\}/g,
+            (_m, cmd, num, den) => `\\${cmd}{${num}}{${den}}`
+        );
+        // Cas imbriqué : \frac{\sqrt{5}{3} → \frac{\sqrt{5}}{3}
+        // Non-greedy (+?) pour ne pas absorber le dénominateur dans le numérateur
+        content = content.replace(
+            /\\(d?frac)\{((?:[^{}]|\{[^{}]*\})+?)\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+            (_m, cmd, num, den) => `\\${cmd}{${num}}{${den}}`
+        );
+
+        // b) Lignes d'équation LaTeX sans délimiteurs $...$ → $$...$$
+        // Heuristique : ligne avec commandes LaTeX (\cmd) + signe = sans mots français courants
+        {
+            const frenchKeywords = /\b(donc|alors|par|la|le|les|de|du|des|et\s|ou\s|si\s|on\s|un\s|une\s|est\s|sont|avec|pour|dans|que\s|qui\s|car\s|mais|ni\s|soit|voici|calculer|vérifier|donner|déduire|conclure|figure|recopier|montrer|justifier|après|avant|d'abord|sachant|puisque|comme\s|aussi|l'événement|l'urne)\b/i;
+            content = content.split('\n').map(line => {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('<') || trimmed.startsWith('#') ||
+                    trimmed.startsWith('>') || trimmed.startsWith('-') || trimmed.startsWith('|') ||
+                    trimmed.startsWith('$$')) return line;
+                if (/\$/.test(line)) return line; // Déjà délimité
+                const hasLatexCmd = /\\[a-zA-Z]/.test(line);
+                const hasEquals = /=/.test(line);
+                const hasFrench = frenchKeywords.test(line);
+                if (hasLatexCmd && hasEquals && !hasFrench) {
+                    return `\n$$\n${trimmed}\n$$\n`;
+                }
+                return line;
+            }).join('\n');
+        }
 
         // ── PHASE 8 : Nettoyage final ───────────────────────────────
         content = content
@@ -688,7 +812,10 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             // fbox/parbox résiduels
             .replace(/\\fbox\{[\s\S]*?\}/g, (m) => m.replace(/\\fbox\{|\\parbox\{[^}]*\}\{|\\centering|\\textwidth|\\Large\s*|\\large\s*/g, '').replace(/\{|\}/g, ''))
             // \  (backslash+espace = espace insécable LaTeX)
-            .replace(/\\ /g, ' ');
+            .replace(/\\ /g, ' ')
+            // Balises HTML incomplètes/tronquées (ex: <table style="...width:100)
+            .replace(/<[a-zA-Z]+\s[^>]*$/gm, '')
+            .replace(/<[a-zA-Z]+\s[^>]*(?=<|$)/g, (m) => m.endsWith('>') ? m : '');
 
         // ── PHASE 9 : Nettoyage des commandes LaTeX résiduelles ────
         // Cette phase attrape toutes les commandes LaTeX qui n'ont pas été
@@ -697,6 +824,9 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         // 9a) Commandes avec accolade unique : \label{...}, \ref{...}, \footnote{...}, etc.
         content = content
             .replace(/\\(?:label|ref|eqref|pageref|cite|index|footnote|marginpar|caption)\{[^}]*\}/g, '')
+            // Commandes de barème / notation
+            .replace(/\\(?:pts|bareme|score|note|points|Mark|marks)\{[^}]*\}/g, '')
+            .replace(/\\pts\b/g, '')
             // \textcolor{color}{text} → text
             .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, '$1')
             // \colorbox{color}{text} → text
@@ -727,6 +857,16 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             .replace(/\\end\{figure\}/g, '')
             .replace(/\\begin\{table\}(?:\[[^\]]*\])?/g, '')
             .replace(/\\end\{table\}/g, '')
+            // tabularx, longtable, tabu → supprimer la déclaration (le contenu est géré par le convertisseur tabular)
+            .replace(/\\begin\{tabularx\}\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\end\{tabularx\}/g, '')
+            .replace(/\\begin\{longtable\}(?:\[[^\]]*\])?\{[^}]*\}/g, '')
+            .replace(/\\end\{longtable\}/g, '')
+            // adjustwidth, spacing
+            .replace(/\\begin\{adjustwidth\}\{[^}]*\}\{[^}]*\}/g, '')
+            .replace(/\\end\{adjustwidth\}/g, '')
+            .replace(/\\begin\{spacing\}\{[^}]*\}/g, '')
+            .replace(/\\end\{spacing\}/g, '')
             .replace(/\\begin\{quote\}/g, '<blockquote>')
             .replace(/\\end\{quote\}/g, '</blockquote>')
             .replace(/\\begin\{flushleft\}/g, '<div style="text-align:left">')
@@ -823,9 +963,19 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     const discard = new Set([
                         'hfill', 'centering', 'raggedright', 'raggedleft',
                         'noindent', 'indent', 'par', 'newline', 'linebreak',
-                        'newpage', 'pagebreak', 'columnbreak', 'clearpage',
+                        'newpage', 'pagebreak', 'columnbreak', 'clearpage', 'cleardoublepage',
                         'medskip', 'bigskip', 'smallskip',
                         'displaystyle', 'textstyle', 'scriptstyle', 'scriptscriptstyle',
+                        // Déclarations de fonte
+                        'bfseries', 'itshape', 'scshape', 'slshape', 'upshape',
+                        'mdseries', 'normalfont', 'rmfamily', 'sffamily', 'ttfamily',
+                        // Misc
+                        'protect', 'relax', 'leavevmode', 'strut',
+                        'maketitle', 'tableofcontents', 'appendix',
+                        'makeatletter', 'makeatother',
+                        'hline', 'toprule', 'midrule', 'bottomrule',
+                        'vfill', 'hfil',
+                        'allowdisplaybreaks', 'frontmatter', 'mainmatter', 'backmatter',
                     ]);
                     if (discard.has(cmd)) return '';
                     return match; // Commande inconnue → on garde (peut être KaTeX)
@@ -841,10 +991,18 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
         content = content
             // ~~ (espace insécable LaTeX) → espace normal
             .replace(/~(?!\{)/g, ' ')
-            // \\ en fin de ligne (saut de ligne LaTeX dans tableaux/align) → newline
-            .replace(/\\\\\s*/g, '\n')
-            // Nettoyer les doubles accolades résiduelles
-            .replace(/\}\}/g, '}')
+            // \\ en fin de ligne : newline hors math, préservé dans $$...$$
+            .replace(/\\\\\s*/g, (match, offset, str) => {
+                const before = str.substring(0, offset);
+                const ddCount = (before.match(/\$\$/g) || []).length;
+                return ddCount % 2 === 1 ? match : '\n';
+            })
+            // Accolades orphelines : }{2}}{2} (pattern très spécifique, ne casse pas les \frac{a}{b})
+            .replace(/\}\{(\d+)\}\}\{(\d+)\}/g, '')
+            // Accolades orphelines isolées hors des blocs math
+            .replace(/^\s*\}\s*$/gm, '')
+            // Zero-width spaces
+            .replace(/\u200B/g, '')
             // Nettoyer les lignes vides excessives
             .replace(/\n{4,}/g, '\n\n\n')
             // Espaces en début/fin de lignes

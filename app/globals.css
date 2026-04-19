@@ -646,6 +646,25 @@ svg foreignObject .katex * {
     margin: 1.2em 0;
     font-size: 1.15em;
 }
+/* Force KaTeX fraction layout (display: inline-table can be reset by Tailwind) */
+.preview-rendered .katex .vlist-t {
+    display: inline-table !important;
+    border-collapse: collapse !important;
+}
+.preview-rendered .katex .vlist-r {
+    display: table-row !important;
+}
+.preview-rendered .katex .vlist > span {
+    display: table-cell !important;
+    vertical-align: top !important;
+}
+.preview-rendered .katex .frac-line {
+    display: block !important;
+    border-bottom-style: solid !important;
+}
+.preview-rendered .katex .mfrac > span > span {
+    text-align: center !important;
+}
 /* Code source panel styling */
 .preview-code-panel {
     background: #0f172a;
@@ -988,6 +1007,27 @@ svg foreignObject .katex * {
   height: 1px !important;
   width: 1px !important;
   overflow: hidden !important;
+}
+
+/* Erreurs KaTeX : affiche le LaTeX brut mais stylisé (pas une erreur rouge agressive) */
+.katex-error {
+  color: #fbbf24 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 0.85em !important;
+  background: rgba(251, 191, 36, 0.1) !important;
+  border-radius: 3px !important;
+  padding: 0 3px !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+}
+
+/* KaTeX inline dans le chatbot — taille et couleur forcées */
+.message-content-wrapper .katex {
+  font-size: 1.1em !important;
+  white-space: nowrap;
+}
+.message-content-wrapper .katex-display {
+  white-space: normal;
+  overflow-x: auto;
 }
 
 /* Correction "Bonne Réponse" — vert plus lisible */

@@ -33,7 +33,7 @@ export default async function SujetsPage() {
     const { data: sujets, error } = await supabase
         .from('eam_sujets')
         .select('*')
-        .order('date_sujet', { ascending: false });
+        .order('created_at', { ascending: true });
 
     // Si la table n'existe pas encore, utiliser des données de démo
     const demoSujets: EAMSujet[] = [
@@ -127,13 +127,22 @@ export default async function SujetsPage() {
         }
     };
 
-    // Grouper les sujets par niveau
+    const getSujetNumber = (titre: string) => {
+        const match = titre.match(/n[°o]?\s*(\d+)/i);
+        return match ? parseInt(match[1]) : 9999;
+    };
+
+    // Grouper les sujets par niveau, triés par numéro
     const sujetsByNiveau = displaySujets.reduce((acc, sujet) => {
         const niveau = sujet.niveau || '1ere_specialite';
         if (!acc[niveau]) acc[niveau] = [];
         acc[niveau].push(sujet);
         return acc;
     }, {} as Record<string, EAMSujet[]>);
+
+    for (const niveau of Object.keys(sujetsByNiveau)) {
+        sujetsByNiveau[niveau].sort((a, b) => getSujetNumber(a.titre) - getSujetNumber(b.titre));
+    }
 
     // Ordre d'affichage des niveaux
     const niveauOrder = ['1ere_specialite', '1ere_gt', '1ere_techno'];

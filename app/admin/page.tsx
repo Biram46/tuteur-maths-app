@@ -25,11 +25,7 @@ export default async function AdminPage() {
 
         // Strict Admin Check
         if (!isAdmin(user)) {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400 font-mono">
-                    Access Denied: You do not have administrator privileges.
-                </div>
-            );
+            redirect('/');
         }
 
         // ============================================
