@@ -3,10 +3,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
-import { sanitizeRagContext } from '@/lib/api-auth';
+import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 import { trackAIUsage } from '@/lib/ai-usage-tracker';
-
-export const runtime = 'edge';
+import { NextResponse } from 'next/server';
 
 // ─────────────────────────────────────────────────────────────
 // CONTRAINTES PAR NIVEAU
@@ -1004,6 +1003,9 @@ function createSSEStream(
 // ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+    const auth = await authWithRateLimit(request, 15, 60_000);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = await request.json();
         const {
