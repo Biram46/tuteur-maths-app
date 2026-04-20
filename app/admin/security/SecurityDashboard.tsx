@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { AdminAuditLog } from '@/lib/audit-logger';
 
 interface Device {
     id: string;
@@ -25,9 +26,10 @@ interface AuditLog {
 interface Props {
     devices: Device[];
     logs: AuditLog[];
+    adminLogs: AdminAuditLog[];
 }
 
-export default function SecurityDashboard({ devices, logs }: Props) {
+export default function SecurityDashboard({ devices, logs, adminLogs }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState('');
@@ -306,6 +308,56 @@ export default function SecurityDashboard({ devices, logs }: Props) {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </section>
+
+                {/* Logs actions admin */}
+                <section>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
+                        <span className="text-2xl">🛡️</span>
+                        Actions admin
+                        <span className="text-sm font-normal text-slate-400">({adminLogs.length} dernières)</span>
+                    </h2>
+
+                    <div className="bg-slate-900/30 border border-slate-700/50 rounded-xl overflow-hidden">
+                        {adminLogs.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-sm">Aucune action enregistrée</div>
+                        ) : (
+                            <div className="max-h-[400px] overflow-y-auto">
+                                <table className="w-full">
+                                    <thead className="bg-slate-950/50 sticky top-0">
+                                        <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                                            <th className="px-6 py-4">Action</th>
+                                            <th className="px-6 py-4">Cible</th>
+                                            <th className="px-6 py-4">Date</th>
+                                            <th className="px-6 py-4">Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800/50">
+                                        {adminLogs.map((log) => (
+                                            <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <span className="text-white text-sm font-mono">{log.action}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-400 text-sm">
+                                                    {log.target_label ?? log.target_type ?? '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-300 text-sm">
+                                                    {mounted ? getRelativeTime(log.created_at) : formatDate(log.created_at)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {log.success ? (
+                                                        <span className="px-2 py-1 bg-green-500/10 border border-green-500/30 text-green-400 rounded text-xs">OK</span>
+                                                    ) : (
+                                                        <span className="px-2 py-1 bg-red-500/10 border border-red-500/30 text-red-400 rounded text-xs">Échec</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </section>
 

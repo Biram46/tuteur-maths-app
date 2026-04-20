@@ -1,5 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
+export interface AdminAuditLog {
+    id: string;
+    user_email: string | null;
+    action: string;
+    target_type: string | null;
+    target_id: string | null;
+    target_label: string | null;
+    success: boolean;
+    metadata: Record<string, unknown> | null;
+    created_at: string;
+}
+
 export async function logAdminAction(params: {
     userId?: string;
     userEmail?: string;
@@ -27,5 +39,22 @@ export async function logAdminAction(params: {
         }]);
     } catch {
         // Non-bloquant : l'audit ne doit jamais faire échouer l'action principale
+    }
+}
+
+export async function getAdminAuditLogs(limit = 30): Promise<AdminAuditLog[]> {
+    try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data } = await supabase
+            .from('admin_audit_logs')
+            .select('id, user_email, action, target_type, target_label, success, metadata, created_at')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        return (data as AdminAuditLog[]) ?? [];
+    } catch {
+        return [];
     }
 }

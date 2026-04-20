@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabaseAction';
 import { redirect } from 'next/navigation';
 import { getTrustedDevices, getAuditLogs } from '@/lib/admin2fa';
 import { isAdmin } from '@/lib/api-auth';
+import { getAdminAuditLogs } from '@/lib/audit-logger';
 import SecurityDashboard from './SecurityDashboard';
 
 export default async function SecurityPage() {
@@ -31,9 +32,11 @@ export default async function SecurityPage() {
         redirect('/');
     }
 
-    // Récupérer les appareils de confiance et les logs
-    const devices = await getTrustedDevices(user.id);
-    const logs = await getAuditLogs(user.id, 20);
+    const [devices, logs, adminLogs] = await Promise.all([
+        getTrustedDevices(user.id),
+        getAuditLogs(user.id, 20),
+        getAdminAuditLogs(30),
+    ]);
 
-    return <SecurityDashboard devices={devices} logs={logs} />;
+    return <SecurityDashboard devices={devices} logs={logs} adminLogs={adminLogs} />;
 }
