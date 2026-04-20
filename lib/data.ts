@@ -48,6 +48,7 @@ export type QcmResult = {
     student_email: string;
     student_name: string | null;
     student_class: string | null;
+    student_hash?: string;
     score: number;
     score_base: number;
     total_questions: number;
