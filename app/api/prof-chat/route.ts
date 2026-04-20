@@ -7,6 +7,8 @@ import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 import { trackAIUsage } from '@/lib/ai-usage-tracker';
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 300;
+
 // ─────────────────────────────────────────────────────────────
 // CONTRAINTES PAR NIVEAU
 // ─────────────────────────────────────────────────────────────
@@ -1138,15 +1140,12 @@ ${context.resource_type === 'interactif'
             const claudeResult = await withRetry(async () => {
                 const t0 = Date.now();
                 console.log('[Prof-Chat] 🧠 Claude Sonnet 4.6 : streaming direct au client...');
-                const anthropic = new Anthropic({
-                    apiKey: anthropicKey,
-                    defaultHeaders: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' }
-                });
+                const anthropic = new Anthropic({ apiKey: anthropicKey });
                 const connectController = new AbortController();
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
                 const stream = await anthropic.messages.create({
-                    max_tokens: 32000,
+                    max_tokens: 64000,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
                     system: systemPrompt,
