@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabaseAction'
-import { isAdminEmail } from '@/lib/api-auth'
+import { isAdmin } from '@/lib/api-auth'
 import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
@@ -68,20 +68,16 @@ export async function adminLogin(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    // Vérifier que l'email est celui d'un admin
-    if (!isAdminEmail(email)) {
-        redirect('/admin/login?error=' + encodeURIComponent('Accès refusé. Seul le professeur peut se connecter ici.'))
-    }
-
-    const data = {
-        email,
-        password,
-    }
-
-    const { error } = await supabase.auth.signInWithPassword(data)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
         redirect('/admin/login?error=' + encodeURIComponent('Email ou mot de passe incorrect'))
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!isAdmin(user)) {
+        await supabase.auth.signOut()
+        redirect('/admin/login?error=' + encodeURIComponent('Accès refusé. Seul le professeur peut se connecter ici.'))
     }
 
     revalidatePath('/', 'layout')
