@@ -379,12 +379,13 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                             </div>
                         )}
 
+                        {/* Formulaire de contact */}
+                        <ContactForm />
+
                         {/* Footer Info */}
-                        {activeChapter && (
-                            <div className="mt-12 pt-8 border-t border-white/5 text-center text-slate-500 text-xs">
-                                Tuteur Maths App v1.0 • Design Futuriste • 2026
-                            </div>
-                        )}
+                        <div className="mt-6 pt-4 border-t border-white/5 text-center text-slate-600 text-xs">
+                            Tuteur Maths App v1.0 • 2026
+                        </div>
                     </div>
                 </section>
 
@@ -450,5 +451,66 @@ export default function StudentClientView({ levels, chapters, resources }: Props
             />
 
         </main>
+    );
+}
+
+function ContactForm() {
+    const [nom, setNom] = useState('');
+    const [message, setMessage] = useState('');
+    const [sent, setSent] = useState(false);
+    const [sending, setSending] = useState(false);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!nom.trim() || !message.trim()) return;
+        setSending(true);
+        const subject = encodeURIComponent(`Message de ${nom} — Tuteur Maths`);
+        const body = encodeURIComponent(`Nom : ${nom}\n\n${message}`);
+        window.location.href = `mailto:prof@aimaths.fr?subject=${subject}&body=${body}`;
+        setTimeout(() => { setSent(true); setSending(false); }, 500);
+    };
+
+    return (
+        <div className="mt-12 pt-8 border-t border-white/5">
+            <div className="max-w-lg mx-auto">
+                <h3 className="text-sm font-bold text-slate-300 mb-1 text-center">📬 Contacter le professeur</h3>
+                <p className="text-xs text-slate-500 text-center mb-5">
+                    Une question ? Un problème ? Écris à{' '}
+                    <a href="mailto:prof@aimaths.fr" className="text-cyan-400 hover:underline">prof@aimaths.fr</a>
+                </p>
+                {sent ? (
+                    <div className="text-center py-4 text-green-400 text-sm font-medium">
+                        ✅ Ton client mail s'est ouvert. Message prêt à envoyer !
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        <input
+                            type="text"
+                            value={nom}
+                            onChange={e => setNom(e.target.value)}
+                            placeholder="Ton prénom et ta classe"
+                            maxLength={60}
+                            required
+                            className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50"
+                        />
+                        <textarea
+                            value={message}
+                            onChange={e => setMessage(e.target.value)}
+                            placeholder="Ton message…"
+                            rows={4}
+                            required
+                            className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
+                        />
+                        <button
+                            type="submit"
+                            disabled={sending || !nom.trim() || !message.trim()}
+                            className="w-full py-3 rounded-xl bg-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:bg-cyan-600/30 disabled:opacity-40 transition-all"
+                        >
+                            {sending ? '⏳ Ouverture…' : '✉️ Envoyer'}
+                        </button>
+                    </form>
+                )}
+            </div>
+        </div>
     );
 }
