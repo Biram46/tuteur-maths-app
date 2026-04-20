@@ -95,3 +95,24 @@ export async function logout() {
     revalidatePath('/', 'layout')
     redirect('/login')
 }
+
+export async function deleteAccount() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) redirect('/login')
+
+    // Supprimer les données personnelles liées à cet email
+    const adminClient = (await import('@supabase/supabase-js')).createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    await adminClient.from('qcm_results').delete().eq('student_email', user.email!)
+    await adminClient.from('quiz_results').delete().eq('student_email', user.email!)
+
+    // Supprimer le compte auth
+    await adminClient.auth.admin.deleteUser(user.id)
+
+    revalidatePath('/', 'layout')
+    redirect('/login?message=' + encodeURIComponent('Votre compte a été supprimé.'))
+}

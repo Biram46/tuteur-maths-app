@@ -22,9 +22,9 @@ export default function UserAuthButton({ user }: { user: any }) {
         <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
                 <span className="text-[8px] font-['Orbitron'] tracking-[0.3em] text-cyan-600 uppercase">Utilisateur Actif</span>
-                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+                <Link href="/mon-compte" className="text-[10px] font-mono text-slate-400 hidden sm:inline hover:text-cyan-400 transition-colors">
                     {user.email}
-                </span>
+                </Link>
             </div>
             <button
                 onClick={() => startTransition(() => logout())}
