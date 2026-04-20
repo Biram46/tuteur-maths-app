@@ -47,13 +47,47 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer());
         let text = "";
 
+        const fileName = file.name || 'document.pdf';
+
         // Traitement selon le type de fichier
         if (file.type === "application/pdf") {
-            // Analyse PDF désactivée pour stabilité du serveur
-            return NextResponse.json({
-                text: "⚠️ L'analyse directe des PDF est désactivée pour des raisons techniques. \n\n✅ SOLUTION 1 : Faites une capture d'écran de votre devoir (Image) et envoyez-la, l'IA pourra la lire ! \n✅ SOLUTION 2 : Copiez-collez le texte du PDF ici.",
-                error: "PDF_DISABLED"
-            });
+            // Polyfills requis par pdf-parse dans l'environnement serverless Vercel
+            if (typeof globalThis.DOMMatrix === 'undefined') {
+                (globalThis as any).DOMMatrix = class { constructor() {} };
+                (globalThis as any).Path2D = class { constructor() {} };
+                (globalThis as any).ImageData = class { constructor() {} };
+            }
+            try {
+                const pdfParse = (await import('pdf-parse')).default;
+                const pdfData = await pdfParse(buffer);
+                const extractedText = pdfData.text?.trim() || '';
+
+                if (extractedText.length > 100) {
+                    return NextResponse.json({
+                        text: extractedText,
+                        pageCount: pdfData.numpages,
+                    });
+                }
+
+                // PDF scanné (peu de texte) → fallback Gemini vision
+                const base64 = buffer.toString('base64');
+                const visionRes = await fetch(new URL('/api/vision', req.url).toString(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        cookie: req.headers.get('cookie') || '',
+                    },
+                    body: JSON.stringify({ fileData: base64, mimeType: 'application/pdf', fileName }),
+                });
+                const visionData = await visionRes.json();
+                if (visionData.text) {
+                    return NextResponse.json({ text: visionData.text });
+                }
+                return NextResponse.json({ error: "Impossible d'extraire le texte de ce PDF scanné." }, { status: 422 });
+            } catch (e) {
+                console.error('PDF parse error:', e);
+                return NextResponse.json({ error: "Erreur lors de l'analyse du PDF." }, { status: 500 });
+            }
         }
         else if (file.type.startsWith("image/")) {
             try {
@@ -62,7 +96,7 @@ export async function POST(req: NextRequest) {
                 const { data: { text: ocrText } } = await Tesseract.recognize(
                     buffer,
                     'fra', // Langue française
-                    { logger: m => console.log(m) }
+                    { logger: () => {} }
                 );
                 text = ocrText;
             } catch (e) {
