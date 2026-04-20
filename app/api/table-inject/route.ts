@@ -107,6 +107,11 @@ function parseAAATable(aaaBlock: string): { success: boolean; data?: ParsedTable
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+    const secret = process.env.PYTHON_INJECT_SECRET;
+    if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+        return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    }
+
     try {
         const body = await req.json();
         const { aaaBlock, question } = body;
@@ -127,12 +132,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.log('[TableInject] Bloc reçu et validé:', {
-            xValues: parsed.data?.xValues,
-            rows: parsed.data?.rows.map(r => `${r.type}:${r.label}(${r.content.length})`),
-            question,
-        });
-
         return NextResponse.json({
             success: true,
             aaaBlock: aaaBlock.trim(),
@@ -140,7 +139,6 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (err: any) {
-        console.error('[TableInject] Erreur:', err);
         return NextResponse.json(
             { success: false, error: err.message },
             { status: 500 }

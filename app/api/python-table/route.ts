@@ -63,6 +63,11 @@ function validateAAABlock(aaaBlock: string): { ok: boolean; error?: string } {
 // ─── POST : Python envoie le bloc ───────────────────────────
 
 export async function POST(req: NextRequest) {
+    const secret = process.env.PYTHON_INJECT_SECRET;
+    if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+        return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    }
+
     try {
         const body = await req.json();
         const { aaaBlock, question = 'Tableau de signes' } = body;
@@ -90,8 +95,6 @@ export async function POST(req: NextRequest) {
             createdAt: Date.now(),
             token,
         });
-
-        console.log(`[PythonTable] Bloc stocké (token=${token}):`, question);
 
         return NextResponse.json({
             success: true,

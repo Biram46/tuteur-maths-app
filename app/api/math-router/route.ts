@@ -12,8 +12,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { routeQuestion } from '@/lib/math-router/router';
+import { checkRateLimit } from '@/lib/api-auth';
 
 export async function POST(req: NextRequest) {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const { allowed } = checkRateLimit(`math-router:${ip}`, 30, 60_000);
+    if (!allowed) {
+        return NextResponse.json({ hasResults: false, aaaBlocks: [], contextForAI: '', error: 'Trop de requêtes' }, { status: 429 });
+    }
+
     try {
         const { message, niveau = 'Seconde' } = await req.json();
 
