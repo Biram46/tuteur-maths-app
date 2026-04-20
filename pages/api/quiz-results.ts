@@ -56,18 +56,22 @@ export default async function handler(
         const chapter_id = body.chapter_id ?? null;
         const exercise_id = body.exercise_id ?? null;
         const student_email = body.student_email ?? null;
+        const student_name = body.student_name ?? null;
+        const student_class = body.student_class ?? null;
 
         const { error } = await supabase.from("quiz_results").insert([
             {
                 quiz_id,
                 niveau,
                 chapitre,
-                note: note_finale,      // on alimente aussi note
+                note: note_finale,
                 note_finale,
                 details,
                 chapter_id,
                 exercise_id,
                 student_email,
+                student_name,
+                student_class,
             },
         ]);
 
