@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { Level, Chapter, Resource, QuizResult, QcmResult } from "@/lib/data";
 import type { EAMSujet, EAMNiveau } from "./actions";
+import RagNotesManager from "./components/RagNotesManager";
 import {
     createOrUpdateLevel,
     createOrUpdateChapter,
@@ -29,7 +30,7 @@ interface Props {
 
 export default function AdminDashboard({ initialData }: Props) {
     const { levels, chapters, resources, quizResults, qcmResults = [], eamSujets = [] } = initialData;
-    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "qcm_results" | "converter" | "eam">("levels");
+    const [activeTab, setActiveTab] = useState<"levels" | "chapters" | "resources" | "results" | "qcm_results" | "converter" | "eam" | "rag">("levels");
 
     // States for editing
     const [editingLevel, setEditingLevel] = useState<Level | null>(null);
@@ -114,6 +115,12 @@ export default function AdminDashboard({ initialData }: Props) {
                     className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'eam' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
                 >
                     📄 EAM
+                </button>
+                <button
+                    onClick={() => setActiveTab("rag")}
+                    className={`flex-1 py-6 px-4 font-['Orbitron'] text-xs tracking-[0.2em] transition-all uppercase ${activeTab === 'rag' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    🧠 RAG
                 </button>
             </div>
 
@@ -1446,6 +1453,13 @@ export default function AdminDashboard({ initialData }: Props) {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* --- TAB RAG — Notes pédagogiques manuelles --- */}
+                {activeTab === "rag" && (
+                    <div className="animate-message">
+                        <RagNotesManager chapters={chapters} levels={levels} />
                     </div>
                 )}
 

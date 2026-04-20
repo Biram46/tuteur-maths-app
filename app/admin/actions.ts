@@ -494,6 +494,67 @@ export async function createEAMSujetWithFiles(
 }
 
 /**
+ * Ajoute une note pédagogique manuelle dans le RAG (avec embedding OpenAI)
+ */
+export async function addRagNote(params: {
+    content: string;
+    chapitre: string;
+    niveau: string;
+}): Promise<{ success: boolean; error?: string }> {
+    const { content, chapitre, niveau } = params;
+    if (!content.trim()) return { success: false, error: 'Contenu vide' };
+
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) return { success: false, error: 'OPENAI_API_KEY manquante' };
+
+    try {
+        // Générer l'embedding
+        const embRes = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'text-embedding-ada-002', input: content }),
+        });
+        const embData = await embRes.json();
+        if (embData.error) return { success: false, error: `OpenAI: ${embData.error.message}` };
+        const embedding = embData.data[0].embedding;
+
+        // Insérer dans rag_documents
+        const { error } = await supabaseServer.from('rag_documents').insert({
+            content,
+            embedding,
+            metadata: {
+                source: 'manual',
+                chapter_title: chapitre,
+                niveau,
+                added_by: 'admin',
+            },
+        });
+
+        if (error) return { success: false, error: error.message };
+
+        logAdminAction({ action: 'add_rag_note', targetType: 'rag_documents', targetLabel: chapitre, metadata: { niveau } }).catch(() => {});
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Supprime toutes les notes manuelles RAG d'un chapitre
+ */
+export async function deleteRagNotes(chapitre: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabaseServer
+        .from('rag_documents')
+        .delete()
+        .eq('metadata->>source', 'manual')
+        .eq('metadata->>chapter_title', chapitre);
+    if (error) return { success: false, error: error.message };
+    logAdminAction({ action: 'delete_rag_notes', targetType: 'rag_documents', targetLabel: chapitre }).catch(() => {});
+    revalidatePath('/admin');
+    return { success: true };
+}
+
+/**
  * Supprime tous les résultats QCM de la base de données (purge)
  */
 export async function deleteAllQcmResults() {
@@ -508,3 +569,4 @@ export async function deleteAllQcmResults() {
     revalidatePath("/admin");
     redirect("/admin");
 }
+
