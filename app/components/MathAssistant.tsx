@@ -56,7 +56,8 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         ocrCallback,
         messages,
         setMessages,
-        setLoading
+        setLoading,
+        selectedNiveau
     );
 
     // resolveNiveau mémoïsée : recalculée seulement si selectedNiveau change

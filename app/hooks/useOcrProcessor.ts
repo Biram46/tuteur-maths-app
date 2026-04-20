@@ -41,7 +41,8 @@ export function useOcrProcessor(
     onTranscription: (text: string, newMessages: ChatMessage[]) => Promise<void>,
     messages: ChatMessage[],
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-    setLoading: (v: boolean) => void
+    setLoading: (v: boolean) => void,
+    levelLabel?: string
 ): UseOcrProcessorReturn {
     const [isScanning, setIsScanning] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null!);
@@ -92,44 +93,46 @@ export function useOcrProcessor(
                 imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
             }
 
-            let combinedTranscription = '';
-            for (let i = 0; i < imagesToProcess.length; i++) {
-                const { base64, mimeType } = imagesToProcess[i];
-                const response = await fetch('/api/vision', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64, mimeType }),
-                });
+            // Envoyer les images directement à Claude vision (sans transcription intermédiaire)
+            const visionRes = await fetch('/api/vision-assist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ images: imagesToProcess, level_label: levelLabel }),
+            });
 
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.suggestion || data.error || "Erreur lors de l'analyse");
-
-                if (data.transcription) {
-                    combinedTranscription += imagesToProcess.length > 1
-                        ? `**Page ${i + 1}:**\n${data.transcription}\n\n`
-                        : data.transcription;
-                }
+            if (!visionRes.ok) {
+                const err = await visionRes.json().catch(() => ({}));
+                throw new Error(err.error || "Erreur lors de l'analyse visuelle");
             }
-
-            if (!combinedTranscription) throw new Error("Aucun texte n'a pu être extrait du document.");
 
             // Supprimer le message de scanning
             setMessages(prev => prev.filter(m =>
                 !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
             ));
 
-            // Afficher la transcription comme message user
-            const userMessage: ChatMessage = { role: 'user', content: `📷 **Exercice scanné :**\n\n${combinedTranscription}` };
-            const currentMessages = messages.filter(m =>
+            // Lire la réponse en streaming
+            const reader = visionRes.body!.getReader();
+            const decoder = new TextDecoder();
+            let assistantContent = '';
+
+            setMessages(prev => [...prev.filter(m =>
                 !(m.role === 'assistant' && m.content.includes('Analyse photonique en cours'))
-            );
-            const newMessages = [...currentMessages, userMessage];
-            setMessages(newMessages);
+            ), { role: 'assistant', content: '' }]);
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                assistantContent += decoder.decode(value, { stream: true });
+                setMessages(prev => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                    return updated;
+                });
+            }
+
             setIsScanning(false);
             setLoading(false);
-
-            // Router la transcription via le moteur mathématique
-            await onTranscription(combinedTranscription, newMessages);
+            return;
 
         } catch (error: any) {
             console.error('Scan Error:', error);
