@@ -50,11 +50,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 // ─── Handler principal ─────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-    // Valider le secret du webhook
+    // Valider le secret du webhook (header custom x-webhook-secret)
     const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
     if (webhookSecret) {
-        const auth = req.headers.get('authorization');
-        if (auth !== `Bearer ${webhookSecret}`) {
+        const secret = req.headers.get('x-webhook-secret');
+        if (secret !== webhookSecret) {
             return new Response('Unauthorized', { status: 401 });
         }
     }
