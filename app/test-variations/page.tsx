@@ -225,7 +225,7 @@ export default function TestVariationsPage() {
         ]
     };
 
-    // Test Signe 4: f(x) = (x+3)(x-2)/(x-1) - CAS DU BUG
+    // Test Signe 4: f(x) = (x+3)(x-2)/(x-1) - fraction avec valeur interdite
     // Valeur interdite en x=1, zéros en x=-3 et x=2
     // Format 2N-3: 7 éléments pour N=5 x-values
     // Positions: 1=]-inf,-3[, 2=x=-3, 3=]-3,1[, 4=x=1, 5=]1,2[, 6=x=2, 7=]2,+inf[
@@ -412,10 +412,10 @@ export default function TestVariationsPage() {
                         <MathTable data={testSigne3} title="Tableau de signes - Quotient avec 3 facteurs" />
                     </div>
 
-                    {/* Test Signe 4 - CAS DU BUG */}
+                    {/* Test Signe 4 - fraction avec valeur interdite */}
                     <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-red-400">
                         <h2 className="text-lg font-semibold text-slate-700 mb-4">
-                            ⚠️ Test Signe 4 : f(x) = (x+3)(x-2)/(x-1) - CAS DU BUG
+                            Test Signe 4 : f(x) = (x+3)(x-2)/(x-1) — valeur interdite en x=1
                         </h2>
                         <p className="text-sm text-slate-500 mb-4">
                             <strong>C'est le cas signalé dans les bugs !</strong>

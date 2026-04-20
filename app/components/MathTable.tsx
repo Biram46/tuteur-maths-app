@@ -260,11 +260,6 @@ export default function MathTable({ data, title }: MathTableProps) {
     const { xValues, rows } = data;
     const N = xValues.length;
 
-    // ── DEBUG TRACE (à retirer après debug) ──
-    console.log('[MATHTABLE] xValues:', xValues, 'N:', N);
-    for (const row of rows) {
-        console.log(`[MATHTABLE] Row "${row.label}" [${row.type}] (${row.content.length}):`, row.content);
-    }
 
 
     // Largeur & hauteur totales
