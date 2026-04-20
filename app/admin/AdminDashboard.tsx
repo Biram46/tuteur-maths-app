@@ -702,6 +702,7 @@ export default function AdminDashboard({ initialData }: Props) {
                                 <thead className="bg-cyan-500/5 border-b border-cyan-500/10 font-['Orbitron'] text-[10px] text-cyan-400 uppercase tracking-widest">
                                     <tr>
                                         <th className="px-8 py-6">Élève</th>
+                                        <th className="px-8 py-6">Classe</th>
                                         <th className="px-8 py-6">Module / Exercice</th>
                                         <th className="px-8 py-6">Data Point</th>
                                         <th className="px-8 py-6">Timestamp</th>
@@ -714,12 +715,18 @@ export default function AdminDashboard({ initialData }: Props) {
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-cyan-500/20" title={result.student_email || String(result.id)}>
-                                                        {(result.student_email || "?").substring(0, 2).toUpperCase()}
+                                                        {(result.student_name || result.student_email || "?").substring(0, 2).toUpperCase()}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-slate-200 font-medium text-xs">{result.student_email || "Anonyme"}</span>
+                                                        <span className="text-slate-200 font-medium text-xs">{result.student_name || result.student_email || "Anonyme"}</span>
+                                                        {result.student_email && result.student_name && (
+                                                            <span className="text-slate-500 text-[10px]">{result.student_email}</span>
+                                                        )}
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-8 py-5 text-slate-400 text-xs">
+                                                {result.student_class || <span className="text-slate-600 italic">—</span>}
                                             </td>
                                             <td className="px-8 py-5 text-slate-400 text-sm">
                                                 <div className="flex flex-col">

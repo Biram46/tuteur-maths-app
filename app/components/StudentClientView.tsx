@@ -25,6 +25,13 @@ export default function StudentClientView({ levels, chapters, resources }: Props
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Modal prénom/classe avant exercice interactif
+    const [interactifModal, setInteractifModal] = useState<{ url: string; title: string } | null>(null);
+    const [interactifName, setInteractifName] = useState('');
+    const [interactifClass, setInteractifClass] = useState('');
+
+    const CLASS_OPTIONS = ['Seconde', '1ère SPE MATHS', '1ère STMG', 'Terminale SPE MATHS', 'Terminale Maths Expertes', 'Terminale STMG'];
+
     // Mettre à jour le chapitre sélectionné quand on change de niveau
     useEffect(() => {
         if (selectedLevelId) {
@@ -63,19 +70,32 @@ export default function StudentClientView({ levels, chapters, resources }: Props
         .filter(r => r.html_url || r.pdf_url); // Interactif a souvent html_url
 
     // Fonction pour ouvrir une ressource
-    const openResource = (url: string | null, type: 'cours' | 'exercice' | 'interactif', title: string) => {
+    const openResource = (url: string | null, type: 'cours' | 'exercice' | 'interactif', title: string, studentName?: string, studentClass?: string) => {
         if (!url) return;
 
-        // Construction de l'URL vers notre page de visualisation
         const params = new URLSearchParams({
             url: url,
             type: type,
             title: title,
-            level: activeLevel?.label || ''
+            level: activeLevel?.label || '',
+            ...(studentName ? { studentName } : {}),
+            ...(studentClass ? { studentClass } : {}),
         });
 
-        // Ouvrir dans un nouvel onglet
         window.open(`/resource?${params.toString()}`, '_blank');
+    };
+
+    const handleInteractifClick = (url: string | null, title: string) => {
+        if (!url) return;
+        setInteractifModal({ url, title });
+        setInteractifName('');
+        setInteractifClass('');
+    };
+
+    const handleInteractifConfirm = () => {
+        if (!interactifModal || !interactifName.trim() || !interactifClass) return;
+        openResource(interactifModal.url, 'interactif', interactifModal.title, interactifName.trim(), interactifClass);
+        setInteractifModal(null);
     };
 
     return (
@@ -327,7 +347,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                                 return (
                                                     <button
                                                         key={res.id}
-                                                        onClick={() => openResource(url, 'interactif', `Interactif - ${activeChapter.title}`)}
+                                                        onClick={() => handleInteractifClick(url, res.label || `Interactif - ${activeChapter.title}`)}
                                                         className="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-between transition-all group/btn"
                                                     >
                                                         <span className="text-sm font-medium text-amber-200 group-hover/btn:text-white flex items-center gap-2">
@@ -370,6 +390,52 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
                 {/* (AssistantSidebar is removed per user request) */}
             </div>
+
+            {/* Modal prénom/classe avant exercice interactif */}
+            {interactifModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-amber-500/30 rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col gap-5">
+                        <div className="text-center">
+                            <div className="text-4xl mb-3">⚡</div>
+                            <h2 className="text-lg font-bold text-white">{interactifModal.title}</h2>
+                            <p className="text-xs text-slate-400 mt-1">Entre ton prénom et ta classe pour commencer</p>
+                        </div>
+                        <input
+                            type="text"
+                            value={interactifName}
+                            onChange={e => setInteractifName(e.target.value)}
+                            placeholder="Ton prénom"
+                            maxLength={30}
+                            className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 text-sm"
+                        />
+                        <select
+                            value={interactifClass}
+                            onChange={e => setInteractifClass(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-white/10 text-white focus:outline-none focus:border-amber-500/50 text-sm"
+                        >
+                            <option value="" disabled>Sélectionne ta classe</option>
+                            {CLASS_OPTIONS.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        <div className="flex gap-3 mt-2">
+                            <button
+                                onClick={() => setInteractifModal(null)}
+                                className="flex-1 py-3 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-white text-sm font-medium transition-all"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleInteractifConfirm}
+                                disabled={!interactifName.trim() || !interactifClass}
+                                className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Lancer 🎮
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mobile Menu */}
             <MobileMenu

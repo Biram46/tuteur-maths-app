@@ -41,6 +41,8 @@ export type QuizResult = {
     chapter_id: string | null;
     exercise_id: string | null;
     student_email: string | null;
+    student_name: string | null;
+    student_class: string | null;
 };
 
 export type QcmResult = {

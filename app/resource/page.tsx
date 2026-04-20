@@ -18,6 +18,8 @@ function ResourceContent() {
     const type = searchParams?.get("type"); // 'cours', 'exercice', 'interactif'
     const title = searchParams?.get("title");
     const level = searchParams?.get("level");
+    const studentName = searchParams?.get("studentName");
+    const studentClass = searchParams?.get("studentClass");
 
     const [content, setContent] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -73,6 +75,8 @@ function ResourceContent() {
                     note_finale: data.note,
                     details: data.details,
                     student_email: studentEmail,
+                    student_name: studentName || null,
+                    student_class: studentClass || null,
                 };
 
                 try {
