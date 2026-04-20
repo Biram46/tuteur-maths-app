@@ -98,35 +98,11 @@ export async function authWithRateLimit(
     return { user };
 }
 
-/**
- * Vérifie si un utilisateur est admin.
- * Priorité :
- *   1. Rôle dans app_metadata (mis à jour via la table user_roles + trigger)
- *   2. Fallback sur ADMIN_EMAILS dans .env (rétrocompatible)
- */
 export function isAdmin(
     user: { email?: string; app_metadata?: Record<string, unknown> } | null
 ): boolean {
     if (!user) return false;
-
-    // 1. Vérifier le rôle dans les claims JWT (source de vérité)
-    const role = user.app_metadata?.role;
-    if (role === 'admin') return true;
-
-    // 2. Fallback : vérification par email (rétrocompatible)
-    return isAdminEmail(user.email);
-}
-
-/**
- * Vérifie si un email correspond à un admin (fallback legacy).
- * Utilise la variable d'environnement ADMIN_EMAILS (séparés par des virgules).
- */
-export function isAdminEmail(email: string | undefined): boolean {
-    if (!email) return false;
-    const raw = process.env.ADMIN_EMAILS || '';
-    if (!raw.trim()) return false;
-    const adminEmails = raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-    return adminEmails.includes(email.toLowerCase());
+    return user.app_metadata?.role === 'admin';
 }
 
 /**

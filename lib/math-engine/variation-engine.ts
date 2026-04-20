@@ -390,7 +390,6 @@ export function generateVariationTable(input: VariationTableInput): VariationTab
         const detection = detectFunctionCategory(expression);
         const category = detection.category;
 
-        console.log(`[VarEngine] f(x) = ${expression} → catégorie: ${category}, niveau: ${niveau}`);
 
         let result: VariationTableResult;
 

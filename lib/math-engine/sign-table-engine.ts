@@ -1291,12 +1291,6 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
         // On passe bien l'expression nettoyée à extractFactors (qui la lit de input.expression)
         const factors = extractFactors({ ...input, expression });
 
-        // ── DEBUG TRACE (à retirer après debug) ──
-        console.log('[SIGN-ENGINE] Expression:', expression);
-        console.log('[SIGN-ENGINE] Factors:', factors.map(f => ({
-            label: f.label, type: f.type, factorType: f.factorType,
-            zeros: f.zeros, discontinuities: f.discontinuities
-        })));
 
         // ── Étape 1 : Domaine ──
         const domain = input.sympyDomain?.domainLatex ?? determineDomain(expression, factors);
@@ -1370,15 +1364,6 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
             rows,
             title: `Tableau de signes de f(x) = ${expression}`,
         };
-
-        // ── DEBUG TRACE (à retirer après debug) ──
-        console.log('[SIGN-ENGINE] xValues:', xValues);
-        console.log('[SIGN-ENGINE] criticalPoints:', criticalPoints);
-        for (const row of rows) {
-            console.log(`[SIGN-ENGINE] Row "${row.label}" [${row.type}] (${row.values.length}):`, row.values);
-        }
-        const aaaBlock = tableSpecToAAA(tableSpec);
-        console.log('[SIGN-ENGINE] AAA Block:\n', aaaBlock);
 
         return {
             success: true,

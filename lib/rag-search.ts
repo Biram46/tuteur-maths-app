@@ -172,7 +172,6 @@ function initDB() {
             db.push(createChunk(level, currentChunk.trim()));
         }
     }
-    console.log(`[RAG] Lexical DB initialized with ${db.length} chunks.`);
 }
 
 const STOP_WORDS = new Set(['pour', 'avec', 'dans', 'sont', 'etre', 'avoir', 'plus', 'moins',

@@ -102,17 +102,9 @@ export async function create2FASession(userId: string, userEmail?: string): Prom
         }
     }
 
-    // ============================================
-    // LOG CONSOLE (DEVELOPPEMENT / FALLBACK)
-    // ============================================
-    console.log('\n' + '='.repeat(60));
-    console.log('🔐 CODE 2FA GÉNÉRÉ');
-    console.log('='.repeat(60));
-    console.log(`Email: ${userEmail || 'Inconnu'}`);
-    console.log(`Code: ${code}`);
-    console.log(`Status: ${emailSent ? 'Email envoyé via Resend' : (resendApiKey ? 'Echec envoi email' : 'Pas de RESEND_API_KEY')}`);
-    console.log(`Expire dans: ${TWO_FA_CONFIG.CODE_EXPIRY_MINUTES} minutes`);
-    console.log('='.repeat(60) + '\n');
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[2FA] Code generated for ${userEmail || 'unknown'} — status: ${emailSent ? 'sent' : 'not sent'}`);
+    }
 
     // Log de l'événement
     await logAuditEvent(userId, 'code_sent', null, null, null, true, {

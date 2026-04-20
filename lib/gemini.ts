@@ -26,11 +26,9 @@ export async function analyzeMathImage(base64Data: string, mimeType: string = "i
 
     let lastError: any = null;
 
-    console.log(`[Gemini] Début de l'analyse multimodale pour type: ${mimeType}`);
 
     for (const modelName of modelsToTry) {
         try {
-            console.log(`[Gemini] Tentative avec le modèle : ${modelName}...`);
             const model = genAI.getGenerativeModel({ model: modelName });
 
             const prompt = `Tu es un assistant expert en transcription mathématique. 
@@ -52,7 +50,6 @@ Ne résous pas l'exercice, contente-toi de transcrire l'énoncé.`;
             ]);
 
             const response = await result.response;
-            console.log(`[Gemini] ✅ Succès avec le modèle : ${modelName}`);
             return response.text();
 
         } catch (error: any) {
