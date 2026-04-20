@@ -8,7 +8,7 @@ import type { ChatMessage } from '@/lib/perplexity';
 async function convertPdfToImages(file: File): Promise<{ base64: string; mimeType: string }[]> {
     const pdfjsModule = await import('pdfjs-dist');
     pdfjsModule.GlobalWorkerOptions.workerSrc =
-        `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsModule.version}/pdf.worker.min.js`;
+        `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsModule.version}/build/pdf.worker.min.mjs`;
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsModule.getDocument({ data: arrayBuffer }).promise;
@@ -66,6 +66,20 @@ export function useOcrProcessor(
                 try {
                     imagesToProcess = await convertPdfToImages(file);
                 } catch {
+                    // Fallback : envoyer le PDF directement au serveur (pdf-parse + Gemini)
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await fetch('/api/upload-homework', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.text) {
+                        const userMessage: ChatMessage = { role: 'user', content: `📄 **Document PDF :**\n\n${data.text}` };
+                        const newMessages = [...messages, userMessage];
+                        setMessages(newMessages);
+                        setIsScanning(false);
+                        setLoading(false);
+                        await onTranscription(data.text, newMessages);
+                        return;
+                    }
                     throw new Error("Impossible de lire le PDF. Essayez une capture d'écran.");
                 }
             } else {
