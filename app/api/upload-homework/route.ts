@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
                 (globalThis as any).ImageData = class { constructor() {} };
             }
             try {
-                const pdfParse = (await import('pdf-parse')).default;
+                const pdfParseModule = await import('pdf-parse');
+                const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : ((pdfParseModule as any).default || (pdfParseModule as any).pdf || pdfParseModule);
                 const pdfData = await pdfParse(buffer);
                 const extractedText = pdfData.text?.trim() || '';
 
