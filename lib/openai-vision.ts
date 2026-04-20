@@ -26,15 +26,19 @@ RÈGLES :
 - Utilise Markdown pour la structure et LaTeX pour les formules ($...$ ou $$...$$).
 - Ne résous PAS l'exercice.
 
-POUR LES COURBES ET GRAPHIQUES (IMPORTANT) :
-- Si tu vois un repère orthogonal avec une ou plusieurs courbes, décris précisément :
-  • Le nom des axes (x, y, t, etc.) et leur graduation visible
-  • La forme générale de chaque courbe (croissante, décroissante, parabole, sinusoïde, etc.)
-  • Les points remarquables visibles : intersections avec les axes, extrema, points d'inflexion, asymptotes
-  • Le domaine de définition apparent
-- Si tu vois un tableau de valeurs, transcris-le en Markdown.
-- Si tu vois une figure géométrique, décris les éléments (points, droites, angles, longueurs indiquées).
-- Si tu vois un tableau de signes ou de variations, transcris-le fidèlement.`
+POUR LES COURBES ET GRAPHIQUES (PRIORITÉ ABSOLUE) :
+- LIS les valeurs numériques exactes visibles sur les axes (graduations, nombres écrits).
+- Pour chaque courbe, donne les COORDONNÉES EXACTES des points remarquables :
+  • Intersections avec l'axe des x (zéros) → donne x
+  • Intersections avec l'axe des y → donne y
+  • Extrema (maximum/minimum) → donne (x, y)
+  • Points d'inflexion, asymptotes → donne leur équation ou valeur
+- Indique le pas de graduation sur chaque axe (ex: "axe x gradué de 1 en 1 de -3 à 5").
+- Si une valeur n'est pas lisible avec certitude, écris "≈ valeur_approchée".
+- Si tu vois un tableau de valeurs, transcris-le EXACTEMENT en Markdown.
+- Si tu vois une figure géométrique, donne toutes les mesures et coordonnées indiquées.
+- Si tu vois un tableau de signes ou de variations, transcris-le fidèlement.
+- NE DIS PAS "je ne peux pas lire" — fais de ton mieux pour donner des valeurs approchées.`
                     },
                     {
                         role: "user",
