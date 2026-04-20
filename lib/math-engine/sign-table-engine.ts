@@ -1365,6 +1365,7 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
             title: `Tableau de signes de f(x) = ${expression}`,
         };
 
+        const aaaBlock = tableSpecToAAA(tableSpec);
         return {
             success: true,
             tableSpec,
