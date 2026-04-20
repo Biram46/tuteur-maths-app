@@ -220,7 +220,7 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         <span>•</span>
                                         <span>Chapitre {visibleChapters.findIndex(c => c.id === activeChapter.id) + 1}</span>
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
+                                    <h2 className="text-lg md:text-2xl font-bold text-white tracking-tight">{activeChapter.title}</h2>
                                 </div>
                             ) : (
                                 <h2 className="text-xl text-slate-400">Sélectionnez un chapitre</h2>
@@ -234,19 +234,19 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                     </header>
 
                     {/* Scrollable Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                         {activeChapter ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
 
                                 {/* Card 1: COURS */}
                                 <div className="group relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                                    <div className="relative h-full bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-col hover:border-blue-500/50 transition-colors">
-                                        <div className="w-14 h-14 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">
+                                    <div className="relative h-full bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-6 flex flex-col hover:border-blue-500/50 transition-colors">
+                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300">
                                             📖
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Cours Complet</h3>
-                                        <p className="text-sm text-slate-400 mb-6 flex-1">
+                                        <h3 className="text-base md:text-xl font-bold text-white mb-2">Cours Complet</h3>
+                                        <p className="text-sm text-slate-400 mb-3 md:mb-6 flex-1">
                                             Accédez au cours détaillé, définitions, théorèmes et démonstrations.
                                         </p>
 
@@ -287,11 +287,11 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 <div className="group relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                                     <div className="relative h-full bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-col hover:border-purple-500/50 transition-colors">
-                                        <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">
+                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300">
                                             📝
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Fiches d'Exercices</h3>
-                                        <p className="text-sm text-slate-400 mb-6 flex-1">
+                                        <h3 className="text-base md:text-xl font-bold text-white mb-2">Fiches d'Exercices</h3>
+                                        <p className="text-sm text-slate-400 mb-3 md:mb-6 flex-1">
                                             Entraînez-vous avec une série d'exercices progressifs et corrigés.
                                         </p>
 
@@ -330,14 +330,14 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                 <div className="group relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                                     <div className="relative h-full bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-col hover:border-amber-500/50 transition-colors">
-                                        <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">
+                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300">
                                             ⚡
                                         </div>
                                         <div className="absolute top-6 right-6 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-[10px] font-bold text-amber-300 uppercase tracking-widest animate-pulse">
                                             Populaire
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">EXERCICES INTERACTIFS</h3>
-                                        <p className="text-sm text-slate-400 mb-6 flex-1">
+                                        <h3 className="text-base md:text-xl font-bold text-white mb-2">EXERCICES INTERACTIFS</h3>
+                                        <p className="text-sm text-slate-400 mb-3 md:mb-6 flex-1">
                                             Préparez vos contrôles avec des exercices interactifs pour réviser efficacement.
                                         </p>
 
@@ -368,13 +368,13 @@ export default function StudentClientView({ levels, chapters, resources }: Props
 
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-center p-12">
-                                <div className="w-24 h-24 rounded-full bg-slate-800/50 flex items-center justify-center text-5xl mb-6 shadow-2xl">
+                            <div className="flex flex-col items-center justify-center h-full text-center p-6 md:p-12">
+                                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-slate-800/50 flex items-center justify-center text-4xl md:text-5xl mb-4 md:mb-6 shadow-2xl">
                                     👈
                                 </div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Bienvenue sur votre Espace</h3>
-                                <p className="text-slate-400 max-w-md mx-auto">
-                                    Sélectionnez un chapitre dans la barre latérale gauche pour accéder aux ressources pédagogiques.
+                                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Bienvenue sur votre Espace</h3>
+                                <p className="text-slate-400 max-w-md mx-auto text-sm md:text-base">
+                                    Sélectionnez un chapitre dans le menu pour accéder aux ressources pédagogiques.
                                 </p>
                             </div>
                         )}

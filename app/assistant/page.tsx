@@ -39,11 +39,11 @@ export default async function AssistantPage() {
             </header>
 
             {/* Main Content - Force strictly inside viewport */}
-            <main className="flex-1 overflow-hidden p-4">
-                <div className="max-w-[1900px] mx-auto h-full grid grid-cols-12 gap-4">
+            <main className="flex-1 overflow-hidden p-2 md:p-4">
+                <div className="max-w-[1900px] mx-auto h-full grid grid-cols-1 md:grid-cols-12 gap-4">
 
-                    {/* Colonne GAUCHE - 2 col */}
-                    <div className="col-span-2 h-full">
+                    {/* Colonne GAUCHE - hidden on mobile */}
+                    <div className="hidden md:block md:col-span-2 h-full">
                         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2rem] shadow-xl p-6 text-white h-full flex flex-col items-center justify-center">
                             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl mb-6">🚀</div>
                             <h3 className="text-xs font-bold mb-6 text-center uppercase tracking-[0.2em] border-b border-white/20 pb-3 w-full">
@@ -66,13 +66,13 @@ export default async function AssistantPage() {
                         </div>
                     </div>
 
-                    {/* Colonne MILIEU - 8 col - L'assistant prend toute la place verticale restante */}
-                    <div className="col-span-8 h-full overflow-hidden">
+                    {/* Colonne MILIEU - full width on mobile, 8 col on desktop */}
+                    <div className="col-span-1 md:col-span-8 h-full overflow-hidden">
                         <MathAssistant baseContext={`L'utilisateur se nomme ${userEmail?.split('@')[0] || 'élève'}.`} />
                     </div>
 
-                    {/* Colonne DROITE - 2 col */}
-                    <div className="col-span-2 h-full">
+                    {/* Colonne DROITE - hidden on mobile */}
+                    <div className="hidden md:block md:col-span-2 h-full">
                         <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-[2rem] shadow-xl p-6 text-white h-full flex flex-col items-center justify-center">
                             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl mb-6">📊</div>
                             <h3 className="text-xs font-bold mb-6 text-center uppercase tracking-[0.2em] border-b border-white/20 pb-3 w-full">

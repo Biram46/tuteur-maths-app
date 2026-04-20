@@ -354,7 +354,7 @@ export default async function SujetsPage() {
                 </div>
 
                 {/* Section Entraîne-toi */}
-                <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-emerald-600/20 to-blue-600/20 border border-emerald-500/30">
+                <div className="mt-12 p-4 md:p-8 rounded-2xl bg-gradient-to-r from-emerald-600/20 to-blue-600/20 border border-emerald-500/30">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div>
                             <h2 className="text-xl font-bold text-white mb-2">

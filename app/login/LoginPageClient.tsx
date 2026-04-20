@@ -59,7 +59,7 @@ export default function LoginPageClient({
                 </div>
 
                 {/* Auth Card */}
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden relative group">
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-5 md:p-8 shadow-2xl overflow-hidden relative group">
                     {/* Glowing border effect */}
                     <div className="absolute inset-0 border border-cyan-500/20 rounded-3xl group-hover:border-cyan-500/40 transition-colors pointer-events-none"></div>
 
