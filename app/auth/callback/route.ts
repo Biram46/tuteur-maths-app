@@ -34,9 +34,17 @@ export async function GET(request: Request) {
         )
 
         // Exchange the code for a session
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
+            // Supprimer les métadonnées PII issues d'OAuth (nom, photo) — conformité RGPD
+            const meta = data?.user?.user_metadata ?? {};
+            const hasPii = ['full_name', 'name', 'avatar_url', 'picture', 'given_name', 'family_name'].some(k => k in meta);
+            if (hasPii) {
+                await supabase.auth.updateUser({
+                    data: { full_name: null, name: null, avatar_url: null, picture: null, given_name: null, family_name: null }
+                });
+            }
             // Forward to the 'next' path
             // On utilise l'origine de la requête pour rester sur le même domaine (aimaths.fr ou aimaths.app)
             const isLocalEnv = process.env.NODE_ENV === 'development'
