@@ -57,7 +57,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         messages,
         setMessages,
         setLoading,
-        selectedNiveau
+        selectedNiveau ?? undefined
     );
 
     // resolveNiveau mémoïsée : recalculée seulement si selectedNiveau change
