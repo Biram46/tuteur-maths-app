@@ -110,7 +110,6 @@ export async function createOrUpdateResource(formData: FormData) {
  */
 export async function uploadResourceWithFile(formData: FormData) {
     // Cette fonction reste en backup pour les fichiers < 4.5MB si besoin
-    console.log("--> Démarrage Upload Standard");
 
     const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
     if (!bucketName) throw new Error("Bucket non configuré (Environment Variable missing)");
@@ -165,9 +164,11 @@ export async function uploadResourceWithFile(formData: FormData) {
 
     } catch (error: any) {
         console.error("Upload Error:", error);
+        logAdminAction({ action: 'upload_resource', targetType: 'resource', targetLabel: formData.get('kind') as string ?? undefined, success: false, metadata: { error: error.message } }).catch(() => {});
         throw new Error(`Erreur technique: ${error.message}`);
     }
 
+    logAdminAction({ action: 'upload_resource', targetType: 'resource', targetLabel: formData.get('kind') as string ?? undefined, success: true }).catch(() => {});
     revalidatePath("/admin");
     redirect("/admin");
 }
@@ -483,9 +484,11 @@ export async function createEAMSujetWithFiles(
         revalidatePath("/admin");
         revalidatePath("/sujets");
 
+        logAdminAction({ action: 'create_eam_sujet', targetType: 'eam_sujet', targetId: sujet.id, targetLabel: data.titre, success: true }).catch(() => {});
         return { success: true, sujet };
     } catch (err: any) {
         console.error("Erreur createEAMSujetWithFiles:", err);
+        logAdminAction({ action: 'create_eam_sujet', targetType: 'eam_sujet', targetLabel: data.titre, success: false, metadata: { error: err.message } }).catch(() => {});
         return { success: false, error: err.message || "Erreur inconnue" };
     }
 }

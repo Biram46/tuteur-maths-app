@@ -449,6 +449,8 @@ export async function publishSequence(sequenceId: string) {
         .update({ status: 'published', updated_at: now })
         .eq("id", sequenceId);
 
+    logAdminAction({ action: 'publish_sequence', targetType: 'sequence', targetId: sequenceId, success: true, metadata: { resource_count: drafts.length } }).catch(() => {});
+
     revalidatePath("/prof");
     revalidatePath("/");  // Rafraîchir l'espace élève
 }
