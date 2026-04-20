@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { logAdminAction } from "@/lib/audit-logger";
 
 const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
 
@@ -173,33 +174,39 @@ export async function uploadResourceWithFile(formData: FormData) {
 
 export async function deleteLevel(formData: FormData) {
     const id = formData.get("id") as string;
+    const label = formData.get("label") as string | null;
     if (!id) throw new Error("ID requis pour la suppression.");
 
     const { error } = await supabaseServer.from("levels").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
+    logAdminAction({ action: 'delete_level', targetType: 'level', targetId: id, targetLabel: label ?? undefined }).catch(() => {});
     revalidatePath("/admin");
     redirect("/admin");
 }
 
 export async function deleteChapter(formData: FormData) {
     const id = formData.get("id") as string;
+    const label = formData.get("label") as string | null;
     if (!id) throw new Error("ID requis pour la suppression.");
 
     const { error } = await supabaseServer.from("chapters").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
+    logAdminAction({ action: 'delete_chapter', targetType: 'chapter', targetId: id, targetLabel: label ?? undefined }).catch(() => {});
     revalidatePath("/admin");
     redirect("/admin");
 }
 
 export async function deleteResource(formData: FormData) {
     const id = formData.get("id") as string;
+    const label = formData.get("label") as string | null;
     if (!id) throw new Error("ID requis pour la suppression.");
 
     const { error } = await supabaseServer.from("resources").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
+    logAdminAction({ action: 'delete_resource', targetType: 'resource', targetId: id, targetLabel: label ?? undefined }).catch(() => {});
     revalidatePath("/admin");
     redirect("/admin");
 }
@@ -363,6 +370,7 @@ export async function createOrUpdateEAMSujet(formData: FormData) {
  */
 export async function deleteEAMSujet(formData: FormData) {
     const id = formData.get("id") as string;
+    const label = formData.get("label") as string | null;
     if (!id) throw new Error("ID requis pour la suppression.");
 
     const { error } = await supabaseServer
@@ -372,6 +380,7 @@ export async function deleteEAMSujet(formData: FormData) {
 
     if (error) throw new Error(error.message);
 
+    logAdminAction({ action: 'delete_eam_sujet', targetType: 'eam_sujet', targetId: id, targetLabel: label ?? undefined }).catch(() => {});
     revalidatePath("/admin");
     revalidatePath("/sujets");
     redirect("/admin");
@@ -492,6 +501,7 @@ export async function deleteAllQcmResults() {
 
     if (error) throw new Error(error.message);
 
+    logAdminAction({ action: 'purge_qcm_results', targetType: 'qcm_results', metadata: { scope: 'all' } }).catch(() => {});
     revalidatePath("/admin");
     redirect("/admin");
 }

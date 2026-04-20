@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabaseAction'
 import { isAdmin } from '@/lib/api-auth'
 import { headers } from 'next/headers'
+import { logAdminAction } from '@/lib/audit-logger'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -71,15 +72,18 @@ export async function adminLogin(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
+        logAdminAction({ userEmail: email, action: 'admin_login', success: false, metadata: { reason: 'bad_credentials' } }).catch(() => {});
         redirect('/admin/login?error=' + encodeURIComponent('Email ou mot de passe incorrect'))
     }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!isAdmin(user)) {
+        logAdminAction({ userEmail: email, action: 'admin_login', success: false, metadata: { reason: 'not_admin' } }).catch(() => {});
         await supabase.auth.signOut()
         redirect('/admin/login?error=' + encodeURIComponent('Accès refusé. Seul le professeur peut se connecter ici.'))
     }
 
+    logAdminAction({ userId: user!.id, userEmail: email, action: 'admin_login', success: true }).catch(() => {});
     revalidatePath('/', 'layout')
     redirect('/admin')
 }

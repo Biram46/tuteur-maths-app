@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 import type { ProfResourceType } from "@/lib/prof-types";
 import { appendFileSync } from "fs";
+import { logAdminAction } from "@/lib/audit-logger";
 
 
 
@@ -406,6 +407,7 @@ export async function publishResource(resourceId: string): Promise<{ pdfUrl?: st
         await recalculateSequenceStatus(resource.sequence_id);
     }
 
+    logAdminAction({ action: 'publish_resource', targetType: 'resource', targetId: resourceId, success: true }).catch(() => {});
     revalidatePath("/prof");
     revalidatePath("/");
     return { pdfUrl: generatedPdfUrl, pdfError: pdfErrorMsg };
