@@ -200,13 +200,19 @@ function genProbabilites(): QcmQuestion {
         let opts = shuffle([correct, `$${pA}$`, `$${(pA/2).toFixed(1)}$`, `$1$`]);
         return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Un événement et son contraire constituent l'univers entier dont la somme des probabilités est $1$. Donc $P(A) = 1 - P(\\overline{A}) = ${(1-pA).toFixed(1)}$.`};
     } else {
-        // Contrainte : P(A) + P(B) <= 1 pour des événements incompatibles valides
-        let pB = randInt(1, Math.max(1, Math.round((1 - pA) * 10))) / 10;
+        // Contrainte stricte : P(A) + P(B) < 1 (événements incompatibles — la somme doit rester une probabilité valide)
+        // pA entre 0.1 et 0.7 pour garantir qu'il reste de la place pour pB ≥ 0.1
+        pA = randInt(1, 7) / 10;
+        const maxPB = Math.floor((0.9 - pA) * 10); // au plus 0.9 - pA, en dixièmes entiers
+        let pB = randInt(1, Math.max(1, maxPB)) / 10;
+        // Vérification de sécurité (protection contre les erreurs flottantes)
+        while (pA + pB > 1) pB = randInt(1, Math.max(1, maxPB)) / 10;
+        const sum = Math.round((pA + pB) * 10) / 10;
         let question = `Si deux événements $A$ et $B$ sont incompatibles $\\big($avec $P(A)=${pA}$ et $P(B)=${pB}\\big)$, que vaut $P(A \\cup B)$ ?`;
-        let correct = `$${(pA+pB).toFixed(1)}$`;
-        let fake = pA*pB;
-        let opts = shuffle([correct, `$${fake.toFixed(2)}$`, `$1$`, `$${Math.abs(pA-pB).toFixed(1)}$`]);
-        return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Pour deux événements incompatibles (qui ne peuvent se réaliser simultanément), la probabilité de l'union correspond simplement à la somme de leurs probabilités : $P(A \\cup B) = P(A) + P(B) = ${pA} + ${pB} = ${(pA+pB).toFixed(1)}$.`};
+        let correct = `$${sum.toFixed(1)}$`;
+        let fake = parseFloat((pA * pB).toFixed(2));
+        let opts = shuffle([correct, `$${fake.toFixed(2)}$`, `$1$`, `$${Math.abs(pA - pB).toFixed(1)}$`]);
+        return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Pour deux événements incompatibles (qui ne peuvent se réaliser simultanément), $P(A \\cup B) = P(A) + P(B) = ${pA} + ${pB} = ${sum.toFixed(1)}$.`};
     }
 }
 
