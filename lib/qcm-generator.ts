@@ -200,19 +200,19 @@ function genProbabilites(): QcmQuestion {
         let opts = shuffle([correct, `$${pA}$`, `$${(pA/2).toFixed(1)}$`, `$1$`]);
         return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Un événement et son contraire constituent l'univers entier dont la somme des probabilités est $1$. Donc $P(A) = 1 - P(\\overline{A}) = ${(1-pA).toFixed(1)}$.`};
     } else {
-        // Contrainte stricte : P(A) + P(B) < 1 (événements incompatibles — la somme doit rester une probabilité valide)
-        // pA entre 0.1 et 0.7 pour garantir qu'il reste de la place pour pB ≥ 0.1
+        // Contrainte : somme max = 0.9 → jamais de réponse "1" ou "1.0" (évite doublon dans les options)
+        // pA entre 0.1 et 0.7, pB tel que pA + pB ≤ 0.9
         pA = randInt(1, 7) / 10;
-        const maxPB = Math.floor((0.9 - pA) * 10); // au plus 0.9 - pA, en dixièmes entiers
+        const maxPB = Math.floor((0.9 - pA) * 10); // garantit sum ≤ 0.9
         let pB = randInt(1, Math.max(1, maxPB)) / 10;
-        // Vérification de sécurité (protection contre les erreurs flottantes)
-        while (pA + pB > 1) pB = randInt(1, Math.max(1, maxPB)) / 10;
-        const sum = Math.round((pA + pB) * 10) / 10;
+        const sum = Math.round((pA + pB) * 10) / 10; // toujours entre 0.2 et 0.9
         let question = `Si deux événements $A$ et $B$ sont incompatibles $\\big($avec $P(A)=${pA}$ et $P(B)=${pB}\\big)$, que vaut $P(A \\cup B)$ ?`;
         let correct = `$${sum.toFixed(1)}$`;
-        let fake = parseFloat((pA * pB).toFixed(2));
-        let opts = shuffle([correct, `$${fake.toFixed(2)}$`, `$1$`, `$${Math.abs(pA - pB).toFixed(1)}$`]);
-        return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Pour deux événements incompatibles (qui ne peuvent se réaliser simultanément), $P(A \\cup B) = P(A) + P(B) = ${pA} + ${pB} = ${sum.toFixed(1)}$.`};
+        const fakeProd = parseFloat((pA * pB).toFixed(2));
+        const fakeDiff = parseFloat(Math.abs(pA - pB).toFixed(1));
+        // "$1$" est un distracteur sûr car la bonne réponse est toujours ≤ 0.9
+        let opts = shuffle([correct, `$${fakeProd.toFixed(2)}$`, `$1$`, `$${fakeDiff.toFixed(1)}$`]);
+        return {id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct), explanation: `Pour deux événements incompatibles, $P(A \\cup B) = P(A) + P(B) = ${pA} + ${pB} = ${sum.toFixed(1)}$.`};
     }
 }
 
