@@ -524,6 +524,8 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
 
     <style>
         /* Styles CSS inclus */
+        .btn-envoyer { display:none; margin: 16px auto; padding: 14px 32px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn-envoyer:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
@@ -539,8 +541,10 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
         </section>
         <!-- ⛔ TU DOIS ÉCRIRE ICI TOUTES LES QUESTIONS DEMANDÉES UNE PAR UNE. NE METS JAMAIS DE POINTILLES OU DE RACCOURCI ICI. -->
 
-        <button class="btn-valider" onclick="calculerNote()">✅ Valider et voir ma note</button>
+        <button class="btn-valider" id="btn-valider" onclick="calculerNote()">✅ Valider et voir ma note</button>
         <div class="resultat" id="resultat"></div>
+        <button class="btn-envoyer" id="btn-envoyer" onclick="envoyerResultat()" style="display:none;">📤 Envoyer mes résultats au professeur</button>
+        <div class="envoye" id="envoye" style="display:none;text-align:center;color:#27ae60;font-weight:bold;margin-top:12px;">✅ Résultats envoyés au professeur !</div>
     </div>
 
     <script>
@@ -605,7 +609,13 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
             el.style.display = 'block';
             el.scrollIntoView({ behavior: 'smooth' });
 
-            // Message pour application parente
+            // Afficher le bouton d'envoi
+            document.getElementById('btn-valider').style.display = 'none';
+            document.getElementById('btn-envoyer').style.display = 'inline-block';
+        }
+
+        // Envoi des résultats au professeur via postMessage
+        function envoyerResultat() {
             if (window.parent !== window.self) {
                 window.parent.postMessage({
                     type: "quiz-result",
@@ -613,6 +623,8 @@ Tu dois générer un fichier HTML COMPLET et AUTONOME avec :
                     sur: surNote
                 }, "*");
             }
+            document.getElementById('btn-envoyer').style.display = 'none';
+            document.getElementById('envoye').style.display = 'block';
         }
     </script>
 </body>
