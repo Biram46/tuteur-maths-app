@@ -10,13 +10,14 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     try {
-        const { images, level_label } = await request.json() as {
-            images: { base64: string; mimeType: string }[];
+        const { images, pdf, level_label } = await request.json() as {
+            images?: { base64: string; mimeType: string }[];
+            pdf?: string;
             level_label?: string;
         };
 
-        if (!images?.length) {
-            return NextResponse.json({ error: 'Aucune image reçue.' }, { status: 400 });
+        if (!images?.length && !pdf) {
+            return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 });
         }
 
         const detectedNiveau = detectNiveauFromText(level_label || '');
@@ -36,28 +37,37 @@ INSTRUCTIONS :
 - Après avoir transcrit ou décrit le contenu, aide l'élève à résoudre ou comprendre l'exercice selon les contraintes pédagogiques de son niveau.
 - Utilise Markdown + KaTeX ($...$ et $$...$$). JAMAIS de \\documentclass.`;
 
-        const imageContents: Anthropic.ImageBlockParam[] = images.map(img => ({
-            type: 'image',
-            source: {
-                type: 'base64',
-                media_type: img.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-                data: img.base64,
-            },
-        }));
+        let contentBlocks: Anthropic.ContentBlockParam[];
+
+        if (pdf) {
+            // PDF natif : Claude lit le PDF directement (texte + graphiques)
+            contentBlocks = [
+                {
+                    type: 'document',
+                    source: { type: 'base64', media_type: 'application/pdf', data: pdf },
+                } as any,
+                { type: 'text', text: "Voici mon exercice en PDF. Analyse-le et aide-moi." },
+            ];
+        } else {
+            // Images (JPEG/PNG) converties depuis PDF ou photo
+            contentBlocks = [
+                ...(images!.map(img => ({
+                    type: 'image' as const,
+                    source: {
+                        type: 'base64' as const,
+                        media_type: img.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                        data: img.base64,
+                    },
+                }))),
+                { type: 'text', text: "Voici mon exercice. Analyse l'image et aide-moi." },
+            ];
+        }
 
         const stream = await client.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: 2048,
             system: systemPrompt,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        ...imageContents,
-                        { type: 'text', text: "Voici mon exercice. Analyse l'image et aide-moi." },
-                    ],
-                },
-            ],
+            messages: [{ role: 'user', content: contentBlocks }],
         });
 
         const encoder = new TextEncoder();

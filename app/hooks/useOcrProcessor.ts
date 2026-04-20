@@ -61,28 +61,14 @@ export function useOcrProcessor(
         try {
             if (file.size > 20 * 1024 * 1024) throw new Error('Le fichier est trop volumineux (max 20 Mo).');
 
-            let imagesToProcess: { base64: string; mimeType: string }[];
+            // PDF → envoi brut à Claude (type document, lit nativement graphes + texte)
+            // Image → envoi base64 à Claude vision
+            let payload: object;
 
             if (isPdf) {
-                try {
-                    imagesToProcess = await convertPdfToImages(file);
-                } catch {
-                    // Fallback : envoyer le PDF directement au serveur (pdf-parse + Gemini)
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    const res = await fetch('/api/upload-homework', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if (data.text) {
-                        const userMessage: ChatMessage = { role: 'user', content: `📄 **Document PDF :**\n\n${data.text}` };
-                        const newMessages = [...messages, userMessage];
-                        setMessages(newMessages);
-                        setIsScanning(false);
-                        setLoading(false);
-                        await onTranscription(data.text, newMessages);
-                        return;
-                    }
-                    throw new Error("Impossible de lire le PDF. Essayez une capture d'écran.");
-                }
+                const arrayBuffer = await file.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                payload = { pdf: base64, level_label: levelLabel };
             } else {
                 const base64Data = await new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
@@ -90,14 +76,13 @@ export function useOcrProcessor(
                     reader.onload = () => resolve((reader.result as string).split(',')[1]);
                     reader.onerror = () => reject(new Error("Erreur lors de la lecture de l'image."));
                 });
-                imagesToProcess = [{ base64: base64Data, mimeType: file.type }];
+                payload = { images: [{ base64: base64Data, mimeType: file.type }], level_label: levelLabel };
             }
 
-            // Envoyer les images directement à Claude vision (sans transcription intermédiaire)
             const visionRes = await fetch('/api/vision-assist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ images: imagesToProcess, level_label: levelLabel }),
+                body: JSON.stringify(payload),
             });
 
             if (!visionRes.ok) {
