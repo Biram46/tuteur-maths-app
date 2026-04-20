@@ -396,9 +396,18 @@ export async function publishResource(resourceId: string): Promise<{ pdfUrl?: st
     }
 
     // 4. Publier la ressource (même si PDF a échoué)
+    // Pour les interactifs : copier latex_url → html_url pour que l'espace élève l'affiche
+    const updatePayload: Record<string, string> = {
+        status: 'published',
+        published_at: new Date().toISOString(),
+    };
+    if (isInteractif && resource.latex_url) {
+        updatePayload.html_url = resource.latex_url;
+    }
+
     const { error } = await supabaseServer
         .from("resources")
-        .update({ status: 'published', published_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq("id", resourceId);
 
     if (error) throw new Error(`Erreur publication: ${error.message}`);
