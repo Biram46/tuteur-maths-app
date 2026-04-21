@@ -21,14 +21,12 @@ export interface UseSpeechReturn {
 export function cleanMathForSpeech(text: string): string {
     let clean = text
         .replace(/@@@[\s\S]*?@@@/g, '') // Supprime les blocs graphiques
-        .replace(/\\\[|\\\]/g, ' ')
-        .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
-        .replace(/\$([^$\n]+)\$/g, '$1')
         .replace(/\*\*([^*]+)\*\*/g, '$1') // gras appariés
         .replace(/\*\*/g, '')              // ** résiduels non appariés
-        .replace(/(?<![a-z0-9])\*(?![a-z0-9*])/gi, '') // * isolés (pas multiplication)
+        .replace(/(?<![a-z0-9])\*(?![a-z0-9*])/gi, '') // * isolés
         .replace(/#{1,6}\s+/g, '')         // titres markdown
         .replace(/^[-*+]\s+/gm, '')        // listes
+        // NE PAS toucher $...$ → latexToSpeech (côté serveur) s'en charge
 
     // Nombres décimaux à la française
     clean = clean.replace(/(\d)\.(\d)/g, '$1 virgule $2');

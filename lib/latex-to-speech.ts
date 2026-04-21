@@ -34,6 +34,8 @@ export function latexToSpeech(input: string): string {
 
     // ── 5. Nettoyage final ───────────────────────────────────────────────────
     text = text
+        .replace(/\{([^}]*)\}/g, '$1') // accolades résiduelles (ex : S = {-2 ; 1/2})
+        .replace(/[{}]/g, '')          // accolades orphelines
         .replace(/\n{3,}/g, '\n\n')
         .replace(/[ \t]{2,}/g, ' ')
         .trim();
