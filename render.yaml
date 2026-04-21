@@ -5,6 +5,9 @@ services:
     dockerfilePath: ./python-api/Dockerfile
     dockerContext: python-api
     plan: free
+    healthCheckPath: /health
     envVars:
       - key: PORT
         value: "10000"
+      - key: PYTHONUNBUFFERED
+        value: "1"

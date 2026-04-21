@@ -18,11 +18,10 @@ RUN which pdflatex && pdflatex --version | head -1
 
 WORKDIR /app
 
-# Chemins relatifs au root du repo (Render build context = repo root)
-COPY python-api/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY python-api/ .
+COPY . .
 
 EXPOSE 10000
 
