@@ -1258,22 +1258,6 @@ def solve_equation():
         except Exception:
             steps.append('**Etape 1 - Domaine de definition**\n\n$D_f = \\mathbb{R}$')
 
-        # ── Etape 2 : Mise sous forme f(x) = 0 ───────────────────────
-        eq_disp  = sp.latex(lhs_sym) + ' = ' + sp.latex(rhs_sym)
-        f_latex  = sp.latex(f_sym)
-        if rhs_str != '0':
-            steps.append(
-                '**Etape 2 - Mise sous forme f(x) = 0**\n\n'
-                '$' + eq_disp + '$\n\n'
-                '$\\Leftrightarrow ' + f_latex + ' = 0$'
-            )
-        else:
-            steps.append(
-                '**Etape 2 - Forme f(x) = 0**\n\n'
-                "L'equation est deja sous la forme $f(x) = 0$ :\n\n"
-                '$f(x) = ' + f_latex + '$'
-            )
-
         # ══════════════════════════════════════════════════════════════
         # PRODUIT NUL — DÉTECTION PRIORITAIRE (tous niveaux)
         # Si lhs_sym est un produit A*B*... = 0, appliquer la propriété
@@ -1330,6 +1314,22 @@ def solve_equation():
                 }
                 SOLVE_CACHE[cache_key] = result
                 return jsonify(result)
+
+        # ── Etape 2 : Mise sous forme f(x) = 0 (uniquement si pas produit nul) ──
+        eq_disp = sp.latex(lhs_sym) + ' = ' + sp.latex(rhs_sym)
+        f_latex = sp.latex(f_sym)
+        if rhs_str != '0':
+            steps.append(
+                '**Etape 2 - Mise sous forme f(x) = 0**\n\n'
+                '$' + eq_disp + '$\n\n'
+                '$\\Leftrightarrow ' + f_latex + ' = 0$'
+            )
+        else:
+            steps.append(
+                '**Etape 2 - Forme f(x) = 0**\n\n'
+                "L'equation est deja sous la forme $f(x) = 0$ :\n\n"
+                '$f(x) = ' + f_latex + '$'
+            )
 
         # ── Analyse du degre ──────────────────────────────────────────
         poly_obj    = f_sym.as_poly(x)
