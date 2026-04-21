@@ -18,10 +18,10 @@ RUN which pdflatex && pdflatex --version | head -1
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY python-api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY python-api/ .
 
 EXPOSE 10000
 

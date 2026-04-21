@@ -3,7 +3,7 @@ services:
     name: tuteur-maths-python-api
     runtime: docker
     dockerfilePath: ./python-api/Dockerfile
-    dockerContext: python-api
+    dockerContext: .
     plan: free
     healthCheckPath: /health
     envVars:
