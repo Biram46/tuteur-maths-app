@@ -1274,6 +1274,63 @@ def solve_equation():
                 '$f(x) = ' + f_latex + '$'
             )
 
+        # ══════════════════════════════════════════════════════════════
+        # PRODUIT NUL — DÉTECTION PRIORITAIRE (tous niveaux)
+        # Si lhs_sym est un produit A*B*... = 0, appliquer la propriété
+        # AB=0 ⟺ A=0 ou B=0. Ne JAMAIS développer ni utiliser Δ.
+        # ══════════════════════════════════════════════════════════════
+        rhs_is_zero = (rhs_sym == sp.Integer(0)) or (rhs_sym == sp.Float(0)) or rhs_sym.equals(sp.Integer(0))
+        lhs_is_product = lhs_sym.is_Mul and rhs_is_zero
+
+        if lhs_is_product:
+            # Extraire les facteurs non-numériques contenant x
+            linear_factors = []
+            for arg in lhs_sym.args:
+                if arg.free_symbols and x in arg.free_symbols:
+                    linear_factors.append(arg)
+
+            if len(linear_factors) >= 2:
+                lhs_latex = sp.latex(lhs_sym)
+                steps.append(
+                    '**Etape 2 - Équation produit nul**\n\n'
+                    'L\'équation est déjà sous forme factorisée :\n\n'
+                    '$' + lhs_latex + ' = 0$\n\n'
+                    '**Propriété :** Un produit de facteurs est nul si et seulement si l\'un au moins de ses facteurs est nul.'
+                )
+                sol_parts = []
+                all_solutions_pn = []
+                for lf in linear_factors:
+                    lf_l = sp.latex(lf)
+                    z = sp.solve(lf, x)
+                    if z:
+                        s = z[0]
+                        all_solutions_pn.append(s)
+                        sol_parts.append(f'$\\quad {lf_l} = 0 \\Rightarrow x = {sp.latex(s)}$')
+                    else:
+                        sol_parts.append(f'$\\quad {lf_l} = 0$ : pas de solution réelle')
+
+                sol_set = ' ; '.join(sp.latex(s) for s in all_solutions_pn)
+                steps.append(
+                    '**Etape 3 - Solutions**\n\n' +
+                    '\n\n'.join(sol_parts) + '\n\n' +
+                    ('**Conclusion :** $S = \\left\\{' + sol_set + '\\right\\}$' if all_solutions_pn else '**Conclusion :** $S = \\emptyset$')
+                )
+
+                result = {
+                    'success': True,
+                    'type': 'produit_nul',
+                    'steps': steps,
+                    'solutions': [str(s) for s in all_solutions_pn],
+                    'latex_solutions': [sp.latex(s) for s in all_solutions_pn],
+                    'factor_details': [{'type': 'produit_nul', 'roots': [sp.latex(s) for s in all_solutions_pn]}],
+                    'domain_latex': domain_latex,
+                    'equation_latex': sp.latex(lhs_sym) + ' = 0',
+                    'f_expr_latex': sp.latex(lhs_sym),
+                    'niveau': niveau,
+                }
+                SOLVE_CACHE[cache_key] = result
+                return jsonify(result)
+
         # ── Analyse du degre ──────────────────────────────────────────
         poly_obj    = f_sym.as_poly(x)
         poly_degree = poly_obj.degree() if poly_obj is not None else None
