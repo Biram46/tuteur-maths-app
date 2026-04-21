@@ -20,7 +20,9 @@ export function latexToSpeech(input: string): string {
     text = text
         .replace(/#{1,6}\s+/g, '')           // titres
         .replace(/\*\*([^*]+)\*\*/g, '$1')   // gras
+        .replace(/\*\*/g, '')               // ** résiduels non appariés
         .replace(/\*([^*]+)\*/g, '$1')       // italique
+        .replace(/(?<![a-z0-9])\*(?![a-z0-9*])/gi, '') // * isolés résiduels
         .replace(/`[^`]+`/g, '')             // code inline
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // liens
         .replace(/^[-*+]\s+/gm, '')          // listes
