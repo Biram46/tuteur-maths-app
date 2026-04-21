@@ -16,6 +16,9 @@ export function fixLatexContent(content: string): LatexFixerResult {
     let fixed = content;
     const fixes: string[] = [];
 
+    // 0. Convertir **$...$** (gras + math) en $$...$$ pour eviter conflit remark-math
+    fixed = fixed.replace(/\*\*\$(.+?)\$\*\*/g, (_match, inner) => '$$' + inner.trim() + '$$');
+
     // 1. Unification des signes moins et espaces insécables
     fixed = fixed.replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u00A0/g, ' ');
 
