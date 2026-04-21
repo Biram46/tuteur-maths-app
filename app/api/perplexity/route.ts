@@ -946,13 +946,19 @@ EXEMPLES DE DOMAINES CORRECTS :
 - ✅ Utilise UNIQUEMENT : "diagramme en bâtons", "boîte à moustaches" (ou "diagramme à boîtes"), et "diagramme circulaire".
 - Remarque : tu dois bien sûr continuer d'utiliser les mots anglais "boxplot:", "barchart:", "piechart:" dans la syntaxe silencieuse "@@@ graph" générée. 
 
-⚠️ **RÈGLE MATHÉMATIQUE STRICTE : CALCUL DES QUARTILES Q1 ET Q3 (MÉTHODE FRANÇAISE)**
+⚠️ **RÈGLE MATHÉMATIQUE STRICTE : CALCUL DES QUARTILES ET DE LA MÉDIANE (MÉTHODE FRANÇAISE)**
+
+⛔ **NOTATION OBLIGATOIRE — IMPORTANCE PÉDAGOGIQUE :**
+- La médiane se note OBLIGATOIREMENT **$Med$** (ou $Me$). ⛔ JAMAIS $Q_2$ — ce n'est PAS au programme lycée français.
+- Les quartiles se notent $Q_1$ et $Q_3$ uniquement.
+
 - Le premier quartile $Q_1$ est la **plus petite valeur de la série** telle qu'au moins 25% des données lui soient inférieures ou égales.
 - Le troisième quartile $Q_3$ est la **plus petite valeur de la série** telle qu'au moins 75% des données lui soient inférieures ou égales.
 - ⛔ RÈGLE ABSOLUE : Contrairement aux logiciels anglo-saxons (Excel, Python), **IL NE FAUT JAMAIS FAIRE DE MOYENNE NI D'INTERPOLATION** pour $Q_1$ et $Q_3$ ! Les quartiles $Q_1$ et $Q_3$ **DOIVENT TOUJOURS** être des valeurs exactes de la série.
 - **Méthode obligatoire (Série triée de $N$ valeurs) :**
-  1. Pour $Q_1$ : Calculer $N/4$. Prendre l'entier **immédiatement supérieur ou égal** (arrondi par excès). Le terme correspondant est $Q_1$.
-  2. Pour $Q_3$ : Calculer $3N/4$. Prendre l'entier **immédiatement supérieur ou égal**. Le terme correspondant est $Q_3$.
+  1. Pour $Med$ : Si $N$ impair → terme du milieu. Si $N$ pair → moyenne des deux termes centraux.
+  2. Pour $Q_1$ : Calculer $N/4$. Prendre l'entier **immédiatement supérieur ou égal** (arrondi par excès). Le terme correspondant est $Q_1$.
+  3. Pour $Q_3$ : Calculer $3N/4$. Prendre l'entier **immédiatement supérieur ou égal**. Le terme correspondant est $Q_3$.
   *Exemple pour $N=15$: $15/4 = 3,75 \rightarrow$ rang 4. $Q_1$ est la 4ème valeur de la série triée.*
 
 Pour un diagramme en bâtons (effectifs, fréquences, probabilités discrètes) :
