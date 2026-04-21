@@ -76,8 +76,8 @@ export default function SolveBlock({ equation, niveau, onSpeakResult }: SolveBlo
                     setError(data.error || 'Erreur');
                 } else {
                     setResult(data);
-                    if (onSpeakResult && data.success && Array.isArray(data.steps) && data.steps.length > 0) {
-                        onSpeakResult(data.steps.join('\n'));
+                    if (data.success && Array.isArray(data.steps) && data.steps.length > 0) {
+                        window.dispatchEvent(new CustomEvent('mimimaths:speak', { detail: { text: data.steps.join('\n') } }));
                     }
                 }
             } catch (err: any) {

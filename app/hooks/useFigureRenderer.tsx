@@ -24,7 +24,7 @@ import { fixLatexContent } from '@/lib/latex-fixer';
 // ─── Hook de rendu des figures mathématiques et messages ─────────────────────
 
 
-export function useFigureRenderer(onSpeakResult?: (text: string) => void) {
+export function useFigureRenderer() {
     // Cache des blocs déjà parsés : évite de re-parser + re-dessiner D3 à chaque tick de streaming
     const figureCache = React.useRef(new Map<string, React.ReactNode>());
 
@@ -277,7 +277,7 @@ export function useFigureRenderer(onSpeakResult?: (text: string) => void) {
 
                     console.log('[Solve] Rendering solve block for:', equation, 'niveau:', solveNiveau);
                     return _cacheAndReturn(
-                        <SolveBlock key={`solve-${equation}`} equation={equation} niveau={solveNiveau} onSpeakResult={onSpeakResult} />
+                        <SolveBlock key={`solve-${equation}`} equation={equation} niveau={solveNiveau} />
                     );
                 } catch (err) {
                     console.error('[Solve] error:', err);

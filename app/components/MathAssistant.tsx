@@ -26,7 +26,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+    const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
     const [selectedNiveau, setSelectedNiveau] = useState<NiveauLycee | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,11 +79,7 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         resolveNiveau: resolveNiveauCallback,
     });
 
-    const onSpeakSolveResult = useCallback(
-        (text: string) => { if (isVoiceEnabled) speakMessageHook(text, -2); },
-        [speakMessageHook, isVoiceEnabled]
-    );
-    const { renderMessageContent } = useFigureRenderer(onSpeakSolveResult);
+    const { renderMessageContent } = useFigureRenderer();
 
     // Câblage de sendMessageRef (pattern stable pour éviter les cycles)
     sendMessageRef.current = handleSendMessageWithText;
@@ -93,6 +89,16 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         (content: string, index: number, audio?: string) => speakMessageHook(content, index, audio),
         [speakMessageHook]
     );
+
+    // Écouter l'événement de résolution SymPy pour TTS
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const text = (e as CustomEvent).detail?.text;
+            if (text && isVoiceEnabled) speakMessageHook(text, -2);
+        };
+        window.addEventListener('mimimaths:speak', handler);
+        return () => window.removeEventListener('mimimaths:speak', handler);
+    }, [speakMessageHook, isVoiceEnabled]);
 
     useEffect(() => { setMounted(true); }, []);
 
