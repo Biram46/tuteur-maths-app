@@ -457,7 +457,9 @@ export default function GeometrePage() {
                                 {scene.computed.map((r, i) => (
                                     <div key={i} className="flex flex-col px-3 py-2 rounded-xl"
                                         style={{ background: 'rgba(16,64,48,0.4)', border: '1px solid rgba(52,211,153,0.2)' }}>
-                                        <span className="text-[10px]" style={{ color: '#64748b' }}>{r.label}</span>
+                                        <span className="text-[10px]" style={{ color: '#64748b' }}>
+                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`$${r.label}$`}</ReactMarkdown>
+                                        </span>
                                         <span className="text-[13px] font-bold mt-0.5" style={{ color: '#34d399' }}>
                                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`$${r.latex}$`}</ReactMarkdown>
                                         </span>

@@ -825,7 +825,8 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                             background: 'rgba(16,64,48,0.4)', border: '1px solid rgba(52,211,153,0.25)',
                             color: '#34d399', fontSize: 12, fontFamily: 'monospace',
                         }}>
-                            {r.label} = <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{`$${r.latex}$`}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{`$${r.label}$ =`}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}>{`$${r.latex}$`}</ReactMarkdown>
                             {r.approx && <span style={{ color: 'rgba(100,116,139,0.7)', marginLeft: 4 }}>≈ {r.approx}</span>}
                         </span>
                     ))}
