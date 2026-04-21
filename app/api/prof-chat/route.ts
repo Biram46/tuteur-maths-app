@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
-import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
+import { sanitizeRagContext, getAuthUser } from '@/lib/api-auth';
 import { trackAIUsage } from '@/lib/ai-usage-tracker';
 import { NextResponse } from 'next/server';
 
@@ -1017,8 +1017,9 @@ function createSSEStream(
 // ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-    const auth = await authWithRateLimit(request, 15, 60_000);
-    if (auth instanceof NextResponse) return auth;
+    // Professeur = utilisation illimitée, pas de rate limit
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
 
     try {
         const body = await request.json();
@@ -1156,11 +1157,20 @@ ${context.resource_type === 'interactif'
                 const connectController = new AbortController();
                 const connectTimeout = setTimeout(() => connectController.abort(), 15000);
 
+                // Prompt caching : règles statiques en premier (cachées), RAG + contexte en second
+                const profSplitIdx = systemPrompt.indexOf('⛔⛔⛔ RÈGLE');
+                const profStaticPart = profSplitIdx > 0 ? systemPrompt.slice(profSplitIdx) : systemPrompt;
+                const profDynamicPart = profSplitIdx > 0 ? systemPrompt.slice(0, profSplitIdx).trim() : '';
+                const profSystemBlocks: any[] = [
+                    { type: 'text', text: profStaticPart, cache_control: { type: 'ephemeral' } },
+                    ...(profDynamicPart ? [{ type: 'text', text: profDynamicPart }] : []),
+                ];
+
                 const stream = await anthropic.messages.create({
                     max_tokens: 64000,
                     messages: apiMessages.filter(m => m.role !== 'system') as any,
                     model: 'claude-sonnet-4-6',
-                    system: systemPrompt,
+                    system: profSystemBlocks,
                     temperature: 0.2,
                     stream: true
                 }, { signal: connectController.signal });

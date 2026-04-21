@@ -7,6 +7,7 @@
 
 import { createClient } from '@/lib/supabaseAction';
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabaseServer';
 
 /**
  * Récupère l'utilisateur authentifié depuis les cookies.
@@ -23,54 +24,30 @@ export async function getAuthUser() {
     }
 }
 
-// ─── Rate limiting simple (en mémoire, par utilisateur) ───────
-
-interface RateLimitEntry { count: number; resetAt: number; }
-
-declare global {
-    // eslint-disable-next-line no-var
-    var _rateLimitStore: Map<string, RateLimitEntry> | undefined;
-}
-
-function getRateLimitStore(): Map<string, RateLimitEntry> {
-    if (!global._rateLimitStore) {
-        global._rateLimitStore = new Map();
-    }
-    return global._rateLimitStore;
-}
+// ─── Rate limiting distribué via Supabase RPC ───────────────
 
 /**
- * Rate limiting par utilisateur.
- * @param userId - ID de l'utilisateur (ou IP si non authentifié)
- * @param maxRequests - Max requêtes par fenêtre
- * @param windowMs - Fenêtre en millisecondes
- * @returns { allowed: boolean, remaining: number }
+ * Rate limiting par utilisateur — persistant et partagé entre toutes les instances Vercel.
+ * Utilise la fonction RPC `check_api_rate_limit` en base Supabase.
+ * Fallback permissif si la DB est indisponible (ne bloque jamais par erreur).
  */
-export function checkRateLimit(
-    userId: string,
+export async function checkRateLimit(
+    identifier: string,
     maxRequests = 30,
     windowMs = 60_000
-): { allowed: boolean; remaining: number } {
-    const store = getRateLimitStore();
-    const now = Date.now();
-
-    // Nettoyer les entrées expirées
-    for (const [key, entry] of store) {
-        if (now > entry.resetAt) store.delete(key);
+): Promise<{ allowed: boolean; remaining: number }> {
+    try {
+        const { data, error } = await supabaseServer
+            .rpc('check_api_rate_limit', {
+                p_identifier: identifier,
+                p_max_requests: maxRequests,
+                p_window_ms: windowMs,
+            });
+        if (error || !data?.[0]) return { allowed: true, remaining: maxRequests };
+        return { allowed: data[0].allowed, remaining: data[0].remaining };
+    } catch {
+        return { allowed: true, remaining: maxRequests };
     }
-
-    const entry = store.get(userId);
-    if (!entry || now > entry.resetAt) {
-        store.set(userId, { count: 1, resetAt: now + windowMs });
-        return { allowed: true, remaining: maxRequests - 1 };
-    }
-
-    if (entry.count >= maxRequests) {
-        return { allowed: false, remaining: 0 };
-    }
-
-    entry.count++;
-    return { allowed: true, remaining: maxRequests - entry.count };
 }
 
 /**
@@ -87,7 +64,7 @@ export async function authWithRateLimit(
         return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
     }
 
-    const { allowed, remaining } = checkRateLimit(user.id, maxRequests, windowMs);
+    const { allowed, remaining } = await checkRateLimit(user.id, maxRequests, windowMs);
     if (!allowed) {
         return NextResponse.json(
             { success: false, error: 'Trop de requêtes. Réessayez dans un instant.' },

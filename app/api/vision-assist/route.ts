@@ -23,9 +23,8 @@ export async function POST(request: NextRequest) {
         const detectedNiveau = detectNiveauFromText(level_label || '');
         const niveauConstraints = detectedNiveau ? getContraintesIA(detectedNiveau) : '';
 
-        const systemPrompt = `Tu es mimimaths, assistant de mathématiques pour lycéens français.
-${level_label ? `Niveau de l'élève : ${level_label}` : ''}
-${niveauConstraints ? `\n⛔ CONTRAINTES PÉDAGOGIQUES :\n${niveauConstraints}` : ''}
+        // Partie statique (mise en cache Anthropic) — ne dépend pas du niveau
+        const staticPrompt = `Tu es mimimaths, assistant de mathématiques pour lycéens français.
 
 Tu reçois une image d'un exercice de mathématiques (PDF scanné ou photo).
 
@@ -36,6 +35,12 @@ INSTRUCTIONS :
 - Si tu vois un tableau de signes/variations : transcris-le.
 - Après avoir transcrit ou décrit le contenu, aide l'élève à résoudre ou comprendre l'exercice selon les contraintes pédagogiques de son niveau.
 - Utilise Markdown + KaTeX ($...$ et $$...$$). JAMAIS de \\documentclass.`;
+
+        // Partie dynamique (contexte niveau, non cachée car variable)
+        const dynamicPrompt = [
+            level_label ? `Niveau de l'élève : ${level_label}` : '',
+            niveauConstraints ? `\n⛔ CONTRAINTES PÉDAGOGIQUES :\n${niveauConstraints}` : '',
+        ].filter(Boolean).join('\n');
 
         let contentBlocks: Anthropic.ContentBlockParam[];
 
@@ -63,10 +68,15 @@ INSTRUCTIONS :
             ];
         }
 
+        const systemBlocks: Anthropic.TextBlockParam[] = [
+            { type: 'text', text: staticPrompt, cache_control: { type: 'ephemeral' } } as any,
+            ...(dynamicPrompt ? [{ type: 'text' as const, text: dynamicPrompt }] : []),
+        ];
+
         const stream = await client.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: 2048,
-            system: systemPrompt,
+            system: systemBlocks as any,
             messages: [{ role: 'user', content: contentBlocks }],
         });
 

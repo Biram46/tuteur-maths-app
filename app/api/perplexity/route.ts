@@ -4,14 +4,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
-import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
+import { sanitizeRagContext, getAuthUser } from '@/lib/api-auth';
 
 /**
  * API STREAMING - mimimaths@i (Optimize for Gemini/Nano Banana)
  */
 export async function POST(request: NextRequest) {
-    const auth = await authWithRateLimit(request, 30, 60_000);
-    if (auth instanceof NextResponse) return auth;
+    // Élèves = utilisation illimitée, pas de rate limit
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
 
     try {
         const { messages: rawMessages, context } = await request.json();
@@ -1148,11 +1149,21 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                 if (provider.isAnthropic) {
                     const anthropic = new Anthropic({ apiKey: provider.key });
 
+                    // Prompt caching : séparer le contenu statique (règles) du dynamique (niveau, RAG)
+                    // Le contenu statique (~90% des tokens) est mis en cache 5 min côté Anthropic
+                    const splitIdx = reasoningPrompt.indexOf('⛔⛔⛔⛔⛔⛔');
+                    const staticPart = splitIdx > 0 ? reasoningPrompt.slice(splitIdx) : reasoningPrompt;
+                    const dynamicPart = splitIdx > 0 ? reasoningPrompt.slice(0, splitIdx).trim() : '';
+                    const systemBlocks: any[] = [
+                        { type: 'text', text: staticPart, cache_control: { type: 'ephemeral' } },
+                        ...(dynamicPart ? [{ type: 'text', text: dynamicPart }] : []),
+                    ];
+
                     const stream = await anthropic.messages.create({
                         max_tokens: 16384,
                         messages: messages as any,
                         model: provider.model,
-                        system: reasoningPrompt,
+                        system: systemBlocks,
                         temperature: provider.temperature,
                         stream: true
                     }, { signal: connectController.signal });
