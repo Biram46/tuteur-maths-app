@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { authWithRateLimit } from '@/lib/api-auth';
+import { latexToSpeech } from '@/lib/latex-to-speech';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -11,16 +12,18 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     try {
-        const { text, voice = 'nova' } = await req.json();
+        const { text, voice = 'shimmer' } = await req.json();
 
         if (!text) {
             return NextResponse.json({ error: 'Texte manquant' }, { status: 400 });
         }
 
+        const spokenText = latexToSpeech(text);
+
         const mp3 = await openai.audio.speech.create({
-            model: 'tts-1',
+            model: 'tts-1-hd',
             voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
-            input: text,
+            input: spokenText,
         });
 
         const buffer = Buffer.from(await mp3.arrayBuffer());
