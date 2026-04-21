@@ -79,7 +79,11 @@ export default function MathAssistant({ baseContext }: MathAssistantProps) {
         resolveNiveau: resolveNiveauCallback,
     });
 
-    const { renderMessageContent } = useFigureRenderer();
+    const onSpeakSolveResult = useCallback(
+        (text: string) => { if (isVoiceEnabled) speakMessageHook(text, -2); },
+        [speakMessageHook, isVoiceEnabled]
+    );
+    const { renderMessageContent } = useFigureRenderer(onSpeakSolveResult);
 
     // Câblage de sendMessageRef (pattern stable pour éviter les cycles)
     sendMessageRef.current = handleSendMessageWithText;

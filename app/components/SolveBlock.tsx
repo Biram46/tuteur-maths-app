@@ -35,6 +35,7 @@ interface SolveResult {
 interface SolveBlockProps {
     equation: string;
     niveau?: string;  // seconde | premiere | terminale_spe
+    onSpeakResult?: (text: string) => void;
 }
 
 const MD_OPTS = {
@@ -55,7 +56,7 @@ const Md = ({ children }: { children: string }) => (
  * Affiche la résolution complète d'une équation via l'API SymPy.
  * Pipeline : domaine → f(x)=0 → factorisation → résolution par discriminant.
  */
-export default function SolveBlock({ equation, niveau }: SolveBlockProps) {
+export default function SolveBlock({ equation, niveau, onSpeakResult }: SolveBlockProps) {
     const [result, setResult] = useState<SolveResult | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -71,8 +72,14 @@ export default function SolveBlock({ equation, niveau }: SolveBlockProps) {
                     body: JSON.stringify({ equation, niveau: niveau ?? 'terminale_spe' }),
                 });
                 const data = await res.json();
-                if (!res.ok) setError(data.error || 'Erreur');
-                else setResult(data);
+                if (!res.ok) {
+                    setError(data.error || 'Erreur');
+                } else {
+                    setResult(data);
+                    if (onSpeakResult && data.success && Array.isArray(data.steps) && data.steps.length > 0) {
+                        onSpeakResult(data.steps.join('\n'));
+                    }
+                }
             } catch (err: any) {
                 setError(err.message || 'Erreur de connexion');
             } finally {
