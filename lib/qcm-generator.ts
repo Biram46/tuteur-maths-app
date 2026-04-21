@@ -109,18 +109,30 @@ function genFonctions(): QcmQuestion {
     
     if (type === 1) { // Parabola
         let a = randInt(1, 4) * randomSign();
-        let alpha = randInt(-2, 2);
+        // alpha ≠ 0 : évite b=0 qui rendrait -alpha, -b et correct tous égaux à $0$
+        let alpha = randInt(1, 3) * randomSign();
         let beta = randInt(-3, 3);
-        let b = -2*a*alpha;
-        let c = a*alpha*alpha + beta;
+        let b = -2 * a * alpha;
+        let c = a * alpha * alpha + beta;
         let fnTitle = `${a}*x^2 ${b >= 0 ? '+' : ''}${b}*x ${c >= 0 ? '+' : ''}${c}`;
         let question = `La courbe ci-dessous représente une fonction polynomiale du second degré $f(x) = ax^2 + bx + c$. \n\nQue vaut l'abscisse du **sommet** de la parabole, soit $-\\dfrac{b}{2a}$ ?`;
+
+        // Distracteurs pédagogiques garantis distincts entre eux et de alpha
+        // d1 : erreur de signe (oubli du «-» dans -b/2a)
+        const d1 = -alpha; // ≠ alpha car alpha ≠ 0
+        // d2 : confusion ordonnée/abscisse du sommet (beta = f(alpha))
+        let d2 = beta;
+        while (d2 === alpha || d2 === d1) d2 += (d2 >= 0 ? 1 : -1);
+        // d3 : valeur décalée (erreur de lecture graphique)
+        let d3 = alpha + (alpha > 0 ? 1 : -1);
+        while (d3 === alpha || d3 === d1 || d3 === d2) d3 += (alpha > 0 ? 1 : -1);
+
         let correct = `$${alpha}$`;
-        let opts = shuffle([correct, `$${-alpha}$`, `$${beta}$`, `$${-b}$`]);
+        let opts = shuffle([correct, `$${d1}$`, `$${d2}$`, `$${d3}$`]);
         return {
             id, category: cat, question, options: opts, correctAnswerIndex: opts.indexOf(correct),
             questionGraphData: { domain: { x: [-5, 5], y: [-10, 10] }, functions: [{ fn: fnTitle, color: "#3b82f6" }] },
-            explanation: `Le sommet de la parabole correspond au point extremum de la courbe. Son abscisse, définie par $-\\dfrac{b}{2a}$, est lisible très directement sur l'axe des abscisses ! Le sommet se trouve ici précisément à l'abscisse $x = ${alpha}$.`
+            explanation: `Le sommet de la parabole correspond au point extremum de la courbe. Son abscisse, définie par $-\\dfrac{b}{2a}$, est lisible directement sur l'axe des abscisses. Le sommet se trouve ici à l'abscisse $x = ${alpha}$.`
         };
     } else if (type === 2) { // Sign Table Rational
         let rootNum = randInt(-4, 4);
