@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
             model: 'tts-1-hd',
             voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
             input: spokenText,
-            speed: 0.88,
+            speed: 0.80,
         });
 
         const buffer = Buffer.from(await mp3.arrayBuffer());

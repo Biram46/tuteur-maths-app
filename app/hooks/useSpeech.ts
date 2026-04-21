@@ -26,6 +26,7 @@ export function cleanMathForSpeech(text: string): string {
         .replace(/(?<![a-z0-9])\*(?![a-z0-9*])/gi, '') // * isolés
         .replace(/#{1,6}\s+/g, '')         // titres markdown
         .replace(/^[-*+]\s+/gm, '')        // listes
+        .replace(/[{}]/g, '')              // accolades (sécurité client)
         // NE PAS toucher $...$ → latexToSpeech (côté serveur) s'en charge
 
     // Nombres décimaux à la française
