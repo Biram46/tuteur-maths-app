@@ -914,6 +914,25 @@ title: Courbes de ln et 1/x
 - 'domain: xMin, xMax, yMin, yMax' → ex: 'domain: -5,5,-4,4'
 - 'asymptotes: 0' → trace une ligne pointillée en x=0 (valeur interdite)
 
+⛔ **RÈGLE ABSOLUE — DOMAINE OBLIGATOIRE ET ADAPTÉ :**
+- Tu DOIS TOUJOURS inclure une ligne 'domain:' dans chaque bloc @@@graph.
+- ⛔ JAMAIS laisser le domaine par défaut [-10,10] — il est trop large et rend la courbe illisible.
+- ✅ Calcule un domaine centré sur les points remarquables de la fonction (racines, extrema, asymptotes).
+- RÈGLE DE CALCUL DU DOMAINE :
+  - Polynôme ax²+bx+c : centrer autour du sommet α=-b/2a, prendre xMin=α-4, xMax=α+4
+  - Fonction avec racines x₁ et x₂ : prendre xMin=x₁-2, xMax=x₂+2
+  - ln(x) ou √x : commencer à x=0 (ou la borne du domaine), aller jusqu'à x=6 ou x=8
+  - Exponentielle eˣ : domaine -3,3 en général
+  - Fonction rationnelle 1/(x-a) : centrer sur a, prendre a-4 à a+4
+- Pour yMin/yMax : prendre la valeur min/max de f sur le domaine ± 1 ou 2 unités de marge.
+
+EXEMPLES DE DOMAINES CORRECTS :
+- f(x) = x²-4x+3 (sommet en x=2, f(2)=-1) → domain: -1,5,-2,4
+- f(x) = -x²+4x-1 (sommet en x=2, f(2)=3) → domain: -1,5,-1,4
+- f(x) = ln(x) → domain: 0,6,-4,3
+- f(x) = eˣ → domain: -3,3,-1,8
+- f(x) = 1/x → domain: -4,4,-4,4
+
 
 === DIAGRAMMES STATISTIQUES ===
 
