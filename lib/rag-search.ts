@@ -29,7 +29,7 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
             process.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // 1. Generate embedding with OpenAI
+        // 1. Generate embedding — même modèle que l'ingestion (text-embedding-3-small)
         let queryEmbedding;
         try {
             const res = await fetch('https://api.openai.com/v1/embeddings', {
@@ -39,7 +39,7 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'text-embedding-ada-002',
+                    model: 'text-embedding-3-small',
                     input: query
                 })
             });
@@ -51,16 +51,14 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
             return null;
         }
 
-        // 2. Build filter
-        const filter: Record<string, string> = {};
-        if (safeLevel) {
-            filter.niveau = normalizeLevelLabel(safeLevel);
-        }
+        // 2. Pas de filtre niveau — le préfixe contextuel dans chaque chunk
+        //    (ex: "[Niveau: Terminale | Chapitre: ...]") suffit pour la similarité sémantique.
+        //    Un filtre par niveau crée un mismatch avec les labels bruts stockés en metadata.
 
         // 3. Search Supabase
         const { data, error } = await supabase.rpc('match_documents', {
             query_embedding: queryEmbedding,
-            filter: Object.keys(filter).length > 0 ? filter : {},
+            filter: {},
             match_count: 8,
         });
 
