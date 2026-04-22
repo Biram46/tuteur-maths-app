@@ -128,8 +128,12 @@ export async function streamPerplexityResponse({
 
                         // Speech handling
                         if (isVoiceEnabled && speechQueue && processSpeechQueue) {
-                            if (content.includes('@@@')) inMathBlock = !inMathBlock;
-                            if (content.includes('$$')) inMathBlock = !inMathBlock;
+                            // Compter les occurrences (pas juste includes) — un chunk peut
+                            // contenir $$...$$  complet (2 occurrences = pas de changement d'état)
+                            const ddCount = (content.match(/\$\$/g) || []).length;
+                            if (ddCount % 2 !== 0) inMathBlock = !inMathBlock;
+                            const aaaCount = (content.match(/@@@/g) || []).length;
+                            if (aaaCount % 2 !== 0) inMathBlock = !inMathBlock;
                             
                             if (!inMathBlock) {
                                 const sentenceEndings = /[.!?](\s|$)/;

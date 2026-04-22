@@ -26,8 +26,7 @@ export function cleanMathForSpeech(text: string): string {
         .replace(/(?<![a-z0-9])\*(?![a-z0-9*])/gi, '') // * isolés
         .replace(/#{1,6}\s+/g, '')         // titres markdown
         .replace(/^[-*+]\s+/gm, '')        // listes
-        .replace(/[{}]/g, '')              // accolades (sécurité client)
-        // NE PAS toucher $...$ → latexToSpeech (côté serveur) s'en charge
+        // {} et $ strippés APRÈS le mathMap pour que les conversions LaTeX fonctionnent
 
     // Nombres décimaux à la française
     clean = clean.replace(/(\d)\.(\d)/g, '$1 virgule $2');
@@ -93,6 +92,11 @@ export function cleanMathForSpeech(text: string): string {
             clean = clean.replace(new RegExp(pattern, 'g'), replacement);
         } catch { /* regex complexe, on ignore */ }
     }
+
+    // Strip $ après conversion math (évite "dollar dollar" prononcé par OpenAI TTS)
+    clean = clean.replace(/\$\$/g, '').replace(/\$/g, '');
+    // Strip {} résiduels après conversion (notation set Python, accolades LaTeX non traitées)
+    clean = clean.replace(/\{([^}]*)\}/g, '$1').replace(/[{}]/g, '');
 
     clean = clean.replace(/(^|[^a-zA-Z])y([^a-zA-Z]|$)/g, '$1 i-grec $2');
     clean = clean.replace(/(\d+)\)/g, ' $1 ');
