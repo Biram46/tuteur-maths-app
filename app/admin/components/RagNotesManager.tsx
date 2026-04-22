@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { addRagNote, deleteRagNotes } from '../actions';
 
+type IngestStats = { total: number; indexed: number; skipped: number; chunks: number; errors: number };
+
 interface Props {
     chapters: { id: string; title: string; level_id: string }[];
     levels: { id: string; label: string }[];
@@ -15,6 +17,8 @@ export default function RagNotesManager({ chapters, levels }: Props) {
     const [selectedChapterId, setSelectedChapterId] = useState('');
     const [selectedLevelId, setSelectedLevelId] = useState('');
     const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+    const [ingestLoading, setIngestLoading] = useState(false);
+    const [ingestStats, setIngestStats] = useState<IngestStats | null>(null);
 
     const visibleChapters = selectedLevelId
         ? chapters.filter(c => c.level_id === selectedLevelId)
@@ -40,6 +44,29 @@ export default function RagNotesManager({ chapters, levels }: Props) {
                 setStatus({ ok: false, msg: `❌ Erreur : ${result.error}` });
             }
         });
+    };
+
+    const handleIngest = async (force: boolean) => {
+        if (!confirm(force ? 'Ré-indexer TOUTES les ressources LaTeX ? (écrase les chunks existants)' : 'Indexer les nouvelles ressources LaTeX ?')) return;
+        setIngestLoading(true);
+        setIngestStats(null);
+        try {
+            const res = await fetch('/api/admin/rag-ingest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setIngestStats(json.stats);
+            } else {
+                setStatus({ ok: false, msg: `Erreur indexation : ${json.error}` });
+            }
+        } catch (err: any) {
+            setStatus({ ok: false, msg: `Erreur réseau : ${err.message}` });
+        } finally {
+            setIngestLoading(false);
+        }
     };
 
     const handleDelete = (chap: string) => {
@@ -131,6 +158,48 @@ export default function RagNotesManager({ chapters, levels }: Props) {
                 >
                     {isPending ? '⏳ Ajout en cours…' : '➕ Ajouter dans le RAG'}
                 </button>
+            </div>
+
+            {/* Indexation automatique LaTeX */}
+            <div className="bg-slate-900/40 rounded-3xl border border-fuchsia-500/10 p-6 space-y-4">
+                <h3 className="text-sm font-bold text-fuchsia-400 uppercase tracking-widest">Indexation automatique (fichiers LaTeX)</h3>
+                <p className="text-slate-400 text-xs">
+                    Parcourt toutes les ressources avec un fichier <code className="text-fuchsia-300">.tex</code>, les découpe en chunks et les indexe dans le RAG via <strong>text-embedding-3-small</strong>.
+                </p>
+
+                <div className="flex gap-3 flex-wrap">
+                    <button
+                        onClick={() => handleIngest(false)}
+                        disabled={ingestLoading}
+                        className="px-5 py-2.5 rounded-xl bg-fuchsia-600/20 border border-fuchsia-500/30 text-fuchsia-300 text-sm font-bold hover:bg-fuchsia-600/30 disabled:opacity-40 transition-all"
+                    >
+                        {ingestLoading ? '⏳ Indexation…' : '⚡ Indexer les nouvelles'}
+                    </button>
+                    <button
+                        onClick={() => handleIngest(true)}
+                        disabled={ingestLoading}
+                        className="px-5 py-2.5 rounded-xl bg-amber-600/10 border border-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-600/20 disabled:opacity-40 transition-all"
+                    >
+                        🔄 Ré-indexer tout (force)
+                    </button>
+                </div>
+
+                {ingestStats && (
+                    <div className="bg-slate-800/60 rounded-2xl border border-fuchsia-500/10 p-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        {[
+                            { label: 'Ressources', value: ingestStats.total },
+                            { label: 'Indexées', value: ingestStats.indexed, color: 'text-green-400' },
+                            { label: 'Ignorées', value: ingestStats.skipped, color: 'text-slate-400' },
+                            { label: 'Chunks créés', value: ingestStats.chunks, color: 'text-fuchsia-400' },
+                            { label: 'Erreurs', value: ingestStats.errors, color: 'text-red-400' },
+                        ].map(({ label, value, color }) => (
+                            <div key={label} className="text-center">
+                                <p className={`text-2xl font-bold font-mono ${color ?? 'text-white'}`}>{value}</p>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">{label}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Info suppression */}
