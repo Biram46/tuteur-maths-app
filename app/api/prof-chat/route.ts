@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
-import { sanitizeRagContext, getAuthUser } from '@/lib/api-auth';
+import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 import { trackAIUsage } from '@/lib/ai-usage-tracker';
 import { NextResponse } from 'next/server';
 
@@ -1017,9 +1017,10 @@ function createSSEStream(
 // ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-    // Professeur = utilisation illimitée, pas de rate limit
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
+    // 60 requêtes / heure / professeur — anti cost-amplification
+    const auth = await authWithRateLimit(request, 60, 60 * 60_000);
+    if (auth instanceof NextResponse) return auth;
+    const user = auth.user;
 
     try {
         const body = await request.json();

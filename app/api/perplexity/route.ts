@@ -4,15 +4,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
 import { searchProgrammeRAG } from '@/lib/rag-search';
 import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
-import { sanitizeRagContext, getAuthUser } from '@/lib/api-auth';
+import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 
 /**
- * API STREAMING - mimimaths@i (Optimize for Gemini/Nano Banana)
+ * API STREAMING - mimimaths@i
  */
 export async function POST(request: NextRequest) {
-    // Élèves = utilisation illimitée, pas de rate limit
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
+    // 100 requêtes / heure / élève — anti cost-amplification
+    const auth = await authWithRateLimit(request, 100, 60 * 60_000);
+    if (auth instanceof NextResponse) return auth;
+    const user = auth.user;
 
     try {
         const { messages: rawMessages, context } = await request.json();
