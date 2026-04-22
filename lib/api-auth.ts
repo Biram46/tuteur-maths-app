@@ -64,12 +64,15 @@ export async function authWithRateLimit(
         return NextResponse.json({ success: false, error: 'Authentification requise' }, { status: 401 });
     }
 
-    const { allowed, remaining } = await checkRateLimit(user.id, maxRequests, windowMs);
-    if (!allowed) {
-        return NextResponse.json(
-            { success: false, error: 'Trop de requêtes. Réessayez dans un instant.' },
-            { status: 429, headers: { 'Retry-After': String(Math.ceil(windowMs / 1000)) } }
-        );
+    // Les admins ne sont jamais limités
+    if (!isAdmin(user)) {
+        const { allowed } = await checkRateLimit(user.id, maxRequests, windowMs);
+        if (!allowed) {
+            return NextResponse.json(
+                { success: false, error: 'Trop de requêtes. Réessayez dans un instant.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil(windowMs / 1000)) } }
+            );
+        }
     }
 
     return { user };
