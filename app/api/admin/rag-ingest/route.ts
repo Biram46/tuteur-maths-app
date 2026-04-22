@@ -134,10 +134,12 @@ export async function POST(req: NextRequest) {
     const filterResourceId: string | undefined = body.resource_id;
 
     // Récupère toutes les ressources avec fichier LaTeX + contexte hiérarchique
+    // Exclure les fichiers HTML (interactifs) qui ont latex_url renseigné par erreur
     let query = supabaseServer
         .from('resources')
         .select('id, kind, latex_url, chapter_id, chapters!inner(id, title, level_id, levels!inner(id, label))')
-        .not('latex_url', 'is', null);
+        .not('latex_url', 'is', null)
+        .not('kind', 'eq', 'interactif');
 
     if (filterResourceId) query = (query as any).eq('id', filterResourceId);
 
@@ -161,11 +163,18 @@ export async function POST(req: NextRequest) {
                 if ((count ?? 0) > 0) { stats.skipped++; continue; }
             }
 
+            // Ignorer les fichiers non-LaTeX (HTML, PDF stockés dans latex_url par erreur)
+            const url: string = resource.latex_url;
+            if (!url.endsWith('.tex') && !url.includes('.tex?')) {
+                stats.skipped++;
+                continue;
+            }
+
             // Télécharger le .tex
-            const texRes = await fetch(resource.latex_url, { signal: AbortSignal.timeout(15_000) });
+            const texRes = await fetch(url, { signal: AbortSignal.timeout(15_000) });
             if (!texRes.ok) {
                 stats.errors++;
-                errorDetails.push({ id: resource.id, url: resource.latex_url, reason: `HTTP ${texRes.status}` });
+                errorDetails.push({ id: resource.id, url, reason: `HTTP ${texRes.status}` });
                 continue;
             }
             const texContent = await texRes.text();
