@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { addRagNote, deleteRagNotes } from '../actions';
 
 type IngestStats = { total: number; indexed: number; skipped: number; chunks: number; errors: number };
+type IngestError = { id: string; url: string; reason: string };
 
 interface Props {
     chapters: { id: string; title: string; level_id: string }[];
@@ -19,6 +20,7 @@ export default function RagNotesManager({ chapters, levels }: Props) {
     const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
     const [ingestLoading, setIngestLoading] = useState(false);
     const [ingestStats, setIngestStats] = useState<IngestStats | null>(null);
+    const [ingestErrors, setIngestErrors] = useState<IngestError[]>([]);
 
     const visibleChapters = selectedLevelId
         ? chapters.filter(c => c.level_id === selectedLevelId)
@@ -59,6 +61,7 @@ export default function RagNotesManager({ chapters, levels }: Props) {
             const json = await res.json();
             if (json.success) {
                 setIngestStats(json.stats);
+                setIngestErrors(json.errorDetails ?? []);
             } else {
                 setStatus({ ok: false, msg: `Erreur indexation : ${json.error}` });
             }
@@ -185,19 +188,29 @@ export default function RagNotesManager({ chapters, levels }: Props) {
                 </div>
 
                 {ingestStats && (
-                    <div className="bg-slate-800/60 rounded-2xl border border-fuchsia-500/10 p-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        {[
-                            { label: 'Ressources', value: ingestStats.total },
-                            { label: 'Indexées', value: ingestStats.indexed, color: 'text-green-400' },
-                            { label: 'Ignorées', value: ingestStats.skipped, color: 'text-slate-400' },
-                            { label: 'Chunks créés', value: ingestStats.chunks, color: 'text-fuchsia-400' },
-                            { label: 'Erreurs', value: ingestStats.errors, color: 'text-red-400' },
-                        ].map(({ label, value, color }) => (
-                            <div key={label} className="text-center">
-                                <p className={`text-2xl font-bold font-mono ${color ?? 'text-white'}`}>{value}</p>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">{label}</p>
+                    <div className="space-y-3">
+                        <div className="bg-slate-800/60 rounded-2xl border border-fuchsia-500/10 p-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                            {[
+                                { label: 'Ressources', value: ingestStats.total },
+                                { label: 'Indexées', value: ingestStats.indexed, color: 'text-green-400' },
+                                { label: 'Ignorées', value: ingestStats.skipped, color: 'text-slate-400' },
+                                { label: 'Chunks créés', value: ingestStats.chunks, color: 'text-fuchsia-400' },
+                                { label: 'Erreurs', value: ingestStats.errors, color: 'text-red-400' },
+                            ].map(({ label, value, color }) => (
+                                <div key={label} className="text-center">
+                                    <p className={`text-2xl font-bold font-mono ${color ?? 'text-white'}`}>{value}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">{label}</p>
+                                </div>
+                            ))}
+                        </div>
+                        {ingestErrors.length > 0 && (
+                            <div className="bg-red-950/30 border border-red-500/20 rounded-xl p-3 space-y-1 max-h-40 overflow-y-auto">
+                                <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-2">Détail des erreurs</p>
+                                {ingestErrors.map((e, i) => (
+                                    <p key={i} className="text-[10px] text-red-300 font-mono truncate">{e.reason} — {e.url.split('/').pop()}</p>
+                                ))}
                             </div>
-                        ))}
+                        )}
                     </div>
                 )}
             </div>

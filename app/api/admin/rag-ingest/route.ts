@@ -16,7 +16,8 @@ import { supabaseServer } from '@/lib/supabaseServer';
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const MAX_CHUNK_CHARS = 1200;
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 50; // text-embedding-3-small accepte jusqu'à 2048 inputs par batch
+const EMBED_DELAY_MS = 300; // délai entre batches pour éviter le rate limiting
 
 // ── Nettoyage LaTeX ───────────────────────────────────────────────────────────
 
@@ -99,9 +100,9 @@ function chunkLatex(rawTex: string, contextPrefix: string): string[] {
 
 // ── Embeddings OpenAI ─────────────────────────────────────────────────────────
 
-async function embedBatch(texts: string[]): Promise<number[][] | null> {
+async function embedBatch(texts: string[]): Promise<{ embeddings: number[][] | null; errorMsg?: string }> {
     const key = process.env.OPENAI_API_KEY;
-    if (!key) return null;
+    if (!key) return { embeddings: null, errorMsg: 'OPENAI_API_KEY manquante' };
     try {
         const res = await fetch('https://api.openai.com/v1/embeddings', {
             method: 'POST',
@@ -109,11 +110,14 @@ async function embedBatch(texts: string[]): Promise<number[][] | null> {
             body: JSON.stringify({ model: EMBEDDING_MODEL, input: texts }),
         });
         const data = await res.json();
-        if (data.error) { console.error('[rag-ingest] OpenAI:', data.error.message); return null; }
-        return (data.data as any[]).map(d => d.embedding);
-    } catch (err) {
+        if (data.error) {
+            console.error('[rag-ingest] OpenAI:', data.error.message);
+            return { embeddings: null, errorMsg: `OpenAI ${res.status}: ${data.error.message}` };
+        }
+        return { embeddings: (data.data as any[]).map(d => d.embedding) };
+    } catch (err: any) {
         console.error('[rag-ingest] embed fetch:', err);
-        return null;
+        return { embeddings: null, errorMsg: err.message };
     }
 }
 
@@ -143,6 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     const stats = { total: resources.length, indexed: 0, skipped: 0, chunks: 0, errors: 0 };
+    const errorDetails: { id: string; url: string; reason: string }[] = [];
 
     for (const resource of resources as any[]) {
         try {
@@ -158,7 +163,11 @@ export async function POST(req: NextRequest) {
 
             // Télécharger le .tex
             const texRes = await fetch(resource.latex_url, { signal: AbortSignal.timeout(15_000) });
-            if (!texRes.ok) { stats.errors++; continue; }
+            if (!texRes.ok) {
+                stats.errors++;
+                errorDetails.push({ id: resource.id, url: resource.latex_url, reason: `HTTP ${texRes.status}` });
+                continue;
+            }
             const texContent = await texRes.text();
 
             const chapter = resource.chapters;
@@ -175,11 +184,19 @@ export async function POST(req: NextRequest) {
                 .eq('metadata->>resource_id', resource.id)
                 .eq('metadata->>source', 'latex');
 
-            // Embedder par batch + insérer
+            // Embedder tous les chunks en un seul appel (BATCH_SIZE = 50)
+            // puis insérer en une seule fois
+            let resourceChunks = 0;
             for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+                if (i > 0) await new Promise(r => setTimeout(r, EMBED_DELAY_MS));
+
                 const batch = chunks.slice(i, i + BATCH_SIZE);
-                const embeddings = await embedBatch(batch);
-                if (!embeddings) { stats.errors++; continue; }
+                const { embeddings, errorMsg } = await embedBatch(batch);
+                if (!embeddings) {
+                    stats.errors++;
+                    errorDetails.push({ id: resource.id, url: resource.latex_url, reason: errorMsg ?? 'embed failed' });
+                    continue;
+                }
 
                 const rows = batch.map((content, j) => ({
                     content,
@@ -195,15 +212,23 @@ export async function POST(req: NextRequest) {
                 }));
 
                 const { error: insertErr } = await supabaseServer.from('rag_documents').insert(rows);
-                if (insertErr) { stats.errors++; } else { stats.chunks += batch.length; }
+                if (insertErr) {
+                    stats.errors++;
+                    errorDetails.push({ id: resource.id, url: resource.latex_url, reason: `Insert: ${insertErr.message}` });
+                } else {
+                    stats.chunks += batch.length;
+                    resourceChunks += batch.length;
+                }
             }
 
-            stats.indexed++;
+            if (resourceChunks > 0) stats.indexed++;
+            else stats.errors++;
         } catch (err: any) {
             console.error(`[rag-ingest] resource ${resource.id}:`, err.message);
             stats.errors++;
+            errorDetails.push({ id: resource.id, url: resource.latex_url ?? '', reason: err.message });
         }
     }
 
-    return NextResponse.json({ success: true, stats });
+    return NextResponse.json({ success: true, stats, errorDetails: errorDetails.slice(0, 20) });
 }
