@@ -192,17 +192,14 @@ export function useFigureRenderer() {
                         const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                         nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
                         if (namedVecMap.size > 0) {
-                            rawToParse = rawToParse.replace(
-                                /(?:^|[\n|])(\s*)(?:vecteur|vector|vec)\s*:\s*([A-Z]{2})(\s*(?:,|\||\n|$))/gim,
-                                (match, indent, pair, after) => {
-                                    const name = namedVecMap.get(pair.toUpperCase());
-                                    if (name) {
-                                        console.log('[Geo] pre-patch vecteur:', pair, '→', name);
-                                        return `\n${indent}vecteur: ${pair}, ${name}${after.startsWith(',') ? after : ''}`;
-                                    }
-                                    return match;
-                                }
-                            );
+                            namedVecMap.forEach((name, pair) => {
+                                // Remplace "vecteur: AB" par "vecteur: AB, u" si pas déjà nommé
+                                rawToParse = rawToParse.replace(
+                                    new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
+                                    `$1, ${name}`
+                                );
+                                console.log('[Geo] pre-patch:', pair, '→', name, '| rawToParse includes:', rawToParse.includes(`${pair}, ${name}`));
+                            });
                         }
                     }
                     const parsedScene = parseGeoScene(rawToParse);
