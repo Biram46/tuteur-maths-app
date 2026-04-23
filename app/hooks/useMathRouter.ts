@@ -993,7 +993,7 @@ RÈGLES ABSOLUES :
             // "et trace", "et dessine" (début de phrase ou après virgule)
             || /(?:,|et)\s+(?:trace|dessine)/i.test(inputNorm)
         );
-        const wantsIntersection = /intersection|se\s+coup|crois|point\s*commun/i.test(inputNorm);
+        const wantsIntersection = /intersection|se\s+coup|crois(?!s)|point\s*commun/i.test(inputNorm);
         const wantsResolve = /resou|resolution|resoudre/i.test(inputNorm)
             && /graphi|graphement|graphique|graphiquement|courbe/i.test(inputNorm);
         const wantsTangente = /tangente|tangent/i.test(inputNorm)
