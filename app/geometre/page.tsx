@@ -204,6 +204,7 @@ export default function GeometrePage() {
     const downloadFigure = useCallback(() => {
         const svg = geoCanvasWrapperRef.current?.querySelector('svg');
         if (!svg) return;
+        const SCALE = 3;
         const w = svg.clientWidth || 800;
         const h = svg.clientHeight || 600;
         const svgStr = new XMLSerializer().serializeToString(svg);
@@ -212,11 +213,13 @@ export default function GeometrePage() {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
+            canvas.width = w * SCALE;
+            canvas.height = h * SCALE;
             const ctx = canvas.getContext('2d')!;
             ctx.fillStyle = '#020617';
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.scale(SCALE, SCALE);
+            ctx.drawImage(img, 0, 0, w, h);
             URL.revokeObjectURL(url);
             const a = document.createElement('a');
             a.download = `figure-${scene.title ? scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : Date.now()}.png`;

@@ -911,14 +911,21 @@ export default function GraphPage() {
     const [canvasSize, setCanvasSize] = useState({ w: 1000, h: 620 });
 
     const downloadGraph = useCallback(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        const SCALE = 3;
+        const { w, h } = canvasSize;
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = w * SCALE;
+        exportCanvas.height = h * SCALE;
+        const ctx = exportCanvas.getContext('2d');
+        if (!ctx) return;
+        ctx.scale(SCALE, SCALE);
+        drawGraph(ctx, w, h, state, null);
         const a = document.createElement('a');
         const title = state.title ? state.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'graphique';
         a.download = `${title}.png`;
-        a.href = canvas.toDataURL('image/png');
+        a.href = exportCanvas.toDataURL('image/png');
         a.click();
-    }, [state.title]);
+    }, [state, canvasSize]);
 
     // ── Traitement d'un état reçu : calcul auto intersections + zones ──
     const processIncomingState = useCallback((incoming: GraphState): GraphState => {
