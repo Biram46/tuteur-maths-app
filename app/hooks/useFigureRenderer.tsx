@@ -205,7 +205,7 @@ export function useFigureRenderer() {
                                         if (namedVecMap.has(key)) {
                                             const name = namedVecMap.get(key)!;
                                             console.log('[Geo] label patched:', key, '→', name);
-                                            return { ...obj, label: name };
+                                            return { ...obj, label: `\\vec{${name}}` };
                                         }
                                     }
                                     return obj;
