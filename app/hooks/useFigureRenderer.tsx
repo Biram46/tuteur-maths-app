@@ -193,14 +193,17 @@ export function useFigureRenderer() {
                             nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
                             const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                             nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+                            console.log('[Geo] namedVecMap:', [...namedVecMap.entries()], 'searchIn:', searchIn.slice(0, 80));
                             if (namedVecMap.size > 0) {
                                 parsedScene.objects.forEach(obj => {
                                     if (obj.kind === 'vector') {
                                         const v = obj as any;
                                         const key = (v.from || '') + (v.to || '');
+                                        console.log('[Geo] vector key:', key, 'has label?', namedVecMap.has(key));
                                         if (namedVecMap.has(key)) {
                                             const name = namedVecMap.get(key)!;
                                             v.label = `\\vec{${name}}`;
+                                            console.log('[Geo] applied label:', v.label);
                                         }
                                     }
                                 });
