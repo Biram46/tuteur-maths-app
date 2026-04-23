@@ -183,6 +183,10 @@ export function useFigureRenderer() {
                         // ── 5. Labels nommés — appliqués APRÈS parsing (plus robuste) ────────
                         // Extrait \vec{u} depuis title: et context:, puis injecte le label
                         // directement sur les objets vecteur du parsedScene.
+                        // ── 5. Labels nommés — nouvelle référence d'objet pour forcer le re-render ──
+                        // On crée un nouvel objet scene (spread) avec les objets copiés
+                        // pour que React/useMemo détecte le changement de référence.
+                        let sceneForRender = parsedScene;
                         if (contextLine || titleLine) {
                             const normalizeVec = (s: string) =>
                                 s.replace(/\$?\\(?:vec|overrightarrow)\{([a-zA-Z](?:')?)\}\$?/gi, '$1')
@@ -194,27 +198,21 @@ export function useFigureRenderer() {
                             const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                             nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
                             if (namedVecMap.size > 0) {
-                                parsedScene.objects.forEach(obj => {
-                                    const v = obj as any;
+                                const patchedObjects = parsedScene.objects.map(obj => {
                                     if (obj.kind === 'vector') {
+                                        const v = obj as any;
                                         const key = (v.from || '') + (v.to || '');
                                         if (namedVecMap.has(key)) {
                                             const name = namedVecMap.get(key)!;
-                                            // Forcer le label directement comme string simple
-                                            v.label = name;
-                                            console.log('[Geo] label set:', key, '→', name, '| v.label after:', v.label);
+                                            console.log('[Geo] label patched:', key, '→', name);
+                                            return { ...obj, label: name };
                                         }
                                     }
+                                    return obj;
                                 });
+                                sceneForRender = { ...parsedScene, objects: patchedObjects };
                             }
                         }
-                    // Si l'IA a mis repere: → on respecte.
-                    // Sinon : forcer orthonormal si au moins 1 point a des coords non-nulles.
-                    // Cela couvre A(1,1), B(4,3) mais ignore point: O, 0, 0 (centre cercle).
-                    // On respecte la directive repere: du bloc geo (gérée par useMathRouter)
-                    // Ne pas forcer orthonormal ici — le post-traitement déterministe a déjà
-                    // injecté le bon type (orthonormal/orthogonal) si nécessaire.
-                    let sceneForRender = parsedScene;
                     console.log('[Geo] repere:', sceneForRender.repere, 'objects:', parsedScene.objects.map(o => o.kind + ':' + (o as any).id).join(','));
 
 
