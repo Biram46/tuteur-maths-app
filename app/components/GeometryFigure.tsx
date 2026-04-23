@@ -407,7 +407,6 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un vecteur (flèche) ──────────────────────────────────────
     const renderVector = (obj: GeoVector, i: number) => {
-        console.log('[renderVector] obj.from:', obj.from, 'obj.to:', obj.to, 'obj.label:', obj.label);
         const A = pointMap.get(obj.from);
         const B = pointMap.get(obj.to);
         if (!A || !B) return null;
@@ -721,7 +720,6 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
 
     const openWindow = useCallback(() => {
         const key = `geo_scene_${Date.now()}`;
-        console.log('[openWindow] scene objects:', scene.objects.map(o => `${o.kind}:${(o as any).id}:${(o as any).label ?? 'no-label'}`).join(' | '));
         const sceneJson = JSON.stringify(scene);
         try {
             // Stocker la scène pour la page /geometre (localStorage, partagé entre fenêtres)

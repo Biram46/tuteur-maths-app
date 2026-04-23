@@ -431,7 +431,11 @@ export default function GeometrePage() {
                                         case 'segment': return `[${(obj as any).from}${(obj as any).to}]`;
                                         case 'line': return (obj as any).label || `(${(obj as any).through?.join('')})`;
                                         case 'circle': return `⊙ ${(obj as any).center}  r=${(obj as any).radiusValue ?? '?'}`;
-                                        case 'vector': return `→ ${(obj as any).from}${(obj as any).to}`;
+                                        case 'vector': {
+                                            const v = obj as any;
+                                            const lbl = v.label ? v.label.replace(/\\(?:vec|overrightarrow)\{([^}]+)\}/, '$1') : `${v.from}${v.to}`;
+                                            return `→ ${lbl}`;
+                                        }
                                         case 'angle': return `∠ ${(obj as any).vertex}`;
                                         default: return obj.kind;
                                     }

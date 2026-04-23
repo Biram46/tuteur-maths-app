@@ -198,21 +198,17 @@ export function useFigureRenderer() {
                                     new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
                                     `$1, ${name}`
                                 );
-                                console.log('[Geo] pre-patch:', pair, '→', name, '| rawToParse includes:', rawToParse.includes(`${pair}, ${name}`));
                             });
                         }
                     }
-                    console.log('[Geo] rawToParse:', rawToParse);
                     const parsedScene = parseGeoScene(rawToParse);
                     let sceneForRender = parsedScene;
-                    console.log('[Geo] objects+labels:', parsedScene.objects.map(o => `${o.kind}:${(o as any).id}:${(o as any).label ?? 'no-label'}`).join(' | '));
 
 
 
                     // Les calculs (périmètre, distance, etc.) sont déjà dans parsedScene.computed
                     // via la commande "compute:" traitée par parseGeoScene() → exact.ts
                     // Pas de calcul auto flottant ici pour ne pas doubler avec le moteur exact.
-                    console.log('[Geo] computed:', parsedScene.computed?.map(r => r.label));
 
                     // Afficher les résultats exacts du moteur (compute: dans le bloc geo)
                     const geoComputed = parsedScene.computed ?? [];
