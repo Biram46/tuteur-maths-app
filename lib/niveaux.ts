@@ -279,10 +279,15 @@ export function detectNiveauFromText(text: string): NiveauLycee | null {
     const t = text.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
     if (/terminale\s+(spe|specialite|maths?\s+spe)/i.test(t)) return 'terminale_spe';
+    if (/\btle\s+spe\b/i.test(t)) return 'terminale_spe';
     if (/terminale\s+expert/i.test(t)) return 'terminale_expert';
+    if (/\btle\s+expert/i.test(t)) return 'terminale_expert';
     if (/terminale\s+(comp|complementaire)/i.test(t)) return 'terminale_comp';
+    if (/\btle\s+(comp|complementaire)/i.test(t)) return 'terminale_comp';
     if (/terminale\s+techno/i.test(t)) return 'terminale_techno';
+    if (/\btle\s+techno/i.test(t)) return 'terminale_techno';
     if (/\bterminale\b(?!\s+spe|\s+tech|\s+exp|\s+comp)/i.test(t)) return 'terminale_spe';
+    if (/\btle\b(?!\s+spe|\s+tech|\s+exp|\s+comp)/i.test(t)) return 'terminale_spe';
     if (/premiere\s+(spe|specialite|maths?\s+spe)/i.test(t)) return 'premiere_spe';
     if (/\b1ere\s+spe\b/i.test(t)) return 'premiere_spe';
     if (/premiere\s+techno/i.test(t)) return 'premiere_techno';
