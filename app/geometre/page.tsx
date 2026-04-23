@@ -199,6 +199,32 @@ export default function GeometrePage() {
     const [windowSize, setWindowSize] = useState({ w: 1000, h: 720 });
     const [showInfo, setShowInfo] = useState(true);
     const [showHelp, setShowHelp] = useState(false);
+    const geoCanvasWrapperRef = useRef<HTMLDivElement>(null);
+
+    const downloadFigure = useCallback(() => {
+        const svg = geoCanvasWrapperRef.current?.querySelector('svg');
+        if (!svg) return;
+        const w = svg.clientWidth || 800;
+        const h = svg.clientHeight || 600;
+        const svgStr = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d')!;
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            const a = document.createElement('a');
+            a.download = `figure-${scene.title ? scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : Date.now()}.png`;
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        };
+        img.src = url;
+    }, [scene.title]);
 
     // ── 1. Écoute BroadcastChannel (IA → mise à jour en temps réel) ──────────
     const lastProcessedKey = useRef<string>('');
@@ -339,6 +365,17 @@ export default function GeometrePage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    <button onClick={downloadFigure} title="Télécharger en PNG"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono transition-all"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.7)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#a5b4fc'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.5)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.7)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={13} height={13}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        PNG
+                    </button>
+
                     <button onClick={() => setShowHelp(h => !h)}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold transition-all"
                         style={{
@@ -378,7 +415,9 @@ export default function GeometrePage() {
 
                 {/* Canvas */}
                 <div className="flex-1 relative">
-                    <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive />
+                    <div ref={geoCanvasWrapperRef}>
+                        <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive />
+                    </div>
 
                     {/* Overlay "En attente" */}
                     {!isLive && (

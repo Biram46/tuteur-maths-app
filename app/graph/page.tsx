@@ -910,6 +910,16 @@ export default function GraphPage() {
     const [mouseX, setMouseX] = useState<number | null>(null);
     const [canvasSize, setCanvasSize] = useState({ w: 1000, h: 620 });
 
+    const downloadGraph = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const a = document.createElement('a');
+        const title = state.title ? state.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'graphique';
+        a.download = `${title}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+    }, [state.title]);
+
     // ── Traitement d'un état reçu : calcul auto intersections + zones ──
     const processIncomingState = useCallback((incoming: GraphState): GraphState => {
         const newState = { ...incoming };
@@ -1063,7 +1073,7 @@ export default function GraphPage() {
     return (
         <div style={{
             background: BG_COLOR, width: '100vw', height: '100vh',
-            overflow: 'hidden', cursor: 'crosshair',
+            overflow: 'hidden', cursor: 'crosshair', position: 'relative',
         }}>
             <canvas
                 ref={canvasRef}
@@ -1071,6 +1081,28 @@ export default function GraphPage() {
                 onMouseLeave={handleMouseLeave}
                 style={{ display: 'block' }}
             />
+            {/* Bouton télécharger PNG */}
+            <button
+                onClick={downloadGraph}
+                title="Télécharger en PNG"
+                style={{
+                    position: 'absolute', bottom: 16, right: 16,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 10,
+                    background: 'rgba(30,41,59,0.9)',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    color: 'rgba(148,163,184,0.8)',
+                    fontSize: 12, fontWeight: 600, fontFamily: 'Inter,sans-serif',
+                    cursor: 'pointer', zIndex: 10,
+                    transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#a5b4fc'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.6)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.8)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.3)'; }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={13} height={13}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                PNG
+            </button>
         </div>
     );
 }
