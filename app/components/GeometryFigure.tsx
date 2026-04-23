@@ -407,6 +407,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un vecteur (flèche) ──────────────────────────────────────
     const renderVector = (obj: GeoVector, i: number) => {
+        console.log('[renderVector] obj.from:', obj.from, 'obj.to:', obj.to, 'obj.label:', obj.label);
         const A = pointMap.get(obj.from);
         const B = pointMap.get(obj.to);
         if (!A || !B) return null;
