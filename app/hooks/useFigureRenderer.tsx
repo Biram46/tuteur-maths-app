@@ -178,41 +178,35 @@ export function useFigureRenderer() {
                         
                         console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
                     }
-                    const parsedScene = parseGeoScene(rawToParse);
-
-                        // ── 5. Labels nommés — appliqués APRÈS parsing (plus robuste) ────────
-                        // Extrait \vec{u} depuis title: et context:, puis injecte le label
-                        // directement sur les objets vecteur du parsedScene.
-                        // ── 5. Labels nommés — nouvelle référence d'objet pour forcer le re-render ──
-                        // On crée un nouvel objet scene (spread) avec les objets copiés
-                        // pour que React/useMemo détecte le changement de référence.
-                        let sceneForRender = parsedScene;
-                        if (contextLine || titleLine) {
-                            const normalizeVec = (s: string) =>
-                                s.replace(/\$?\\(?:vec|overrightarrow)\{([a-zA-Z](?:')?)\}\$?/gi, '$1')
-                                 .replace(/\$?\\(?:vec|overrightarrow)\s+([a-zA-Z](?:')?)\$?/gi, '$1');
-                            const searchIn = normalizeVec((contextLine || '') + ' ' + (titleLine || ''));
-                            const namedVecMap = new Map<string, string>();
-                            const nvP1 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
-                            nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
-                            const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
-                            nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
-                            if (namedVecMap.size > 0) {
-                                const patchedObjects = parsedScene.objects.map(obj => {
-                                    if (obj.kind === 'vector') {
-                                        const v = obj as any;
-                                        const key = (v.from || '') + (v.to || '');
-                                        if (namedVecMap.has(key)) {
-                                            const name = namedVecMap.get(key)!;
-                                            console.log('[Geo] label patched:', key, '→', name);
-                                            return { ...obj, label: `\\vec{${name}}` };
-                                        }
+                    // ── 5. Labels nommés — pré-patch rawToParse avant parsing ──────────
+                    // Le parser supporte `vecteur: AB, u` (3e arg = nom).
+                    // On injecte le nom AVANT parsing pour que le label soit natif.
+                    if (contextLine || titleLine) {
+                        const normalizeVec = (s: string) =>
+                            s.replace(/\$?\\(?:vec|overrightarrow)\{([a-zA-Z](?:')?)\}\$?/gi, '$1')
+                             .replace(/\$?\\(?:vec|overrightarrow)\s+([a-zA-Z](?:')?)\$?/gi, '$1');
+                        const searchIn = normalizeVec((contextLine || '') + ' ' + (titleLine || ''));
+                        const namedVecMap = new Map<string, string>();
+                        const nvP1 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
+                        nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
+                        const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
+                        nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+                        if (namedVecMap.size > 0) {
+                            rawToParse = rawToParse.replace(
+                                /(?:^|[\n|])(\s*)(?:vecteur|vector|vec)\s*:\s*([A-Z]{2})(\s*(?:,|\||\n|$))/gim,
+                                (match, indent, pair, after) => {
+                                    const name = namedVecMap.get(pair.toUpperCase());
+                                    if (name) {
+                                        console.log('[Geo] pre-patch vecteur:', pair, '→', name);
+                                        return `\n${indent}vecteur: ${pair}, ${name}${after.startsWith(',') ? after : ''}`;
                                     }
-                                    return obj;
-                                });
-                                sceneForRender = { ...parsedScene, objects: patchedObjects };
-                            }
+                                    return match;
+                                }
+                            );
                         }
+                    }
+                    const parsedScene = parseGeoScene(rawToParse);
+                    let sceneForRender = parsedScene;
                     console.log('[Geo] repere:', sceneForRender.repere, 'objects:', parsedScene.objects.map(o => o.kind + ':' + (o as any).id).join(','));
 
 
