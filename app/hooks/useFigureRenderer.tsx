@@ -176,28 +176,36 @@ export function useFigureRenderer() {
                             }
                         }
                         
-                        // ── 5. Labels nommés (vecteur u de A vers B) ────────────────────
-                        // Cherche dans context: ET title: (l'IA met souvent le nom dans le titre)
+                        console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
+                    }
+                    const parsedScene = parseGeoScene(rawToParse);
+
+                        // ── 5. Labels nommés — appliqués APRÈS parsing (plus robuste) ────────
+                        // Extrait \vec{u} depuis title: et context:, puis injecte le label
+                        // directement sur les objets vecteur du parsedScene.
                         if (contextLine || titleLine) {
-                            // Normaliser \vec{u} / $\vec{u}$ → u pour faciliter l'extraction
                             const normalizeVec = (s: string) =>
-                                s.replace(/\$?\\(?:vec|overrightarrow)\{([a-z](?:')?)\}\$?/gi, '$1')
-                                 .replace(/\$?\\(?:vec|overrightarrow)\s+([a-z](?:')?)\$?/gi, '$1');
+                                s.replace(/\$?\\(?:vec|overrightarrow)\{([a-zA-Z](?:')?)\}\$?/gi, '$1')
+                                 .replace(/\$?\\(?:vec|overrightarrow)\s+([a-zA-Z](?:')?)\$?/gi, '$1');
                             const searchIn = normalizeVec((contextLine || '') + ' ' + (titleLine || ''));
                             const namedVecMap = new Map<string, string>();
                             const nvP1 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
                             nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
                             const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                             nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
-                            namedVecMap.forEach((lbl, pts) => {
-                                const pattern = `\\[?\\s*${pts[0]}\\s*,?\\s*${pts[1]}\\s*\\]?`;
-                                rawToParse = rawToParse.replace(new RegExp(`^([ \\t]*(?:vecteur|vector|vec)\\s*:\\s*${pattern})\\s*$`, 'gim'), `$1, ${lbl}`);
-                            });
+                            if (namedVecMap.size > 0) {
+                                parsedScene.objects.forEach(obj => {
+                                    if (obj.kind === 'vector') {
+                                        const v = obj as any;
+                                        const key = (v.from || '') + (v.to || '');
+                                        if (namedVecMap.has(key)) {
+                                            const name = namedVecMap.get(key)!;
+                                            v.label = `\\vec{${name}}`;
+                                        }
+                                    }
+                                });
+                            }
                         }
-                        
-                        console.log('[Geo] vecteur patch applied (context:', contextLine || titleLine, ')');
-                    }
-                    const parsedScene = parseGeoScene(rawToParse);
                     // Si l'IA a mis repere: → on respecte.
                     // Sinon : forcer orthonormal si au moins 1 point a des coords non-nulles.
                     // Cela couvre A(1,1), B(4,3) mais ignore point: O, 0, 0 (centre cercle).
