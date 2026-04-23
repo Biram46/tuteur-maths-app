@@ -284,7 +284,9 @@ export function detectNiveauFromText(text: string): NiveauLycee | null {
     if (/terminale\s+techno/i.test(t)) return 'terminale_techno';
     if (/\bterminale\b(?!\s+spe|\s+tech|\s+exp|\s+comp)/i.test(t)) return 'terminale_spe';
     if (/premiere\s+(spe|specialite|maths?\s+spe)/i.test(t)) return 'premiere_spe';
+    if (/\b1ere\s+spe\b/i.test(t)) return 'premiere_spe';
     if (/premiere\s+techno/i.test(t)) return 'premiere_techno';
+    if (/\b1ere\s+techno\b/i.test(t)) return 'premiere_techno';
     if (/(1ere|1\w*|premiere)\s+(commune|enseignement\s+commun)/i.test(t)) return 'premiere_commune';
     if (/\bpremiere\b(?!\s+spe|\s+tech|\s+com)/i.test(t)) return 'premiere_spe';
     if (/\b2de\s+sthr\b|\bseconde\s+sthr\b/i.test(t)) return 'seconde_sthr';
