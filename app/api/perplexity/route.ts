@@ -72,6 +72,7 @@ ${ragContext}
 - ✅ FORMAT MATHÉMATIQUE : Les formules mathématiques intra-texte (inline) doivent être entourées de simples "$", par exemple : $f(x) = x^2$.
 - ✅ FORMAT MATHÉMATIQUE : Les formules mathématiques en bloc doivent être entourées de "$$", par exemple : $$\\lim_{x \\to +\\infty} f(x) = 0$$.
 - Même si l'utilisateur te demande du "LaTeX", tu dois utiliser le format Markdown + KaTeX ($ et $$).
+- ✅ CALCULS MULTI-ÉTAPES : Quand un calcul a plusieurs lignes d'égalités (développement, dérivée, simplification...), utilise OBLIGATOIREMENT \\begin{align*}...\\end{align*} pour aligner les "=" et mettre chaque étape sur une ligne séparée. Exemple : $$\\begin{align*} f'(x) &= (u'v + uv') \\\\ &= (2x)(x+1) + (x^2)(1) \\\\ &= 3x^2 + 2x \\end{align*}$$. ⛔ JAMAIS mettre plusieurs étapes collées dans un seul bloc $$...$$.
 
 ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
 ⛔ RÈGLE ABSOLUE N°0.1 - RÉSOLUTION D'ÉQUATIONS ⛔
