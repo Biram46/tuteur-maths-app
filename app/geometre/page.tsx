@@ -131,6 +131,26 @@ function patchVecteurs(raw: string): string {
         }
     }
 
+    // ── Labels nommés — même logique que useFigureRenderer ──────────────────
+    // Extrait \vec{u} depuis title: / context:, injecte "vecteur: AB, u"
+    if (contextLine || titleLine) {
+        const normalizeVec = (s: string) =>
+            s.replace(/\$?\\(?:vec|overrightarrow)\{([a-zA-Z](?:')?)\}\$?/gi, '$1')
+             .replace(/\$?\\(?:vec|overrightarrow)\s+([a-zA-Z](?:')?)\$?/gi, '$1');
+        const searchIn = normalizeVec((contextLine || '') + ' ' + (titleLine || ''));
+        const namedVecMap = new Map<string, string>();
+        [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)]
+            .forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
+        [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)]
+            .forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+        namedVecMap.forEach((name, pair) => {
+            result = result.replace(
+                new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
+                `$1, ${name}`
+            );
+        });
+    }
+
     if (result !== raw) console.log('[Géomètre] vecteur patch applied (context:', contextLine || titleLine, ')');
     return result;
 }
