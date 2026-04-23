@@ -257,6 +257,19 @@ point: B, x, y
 vecteur: AB
 @@@
 
+Si le vecteur a un NOM (ex: $\vec{u}$, $\vec{v}$) : ajoute le nom en 3e argument.
+⛔ JAMAIS laisser le label par défaut "AB" si l'élève demande $\vec{u}$ — tu DOIS mettre le nom.
+@@@
+point: A, x, y
+point: B, x, y
+vecteur: AB, u
+@@@
+
+Si l'élève donne les COORDONNÉES du vecteur $\vec{u}(2; 3)$ :
+@@@
+vecteur: u(2, 3)
+@@@
+
 Si on trace les vecteurs AB et AC :
 @@@
 point: A, x, y
