@@ -177,11 +177,17 @@ export function useFigureRenderer() {
                         }
                         
                         // ── 5. Labels nommés (vecteur u de A vers B) ────────────────────
-                        if (contextLine) {
+                        // Cherche dans context: ET title: (l'IA met souvent le nom dans le titre)
+                        if (contextLine || titleLine) {
+                            // Normaliser \vec{u} / $\vec{u}$ → u pour faciliter l'extraction
+                            const normalizeVec = (s: string) =>
+                                s.replace(/\$?\\(?:vec|overrightarrow)\{([a-z](?:')?)\}\$?/gi, '$1')
+                                 .replace(/\$?\\(?:vec|overrightarrow)\s+([a-z](?:')?)\$?/gi, '$1');
+                            const searchIn = normalizeVec((contextLine || '') + ' ' + (titleLine || ''));
                             const namedVecMap = new Map<string, string>();
-                            const nvP1 = [...contextLine.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
+                            const nvP1 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)\s+(?:de\s+)?([A-Z])\s*(?:vers|->)\s*([A-Z])/gi)];
                             nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
-                            const nvP2 = [...contextLine.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
+                            const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                             nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
                             namedVecMap.forEach((lbl, pts) => {
                                 const pattern = `\\[?\\s*${pts[0]}\\s*,?\\s*${pts[1]}\\s*\\]?`;

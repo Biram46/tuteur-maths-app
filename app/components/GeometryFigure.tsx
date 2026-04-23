@@ -672,9 +672,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                 }}>
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                         components={{ p: ({ ...props }) => <p style={{ margin: 0 }} {...props} /> }}>
-                        {scene.title.includes('$') || scene.title.includes('\\') 
-                            ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 
-                            : scene.title}
+                        {scene.title}
                     </ReactMarkdown>
                 </div>
             )}
@@ -784,9 +782,7 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                         {!scene.title ? 'Figure géométrique' : (
                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                 components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
-                                {scene.title.includes('$') || scene.title.includes('\\') 
-                                    ? `$$${scene.title.replace(/\\$/g, '').trim()}$$` 
-                                    : scene.title}
+                                {scene.title}
                             </ReactMarkdown>
                         )}
                     </div>
