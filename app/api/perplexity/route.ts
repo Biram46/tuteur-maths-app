@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
         const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || '';
         const levelLabel = typeof context?.level_label === 'string' ? context.level_label : '';
         const rawRagContext = await searchProgrammeRAG(lastUserMessage, levelLabel);
-        // Sanitiser le contexte RAG pour prévenir l'injection de prompt
         const ragContext = sanitizeRagContext(rawRagContext);
+        console.log(`[Perplexity] RAG context: ${ragContext ? `${ragContext.length} chars` : 'vide (fallback lexical ou aucun résultat)'}`);
 
         // Résoudre le niveau et injecter les contraintes IA spécifiques
         const detectedNiveau = detectNiveauFromText(levelLabel) || detectNiveauFromText(lastUserMessage);

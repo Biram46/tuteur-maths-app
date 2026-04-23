@@ -83,6 +83,7 @@ async function getSystemPrompt(context: ProfContext, existingContent?: string, m
         : lastUserMessage;
     const rawRagContext = await searchProgrammeRAG(ragQuery, context.level_label);
     const ragContext = sanitizeRagContext(rawRagContext);
+    console.log(`[ProfChat] RAG context: ${ragContext ? `${ragContext.length} chars` : 'vide'}`);
     
     const base = `Tu es un assistant de mise en forme LaTeX pour un professeur de mathématiques en lycée français.
 

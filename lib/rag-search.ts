@@ -67,9 +67,11 @@ async function vectorSearch(query: string, level?: string): Promise<string | nul
             return null;
         }
 
+        console.log(`[RAG] Vector search OK: ${data.length} chunks retrieved (top similarity: ${(data[0]?.similarity * 100).toFixed(0)}%)`);
+
         const topContexts = data.map((r: { content: string; similarity: number; metadata: any }) => {
-            const docType = r.metadata?.type_doc ? r.metadata.type_doc.toUpperCase() : "PROGRAMME OFFICIEL";
-            return `[Document: ${docType} | Similarité: ${(r.similarity * 100).toFixed(0)}%]\n${r.content}`;
+            const docType = r.metadata?.kind ?? r.metadata?.type_doc ?? 'cours';
+            return `[Document: ${docType.toUpperCase()} | Similarité: ${(r.similarity * 100).toFixed(0)}%]\n${r.content}`;
         });
 
         return [
