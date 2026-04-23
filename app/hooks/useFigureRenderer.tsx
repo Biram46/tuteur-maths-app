@@ -202,9 +202,10 @@ export function useFigureRenderer() {
                             });
                         }
                     }
+                    console.log('[Geo] rawToParse:', rawToParse);
                     const parsedScene = parseGeoScene(rawToParse);
                     let sceneForRender = parsedScene;
-                    console.log('[Geo] repere:', sceneForRender.repere, 'objects:', parsedScene.objects.map(o => o.kind + ':' + (o as any).id).join(','));
+                    console.log('[Geo] objects+labels:', parsedScene.objects.map(o => `${o.kind}:${(o as any).id}:${(o as any).label ?? 'no-label'}`).join(' | '));
 
 
 
