@@ -271,18 +271,16 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                                             <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
                                                         </button>
                                                         {res.pdf_url && res.latex_url && (
-                                                            <a
-                                                                href={res.latex_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
+                                                            <button
+                                                                onClick={() => openResource(res.latex_url, 'cours', activeChapter.title)}
                                                                 className="w-full py-1.5 px-3 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-between transition-all group/tex text-[11px]"
                                                             >
                                                                 <span className="font-medium text-indigo-400 group-hover/tex:text-indigo-300 flex items-center gap-2">
                                                                     <span>∑</span>
                                                                     <span>Source LaTeX</span>
                                                                 </span>
-                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↓</span>
-                                                            </a>
+                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↗</span>
+                                                            </button>
                                                         )}
                                                     </div>
                                                 );
@@ -327,18 +325,16 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                                             <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
                                                         </button>
                                                         {res.pdf_url && res.latex_url && (
-                                                            <a
-                                                                href={res.latex_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
+                                                            <button
+                                                                onClick={() => openResource(res.latex_url, 'cours', activeChapter.title)}
                                                                 className="w-full py-1.5 px-3 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-between transition-all group/tex text-[11px]"
                                                             >
                                                                 <span className="font-medium text-indigo-400 group-hover/tex:text-indigo-300 flex items-center gap-2">
                                                                     <span>∑</span>
                                                                     <span>Source LaTeX</span>
                                                                 </span>
-                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↓</span>
-                                                            </a>
+                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↗</span>
+                                                            </button>
                                                         )}
                                                     </div>
                                                 );
