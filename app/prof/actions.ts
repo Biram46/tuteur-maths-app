@@ -903,7 +903,7 @@ export async function createResourceEntryForProf(params: {
     const payload: Record<string, string | null> = {
         chapter_id: chapterId,
         kind,
-        status: 'draft',
+        status: 'published',
         label: label || null,
     };
 
@@ -936,7 +936,7 @@ export async function createResourceEntryFromUrl(params: {
     const payload: Record<string, string | null> = {
         chapter_id: chapterId,
         kind,
-        status: 'draft',
+        status: 'published',
         label: label || null,
     };
 
