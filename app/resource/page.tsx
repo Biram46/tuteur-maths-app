@@ -163,11 +163,13 @@ function ResourceContent() {
                     </div>
 
                     <div className="flex gap-2">
-                        {/* Download Button */}
+                        {/* Download Button — passe par /api/download pour les .tex (cross-origin) */}
                         <a
-                            href={url}
+                            href={isTex
+                                ? `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent((title || 'cours').replace(/[^a-z0-9\-_]/gi, '_') + '.tex')}`
+                                : url}
                             download
-                            target="_blank"
+                            target={isTex ? undefined : "_blank"}
                             rel="noopener noreferrer"
                             className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-600 flex items-center gap-2"
                         >
@@ -231,7 +233,7 @@ function ResourceContent() {
                             Ce fichier contient le code source mathématique (.tex). Téléchargez-le pour l'ouvrir dans votre éditeur LaTeX habituel.
                         </p>
                         <a
-                            href={url}
+                            href={`/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent((title || 'cours').replace(/[^a-z0-9\-_]/gi, '_') + '.tex')}`}
                             download
                             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all hover:scale-105 flex items-center gap-2 group"
                         >
