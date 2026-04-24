@@ -78,9 +78,17 @@ export default function ResourceManager({ levels, chapters }: Props) {
     useEffect(() => { loadResources(); }, [loadResources]);
     useEffect(() => { setPage(0); }, [search, filterLevel, filterKind, filterStatus]);
 
+    const COURS_KINDS = ['cours', 'cours-pdf'];
+
     const filtered = resources.filter(r => {
         if (filterLevel && r.level_id !== filterLevel) return false;
-        if (filterKind && r.kind !== filterKind) return false;
+        if (filterKind) {
+            if (filterKind === 'cours') {
+                if (!COURS_KINDS.includes(r.kind)) return false;
+            } else {
+                if (r.kind !== filterKind) return false;
+            }
+        }
         if (filterStatus && r.status !== filterStatus) return false;
         if (search) {
             const q = search.toLowerCase();
