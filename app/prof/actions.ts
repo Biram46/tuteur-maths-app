@@ -375,12 +375,17 @@ export async function publishResource(resourceId: string): Promise<{ pdfUrl?: st
             const { data: { publicUrl } } = supabaseServer.storage
                 .from(bucketName).getPublicUrl(pdfPath);
 
-            const { data: { publicUrl: texPublicUrl } } = supabaseServer.storage
-                .from(bucketName).getPublicUrl(texPath);
+            const dbUpdateFields: { pdf_url: string; latex_url?: string } = { pdf_url: publicUrl };
+            if (!texUpErr) {
+                const { data: { publicUrl: texPublicUrl } } = supabaseServer.storage
+                    .from(bucketName).getPublicUrl(texPath);
+                dbUpdateFields.latex_url = texPublicUrl;
+                _log(`[publishResource] ✅ .tex publié : ${texPublicUrl}`);
+            }
 
             const { error: dbErr } = await supabaseServer
                 .from("resources")
-                .update({ pdf_url: publicUrl, latex_url: texPublicUrl })
+                .update(dbUpdateFields)
                 .eq("id", resourceId);
 
             if (dbErr) throw new Error(`DB update pdf_url/latex_url: ${dbErr.message}`);

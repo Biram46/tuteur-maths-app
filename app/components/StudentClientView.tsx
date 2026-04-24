@@ -251,28 +251,40 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         </p>
 
                                         <div className="space-y-2 mt-auto">
-                                            {validCoursResources.length > 0 ? validCoursResources.map((res, idx) => {
-                                                const url = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
-                                                // Déterminer l'icône/label selon le format
-                                                let label = "Document";
-                                                let icon = "📄";
+                                            {validCoursResources.length > 0 ? validCoursResources.map((res) => {
+                                                const mainUrl = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
+                                                let label = "Document"; let icon = "📄";
                                                 if (res.pdf_url) { label = "PDF"; icon = "📕"; }
                                                 else if (res.docx_url) { label = "Word"; icon = "📝"; }
                                                 else if (res.latex_url) { label = "LaTeX"; icon = "∑"; }
                                                 else if (res.html_url) { label = "HTML"; icon = "🌐"; }
-
                                                 return (
-                                                    <button
-                                                        key={res.id}
-                                                        onClick={() => openResource(url, 'cours', activeChapter.title)}
-                                                        className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
-                                                    >
-                                                        <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
-                                                            <span>{icon}</span>
-                                                            <span>{label}</span>
-                                                        </span>
-                                                        <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
-                                                    </button>
+                                                    <div key={res.id} className="flex flex-col gap-1">
+                                                        <button
+                                                            onClick={() => openResource(mainUrl, 'cours', activeChapter.title)}
+                                                            className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
+                                                        >
+                                                            <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
+                                                                <span>{icon}</span>
+                                                                <span>{label}</span>
+                                                            </span>
+                                                            <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
+                                                        </button>
+                                                        {res.pdf_url && res.latex_url && (
+                                                            <a
+                                                                href={res.latex_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="w-full py-1.5 px-3 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-between transition-all group/tex text-[11px]"
+                                                            >
+                                                                <span className="font-medium text-indigo-400 group-hover/tex:text-indigo-300 flex items-center gap-2">
+                                                                    <span>∑</span>
+                                                                    <span>Source LaTeX</span>
+                                                                </span>
+                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↓</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 );
                                             }) : (
                                                 <div className="text-center text-slate-500 py-3 text-xs italic bg-slate-800/30 rounded-lg">
@@ -296,26 +308,39 @@ export default function StudentClientView({ levels, chapters, resources }: Props
                                         </p>
 
                                         <div className="space-y-2 mt-auto">
-                                            {validExosResources.length > 0 ? validExosResources.map((res, idx) => {
-                                                const url = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
-                                                let label = "Exercices";
-                                                let icon = "📝";
+                                            {validExosResources.length > 0 ? validExosResources.map((res) => {
+                                                const mainUrl = res.pdf_url || res.html_url || res.docx_url || res.latex_url;
+                                                let label = "Exercices"; let icon = "📝";
                                                 if (res.pdf_url) { label = "Exos PDF"; icon = "📕"; }
                                                 else if (res.docx_url) { label = "Exos Word"; icon = "📝"; }
                                                 else if (res.latex_url) { label = "Exos LaTeX"; icon = "∑"; }
-
                                                 return (
-                                                    <button
-                                                        key={res.id}
-                                                        onClick={() => openResource(url, 'exercice', `Exercices - ${activeChapter.title}`)}
-                                                        className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
-                                                    >
-                                                        <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
-                                                            <span>{icon}</span>
-                                                            <span>{label}</span>
-                                                        </span>
-                                                        <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
-                                                    </button>
+                                                    <div key={res.id} className="flex flex-col gap-1">
+                                                        <button
+                                                            onClick={() => openResource(mainUrl, 'exercice', `Exercices - ${activeChapter.title}`)}
+                                                            className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between transition-all group/btn"
+                                                        >
+                                                            <span className="text-sm font-medium text-slate-300 group-hover/btn:text-white flex items-center gap-2">
+                                                                <span>{icon}</span>
+                                                                <span>{label}</span>
+                                                            </span>
+                                                            <span className="text-xs opacity-50 group-hover/btn:opacity-100 transition-opacity">↗</span>
+                                                        </button>
+                                                        {res.pdf_url && res.latex_url && (
+                                                            <a
+                                                                href={res.latex_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="w-full py-1.5 px-3 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-between transition-all group/tex text-[11px]"
+                                                            >
+                                                                <span className="font-medium text-indigo-400 group-hover/tex:text-indigo-300 flex items-center gap-2">
+                                                                    <span>∑</span>
+                                                                    <span>Source LaTeX</span>
+                                                                </span>
+                                                                <span className="opacity-50 group-hover/tex:opacity-100 transition-opacity">↓</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 );
                                             }) : (
                                                 <div className="text-center text-slate-500 py-3 text-xs italic bg-slate-800/30 rounded-lg">
