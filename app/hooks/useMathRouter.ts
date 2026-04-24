@@ -1261,8 +1261,9 @@ RÈGLES ABSOLUES :
                     try {
                         const { compile } = await import('mathjs');
                         const compiled = compile(sanitizeExprForGraph(tangExpr));
+                        const mathScope = { x: 0, e: Math.E, pi: Math.PI };
                         const evalF = (xv: number) => {
-                            try { const r = compiled.evaluate({ x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
+                            try { const r = compiled.evaluate({ ...mathScope, x: xv }); return typeof r === 'number' && isFinite(r) ? r : null; } catch { return null; }
                         };
 
                         const y0 = evalF(x0);
@@ -1321,7 +1322,7 @@ RÈGLES ABSOLUES :
                 }
 
                 // ═══════════════════════════════════════════════════════
-                // CAS 3 : INTERSECTION (courbes déjà tracées)
+                // CAS 3 : INTERSECTION (courbes déjà tracées ou à tracer)
                 // ═══════════════════════════════════════════════════════
                 else if (wantsIntersection) {
                     if (graphState.curves.length >= 2) {
@@ -1331,11 +1332,37 @@ RÈGLES ABSOLUES :
                             content: `📊 Recherche des intersections entre ${graphState.curves.map(c => c.name).join(' et ')}. Regarde la fenêtre graphique !`
                         }]);
                     } else {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: `❓ Il faut au moins 2 courbes tracées pour chercher une intersection. Trace d'abord une courbe, puis ajoute-en une autre !`
-                        }]);
-                        return;
+                        // Essayer d'extraire les expressions du message pour les tracer en même temps
+                        const iExprMatches = [...inputText.matchAll(/(?:[fghFGH]\s*\(\s*x\s*\)|y)\s*=\s*([^,;]+?(?=\s+et\s+|\s+ou\s+|\s*(?:sur|pour|entre|dans)\s|\s*$))/gi)];
+                        const iExprs = iExprMatches
+                            .map((m, idx) => {
+                                const nameMatch = m[0].match(/([fghFGH])/i);
+                                const name = nameMatch ? nameMatch[1].toLowerCase() : ['f', 'g', 'h'][idx] ?? `f${idx}`;
+                                return { name, expr: cleanExprForGraph(m[1].trim()) };
+                            })
+                            .filter(g => g.expr && g.expr.includes('x'));
+                        if (iExprs.length >= 2) {
+                            graphState.curves = iExprs.map((g, i) => ({
+                                id: `curve-${i}`,
+                                expression: g.expr,
+                                name: `${g.name}(x) = ${prettifyMath(g.expr)}`,
+                                color: GRAPH_COLORS[i % GRAPH_COLORS.length],
+                                interval: gInterval,
+                            }));
+                            graphState.intersections = '__COMPUTE__';
+                            graphState.tangent = null;
+                            graphState.title = 'Graphique multi-courbes';
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `📊 Courbes tracées et intersection calculée : **${iExprs.map(g => `${g.name}(x) = ${prettifyMath(g.expr)}`).join(', ')}**. Regarde la fenêtre graphique !`
+                            }]);
+                        } else {
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `❓ Il faut au moins 2 courbes tracées pour chercher une intersection. Trace d'abord une courbe, puis ajoute-en une autre !`
+                            }]);
+                            return;
+                        }
                     }
                 }
 

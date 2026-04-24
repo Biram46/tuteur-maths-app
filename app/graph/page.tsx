@@ -95,7 +95,11 @@ function sanitizeExpr(expr: string): string {
         // Français
         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?\(([^)]+)\)/gi, 'sqrt($1)')
         .replace(/\bracine\s*(?:carr[eé]e?\s*)?(?:de\s+)?(\w+)/gi, 'sqrt($1)')
-        .replace(/\bln\b/g, 'log');
+        .replace(/\bln\b/g, 'log')
+        // Convertir e^(...) et e^x en exp(...) pour une compatibilité mathjs garantie
+        .replace(/\be\^\(([^)]+)\)/g, 'exp($1)')
+        .replace(/\be\^(-?[A-Za-z_]\w*)/g, 'exp($1)')
+        .replace(/\be\^(-?\d+(?:\.\d+)?)/g, 'exp($1)');
 }
 
 function createEvaluator(expression: string): ((xVal: number) => number | null) | null {
@@ -104,7 +108,7 @@ function createEvaluator(expression: string): ((xVal: number) => number | null) 
         const compiled = compile(sanitized);
         return (xVal: number): number | null => {
             try {
-                const result = compiled.evaluate({ x: xVal });
+                const result = compiled.evaluate({ x: xVal, e: Math.E, pi: Math.PI });
                 if (typeof result === 'number' && isFinite(result) && Math.abs(result) < 1e8) {
                     return result;
                 }

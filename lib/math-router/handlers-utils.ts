@@ -37,7 +37,11 @@ export function sanitizeExprForGraph(e: string): string {
         .replace(/³/g, '^3')
         .replace(/√/g, 'sqrt')
         .replace(/π/g, 'pi')
-        .replace(/\bln\b/g, 'log');
+        .replace(/\bln\b/g, 'log')
+        // Convertir e^(...) et e^x en exp(...) pour une compatibilité mathjs garantie
+        .replace(/\be\^\(([^)]+)\)/g, 'exp($1)')
+        .replace(/\be\^(-?[A-Za-z_]\w*)/g, 'exp($1)')
+        .replace(/\be\^(-?\d+(?:\.\d+)?)/g, 'exp($1)');
 }
 
 // ─── Beautification pour affichage ───────────────────────────────────────────

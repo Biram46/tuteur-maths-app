@@ -191,15 +191,28 @@ export function useFigureRenderer() {
                         nvP1.forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
                         const nvP2 = [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)];
                         nvP2.forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
-                        if (namedVecMap.size > 0) {
-                            namedVecMap.forEach((name, pair) => {
-                                // Remplace "vecteur: AB" par "vecteur: AB, u" si pas déjà nommé
-                                rawToParse = rawToParse.replace(
-                                    new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
-                                    `$1, ${name}`
-                                );
+                        // Pattern 3 : "vecteurs u et v" — correspondance positionnelle avec les paires du bloc
+                        const nvAllLetters: string[] = [];
+                        for (const m of searchIn.matchAll(/\bvecteurs?\s+((?:[a-z](?:')?\s*(?:,\s*|et\s+))*[a-z](?:')?)\b/gi)) {
+                            for (const lm of m[1].matchAll(/[a-z](?:')?/g)) {
+                                if (!nvAllLetters.includes(lm[0])) nvAllLetters.push(lm[0]);
+                            }
+                        }
+                        if (nvAllLetters.length > 1) {
+                            const nvPairsWithoutLabel = [...rawToParse.matchAll(/(?:vecteur|vector|vec)\s*:\s*([A-Z]{2})\b(?!\s*,)/gi)]
+                                .map(m => m[1])
+                                .filter((v, i, a) => a.indexOf(v) === i);
+                            nvAllLetters.forEach((letter, i) => {
+                                if (i < nvPairsWithoutLabel.length && !namedVecMap.has(nvPairsWithoutLabel[i]))
+                                    namedVecMap.set(nvPairsWithoutLabel[i], letter);
                             });
                         }
+                        namedVecMap.forEach((name, pair) => {
+                            rawToParse = rawToParse.replace(
+                                new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
+                                `$1, ${name}`
+                            );
+                        });
                     }
                     const parsedScene = parseGeoScene(rawToParse);
                     let sceneForRender = parsedScene;

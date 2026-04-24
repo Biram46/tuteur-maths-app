@@ -143,6 +143,22 @@ function patchVecteurs(raw: string): string {
             .forEach(m => namedVecMap.set(m[2].toUpperCase() + m[3].toUpperCase(), m[1]));
         [...searchIn.matchAll(/\bvecteurs?\s+([a-z](?:')?)[=\s]+([A-Z]{2})\b/gi)]
             .forEach(m => namedVecMap.set(m[2].toUpperCase(), m[1]));
+        // Pattern 3 : "vecteurs u et v" — correspondance positionnelle avec les paires du bloc
+        const allVecLetters: string[] = [];
+        for (const m of searchIn.matchAll(/\bvecteurs?\s+((?:[a-z](?:')?\s*(?:,\s*|et\s+))*[a-z](?:')?)\b/gi)) {
+            for (const lm of m[1].matchAll(/[a-z](?:')?/g)) {
+                if (!allVecLetters.includes(lm[0])) allVecLetters.push(lm[0]);
+            }
+        }
+        if (allVecLetters.length > 1) {
+            const pairsWithoutLabel = [...result.matchAll(/(?:vecteur|vector|vec)\s*:\s*([A-Z]{2})\b(?!\s*,)/gi)]
+                .map(m => m[1])
+                .filter((v, i, a) => a.indexOf(v) === i);
+            allVecLetters.forEach((letter, i) => {
+                if (i < pairsWithoutLabel.length && !namedVecMap.has(pairsWithoutLabel[i]))
+                    namedVecMap.set(pairsWithoutLabel[i], letter);
+            });
+        }
         namedVecMap.forEach((name, pair) => {
             result = result.replace(
                 new RegExp(`((?:vecteur|vector|vec)\\s*:\\s*${pair}\\b)(?!\\s*,)`, 'gi'),
