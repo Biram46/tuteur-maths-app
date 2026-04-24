@@ -819,3 +819,226 @@ export async function uploadProfFile(formData: FormData): Promise<{ url: string;
 
     return { url: publicUrl, name: file.name, extractedContent };
 }
+
+// ─────────────────────────────────────────────────────────────
+// GESTION DES RESSOURCES (depuis l'espace prof)
+// ─────────────────────────────────────────────────────────────
+
+export type ResourceWithContext = {
+    id: string;
+    kind: string;
+    label: string | null;
+    status: string;
+    pdf_url: string | null;
+    latex_url: string | null;
+    html_url: string | null;
+    docx_url: string | null;
+    sequence_id: string | null;
+    chapter_id: string;
+    chapter_title: string;
+    level_id: string;
+    level_label: string;
+    level_code: string;
+};
+
+export async function getResourcesForProf(): Promise<ResourceWithContext[]> {
+    const { data, error } = await supabaseServer
+        .from('resources')
+        .select(`
+            id, kind, label, status, pdf_url, latex_url, html_url, docx_url, sequence_id, chapter_id,
+            chapters(id, title, level_id, levels(id, label, code))
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) throw new Error(`Erreur chargement ressources: ${error.message}`);
+    if (!data) return [];
+
+    return (data as any[]).map(r => ({
+        id: r.id,
+        kind: r.kind,
+        label: r.label,
+        status: r.status,
+        pdf_url: r.pdf_url,
+        latex_url: r.latex_url,
+        html_url: r.html_url,
+        docx_url: r.docx_url,
+        sequence_id: r.sequence_id,
+        chapter_id: r.chapter_id,
+        chapter_title: r.chapters?.title ?? 'Inconnu',
+        level_id: r.chapters?.levels?.id ?? '',
+        level_label: r.chapters?.levels?.label ?? 'Inconnu',
+        level_code: r.chapters?.levels?.code ?? '',
+    }));
+}
+
+export async function deleteResourceFromProf(resourceId: string): Promise<void> {
+    if (!resourceId) throw new Error('ID requis');
+    const { error } = await supabaseServer.from('resources').delete().eq('id', resourceId);
+    if (error) throw new Error(`Erreur suppression: ${error.message}`);
+    logAdminAction({ action: 'delete_resource', targetType: 'resource', targetId: resourceId, success: true }).catch(() => {});
+    revalidatePath('/prof');
+    revalidatePath('/');
+}
+
+export async function getSignedUploadUrlForProf(path: string) {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) throw new Error('Bucket non configuré');
+    const { data, error } = await supabaseServer.storage.from(bucketName).createSignedUploadUrl(path);
+    if (error) throw new Error(`Erreur URL signée: ${error.message}`);
+    return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+}
+
+export async function createResourceEntryForProf(params: {
+    chapterId: string;
+    kind: string;
+    storagePath: string;
+    label?: string;
+}): Promise<{ id: string }> {
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+    if (!bucketName) throw new Error('Bucket non configuré');
+
+    const { chapterId, kind, storagePath, label } = params;
+    const { data: { publicUrl } } = supabaseServer.storage.from(bucketName).getPublicUrl(storagePath);
+
+    const payload: Record<string, string | null> = {
+        chapter_id: chapterId,
+        kind,
+        status: 'draft',
+        label: label || null,
+    };
+
+    const lower = storagePath.toLowerCase();
+    if (kind === 'interactif' || lower.endsWith('.html')) {
+        payload.html_url = publicUrl;
+    } else if (lower.endsWith('.tex')) {
+        payload.latex_url = publicUrl;
+    } else if (lower.endsWith('.docx')) {
+        payload.docx_url = publicUrl;
+    } else {
+        payload.pdf_url = publicUrl;
+    }
+
+    const { data, error } = await supabaseServer.from('resources').insert([payload]).select('id').single();
+    if (error) throw new Error(`Erreur création ressource: ${error.message}`);
+    revalidatePath('/prof');
+    return { id: (data as any).id };
+}
+
+export async function createResourceEntryFromUrl(params: {
+    chapterId: string;
+    kind: string;
+    url: string;
+    label?: string;
+}): Promise<{ id: string }> {
+    const { chapterId, kind, url, label } = params;
+    if (!chapterId || !kind || !url) throw new Error('Données manquantes');
+
+    const payload: Record<string, string | null> = {
+        chapter_id: chapterId,
+        kind,
+        status: 'draft',
+        label: label || null,
+    };
+
+    const lower = url.toLowerCase();
+    if (kind === 'interactif' || lower.endsWith('.html')) {
+        payload.html_url = url;
+    } else if (lower.endsWith('.tex')) {
+        payload.latex_url = url;
+    } else if (lower.endsWith('.docx')) {
+        payload.docx_url = url;
+    } else {
+        payload.pdf_url = url;
+    }
+
+    const { data, error } = await supabaseServer.from('resources').insert([payload]).select('id').single();
+    if (error) throw new Error(`Erreur création ressource: ${error.message}`);
+    revalidatePath('/prof');
+    return { id: (data as any).id };
+}
+
+// ─────────────────────────────────────────────────────────────
+// GESTION DU CURRICULUM (niveaux + chapitres)
+// ─────────────────────────────────────────────────────────────
+
+export async function createLevelFromProf(params: {
+    label: string;
+    code: string;
+    position?: number;
+}): Promise<{ id: string; label: string; code: string; position: number }> {
+    const { label, code, position } = params;
+    if (!label?.trim() || !code?.trim()) throw new Error('Label et code sont obligatoires');
+
+    const { data, error } = await supabaseServer
+        .from('levels')
+        .insert([{ label: label.trim(), code: code.trim().toUpperCase(), position: position ?? 99 }])
+        .select()
+        .single();
+
+    if (error) throw new Error(`Erreur création niveau: ${error.message}`);
+    revalidatePath('/prof');
+    revalidatePath('/admin');
+    return data as any;
+}
+
+export async function updateLevelFromProf(params: {
+    id: string;
+    label: string;
+    code: string;
+    position?: number;
+}): Promise<void> {
+    const { id, label, code, position } = params;
+    if (!id || !label?.trim() || !code?.trim()) throw new Error('ID, label et code sont obligatoires');
+
+    const { error } = await supabaseServer
+        .from('levels')
+        .update({ label: label.trim(), code: code.trim().toUpperCase(), position: position ?? 99 })
+        .eq('id', id);
+
+    if (error) throw new Error(`Erreur mise à jour niveau: ${error.message}`);
+    revalidatePath('/prof');
+    revalidatePath('/admin');
+}
+
+export async function deleteLevelFromProf(levelId: string): Promise<void> {
+    if (!levelId) throw new Error('ID requis');
+    const { error } = await supabaseServer.from('levels').delete().eq('id', levelId);
+    if (error) throw new Error(`Erreur suppression niveau: ${error.message}`);
+    revalidatePath('/prof');
+    revalidatePath('/admin');
+}
+
+export async function updateChapterFromProf(params: {
+    id: string;
+    title: string;
+    code?: string;
+    position?: number;
+    published?: boolean;
+}): Promise<void> {
+    const { id, title, code, position, published } = params;
+    if (!id || !title?.trim()) throw new Error('ID et titre sont obligatoires');
+
+    const slugCode = code?.trim() || title.trim()
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 50);
+
+    const { error } = await supabaseServer
+        .from('chapters')
+        .update({ title: title.trim(), code: slugCode, position: position ?? 99, published: published ?? false })
+        .eq('id', id);
+
+    if (error) throw new Error(`Erreur mise à jour chapitre: ${error.message}`);
+    revalidatePath('/prof');
+    revalidatePath('/admin');
+}
+
+export async function deleteChapterFromProf(chapterId: string): Promise<void> {
+    if (!chapterId) throw new Error('ID requis');
+    const { error } = await supabaseServer.from('chapters').delete().eq('id', chapterId);
+    if (error) throw new Error(`Erreur suppression chapitre: ${error.message}`);
+    revalidatePath('/prof');
+    revalidatePath('/admin');
+}

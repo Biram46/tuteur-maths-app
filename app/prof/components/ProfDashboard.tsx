@@ -6,6 +6,8 @@ import type { ProfContext, ProfResourceType } from '@/lib/prof-types';
 import ContextSelector from './ContextSelector';
 import SequenceGrid from './SequenceGrid';
 import ProfChatbot from './ProfChatbot';
+import ResourceManager from './ResourceManager';
+import CurriculumManager from './CurriculumManager';
 import { getOrCreateSequence } from '../actions';
 
 interface ProfDashboardProps {
@@ -19,7 +21,7 @@ interface ProfDashboardProps {
     teacherId: string;
 }
 
-type ViewMode = 'grid' | 'chat';
+type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum';
 
 export default function ProfDashboard({ initialData, teacherId }: ProfDashboardProps) {
     const { levels, chapters, resources, sequences, chatSessions } = initialData;
@@ -95,7 +97,7 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
     return (
         <div className="space-y-8">
             {/* ── MODE SWITCH ────────────────────────────────────── */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
                 <div className="inline-flex bg-white/[0.03] border border-white/10 rounded-xl p-1">
                     <button
                         onClick={() => setViewMode('grid')}
@@ -116,6 +118,26 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                         }`}
                     >
                         💬 Chatbot
+                    </button>
+                    <button
+                        onClick={() => setViewMode('resources')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                            viewMode === 'resources'
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        📚 Ressources
+                    </button>
+                    <button
+                        onClick={() => setViewMode('curriculum')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                            viewMode === 'curriculum'
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        🗂️ Curriculum
                     </button>
                 </div>
 
@@ -205,6 +227,24 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                     <p className="text-slate-500 text-sm">
                         Sélectionnez une classe, un chapitre et un type de ressource pour commencer
                     </p>
+                </div>
+            )}
+
+            {/* ── VUE RESSOURCES ────────────────────────────────── */}
+            {viewMode === 'resources' && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                    <ResourceManager levels={levels} chapters={chapters} />
+                </div>
+            )}
+
+            {/* ── VUE CURRICULUM ────────────────────────────────── */}
+            {viewMode === 'curriculum' && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-white">Curriculum</h2>
+                        <p className="text-xs text-slate-500 mt-0.5">Gérez les niveaux et chapitres visibles dans l'application</p>
+                    </div>
+                    <CurriculumManager initialLevels={levels} initialChapters={chapters} />
                 </div>
             )}
         </div>

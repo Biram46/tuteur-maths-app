@@ -137,7 +137,13 @@ export default async function AdminPage() {
             </header>
 
             <main className="relative z-20 max-w-[1600px] mx-auto p-12 h-[calc(100vh-100px)] flex flex-col gap-8">
-                <AdminDashboard initialData={{ ...data, eamSujets }} />
+                <AdminDashboard initialData={{
+                        levels: data.levels,
+                        chapters: data.chapters,
+                        quizResults: data.quizResults,
+                        qcmResults: data.qcmResults,
+                        eamSujets,
+                    }} />
             </main>
 
             {/* Futuristic Footer Overlay */}
