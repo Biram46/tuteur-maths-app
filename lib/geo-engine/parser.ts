@@ -60,7 +60,7 @@ export function parseGeoScene(raw: string): GeoScene {
     // Normaliser les séparateurs + normaliser "demi droite" → "demi-droite"
     const sections = raw
         .replace(/\|/g, '\n')
-        .replace(/demi\s+droite\s*:/gi, 'demi-droite:')
+        .replace(/demi[\s_]droite\s*:/gi, 'demi-droite:')
         .split('\n')
         .map(s => s.trim())
         .filter(s => s.length > 0);

@@ -220,7 +220,7 @@ point: A, [x], [y]
 point: B, [x], [y]
 [...autres points...]
 segment: AB
-[...ou: droite: AB | demi-droite: AB | cercle: O, r | triangle: A, B, C | vecteur: AB | angle: A,B,C | angle_droit: A,B,C]
+[...ou: droite: AB | demi_droite: AB | cercle: O, r | triangle: A, B, C | vecteur: AB | angle: A,B,C | angle_droit: A,B,C]
 parallele: P, AB
 perpendiculaire: P, AB
 compute: distance AB
@@ -240,8 +240,8 @@ Puis explique la figure pédagogiquement.
 ⚠️ DROITE / DEMI-DROITE / SEGMENT :
   - segment: AB → trace [AB] (entre les deux points)
   - droite: AB → trace la droite (AB) (prolongée des deux côtés)
-  - demi-droite: AB → trace la demi-droite [AB) (depuis A, passe par B, prolongée)
-  ⛔ Si l'élève demande une demi-droite "[OC)", utilise demi-droite: OC — pas juste les points.
+  - demi_droite: AB → trace la demi-droite [AB) (depuis A, passe par B, prolongée)
+  ⛔ Si l'élève demande une demi-droite "[OC)", utilise demi_droite: OC — pas juste les points.
 
 ⚠️ MÉDIATRICE d'un segment [AB] :
   mediatrice: A, B [, label]
