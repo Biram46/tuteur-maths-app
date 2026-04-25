@@ -57,9 +57,10 @@ function parseFrac(s: string): Frac {
  *   geo\ntitle: ...\npoint: A,0,0\n...
  */
 export function parseGeoScene(raw: string): GeoScene {
-    // Normaliser les séparateurs
+    // Normaliser les séparateurs + normaliser "demi droite" → "demi-droite"
     const sections = raw
         .replace(/\|/g, '\n')
+        .replace(/demi\s+droite\s*:/gi, 'demi-droite:')
         .split('\n')
         .map(s => s.trim())
         .filter(s => s.length > 0);
@@ -358,11 +359,12 @@ export function parseGeoScene(raw: string): GeoScene {
 
             case 'demi-droite':
             case 'ray': {
-                let a: string, b: string;
-                const namePart = parts[0].toUpperCase().trim();
-                if (/^[A-Z]{2}$/.test(namePart)) { a = namePart[0]; b = namePart[1]; }
-                else { a = namePart; b = (parts[1] || '').toUpperCase().trim(); }
-                objects.push({ kind: 'line', id: uid('ray'), type: 'ray', through: [a, b], label: `[${a}${b})`, color: parts[2] });
+                // Robuste : "[OC)", "O, C", "OC", "O C" → a='O', b='C'
+                const cleanRay = rest.replace(/[\[\]()]/g, '').toUpperCase();
+                const lettersRay = cleanRay.match(/[A-Z]/g) || [];
+                const a = lettersRay[0] || '';
+                const b = lettersRay[1] || '';
+                if (a && b) objects.push({ kind: 'line', id: uid('ray'), type: 'ray', through: [a, b], label: `[${a}${b})` });
                 break;
             }
 
