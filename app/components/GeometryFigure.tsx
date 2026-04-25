@@ -457,9 +457,8 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
             x1 = toSvgX(A.x); y1 = toSvgY(A.y);
             x2 = toSvgX(B.x); y2 = toSvgY(B.y);
         }
-        // Position du label : près du 3/4 entre les deux points de référence
-        const labelX = toSvgX(A.x + (B.x - A.x) * 0.75);
-        const labelY = toSvgY(A.y + (B.y - A.y) * 0.75);
+        const labelX = toSvgX(A.x + (B.x - A.x) * 0.5);
+        const labelY = toSvgY(A.y + (B.y - A.y) * 0.5);
 
         return (
             <g key={`line${i}`}>

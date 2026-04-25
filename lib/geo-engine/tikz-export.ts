@@ -144,7 +144,7 @@ export function exportTikzSnippet(scene: GeoScene): string {
                 L.push(`  \\draw[${style}${color}] (${id1}) -- (${id2});`);
             }
             if (line.label) {
-                L.push(`  \\node[${color}] at ($(${id2}) + (0.2,0.2)$) {$${line.label}$};`);
+                L.push(`  \\node[${color}, above right] at ($(${id1})!0.5!(${id2})$) {$${line.label}$};`);
             }
         });
     }
