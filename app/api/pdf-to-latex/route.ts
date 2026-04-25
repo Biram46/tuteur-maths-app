@@ -18,24 +18,17 @@ RÈGLES ABSOLUES :
 7. N'inclus JAMAIS le préambule (\\documentclass, \\usepackage, \\begin{document}, etc.)
 8. Retourne UNIQUEMENT le code LaTeX brut — zéro markdown, zéro explication, zéro \`\`\`latex`;
 
-const PREAMBLE = `\\documentclass[12pt,a4paper]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage[french]{babel}
-\\usepackage{amsmath,amssymb,amsthm,mathtools}
-\\usepackage{geometry}
-\\usepackage[most]{tcolorbox}
-\\usepackage{array,booktabs,multirow}
-\\usepackage{enumitem}
-\\usepackage{xcolor}
-\\geometry{margin=2cm}
+export const maxDuration = 60; // Vercel Pro : 60s max par requête
 
-\\begin{document}
-`;
+function stripPreamble(latex: string): string {
+    const match = latex.match(/\\begin\{document\}([\s\S]*?)(?:\\end\{document\})?$/);
+    if (match) return match[1].trim();
+    return latex.replace(/^```latex\s*/i, '').replace(/```\s*$/, '').trim();
+}
 
-async function extractPage(imageBase64: string, mimeType: string): Promise<string> {
+async function claudeVision(imageBase64: string, mimeType: string, userText: string): Promise<string> {
     const response = await client.messages.create({
-        model: 'claude-opus-4-7',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: [
             {
@@ -56,10 +49,7 @@ async function extractPage(imageBase64: string, mimeType: string): Promise<strin
                             data: imageBase64,
                         },
                     },
-                    {
-                        type: 'text',
-                        text: 'Transcris intégralement cette page en code LaTeX (corps uniquement, sans préambule).',
-                    },
+                    { type: 'text', text: userText },
                 ],
             },
         ],
@@ -67,32 +57,33 @@ async function extractPage(imageBase64: string, mimeType: string): Promise<strin
     return (response.content[0] as Anthropic.TextBlock).text.trim();
 }
 
-async function verifyPage(imageBase64: string, mimeType: string, draft: string): Promise<string> {
-    const response = await client.messages.create({
-        model: 'claude-opus-4-7',
-        max_tokens: 4096,
-        system: [
-            {
-                type: 'text',
-                text: STATIC_SYSTEM,
-                cache_control: { type: 'ephemeral' },
-            } as any,
-        ],
-        messages: [
-            {
-                role: 'user',
-                content: [
-                    {
-                        type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-                            data: imageBase64,
-                        },
-                    },
-                    {
-                        type: 'text',
-                        text: `Voici la transcription LaTeX de cette page :
+// L'API traite UNE SEULE page à la fois (2 passes) pour rester sous les limites de timeout Vercel.
+// Le client itère les pages et appelle cet endpoint N fois.
+export async function POST(request: NextRequest) {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+
+    try {
+        const { image } = await request.json() as {
+            image: { base64: string; mimeType: string };
+        };
+
+        if (!image?.base64) {
+            return NextResponse.json({ error: 'Aucune image reçue' }, { status: 400 });
+        }
+
+        // Passe 1 — extraction fidèle
+        const draft = await claudeVision(
+            image.base64,
+            image.mimeType,
+            'Transcris intégralement cette page en code LaTeX (corps uniquement, sans préambule).'
+        );
+
+        // Passe 2 — vérification et correction
+        const verified = await claudeVision(
+            image.base64,
+            image.mimeType,
+            `Voici la transcription LaTeX de cette page :
 
 ${draft}
 
@@ -102,50 +93,10 @@ Compare ligne par ligne avec l'image. Corrige TOUTES les erreurs :
 - environnements LaTeX incorrects
 - mise en forme différente de l'image
 
-Retourne UNIQUEMENT le code LaTeX corrigé et complet (corps uniquement, sans préambule).`,
-                    },
-                ],
-            },
-        ],
-    });
-    return (response.content[0] as Anthropic.TextBlock).text.trim();
-}
+Retourne UNIQUEMENT le code LaTeX corrigé et complet (corps uniquement, sans préambule).`
+        );
 
-function stripPreamble(latex: string): string {
-    // Enlève tout ce qui est avant \begin{document} si Claude l'a quand même inclus
-    const match = latex.match(/\\begin\{document\}([\s\S]*?)(?:\\end\{document\})?$/);
-    if (match) return match[1].trim();
-    // Enlève les blocs ```latex ... ``` si présents
-    return latex.replace(/^```latex\s*/i, '').replace(/```\s*$/, '').trim();
-}
-
-export async function POST(request: NextRequest) {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
-
-    try {
-        const { images } = await request.json() as {
-            images: { base64: string; mimeType: string }[];
-        };
-
-        if (!images?.length) {
-            return NextResponse.json({ error: 'Aucune image reçue' }, { status: 400 });
-        }
-
-        const MAX_PAGES = 8;
-        const pages = images.slice(0, MAX_PAGES);
-        const pageContents: string[] = [];
-
-        for (const img of pages) {
-            const draft = await extractPage(img.base64, img.mimeType);
-            const verified = await verifyPage(img.base64, img.mimeType, draft);
-            pageContents.push(stripPreamble(verified));
-        }
-
-        const body = pageContents.join('\n\n\\newpage\n\n');
-        const latex = `${PREAMBLE}\n${body}\n\n\\end{document}`;
-
-        return NextResponse.json({ latex, pages: pages.length });
+        return NextResponse.json({ latex: stripPreamble(verified) });
     } catch (e: any) {
         console.error('pdf-to-latex error:', e);
         return NextResponse.json({ error: e.message || 'Erreur serveur' }, { status: 500 });
