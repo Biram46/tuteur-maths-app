@@ -36,6 +36,8 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const [pendingFileContent, setPendingFileContent] = useState<string | null>(null);
     const [pendingFileName, setPendingFileName] = useState<string | null>(null);
     const [aiProvider, setAiProvider] = useState<string | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef<any>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -326,6 +328,42 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             }
         }
     }, [teacherId]);
+
+    // ── Dictée vocale (Web Speech API) ──────────────────────
+    const handleMic = useCallback(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('La dictée vocale n\'est pas supportée par ce navigateur. Utilisez Chrome ou Edge.');
+            return;
+        }
+
+        if (isRecording) {
+            recognitionRef.current?.stop();
+            setIsRecording(false);
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'fr-FR';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+
+        recognition.onresult = (e: any) => {
+            const transcript = Array.from(e.results)
+                .slice(e.resultIndex)
+                .map((r: any) => r[0].transcript)
+                .join(' ');
+            setInput(prev => (prev ? prev + ' ' : '') + transcript);
+            textareaRef.current?.focus();
+        };
+
+        recognition.onerror = () => { setIsRecording(false); };
+        recognition.onend = () => { setIsRecording(false); };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsRecording(true);
+    }, [isRecording]);
 
     // ── Sauvegarder le brouillon ─────────────────────────────
     const handleSaveDraft = useCallback(async () => {
@@ -1321,6 +1359,17 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                                </svg>
+                            </button>
+                            {/* Dictée vocale */}
+                            <button
+                                type="button"
+                                onClick={handleMic}
+                                className={`p-2 rounded-full transition-all ${isRecording ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-slate-500 hover:text-indigo-400'}`}
+                                title={isRecording ? 'Arrêter la dictée' : 'Dicter en français'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                                 </svg>
                             </button>
                         </div>
