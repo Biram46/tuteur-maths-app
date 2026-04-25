@@ -20,6 +20,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { GeoCanvas } from '@/app/components/GeometryFigure';
 import type { GeoScene } from '@/lib/geo-engine/types';
 import { parseGeoScene } from '@/lib/geo-engine/parser';
+import { exportTikzDocument } from '@/lib/geo-engine/tikz-export';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -217,6 +218,20 @@ export default function GeometrePage() {
     const [showHelp, setShowHelp] = useState(false);
     const geoCanvasWrapperRef = useRef<HTMLDivElement>(null);
 
+    const exportTikz = useCallback(() => {
+        const tex = exportTikzDocument(scene);
+        const name = scene.title
+            ? scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+            : 'figure';
+        const blob = new Blob([tex], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.tex`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [scene]);
+
     const downloadFigure = useCallback(() => {
         const svg = geoCanvasWrapperRef.current?.querySelector('svg');
         if (!svg) return;
@@ -384,6 +399,17 @@ export default function GeometrePage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    <button onClick={exportTikz} title="Exporter en LaTeX/TikZ"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono transition-all"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.7)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#c4b5fd'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(167,139,250,0.5)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.7)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={13} height={13}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        TikZ
+                    </button>
+
                     <button onClick={downloadFigure} title="Télécharger en PNG"
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono transition-all"
                         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.7)' }}
