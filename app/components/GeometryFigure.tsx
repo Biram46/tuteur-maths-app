@@ -636,8 +636,8 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 <path d={`M ${x1},${y1} A ${R},${R} 0 0,1 ${x2},${y2}`}
                     fill="none" stroke={color} strokeWidth={1.5} />
                 {obj.label && (
-                    <text x={lx} y={ly} textAnchor="middle" fontSize={10} fill={color} fontFamily="Inter,sans-serif">
-                        {obj.label}
+                    <text x={lx} y={ly} textAnchor="middle" fontSize={11} fill={color} fontFamily="Inter,sans-serif">
+                        {obj.label.replace(/\\widehat\{([^}]+)\}/g, '∠$1').replace(/\\hat\{([^}]+)\}/g, '∠$1')}
                     </text>
                 )}
             </g>
