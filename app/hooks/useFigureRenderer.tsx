@@ -510,6 +510,24 @@ export function useFigureRenderer() {
                             const m = s.match(/\[([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\]/);
                             if (m) objects.push({ kind: 'segment', id: `seg${i}`, from: m[1], to: m[2] });
                         });
+                    } else if (low.startsWith('vecteur:') || low.startsWith('vector:') || low.startsWith('vecteurs:') || low.startsWith('vectors:')) {
+                        // Format: vecteur: AB, u  ou  vecteur: A(0,0)B(3,1), u
+                        const vecContent = sec.substring(sec.indexOf(':') + 1).trim();
+                        vecContent.split(';').forEach((vPart, i) => {
+                            const part = vPart.trim();
+                            // Chercher 2 lettres majuscules consécutives (ex: AB, CD)
+                            const letterPairs = part.match(/\b([A-Z][A-Z0-9]?)\s*[,\s]\s*([A-Z][A-Z0-9]?)\b/);
+                            // Fallback: toutes les majuscules dans l'ordre
+                            const letters = part.replace(/[^A-Z0-9]/g, '').match(/[A-Z]/g) || [];
+                            const from = letterPairs ? letterPairs[1] : letters[0];
+                            const to = letterPairs ? letterPairs[2] : letters[1];
+                            // Nom du vecteur : seulement si 3 parties séparées par virgule (ex: A, B, u)
+                            const nameParts = part.split(',');
+                            const label = nameParts.length >= 3 ? nameParts[2]?.trim() || undefined : undefined;
+                            if (from && to) {
+                                objects.push({ kind: 'vector', id: `vec${i}`, from, to, label, color: '#6366f1' } as any);
+                            }
+                        });
                     } else if (low.startsWith('lines:')) {
                         sec.substring(sec.indexOf(':') + 1).split(',').forEach((l, i) => {
                             const m = l.trim().match(/\(([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\)/);

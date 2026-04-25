@@ -389,6 +389,19 @@ segments: [OA]
 - Angle droit au sommet S (petit carré affiché) : utiliser **strictement** 'angle_droit: P1, S, P2' (ex: triangle rectangle en A -> 'angle_droit: B, A, C')
 - Angle quelconque : 'angle: A, B, C' (ajoute un arc d'angle)
 
+⚠️ **FORMAT POUR LES VECTEURS :**
+- Pour tracer un vecteur $\overrightarrow{AB}$ de A vers B : 'vecteur: A, B'
+- Plusieurs vecteurs séparés par ';' : 'vecteur: A, B; C, D'
+- Les points DOIVENT être définis dans 'points:' AVANT la ligne 'vecteur:'
+- ⛔ JAMAIS de segments: [AB] pour un vecteur — utiliser uniquement 'vecteur: A, B'
+
+**EXEMPLE 5 — Vecteurs dans un repère :**
+@@@ figure
+type: coordinates
+points: A(0,0), B(3,1), C(1,0), D(2,3)
+vecteur: A, B; C, D
+@@@
+
 ⚠️ **FORMAT POUR LE CALCUL DU PÉRIMÈTRE :**
 - 'compute: perimetre ABC'  → calcule et affiche le périmètre du triangle ABC
 - 'compute: distance AB'    → calcule la longueur AB exacte
