@@ -419,7 +419,7 @@ export function parseGeoScene(raw: string): GeoScene {
                 // angle: A, B, C [, label]  →  angle ABC de sommet B
                 if (parts.length < 3) break;
                 const [p1, vertex, p2] = parts.slice(0, 3).map(p => p.toUpperCase().trim());
-                const label = parts[3] || `\\widehat{${p1}${vertex}${p2}}`;
+                const label = parts[3] || undefined;
                 const color = parts[4] || '#fbbf24';
                 objects.push({ kind: 'angle', id: uid('ang'), vertex, from: p1, to: p2, label, color });
                 break;
