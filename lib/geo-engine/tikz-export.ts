@@ -138,8 +138,10 @@ export function exportTikzSnippet(scene: GeoScene): string {
             const style = line.style === 'dashed' ? 'dashed, ' : line.style === 'dotted' ? 'dotted, ' : '';
             if (line.type === 'line') {
                 L.push(`  \\draw[${style}${color}, shorten >=-1.5cm, shorten <=-1.5cm] (${id1}) -- (${id2});`);
+            } else if (line.type === 'ray') {
+                L.push(`  \\draw[${style}${color}, ->, shorten >=-5cm] (${id1}) -- (${id2});`);
             } else {
-                L.push(`  \\draw[${style}${color}${line.type === 'ray' ? ', ->' : ''}] (${id1}) -- (${id2});`);
+                L.push(`  \\draw[${style}${color}] (${id1}) -- (${id2});`);
             }
             if (line.label) {
                 L.push(`  \\node[${color}] at ($(${id2}) + (0.2,0.2)$) {$${line.label}$};`);
