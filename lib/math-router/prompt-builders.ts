@@ -220,7 +220,7 @@ point: A, [x], [y]
 point: B, [x], [y]
 [...autres points...]
 segment: AB
-[...ou: droite: AB | cercle: O, r | triangle: A, B, C | vecteur: AB | angle: A,B,C | angle_droit: A,B,C]
+[...ou: droite: AB | demi-droite: AB | cercle: O, r | triangle: A, B, C | vecteur: AB | angle: A,B,C | angle_droit: A,B,C]
 parallele: P, AB
 perpendiculaire: P, AB
 compute: distance AB
@@ -236,6 +236,12 @@ Puis explique la figure pédagogiquement.
 ⚠️ NOTATION FRANÇAISE DES COORDONNÉES :
 - L'élève écrit souvent A(4; 5) avec un POINT-VIRGULE — interprète-le comme x=4, y=5.
 - Dans ton bloc geo, utilise TOUJOURS la virgule : point: A, 4, 5  (jamais de ; dans le bloc).
+
+⚠️ DROITE / DEMI-DROITE / SEGMENT :
+  - segment: AB → trace [AB] (entre les deux points)
+  - droite: AB → trace la droite (AB) (prolongée des deux côtés)
+  - demi-droite: AB → trace la demi-droite [AB) (depuis A, passe par B, prolongée)
+  ⛔ Si l'élève demande une demi-droite "[OC)", utilise demi-droite: OC — pas juste les points.
 
 ⚠️ MÉDIATRICE d'un segment [AB] :
   mediatrice: A, B [, label]
