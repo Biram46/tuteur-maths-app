@@ -84,7 +84,8 @@ export function exportTikzSnippet(scene: GeoScene): string {
     const lbls = scene.objects.filter(o => o.kind === 'label') as GeoLabel[];
 
     // ── Grille ──
-    if (scene.showGrid) {
+    const hasRepere = scene.repere === 'orthonormal' || scene.repere === 'orthogonal';
+    if (scene.showGrid !== false && hasRepere) {
         L.push(`  \\draw[gray!15, very thin, step=1] (${fmtN(domain.x[0])},${fmtN(domain.y[0])}) grid (${fmtN(domain.x[1])},${fmtN(domain.y[1])});`);
     }
 
