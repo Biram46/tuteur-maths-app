@@ -8,6 +8,7 @@ import SequenceGrid from './SequenceGrid';
 import ProfChatbot from './ProfChatbot';
 import ResourceManager from './ResourceManager';
 import CurriculumManager from './CurriculumManager';
+import PdfToLatex from './PdfToLatex';
 import { getOrCreateSequence } from '../actions';
 
 interface ProfDashboardProps {
@@ -21,7 +22,7 @@ interface ProfDashboardProps {
     teacherId: string;
 }
 
-type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum';
+type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter';
 
 export default function ProfDashboard({ initialData, teacherId }: ProfDashboardProps) {
     const { levels, chapters, resources, sequences, chatSessions } = initialData;
@@ -139,6 +140,16 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                     >
                         🗂️ Curriculum
                     </button>
+                    <button
+                        onClick={() => setViewMode('converter')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                            viewMode === 'converter'
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        🔄 Convertisseur
+                    </button>
                 </div>
 
                 {viewMode === 'chat' && profContext && (
@@ -234,6 +245,13 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
             {viewMode === 'resources' && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
                     <ResourceManager levels={levels} chapters={chapters} />
+                </div>
+            )}
+
+            {/* ── VUE CONVERTISSEUR ─────────────────────────────── */}
+            {viewMode === 'converter' && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                    <PdfToLatex />
                 </div>
             )}
 
