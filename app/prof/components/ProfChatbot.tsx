@@ -333,7 +333,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
     const handleMic = useCallback(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert('La dictée vocale n\'est pas supportée par ce navigateur. Utilisez Chrome ou Edge.');
+            alert('La dictée vocale nécessite Chrome ou Edge.');
             return;
         }
 
@@ -357,12 +357,23 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             textareaRef.current?.focus();
         };
 
-        recognition.onerror = () => { setIsRecording(false); };
+        recognition.onerror = (e: any) => {
+            setIsRecording(false);
+            if (e.error === 'not-allowed') {
+                alert('Microphone bloqué. Cliquez sur l\'icône 🔒 dans la barre d\'adresse Chrome → Microphone → Autoriser, puis rechargez la page.');
+            }
+        };
+
         recognition.onend = () => { setIsRecording(false); };
 
         recognitionRef.current = recognition;
-        recognition.start();
+        // setIsRecording AVANT start() pour garantir le rendu visuel immédiat
         setIsRecording(true);
+        try {
+            recognition.start();
+        } catch {
+            setIsRecording(false);
+        }
     }, [isRecording]);
 
     // ── Sauvegarder le brouillon ─────────────────────────────
