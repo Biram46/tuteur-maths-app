@@ -467,7 +467,7 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                     strokeDasharray={obj.style === 'dashed' ? '8,5' : obj.style === 'dotted' ? '2,4' : undefined}
                 />
                 {obj.label && (
-                    <text x={labelX + 8} y={labelY - 8} fontSize={12} fontWeight="bold"
+                    <text x={labelX + 6} y={labelY - 18} fontSize={12} fontWeight="bold"
                         fill={color} fontFamily="Inter,sans-serif"
                         style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
                         {obj.label}
