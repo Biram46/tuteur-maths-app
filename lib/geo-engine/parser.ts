@@ -69,7 +69,7 @@ export function parseGeoScene(raw: string): GeoScene {
     let domain: { x: [number, number]; y: [number, number] } | undefined;
     let repere: RepereType = 'none';
     let title = '';
-    let showGrid = false;
+    let showGrid: boolean | undefined = undefined;
     let showSteps = false;
     const computed: ComputedResult[] = [];
 
