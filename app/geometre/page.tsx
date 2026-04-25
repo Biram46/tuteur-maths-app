@@ -461,7 +461,7 @@ export default function GeometrePage() {
                 {/* Canvas */}
                 <div className="flex-1 relative">
                     <div ref={geoCanvasWrapperRef}>
-                        <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive />
+                        <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive onSceneChange={setScene} />
                     </div>
 
                     {/* Overlay "En attente" */}

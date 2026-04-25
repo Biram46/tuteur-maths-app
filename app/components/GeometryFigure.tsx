@@ -60,6 +60,7 @@ interface GeoCanvasProps {
     width: number;
     height: number;
     interactive?: boolean;
+    onSceneChange?: (scene: GeoScene) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min
 // ════════════════════════════════════════════════════════════════════════════
 //  GeoCanvas — moteur SVG interactif
 // ════════════════════════════════════════════════════════════════════════════
-export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanvasProps) {
+export function GeoCanvas({ scene, width, height, interactive = true, onSceneChange }: GeoCanvasProps) {
 
     // ── ID unique par instance (évite collision clipPath entre miniature et pop-up) ──
     const instanceId = useId().replace(/:/g, '_');
@@ -176,6 +177,23 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         return m;
     }, [scene]);
 
+    // ── Drag point ────────────────────────────────────────────────────────
+    const dragPointId = useRef<string | null>(null);
+    const dragCurrentPos = useRef<{ x: number; y: number } | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOverride, setDragOverride] = useState<Map<string, { x: number; y: number }>>(new Map());
+
+    // Fusionne pointMap + overrides de drag pour un rendu en temps réel
+    const effectivePointMap = useMemo(() => {
+        if (dragOverride.size === 0) return pointMap;
+        const m = new Map(pointMap);
+        dragOverride.forEach((pos, id) => {
+            const base = m.get(id);
+            if (base) m.set(id, { ...base, x: pos.x, y: pos.y });
+        });
+        return m;
+    }, [pointMap, dragOverride]);
+
     // ── Pan & Zoom ────────────────────────────────────────────────────────
     const isPanning = useRef(false);
     const panStart = useRef({ x: 0, y: 0, vp: viewport });
@@ -197,14 +215,50 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
     }, [interactive, toMathX, toMathY]);
 
     const onMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!interactive || !e.altKey) return;
-        isPanning.current = true;
-        panStart.current = { x: e.clientX, y: e.clientY, vp: viewport };
-    }, [interactive, viewport]);
+        if (!interactive) return;
+
+        // Alt+drag → pan
+        if (e.altKey) {
+            isPanning.current = true;
+            panStart.current = { x: e.clientX, y: e.clientY, vp: viewport };
+            return;
+        }
+
+        // Clic simple → tenter de saisir un point draggable
+        if (!onSceneChange) return;
+        const rect = svgRef.current!.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const HIT = 14; // rayon de détection en pixels
+        for (const obj of scene.objects) {
+            if (obj.kind !== 'point') continue;
+            const pt = obj as GeoPoint;
+            if (pt.fixed || pt.id.startsWith('_') || (pt.style as string) === 'none') continue;
+            const ep = effectivePointMap.get(pt.id) ?? pt;
+            const d = Math.sqrt((sx - toSvgX(ep.x)) ** 2 + (sy - toSvgY(ep.y)) ** 2);
+            if (d <= HIT) {
+                dragPointId.current = pt.id;
+                setIsDragging(true);
+                e.preventDefault();
+                return;
+            }
+        }
+    }, [interactive, viewport, scene, effectivePointMap, toSvgX, toSvgY, onSceneChange]);
 
     const onMouseMove = useCallback((e: React.MouseEvent) => {
+        if (dragPointId.current) {
+            const rect = svgRef.current!.getBoundingClientRect();
+            const nx = toMathX(e.clientX - rect.left);
+            const ny = toMathY(e.clientY - rect.top);
+            dragCurrentPos.current = { x: nx, y: ny };
+            setDragOverride(prev => {
+                const next = new Map(prev);
+                next.set(dragPointId.current!, { x: nx, y: ny });
+                return next;
+            });
+            return;
+        }
         if (!isPanning.current) return;
-        const rect = svgRef.current!.getBoundingClientRect();
         const dx = (e.clientX - panStart.current.x) / plotW * (panStart.current.vp.xMax - panStart.current.vp.xMin);
         const dy = (e.clientY - panStart.current.y) / plotH * (panStart.current.vp.yMax - panStart.current.vp.yMin);
         setViewport({
@@ -213,9 +267,26 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
             yMin: panStart.current.vp.yMin + dy,
             yMax: panStart.current.vp.yMax + dy,
         });
-    }, [plotW, plotH]);
+    }, [plotW, plotH, toMathX, toMathY]);
 
-    const onMouseUp = useCallback(() => { isPanning.current = false; }, []);
+    const onMouseUp = useCallback(() => {
+        if (dragPointId.current && dragCurrentPos.current && onSceneChange) {
+            const id = dragPointId.current;
+            const pos = dragCurrentPos.current;
+            onSceneChange({
+                ...scene,
+                objects: scene.objects.map(o => {
+                    if (o.kind !== 'point' || (o as GeoPoint).id !== id) return o;
+                    return { ...o, x: pos.x, y: pos.y };
+                }),
+            });
+        }
+        dragPointId.current = null;
+        dragCurrentPos.current = null;
+        setIsDragging(false);
+        setDragOverride(new Map());
+        isPanning.current = false;
+    }, [scene, onSceneChange]);
 
     // ── Grille et axes ────────────────────────────────────────────────────
     const renderGrid = () => {
@@ -234,8 +305,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         const xStep = niceStep(xRange);
         const yStep = niceStep(yRange);
 
-        // Lignes de grille (seulement si showGrid est explicitement activé)
-        if (scene.showGrid === true) {
+        if (scene.showGrid !== false) {
             for (let x = Math.ceil(viewport.xMin / xStep) * xStep; x <= viewport.xMax; x += xStep) {
                 const sx = toSvgX(x);
                 gridLines.push(<line key={`gx${x}`} x1={sx} y1={PAD.top} x2={sx} y2={PAD.top + plotH} stroke={PALETTE.grid} strokeWidth={1} />);
@@ -297,15 +367,18 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         // Points auxiliaires invisibles (utilisés par parallele:/perpendiculaire:)
         if ((obj.style as string) === 'none' || obj.id.startsWith('_')) return null;
 
-        const sx = toSvgX(obj.x);
-        const sy = toSvgY(obj.y);
+        // Utiliser la position effective (overridée pendant le drag)
+        const ep = effectivePointMap.get(obj.id) ?? obj;
+        const sx = toSvgX(ep.x);
+        const sy = toSvgY(ep.y);
         if (isNaN(sx) || isNaN(sy)) return null;
         const color = obj.color || PALETTE.point;
         const s = 5;
         const label = obj.label ?? obj.id;
+        const draggable = !obj.fixed && onSceneChange;
 
         return (
-            <g key={`pt${i}`}>
+            <g key={`pt${i}`} style={{ cursor: draggable ? 'grab' : 'default' }}>
                 {/* Croix française */}
                 {(obj.style ?? 'cross') === 'cross' ? (
                     <>
@@ -315,8 +388,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                 ) : (
                     <circle cx={sx} cy={sy} r={3.5} fill={color} />
                 )}
-                {/* Halo */}
-                <circle cx={sx} cy={sy} r={10} fill="transparent" stroke={color} strokeWidth={0} opacity={0.3} />
+                {/* Halo (zone de clic élargie) */}
+                <circle cx={sx} cy={sy} r={12} fill="transparent" stroke={color} strokeWidth={0} opacity={0.3} />
                 {/* Label */}
                 {label && (
                     <text x={sx + 8} y={sy - 6} fontSize={12} fontWeight="bold"
@@ -331,8 +404,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un segment ───────────────────────────────────────────────
     const renderSegment = (obj: GeoSegment, i: number) => {
-        const A = pointMap.get(obj.from);
-        const B = pointMap.get(obj.to);
+        const A = effectivePointMap.get(obj.from);
+        const B = effectivePointMap.get(obj.to);
         if (!A || !B) return null;
         if (isNaN(A.x) || isNaN(A.y) || isNaN(B.x) || isNaN(B.y)) return null;
         const color = obj.color || PALETTE.segment;
@@ -360,8 +433,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'une droite / demi-droite ────────────────────────────────
     const renderLine = (obj: GeoLine, i: number) => {
-        const A = pointMap.get(obj.through[0]);
-        const B = pointMap.get(obj.through[1]);
+        const A = effectivePointMap.get(obj.through[0]);
+        const B = effectivePointMap.get(obj.through[1]);
         if (!A || !B) return null;
         if (isNaN(A.x) || isNaN(A.y) || isNaN(B.x) || isNaN(B.y)) return null;
         const color = obj.color || PALETTE.line;
@@ -407,8 +480,8 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un vecteur (flèche) ──────────────────────────────────────
     const renderVector = (obj: GeoVector, i: number) => {
-        const A = pointMap.get(obj.from);
-        const B = pointMap.get(obj.to);
+        const A = effectivePointMap.get(obj.from);
+        const B = effectivePointMap.get(obj.to);
         if (!A || !B) return null;
         if (isNaN(A.x) || isNaN(A.y) || isNaN(B.x) || isNaN(B.y)) return null;
         const color = obj.color || PALETTE.vector;
@@ -478,7 +551,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un cercle ────────────────────────────────────────────────
     const renderCircle = (obj: GeoCircle, i: number) => {
-        const center = pointMap.get(obj.center);
+        const center = effectivePointMap.get(obj.center);
         if (!center) return null;
         const color = obj.color || PALETTE.circle;
 
@@ -488,7 +561,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
         if (obj.radiusValue !== undefined) {
             rSvg = obj.radiusValue * xScale;
         } else if (obj.radiusPoint) {
-            const rpt = pointMap.get(obj.radiusPoint);
+            const rpt = effectivePointMap.get(obj.radiusPoint);
             if (rpt) {
                 rSvg = Math.sqrt((rpt.x - center.x) ** 2 + (rpt.y - center.y) ** 2) * xScale;
             }
@@ -515,9 +588,9 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un angle ─────────────────────────────────────────────────
     const renderAngle = (obj: GeoAngle, i: number) => {
-        const V = pointMap.get(obj.vertex);
-        const P1 = pointMap.get(obj.from);
-        const P2 = pointMap.get(obj.to);
+        const V = effectivePointMap.get(obj.vertex);
+        const P1 = effectivePointMap.get(obj.from);
+        const P2 = effectivePointMap.get(obj.to);
         if (!V || !P1 || !P2) return null;
         const color = obj.color || PALETTE.angle;
         const sx = toSvgX(V.x), sy = toSvgY(V.y);
@@ -574,7 +647,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
 
     // ── Rendu d'un polygone ──────────────────────────────────────────────
     const renderPolygon = (obj: GeoPolygon, i: number) => {
-        const pts = obj.vertices.map(id => pointMap.get(id)).filter(Boolean) as GeoPoint[];
+        const pts = obj.vertices.map(id => effectivePointMap.get(id)).filter(Boolean) as GeoPoint[];
         if (pts.length < 3) return null;
         const stroke = obj.strokeColor || PALETTE.polygon;
         const fill = obj.fillColor || 'rgba(167,139,250,0.08)';
@@ -647,7 +720,7 @@ export function GeoCanvas({ scene, width, height, interactive = true }: GeoCanva
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
                 onMouseLeave={onMouseUp}
-                style={{ display: 'block', cursor: interactive ? 'crosshair' : 'default' }}>
+                style={{ display: 'block', cursor: isDragging ? 'grabbing' : interactive ? 'default' : 'default' }}>
                 {/* Fond */}
                 <rect width={width} height={height} fill={PALETTE.bg} />
                 {/* Zone de tracé */}
