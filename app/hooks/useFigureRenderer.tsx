@@ -513,11 +513,12 @@ export function useFigureRenderer() {
                                 pointMap[id] = { x, y };
                             }
                         });
-                    } else if (low.startsWith('segments:')) {
-                        const segs = sec.substring(sec.indexOf(':') + 1).match(/\[([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\]/g);
-                        segs?.forEach((s, i) => {
-                            const m = s.match(/\[([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\]/);
-                            if (m) objects.push({ kind: 'segment', id: `seg${i}`, from: m[1], to: m[2] });
+                    } else if (low.startsWith('segment:') || low.startsWith('seg:') || low.startsWith('segments:')) {
+                        const segStr = sec.substring(sec.indexOf(':') + 1);
+                        // Accepter: segment: AB, BC, CA  ET  segments: [AB][BC]
+                        const allPairs = [...segStr.matchAll(/\b([A-Z][A-Z0-9]?)([A-Z][A-Z0-9]?)\b/g)];
+                        allPairs.forEach((m, i) => {
+                            objects.push({ kind: 'segment', id: `seg_${objects.length}_${i}`, from: m[1], to: m[2] });
                         });
                     } else if (low.startsWith('vecteur:') || low.startsWith('vector:') || low.startsWith('vecteurs:') || low.startsWith('vectors:')) {
                         // Format: vecteur: AB, u  ou  vecteur: A(0,0)B(3,1), u
