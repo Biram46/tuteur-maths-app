@@ -1077,7 +1077,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {currentContent && (
+                    {currentContent && !context.free_mode && (
                         <>
                             <button
                                 onClick={() => setShowPreview(!showPreview)}
@@ -1120,7 +1120,7 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
             {/* ── ZONE PRINCIPALE ────────────────────────────── */}
             <div className="flex-1 overflow-hidden flex">
                 {/* Chat messages */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${showPreview ? 'w-2/5' : 'w-full'}`}>
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${showPreview && !context.free_mode ? 'w-2/5' : 'w-full'}`}>
                     <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 text-center">

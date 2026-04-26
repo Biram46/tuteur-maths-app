@@ -181,34 +181,29 @@ export function parseGeoScene(raw: string): GeoScene {
 
             case 'segment':
             case 'seg': {
-                // Stratégie 1 : 2 lettres majuscules consécutives (cas le plus fiable)
-                // Stratégie 2 : 2 lettres séparées par des espaces/virgules/parenthèses
-                // Stratégie 3 : fallback — extraire les 2 premières lettres après nettoyage LaTeX
                 const cleanRest = rest
-                    .replace(/\$\$?/g, '')                          // supprimer $
-                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')            // supprimer \commande{
-                    .replace(/[{}]/g, ' ')                          // supprimer accolades
-                    .replace(/\[|\]/g, ' ')                         // supprimer crochets
+                    .replace(/\$\$?/g, '')
+                    .replace(/\\[a-zA-Z]+\s*\{?/g, ' ')
+                    .replace(/[{}]/g, ' ')
+                    .replace(/\[|\]/g, ' ')
                     .replace(/VEC|SEG|VECTOR|SEGMENT/gi, ' ');
-                // Chercher d'abord 2 lettres MAJ consécutives (AB, BC...)
-                const twoLettersMatch = cleanRest.match(/\b([A-Z])([A-Z])\b/);
-                let a: string, b: string;
-                if (twoLettersMatch) {
-                    a = twoLettersMatch[1];
-                    b = twoLettersMatch[2];
-                } else {
-                    // Fallback : extraire les 2 premières lettres MAJ isolées
-                    const letters = (cleanRest.match(/[A-Z]/g) || []).slice(0, 2);
-                    a = letters[0] || '';
-                    b = letters[1] || '';
-                }
                 let color: string | undefined;
                 if (parts.length > 1) {
                     const possibleColors = parts.filter(p => /^#/.test(p) || /^(rouge|bleu|vert|orange|violet|rose|noir|blanc|gris|jaune|cyan|magenta|red|blue|green|yellow|purple|pink|black|white|gray|grey)$/i.test(p));
                     if (possibleColors.length > 0) color = possibleColors[possibleColors.length - 1];
                 }
-                if (a && b) {
-                    objects.push({ kind: 'segment', id: uid('seg'), from: a, to: b, color });
+                // Extraire TOUTES les paires de lettres MAJ sur la ligne (AB, BC, AI, BJ...)
+                const allPairs = [...cleanRest.matchAll(/\b([A-Z])([A-Z])\b/g)];
+                if (allPairs.length > 0) {
+                    for (const m of allPairs) {
+                        objects.push({ kind: 'segment', id: uid('seg'), from: m[1], to: m[2], color });
+                    }
+                } else {
+                    // Fallback : 2 premières lettres MAJ isolées
+                    const letters = (cleanRest.match(/[A-Z]/g) || []).slice(0, 2);
+                    if (letters[0] && letters[1]) {
+                        objects.push({ kind: 'segment', id: uid('seg'), from: letters[0], to: letters[1], color });
+                    }
                 }
                 break;
             }
