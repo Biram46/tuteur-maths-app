@@ -249,6 +249,14 @@ Puis explique la figure pédagogiquement.
   ⛔ N'utilise PAS perpendiculaire: + point: M séparément — utilise mediatrice:.
   ⚠️ IMPORTANT : Si l'élève demande les médiatrices d'un triangle, TU dois aussi déclarer le triangle (triangle: A, B, C).
 
+⚠️ HAUTEUR d'un triangle (pied H de la perpendiculaire) :
+  hauteur: A, B, C   → hauteur issue de A sur [BC] (calcule H, trace [AH], angle droit en H)
+  ⛔ N'utilise PAS perpendiculaire: + point: H séparément — utilise hauteur:.
+
+⚠️ MÉDIANE d'un triangle :
+  médiane: B, A, C   → médiane issue de B vers le milieu M de [AC] (calcule M, trace [BM])
+  ⛔ N'utilise PAS point: M puis segment: B,M séparément — utilise médiane:.
+
 ⚠️ RECTANGLE ET CARRÉ :
   - Un "rectangle ABCD", "carré ABCD", "carré de côté 5" n'a PAS de commande native.
   - Tu DOIS déclarer les 4 sommets avec les BONNES coordonnées : point: A,x,y puis B, C, D.

@@ -709,6 +709,86 @@ export function parseGeoScene(raw: string): GeoScene {
             }
 
 
+            case 'hauteur':
+            case 'altitude':
+            case 'height': {
+                // hauteur: A, B, C  →  pied H de la hauteur issue de A sur [BC]
+                // hauteur: A, BC    →  même chose (BC comme paire de lettres)
+                if (parts.length < 2) break;
+                const altFrom = parts[0].toUpperCase().trim();
+                let altB: string, altC: string;
+                if (parts.length === 2 && /^[A-Z]{2}$/.test(parts[1].toUpperCase().trim())) {
+                    altB = parts[1][0].toUpperCase();
+                    altC = parts[1][1].toUpperCase();
+                } else if (parts.length >= 3) {
+                    altB = parts[1].toUpperCase().trim();
+                    altC = parts[2].toUpperCase().trim();
+                } else break;
+
+                const pAlt = pointMap.get(altFrom);
+                const pAltB = pointMap.get(altB);
+                const pAltC = pointMap.get(altC);
+                if (!pAlt || !pAltB || !pAltC) { console.warn('[geo] hauteur: points manquants'); break; }
+
+                const altDx = pAltC.x - pAltB.x, altDy = pAltC.y - pAltB.y;
+                const altD2 = altDx * altDx + altDy * altDy;
+                if (altD2 < 1e-12) break;
+                const altT = ((pAlt.x - pAltB.x) * altDx + (pAlt.y - pAltB.y) * altDy) / altD2;
+                const footX = pAltB.x + altT * altDx;
+                const footY = pAltB.y + altT * altDy;
+
+                const footId = `_H_${altFrom}${altB}${altC}`;
+                if (!pointMap.has(footId)) {
+                    pointMap.set(footId, { x: footX, y: footY });
+                    const coincides = Math.abs(footX - pAlt.x) < 1e-9 && Math.abs(footY - pAlt.y) < 1e-9;
+                    objects.push({ kind: 'point', id: footId, x: footX, y: footY, style: coincides ? 'none' as any : 'cross', label: coincides ? undefined : 'H', color: '#34d399' });
+                }
+                // Segment de la hauteur
+                objects.push({ kind: 'segment', id: uid('seg'), from: altFrom, to: footId, color: '#34d399' });
+                // Point directionnel pour l'angle droit (direction BC depuis H)
+                const altRefLen = Math.sqrt(altD2);
+                const altDirId = `_altdir_${altFrom}${altB}${altC}`;
+                if (!pointMap.has(altDirId)) {
+                    const dp = { x: footX + altDx / altRefLen, y: footY + altDy / altRefLen };
+                    pointMap.set(altDirId, dp);
+                    objects.push({ kind: 'point', id: altDirId, x: dp.x, y: dp.y, style: 'none' as any });
+                }
+                objects.push({ kind: 'angle', id: uid('ang'), vertex: footId, from: altDirId, to: altFrom, label: '90°', value: 90, square: true, color: '#34d399' });
+                break;
+            }
+
+            case 'mediane':
+            case 'médiane':
+            case 'median': {
+                // médiane: B, A, C  →  segment de B vers le milieu M de [AC]
+                // médiane: B, AC    →  même chose
+                if (parts.length < 2) break;
+                const medFrom = parts[0].toUpperCase().trim();
+                let medA: string, medC: string;
+                if (parts.length === 2 && /^[A-Z]{2}$/.test(parts[1].toUpperCase().trim())) {
+                    medA = parts[1][0].toUpperCase();
+                    medC = parts[1][1].toUpperCase();
+                } else if (parts.length >= 3) {
+                    medA = parts[1].toUpperCase().trim();
+                    medC = parts[2].toUpperCase().trim();
+                } else break;
+
+                const pMedF = pointMap.get(medFrom);
+                const pMedA = pointMap.get(medA);
+                const pMedC = pointMap.get(medC);
+                if (!pMedF || !pMedA || !pMedC) { console.warn('[geo] médiane: points manquants'); break; }
+
+                const midX = (pMedA.x + pMedC.x) / 2;
+                const midY = (pMedA.y + pMedC.y) / 2;
+                const midId2 = `_M_${medA}${medC}`;
+                if (!pointMap.has(midId2)) {
+                    pointMap.set(midId2, { x: midX, y: midY });
+                    objects.push({ kind: 'point', id: midId2, x: midX, y: midY, style: 'cross', label: 'M', color: '#60a5fa' });
+                }
+                objects.push({ kind: 'segment', id: uid('seg'), from: medFrom, to: midId2, color: '#60a5fa' });
+                break;
+            }
+
             case 'compute':
             case 'calculer': {
                 // compute: distance AB  |  compute: aire ABC
