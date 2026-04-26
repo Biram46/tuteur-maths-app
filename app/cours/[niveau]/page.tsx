@@ -43,11 +43,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             'cours maths lycée',
             'bac maths',
         ],
-        alternates: { canonical: `https://aimaths.fr/cours/${niveau}` },
+        alternates: { canonical: `https://aimaths.fr/cours/${encodeURIComponent(niveau)}` },
         openGraph: {
             title: `Cours Maths ${label} | Tuteur Maths`,
             description,
-            url: `https://aimaths.fr/cours/${niveau}`,
+            url: `https://aimaths.fr/cours/${encodeURIComponent(niveau)}`,
             type: 'website',
         },
     };
@@ -79,13 +79,13 @@ export default async function NiveauPage({ params }: Props) {
         '@type': 'ItemList',
         name: `Cours de Mathématiques ${levelData.label}`,
         description: `Chapitres de mathématiques pour la classe de ${levelData.label}`,
-        url: `https://aimaths.fr/cours/${niveau}`,
+        url: `https://aimaths.fr/cours/${encodeURIComponent(niveau)}`,
         numberOfItems: chapterList.length,
         itemListElement: chapterList.map((ch, i) => ({
             '@type': 'ListItem',
             position: i + 1,
             name: ch.title,
-            url: `https://aimaths.fr/cours/${niveau}/${ch.code}`,
+            url: `https://aimaths.fr/cours/${encodeURIComponent(niveau)}/${ch.code}`,
         })),
     };
 

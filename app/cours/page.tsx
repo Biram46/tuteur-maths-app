@@ -108,7 +108,7 @@ export default async function CoursIndexPage() {
                         return (
                             <Link
                                 key={level.id}
-                                href={`/cours/${level.code.toLowerCase()}`}
+                                href={`/cours/${encodeURIComponent(level.code.toLowerCase())}`}
                                 className="group block rounded-xl border border-slate-700/60 bg-slate-900/40 p-6 hover:border-cyan-500/50 hover:bg-slate-800/60 transition-all duration-200"
                             >
                                 <div className="flex items-start justify-between mb-3">
