@@ -262,6 +262,7 @@ export default function GeometrePage() {
 
     // ── 1. Écoute BroadcastChannel (IA → mise à jour en temps réel) ──────────
     const lastProcessedKey = useRef<string>('');
+    const currentFigureId = useRef<string>('');  // ID de la carte inline source
 
     useEffect(() => {
         let channel: BroadcastChannel | null = null;
@@ -270,19 +271,12 @@ export default function GeometrePage() {
             channel.onmessage = (e) => {
                 const { type, ...payload } = e.data;
                 if (type === 'UPDATE_GEO') {
-                    // Anti-doublon : ignorer les retries du même envoi
                     const msgKey = payload.key || payload.raw?.slice(0, 50) || '';
-                    if (msgKey && msgKey === lastProcessedKey.current) {
-                        console.log('[Géomètre] BC doublon ignoré:', msgKey);
-                        return;
-                    }
-
-                    console.log('[Géomètre] Payload:', JSON.stringify(payload).slice(0, 200));
+                    if (msgKey && msgKey === lastProcessedKey.current) return;
                     const newScene = parsePayload(payload);
-                    console.log('[Géomètre] Scene parsée:', newScene ? `${newScene.objects.length} objets` : 'NULL');
                     if (newScene) {
                         lastProcessedKey.current = msgKey;
-                        console.log('[Géomètre] Objets:', newScene.objects.map(o => `${o.kind}:${o.id}`));
+                        if (payload.figureId) currentFigureId.current = payload.figureId;
                         setScene(newScene);
                         setIsLive(true);
                         setStatus(`Figure mise à jour à ${new Date().toLocaleTimeString('fr-FR')}`);
@@ -294,6 +288,21 @@ export default function GeometrePage() {
         }
         return () => { try { channel?.close(); } catch { } };
     }, []);
+
+    // ── Renvoie la scène modifiée à la carte inline dans le chat ─────────────
+    const sendSceneBack = useCallback((updatedScene: GeoScene) => {
+        if (!currentFigureId.current) return;
+        try {
+            const ch = new BroadcastChannel(GEO_CHANNEL);
+            ch.postMessage({ type: 'SCENE_UPDATED', figureId: currentFigureId.current, scene: JSON.stringify(updatedScene) });
+            ch.close();
+        } catch { /* ignore */ }
+    }, []);
+
+    const handleSceneChange = useCallback((updatedScene: GeoScene) => {
+        setScene(updatedScene);
+        sendSceneBack(updatedScene);
+    }, [sendSceneBack]);
 
     // ── 2. Chargement initial via ?key= + purge anciennes clés localStorage ──
     useEffect(() => {
@@ -461,7 +470,7 @@ export default function GeometrePage() {
                 {/* Canvas */}
                 <div className="flex-1 relative">
                     <div ref={geoCanvasWrapperRef}>
-                        <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive onSceneChange={setScene} />
+                        <GeoCanvas scene={scene} width={canvasW} height={canvasH} interactive onSceneChange={handleSceneChange} />
                     </div>
 
                     {/* Overlay "En attente" */}
@@ -531,7 +540,7 @@ export default function GeometrePage() {
 
                                 const getName = (): string => {
                                     switch (obj.kind) {
-                                        case 'point': return `${(obj as any).id}  (${(obj as any).x} ; ${(obj as any).y})`;
+                                        case 'point': { const p = obj as any; return `${p.label ?? p.id}  (${Number(p.x).toFixed(2)} ; ${Number(p.y).toFixed(2)})`; }
                                         case 'segment': return `[${(obj as any).from}${(obj as any).to}]`;
                                         case 'line': return (obj as any).label || `(${(obj as any).through?.join('')})`;
                                         case 'circle': return `⊙ ${(obj as any).center}  r=${(obj as any).radiusValue ?? '?'}`;

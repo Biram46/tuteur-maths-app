@@ -387,8 +387,17 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
             onSceneChange({
                 ...scene,
                 objects: scene.objects.map(o => {
-                    if (o.kind !== 'point' || (o as GeoPoint).id !== id) return o;
-                    return { ...o, x: pos.x, y: pos.y };
+                    // Déplacer le point
+                    if (o.kind === 'point' && (o as GeoPoint).id === id)
+                        return { ...o, x: pos.x, y: pos.y };
+                    // Retirer le carré d'angle droit si un de ses points a bougé
+                    // (le triangle n'est plus nécessairement rectangle)
+                    if (o.kind === 'angle' && (o as any).square) {
+                        const a = o as any;
+                        if (a.vertex === id || a.from === id || a.to === id)
+                            return { ...o, square: false };
+                    }
+                    return o;
                 }),
             });
         }
@@ -1054,36 +1063,53 @@ interface GeometryFigureProps {
     scene: GeoScene;
 }
 
-export default function GeometryFigure({ scene }: GeometryFigureProps) {
+export default function GeometryFigure({ scene: initialScene }: GeometryFigureProps) {
+    // localScene : suit les modifications faites dans la fenêtre /geometre
+    const [localScene, setLocalScene] = useState<GeoScene>(initialScene);
+    const figureId = useRef(`fig_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
     const [opened, setOpened] = useState(false);
-    const nObjs = scene.objects.length;
-    const nPts = scene.objects.filter(o => o.kind === 'point').length;
+
+    // Écouter les mises à jour retour depuis /geometre (drag, renommage…)
+    useEffect(() => {
+        let ch: BroadcastChannel | null = null;
+        try {
+            ch = new BroadcastChannel('mimimaths-geometre');
+            ch.onmessage = (e) => {
+                if (e.data?.type === 'SCENE_UPDATED' && e.data.figureId === figureId.current) {
+                    try {
+                        const updated = JSON.parse(e.data.scene) as GeoScene;
+                        setLocalScene(updated);
+                    } catch { /* ignore */ }
+                }
+            };
+        } catch { /* ignore */ }
+        return () => { try { ch?.close(); } catch { } };
+    }, []);
+
+    const nObjs = localScene.objects.length;
+    const nPts = localScene.objects.filter(o => o.kind === 'point').length;
 
     const openWindow = useCallback(() => {
         const key = `geo_scene_${Date.now()}`;
-        const sceneJson = JSON.stringify(scene);
+        const sceneJson = JSON.stringify(localScene);
+        const fid = figureId.current;
         try {
-            // Stocker la scène pour la page /geometre (localStorage, partagé entre fenêtres)
             localStorage.setItem(key, sceneJson);
-            // Émettre sur le BroadcastChannel si fenêtre déjà ouverte
-            // Envoie la scène complète pour ne pas dépendre du sessionStorage
             try {
                 const ch = new BroadcastChannel('mimimaths-geometre');
-                ch.postMessage({ type: 'UPDATE_GEO', key, scene: sceneJson });
+                ch.postMessage({ type: 'UPDATE_GEO', key, scene: sceneJson, figureId: fid });
                 ch.close();
             } catch { /* ignore */ }
-            // Ouvrir ou réutiliser la fenêtre
             const win = window.open(`/geometre?key=${key}`, 'mimimaths-geometre',
                 'width=1000,height=720,menubar=no,toolbar=no,resizable=yes');
             if (win) {
                 setOpened(true);
                 win.focus();
-                // Retries progressifs après chargement
                 for (const delay of [700, 1500, 3000]) {
                     setTimeout(() => {
                         try {
                             const ch2 = new BroadcastChannel('mimimaths-geometre');
-                            ch2.postMessage({ type: 'UPDATE_GEO', key, scene: sceneJson });
+                            ch2.postMessage({ type: 'UPDATE_GEO', key, scene: sceneJson, figureId: fid });
                             ch2.close();
                         } catch { /* ignore */ }
                     }, delay);
@@ -1092,7 +1118,7 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
         } catch (e) {
             console.error('[GeometryFigure] Impossible d\'ouvrir', e);
         }
-    }, [scene]);
+    }, [localScene]);
 
     return (
         <div style={{ margin: '12px 0', display: 'inline-flex', flexDirection: 'column', gap: 0, maxWidth: 420 }}>
@@ -1105,25 +1131,26 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
                 cursor: 'pointer',
             }} onClick={openWindow} title="Ouvrir dans le géomètre">
 
-                {/* Aperçu SVG miniature */}
+                {/* Aperçu SVG miniature — suit les modifications de /geometre */}
                 <div style={{ pointerEvents: 'none', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
-                    <GeoCanvas scene={scene} width={420} height={220} interactive={false} />
+                    <GeoCanvas scene={localScene} width={420} height={220} interactive={false} />
                 </div>
 
                 {/* Barre inférieure : titre + bouton */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
-                            {!scene.title ? 'Figure géométrique' : (
+                            {!localScene.title ? 'Figure géométrique' : (
                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
                                     components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
-                                    {scene.title}
+                                    {localScene.title}
                                 </ReactMarkdown>
                             )}
                         </div>
                         <p style={{ fontSize: 10, color: 'rgba(148,163,184,0.5)', margin: '1px 0 0' }}>
                             {nPts} point{nPts > 1 ? 's' : ''} · {nObjs} objet{nObjs > 1 ? 's' : ''}
-                            {scene.computed?.length ? ` · ${scene.computed.length} calcul(s)` : ''}
+                            {localScene.computed?.length ? ` · ${localScene.computed.length} calcul(s)` : ''}
+                            {opened && <span style={{ color: 'rgba(52,211,153,0.7)' }}> · live</span>}
                         </p>
                     </div>
                     <div style={{
@@ -1143,9 +1170,9 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
             </div>
 
             {/* Mesures exactes */}
-            {scene.computed && scene.computed.length > 0 && (
+            {localScene.computed && localScene.computed.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {scene.computed.map((r, i) => (
+                    {localScene.computed.map((r, i) => (
                         <span key={i} style={{
                             padding: '3px 12px', borderRadius: 20,
                             background: 'rgba(16,64,48,0.4)', border: '1px solid rgba(52,211,153,0.25)',
