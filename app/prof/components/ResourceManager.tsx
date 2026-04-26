@@ -292,7 +292,7 @@ export default function ResourceManager({ levels, chapters }: Props) {
                                         <td className="px-4 py-3">
                                             <div className="flex gap-1 flex-wrap">
                                                 {r.pdf_url && (
-                                                    <a href={r.pdf_url} target="_blank" rel="noopener noreferrer"
+                                                    <a href={`/api/storage/sign?url=${encodeURIComponent(r.pdf_url)}`} target="_blank" rel="noopener noreferrer"
                                                         className="text-[10px] font-mono px-1.5 py-0.5 rounded border text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20 transition-colors"
                                                         title="Ouvrir le PDF">PDF</a>
                                                 )}

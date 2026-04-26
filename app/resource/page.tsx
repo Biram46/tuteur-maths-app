@@ -139,6 +139,8 @@ function ResourceContent() {
     let displayUrl = url;
     if (isInteractive) {
         displayUrl = `/api/view-resource?url=${encodeURIComponent(url)}`;
+    } else if (isPdf) {
+        displayUrl = `/api/storage/sign?url=${encodeURIComponent(url)}`;
     }
 
     return (
@@ -167,7 +169,9 @@ function ResourceContent() {
                         <a
                             href={isTex
                                 ? `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent((title || 'cours').replace(/[^a-z0-9\-_]/gi, '_') + '.tex')}`
-                                : url}
+                                : isPdf
+                                    ? `/api/storage/sign?url=${encodeURIComponent(url)}`
+                                    : url}
                             download
                             target={isTex ? undefined : "_blank"}
                             rel="noopener noreferrer"
@@ -207,7 +211,7 @@ function ResourceContent() {
                 ) : isPdf ? (
                     <div className="w-full h-[85vh] bg-slate-800 rounded-xl overflow-hidden shadow-2xl border border-slate-700">
                         <iframe
-                            src={url}
+                            src={displayUrl}
                             className="w-full h-full border-0"
                             title={title || "Document PDF"}
                         />
