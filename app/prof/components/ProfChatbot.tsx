@@ -203,14 +203,14 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                         setContentType('html');
                     }
                 }
-                setShowPreview(true);
+                if (!context.free_mode) setShowPreview(true);
             } else {
                 const latexContent = extractBestLatex(fullContent);
                 if (latexContent) {
                     setGeneratedLatex(latexContent);
                     setContentType('latex');
                 }
-                setShowPreview(true);
+                if (!context.free_mode) setShowPreview(true);
             }
 
         } catch (err: any) {

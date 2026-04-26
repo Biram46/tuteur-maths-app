@@ -95,6 +95,15 @@ segment: AB, BC, CA
 title: Triangle ABC
 @@@
 
+Pour les médianes, hauteurs, bissectrices : nommer les milieux/pieds avec des lettres différentes (I, J, K, M, N...) et tracer les segments explicitement.
+Exemple triangle avec médianes (I=milieu BC, J=milieu AC, K=milieu AB) :
+@@@ figure
+points: A(0,0), B(6,0), C(2,4), I(4,2), J(1,2), K(3,0)
+segment: AB, BC, CA, AI, BJ, CK
+title: Triangle ABC et ses trois médianes
+@@@
+⛔ Ne jamais réutiliser le même nom de lettre pour deux points différents.
+
 COURBES DE FONCTIONS — utilise le format @@@ graph avec function: :
 @@@ graph
 function: x^2 - 2*x + 1
