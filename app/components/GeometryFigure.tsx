@@ -200,6 +200,13 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
     const [isDragging, setIsDragging] = useState(false);
     const [dragOverride, setDragOverride] = useState<Map<string, { x: number; y: number }>>(new Map());
 
+    // ── Drag label ────────────────────────────────────────────────────────
+    const dragLabelId = useRef<string | null>(null);
+    const dragLabelStartMouse = useRef<{ x: number; y: number } | null>(null);
+    const dragLabelInitOffset = useRef<{ dx: number; dy: number } | null>(null);
+    const [isDraggingLabel, setIsDraggingLabel] = useState(false);
+    const [labelOffsetOverride, setLabelOffsetOverride] = useState<Map<string, { dx: number; dy: number }>>(new Map());
+
     // Fusionne pointMap + overrides de drag pour un rendu en temps réel
     const effectivePointMap = useMemo(() => {
         if (dragOverride.size === 0) return pointMap;
@@ -244,12 +251,69 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         // Double-clic → laisser onDoubleClick gérer le renommage
         if (e.detail === 2) return;
 
-        // Clic simple → tenter de saisir un point draggable
+        // Clic simple — besoin des coordonnées SVG pour les deux tests
         if (!onSceneChange) return;
         const rect = svgRef.current!.getBoundingClientRect();
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
-        const HIT = 14; // rayon de détection en pixels
+
+        // ── Priorité 1 : drag de label (rayon 18px autour du label) ──────
+        const LHIT = 18;
+        for (const obj of scene.objects) {
+            const anyObj = obj as any;
+            let lx: number, ly: number, ldx: number, ldy: number;
+            const ov = labelOffsetOverride.get(anyObj.id);
+
+            if (obj.kind === 'point') {
+                const pt = obj as GeoPoint;
+                if (pt.id.startsWith('_') || (pt.style as string) === 'none') continue;
+                if (!(pt.label ?? pt.id)) continue;
+                const ep = effectivePointMap.get(pt.id) ?? pt;
+                ldx = ov ? ov.dx : (anyObj.labelDx ?? 10);
+                ldy = ov ? ov.dy : (anyObj.labelDy ?? -8);
+                lx = toSvgX(ep.x) + ldx; ly = toSvgY(ep.y) + ldy;
+            } else if (obj.kind === 'segment' && (obj as GeoSegment).label) {
+                const seg = obj as GeoSegment;
+                const A = effectivePointMap.get(seg.from), B = effectivePointMap.get(seg.to);
+                if (!A || !B) continue;
+                ldx = ov ? ov.dx : (anyObj.labelDx ?? 0);
+                ldy = ov ? ov.dy : (anyObj.labelDy ?? 0);
+                lx = (toSvgX(A.x) + toSvgX(B.x)) / 2 + ldx;
+                ly = (toSvgY(A.y) + toSvgY(B.y)) / 2 - 8 + ldy;
+            } else if (obj.kind === 'vector') {
+                const vec = obj as GeoVector;
+                const A = effectivePointMap.get(vec.from), B = effectivePointMap.get(vec.to);
+                if (!A || !B) continue;
+                const vx1 = toSvgX(A.x), vy1 = toSvgY(A.y), vx2 = toSvgX(B.x), vy2 = toSvgY(B.y);
+                const vlen = Math.sqrt((vx2 - vx1) ** 2 + (vy2 - vy1) ** 2) || 1;
+                let nx = -(vy2 - vy1) / vlen, ny = (vx2 - vx1) / vlen;
+                if (ny > 0 || (Math.abs(ny) < 1e-5 && nx < 0)) { nx = -nx; ny = -ny; }
+                ldx = ov ? ov.dx : (anyObj.labelDx ?? 0);
+                ldy = ov ? ov.dy : (anyObj.labelDy ?? 0);
+                lx = (vx1 + vx2) / 2 + nx * 20 + ldx;
+                ly = (vy1 + vy2) / 2 + ny * 20 + ldy;
+            } else if (obj.kind === 'line' && (obj as GeoLine).label) {
+                const line = obj as GeoLine;
+                const A = effectivePointMap.get(line.through[0]), B = effectivePointMap.get(line.through[1]);
+                if (!A || !B) continue;
+                ldx = ov ? ov.dx : (anyObj.labelDx ?? 0);
+                ldy = ov ? ov.dy : (anyObj.labelDy ?? 0);
+                lx = toSvgX(A.x + (B.x - A.x) * 0.5) + 6 + ldx;
+                ly = toSvgY(A.y + (B.y - A.y) * 0.5) - 28 + ldy;
+            } else continue;
+
+            if (Math.sqrt((sx - lx) ** 2 + (sy - ly) ** 2) <= LHIT) {
+                dragLabelId.current = anyObj.id;
+                dragLabelStartMouse.current = { x: sx, y: sy };
+                dragLabelInitOffset.current = { dx: ldx, dy: ldy };
+                setIsDraggingLabel(true);
+                e.preventDefault();
+                return;
+            }
+        }
+
+        // ── Priorité 2 : drag de point (rayon 14px) ───────────────────────
+        const HIT = 14;
         for (const obj of scene.objects) {
             if (obj.kind !== 'point') continue;
             const pt = obj as GeoPoint;
@@ -263,9 +327,18 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 return;
             }
         }
-    }, [interactive, viewport, scene, effectivePointMap, toSvgX, toSvgY, onSceneChange]);
+    }, [interactive, viewport, scene, effectivePointMap, toSvgX, toSvgY, onSceneChange, labelOffsetOverride]);
 
     const onMouseMove = useCallback((e: React.MouseEvent) => {
+        if (dragLabelId.current && dragLabelStartMouse.current && dragLabelInitOffset.current) {
+            const rect = svgRef.current!.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+            const newDx = dragLabelInitOffset.current.dx + (cx - dragLabelStartMouse.current.x);
+            const newDy = dragLabelInitOffset.current.dy + (cy - dragLabelStartMouse.current.y);
+            setLabelOffsetOverride(prev => { const m = new Map(prev); m.set(dragLabelId.current!, { dx: newDx, dy: newDy }); return m; });
+            return;
+        }
         if (dragPointId.current) {
             const rect = svgRef.current!.getBoundingClientRect();
             const nx = toMathX(e.clientX - rect.left);
@@ -290,6 +363,24 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
     }, [plotW, plotH, toMathX, toMathY]);
 
     const onMouseUp = useCallback(() => {
+        // Commit drag label
+        if (dragLabelId.current && onSceneChange) {
+            const id = dragLabelId.current;
+            const ov = labelOffsetOverride.get(id);
+            if (ov) {
+                onSceneChange({
+                    ...scene,
+                    objects: scene.objects.map(o => (o as any).id === id ? { ...o, labelDx: ov.dx, labelDy: ov.dy } : o),
+                });
+            }
+        }
+        dragLabelId.current = null;
+        dragLabelStartMouse.current = null;
+        dragLabelInitOffset.current = null;
+        setIsDraggingLabel(false);
+        setLabelOffsetOverride(new Map());
+
+        // Commit drag point
         if (dragPointId.current && dragCurrentPos.current && onSceneChange) {
             const id = dragPointId.current;
             const pos = dragCurrentPos.current;
@@ -306,15 +397,15 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         setIsDragging(false);
         setDragOverride(new Map());
         isPanning.current = false;
-    }, [scene, onSceneChange]);
+    }, [scene, onSceneChange, labelOffsetOverride]);
 
     // Listener global mouseup — garantit la fin du drag même si la souris quitte le SVG
     useEffect(() => {
-        if (!isDragging) return;
+        if (!isDragging && !isDraggingLabel) return;
         const handleGlobalUp = () => onMouseUp();
         window.addEventListener('mouseup', handleGlobalUp);
         return () => window.removeEventListener('mouseup', handleGlobalUp);
-    }, [isDragging, onMouseUp]);
+    }, [isDragging, isDraggingLabel, onMouseUp]);
 
     // ── Double-clic → édition de label ───────────────────────────────────
     const applyLabelEdit = useCallback((newLabel: string) => {
@@ -513,13 +604,18 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 {/* Halo (zone de clic élargie) */}
                 <circle cx={sx} cy={sy} r={12} fill="transparent" stroke={color} strokeWidth={0} opacity={0.3} />
                 {/* Label */}
-                {label && (
-                    <text x={sx + 8} y={sy - 6} fontSize={12} fontWeight="bold"
-                        fill={color} fontFamily="Inter,sans-serif"
-                        style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
-                        {label}
-                    </text>
-                )}
+                {label && (() => {
+                    const lov = labelOffsetOverride.get(obj.id);
+                    const ldx = lov ? lov.dx : ((obj as any).labelDx ?? 10);
+                    const ldy = lov ? lov.dy : ((obj as any).labelDy ?? -8);
+                    return (
+                        <text x={sx + ldx} y={sy + ldy} fontSize={12} fontWeight="bold"
+                            fill={color} fontFamily="Inter,sans-serif"
+                            style={{ cursor: onSceneChange ? 'move' : 'default', paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
+                            {label}
+                        </text>
+                    );
+                })()}
             </g>
         );
     };
@@ -542,13 +638,18 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                     stroke={color} strokeWidth={2}
                     strokeDasharray={obj.dashed ? '6,4' : undefined}
                 />
-                {obj.label && (
-                    <text x={mx} y={my - 8} textAnchor="middle"
-                        fontSize={11} fill={color} fontFamily="Inter,sans-serif"
-                        style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
-                        {obj.label}
-                    </text>
-                )}
+                {obj.label && (() => {
+                    const lov = labelOffsetOverride.get(obj.id);
+                    const ldx = lov ? lov.dx : ((obj as any).labelDx ?? 0);
+                    const ldy = lov ? lov.dy : ((obj as any).labelDy ?? 0);
+                    return (
+                        <text x={mx + ldx} y={my - 8 + ldy} textAnchor="middle"
+                            fontSize={11} fill={color} fontFamily="Inter,sans-serif"
+                            style={{ cursor: onSceneChange ? 'move' : 'default', paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
+                            {obj.label}
+                        </text>
+                    );
+                })()}
             </g>
         );
     };
@@ -588,13 +689,18 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                     stroke={color} strokeWidth={1.5}
                     strokeDasharray={obj.style === 'dashed' ? '8,5' : obj.style === 'dotted' ? '2,4' : undefined}
                 />
-                {obj.label && (
-                    <text x={labelX + 6} y={labelY - 28} fontSize={12} fontWeight="bold"
-                        fill={color} fontFamily="Inter,sans-serif"
-                        style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
-                        {obj.label}
-                    </text>
-                )}
+                {obj.label && (() => {
+                    const lov = labelOffsetOverride.get(obj.id);
+                    const ldx = lov ? lov.dx : ((obj as any).labelDx ?? 0);
+                    const ldy = lov ? lov.dy : ((obj as any).labelDy ?? 0);
+                    return (
+                        <text x={labelX + 6 + ldx} y={labelY - 28 + ldy} fontSize={12} fontWeight="bold"
+                            fill={color} fontFamily="Inter,sans-serif"
+                            style={{ cursor: onSceneChange ? 'move' : 'default', paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
+                            {obj.label}
+                        </text>
+                    );
+                })()}
             </g>
         );
     };
@@ -653,19 +759,28 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                     points={`${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}`}
                     fill={color}
                 />
-                {/* Texte du label (ex: AB) — centré */}
-                <text x={lx} y={ly} fontSize={14} fontWeight="bold"
-                    fill={color} fontFamily="Inter,sans-serif" textAnchor="middle"
-                    style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
-                    {labelText}
-                </text>
-                {/* Flèche SVG au-dessus du texte (→) — centrée */}
-                <line x1={lx - textWidth / 2 - 2} y1={ly - 10} x2={lx + textWidth / 2 + 2} y2={ly - 10}
-                    stroke={color} strokeWidth={1.8} />
-                <polygon
-                    points={`${lx + textWidth / 2 + 6},${ly - 10} ${lx + textWidth / 2 - 1},${ly - 13} ${lx + textWidth / 2 - 1},${ly - 7}`}
-                    fill={color}
-                />
+                {/* Texte du label + flèche — déplaçables */}
+                {(() => {
+                    const lov = labelOffsetOverride.get(obj.id);
+                    const ldx = lov ? lov.dx : ((obj as any).labelDx ?? 0);
+                    const ldy = lov ? lov.dy : ((obj as any).labelDy ?? 0);
+                    const flx = lx + ldx, fly = ly + ldy;
+                    return (
+                        <g style={{ cursor: onSceneChange ? 'move' : 'default' }}>
+                            <text x={flx} y={fly} fontSize={14} fontWeight="bold"
+                                fill={color} fontFamily="Inter,sans-serif" textAnchor="middle"
+                                style={{ paintOrder: 'stroke', stroke: PALETTE.bg, strokeWidth: 3 }}>
+                                {labelText}
+                            </text>
+                            <line x1={flx - textWidth / 2 - 2} y1={fly - 10} x2={flx + textWidth / 2 + 2} y2={fly - 10}
+                                stroke={color} strokeWidth={1.8} />
+                            <polygon
+                                points={`${flx + textWidth / 2 + 6},${fly - 10} ${flx + textWidth / 2 - 1},${fly - 13} ${flx + textWidth / 2 - 1},${fly - 7}`}
+                                fill={color}
+                            />
+                        </g>
+                    );
+                })()}
             </g>
         );
     };
