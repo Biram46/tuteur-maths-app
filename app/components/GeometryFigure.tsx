@@ -153,7 +153,9 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
     // (nouvelle figure IA), pas quand un point est déplacé (drag → même structure)
     const sceneSignatureRef = useRef('');
     useEffect(() => {
-        const sig = `${scene.title ?? ''}|${scene.objects.length}|${scene.repere}`;
+        // Inclure plotW/plotH dans la signature : un redimensionnement de fenêtre
+        // doit recalculer le viewport même si la scène n'a pas changé
+        const sig = `${scene.title ?? ''}|${scene.objects.length}|${scene.repere}|${plotW}|${plotH}`;
         if (sig === sceneSignatureRef.current) return;
         sceneSignatureRef.current = sig;
         setViewport({ xMin: defaultDomain.x[0], xMax: defaultDomain.x[1], yMin: defaultDomain.y[0], yMax: defaultDomain.y[1] });

@@ -15,33 +15,52 @@ function fmtN(n: number): string {
     return Number.isInteger(n) ? String(n) : n.toFixed(3).replace(/\.?0+$/, '');
 }
 
-function fmtColor(color?: string): string {
-    if (!color) return 'black';
-    const map: Record<string, string> = {
-        blue: 'blue', bleu: 'blue',
-        red: 'red', rouge: 'red',
-        green: 'green!60!black', vert: 'green!60!black',
-        orange: 'orange!90!black',
-        purple: 'purple', violet: 'violet!80!black',
-        gray: 'gray', gris: 'gray',
-        black: 'black', noir: 'black',
-        white: 'white', blanc: 'white',
-        indigo: 'blue!70!black',
-        pink: 'pink!80!black', rose: 'pink!80!black',
-        cyan: 'cyan!70!black',
-        yellow: 'yellow!80!black', jaune: 'yellow!80!black',
-    };
-    const key = color.toLowerCase();
-    if (map[key]) return map[key];
-    // Hex → {rgb,255:red,R;green,G;blue,B}
-    const hex = color.replace(/^#/, '');
-    if (/^[0-9a-f]{6}$/i.test(hex)) {
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        return `{rgb,255:red,${r};green,${g};blue,${b}}`;
+const NAMED_COLORS: Record<string, string> = {
+    blue: 'blue', bleu: 'blue',
+    red: 'red', rouge: 'red',
+    green: 'green!60!black', vert: 'green!60!black',
+    orange: 'orange!90!black',
+    purple: 'purple', violet: 'violet!80!black',
+    gray: 'gray', gris: 'gray',
+    black: 'black', noir: 'black',
+    white: 'white', blanc: 'white',
+    indigo: 'blue!70!black',
+    pink: 'pink!80!black', rose: 'pink!80!black',
+    cyan: 'cyan!70!black',
+    yellow: 'yellow!80!black', jaune: 'yellow!80!black',
+};
+
+/** Crée un registre de couleurs pour un export TikZ.
+ *  Les couleurs hex sont converties en \definecolor{gcXXXXXX}{RGB}{R,G,B}
+ *  et référencées par nom — syntaxe universellement supportée. */
+function makeColorRegistry() {
+    const defs = new Map<string, string>(); // hex → \definecolor line
+    const names = new Map<string, string>(); // hex → name
+
+    function get(color?: string): string {
+        if (!color) return 'black';
+        const key = color.toLowerCase();
+        if (NAMED_COLORS[key]) return NAMED_COLORS[key];
+        const hex = color.replace(/^#/, '').toLowerCase();
+        if (/^[0-9a-f]{6}$/.test(hex)) {
+            if (!names.has(hex)) {
+                const name = `gc${hex}`;
+                const r = parseInt(hex.slice(0, 2), 16);
+                const g = parseInt(hex.slice(2, 4), 16);
+                const b = parseInt(hex.slice(4, 6), 16);
+                names.set(hex, name);
+                defs.set(hex, `  \\definecolor{${name}}{RGB}{${r},${g},${b}}`);
+            }
+            return names.get(hex)!;
+        }
+        return 'black';
     }
-    return 'black';
+
+    function declarations(): string[] {
+        return Array.from(defs.values());
+    }
+
+    return { get, declarations };
 }
 
 function pointById(scene: GeoScene, id: string): GeoPoint | undefined {
@@ -70,6 +89,9 @@ function defaultDomain(scene: GeoScene): { x: [number, number]; y: [number, numb
 
 export function exportTikzSnippet(scene: GeoScene): string {
     const L: string[] = [];
+    const colors = makeColorRegistry();
+    const fmtColor = colors.get; // alias local — collecte les hex au passage
+
     const domain = scene.domain ?? defaultDomain(scene);
     const xRange = domain.x[1] - domain.x[0];
     const yRange = domain.y[1] - domain.y[0];
@@ -278,6 +300,13 @@ export function exportTikzSnippet(scene: GeoScene): string {
     }
 
     L.push(`\\end{tikzpicture}`);
+
+    // Insérer les \definecolor après \begin{tikzpicture}
+    const decls = colors.declarations();
+    if (decls.length > 0) {
+        L.splice(1, 0, ...decls);
+    }
+
     return L.join('\n');
 }
 
