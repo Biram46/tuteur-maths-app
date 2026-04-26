@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import type { ProfResourceType } from "@/lib/prof-types";
 import { appendFileSync } from "fs";
 import { logAdminAction } from "@/lib/audit-logger";
+import { storagePathFromPublicUrl, downloadStorageText } from "@/lib/storage";
 
 
 
@@ -327,9 +328,10 @@ export async function publishResource(resourceId: string): Promise<{ pdfUrl?: st
             _log(`[publishResource] Démarrage compilation pour "${properFileName}"…`);
             _log(`[publishResource] latex_url = ${resource.latex_url}`);
 
-            const latexResp = await fetch(resource.latex_url);
-            if (!latexResp.ok) throw new Error(`Impossible de charger le .tex (HTTP ${latexResp.status})`);
-            const latex = await latexResp.text();
+            const latexPath = storagePathFromPublicUrl(resource.latex_url);
+            const latex = latexPath
+                ? await downloadStorageText(latexPath)
+                : await fetch(resource.latex_url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); });
             _log(`[publishResource] LaTeX récupéré (${latex.length} chars)`);
 
             const apiUrl = process.env.SYMPY_API_URL || process.env.PYTHON_API_URL || 'http://localhost:5000';
@@ -505,11 +507,12 @@ export async function getDraftContent(resourceId: string): Promise<{ content: st
         return { content: '', label: resource.label, latex_url: null };
     }
 
-    // Récupérer le contenu du fichier depuis l'URL
+    // Récupérer le contenu du fichier via le SDK Storage (fonctionne même si le bucket est privé)
     try {
-        const response = await fetch(resource.latex_url);
-        if (!response.ok) throw new Error("Impossible de charger le fichier");
-        const content = await response.text();
+        const latexPath = storagePathFromPublicUrl(resource.latex_url);
+        const content = latexPath
+            ? await downloadStorageText(latexPath)
+            : await fetch(resource.latex_url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); });
         return { content, label: resource.label, latex_url: resource.latex_url };
     } catch (e: any) {
         throw new Error(`Erreur récupération contenu: ${e.message}`);
