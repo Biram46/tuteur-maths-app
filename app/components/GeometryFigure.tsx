@@ -183,6 +183,17 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         return m;
     }, [scene]);
 
+    // ── Édition de label ──────────────────────────────────────────────────
+    const [editingLabel, setEditingLabel] = useState<{
+        objId: string;
+        kind: string;
+        currentLabel: string;
+        svgX: number;
+        svgY: number;
+    } | null>(null);
+    const editInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => { if (editingLabel) editInputRef.current?.focus(); }, [editingLabel]);
+
     // ── Drag point ────────────────────────────────────────────────────────
     const dragPointId = useRef<string | null>(null);
     const dragCurrentPos = useRef<{ x: number; y: number } | null>(null);
@@ -229,6 +240,9 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
             panStart.current = { x: e.clientX, y: e.clientY, vp: viewport };
             return;
         }
+
+        // Double-clic → laisser onDoubleClick gérer le renommage
+        if (e.detail === 2) return;
 
         // Clic simple → tenter de saisir un point draggable
         if (!onSceneChange) return;
@@ -301,6 +315,100 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         window.addEventListener('mouseup', handleGlobalUp);
         return () => window.removeEventListener('mouseup', handleGlobalUp);
     }, [isDragging, onMouseUp]);
+
+    // ── Double-clic → édition de label ───────────────────────────────────
+    const applyLabelEdit = useCallback((newLabel: string) => {
+        if (!editingLabel || !onSceneChange) { setEditingLabel(null); return; }
+        const { objId, kind } = editingLabel;
+        onSceneChange({
+            ...scene,
+            objects: scene.objects.map(o => {
+                if ((o as any).id !== objId) return o;
+                const label = newLabel.trim() || undefined;
+                if (kind === 'point') {
+                    return { ...o, label };
+                }
+                return { ...o, label };
+            }),
+        });
+        setEditingLabel(null);
+    }, [editingLabel, scene, onSceneChange]);
+
+    const onDoubleClick = useCallback((e: React.MouseEvent) => {
+        if (!interactive || !onSceneChange) return;
+        const rect = svgRef.current!.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const HIT = 22;
+
+        // Points
+        for (const obj of scene.objects) {
+            if (obj.kind !== 'point') continue;
+            const pt = obj as GeoPoint;
+            if (pt.id.startsWith('_') || (pt.style as string) === 'none') continue;
+            const ep = effectivePointMap.get(pt.id) ?? pt;
+            const d = Math.sqrt((sx - toSvgX(ep.x)) ** 2 + (sy - toSvgY(ep.y)) ** 2);
+            if (d <= HIT) {
+                e.preventDefault();
+                setEditingLabel({ objId: pt.id, kind: 'point', currentLabel: pt.label ?? pt.id, svgX: toSvgX(ep.x) + 10, svgY: toSvgY(ep.y) - 8 });
+                return;
+            }
+        }
+
+        // Segments (milieu)
+        for (const obj of scene.objects) {
+            if (obj.kind !== 'segment') continue;
+            const seg = obj as GeoSegment;
+            const A = effectivePointMap.get(seg.from);
+            const B = effectivePointMap.get(seg.to);
+            if (!A || !B) continue;
+            const mx = (toSvgX(A.x) + toSvgX(B.x)) / 2;
+            const my = (toSvgY(A.y) + toSvgY(B.y)) / 2 - 8;
+            const d = Math.sqrt((sx - mx) ** 2 + (sy - my) ** 2);
+            if (d <= HIT * 1.5) {
+                e.preventDefault();
+                setEditingLabel({ objId: seg.id, kind: 'segment', currentLabel: seg.label ?? '', svgX: mx, svgY: my });
+                return;
+            }
+        }
+
+        // Vecteurs (milieu)
+        for (const obj of scene.objects) {
+            if (obj.kind !== 'vector') continue;
+            const vec = obj as GeoVector;
+            const A = effectivePointMap.get(vec.from);
+            const B = effectivePointMap.get(vec.to);
+            if (!A || !B) continue;
+            const mx = (toSvgX(A.x) + toSvgX(B.x)) / 2;
+            const my = (toSvgY(A.y) + toSvgY(B.y)) / 2 - 22;
+            const d = Math.sqrt((sx - mx) ** 2 + (sy - my) ** 2);
+            if (d <= HIT * 1.5) {
+                e.preventDefault();
+                const rawLbl = vec.label || `${vec.from}${vec.to}`;
+                const vecM = rawLbl.match(/\\(?:vec|overrightarrow)\{([^}]+)\}/);
+                const currentLabel = vecM ? vecM[1] : rawLbl;
+                setEditingLabel({ objId: vec.id, kind: 'vector', currentLabel, svgX: mx, svgY: my });
+                return;
+            }
+        }
+
+        // Droites (milieu du segment de référence)
+        for (const obj of scene.objects) {
+            if (obj.kind !== 'line') continue;
+            const line = obj as GeoLine;
+            const A = effectivePointMap.get(line.through[0]);
+            const B = effectivePointMap.get(line.through[1]);
+            if (!A || !B) continue;
+            const mx = toSvgX(A.x + (B.x - A.x) * 0.5) + 6;
+            const my = toSvgY(A.y + (B.y - A.y) * 0.5) - 28;
+            const d = Math.sqrt((sx - mx) ** 2 + (sy - my) ** 2);
+            if (d <= HIT * 2) {
+                e.preventDefault();
+                setEditingLabel({ objId: line.id, kind: 'line', currentLabel: line.label ?? '', svgX: mx, svgY: my });
+                return;
+            }
+        }
+    }, [interactive, onSceneChange, scene, effectivePointMap, toSvgX, toSvgY]);
 
     // ── Grille et axes ────────────────────────────────────────────────────
     const renderGrid = () => {
@@ -732,6 +840,7 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
+                onDoubleClick={onDoubleClick}
                 style={{ display: 'block', cursor: isDragging ? 'grabbing' : interactive ? 'default' : 'default' }}>
                 {/* Fond */}
                 <rect width={width} height={height} fill={PALETTE.bg} />
@@ -746,6 +855,38 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 </g>
                 {/* Titre rendu via ReactMarkdown en overlay (voir après le svg) */}
             </svg>
+
+            {/* Input inline pour édition de label (double-clic) */}
+            {editingLabel && interactive && (
+                <input
+                    ref={editInputRef}
+                    defaultValue={editingLabel.currentLabel}
+                    style={{
+                        position: 'absolute',
+                        left: editingLabel.svgX,
+                        top: editingLabel.svgY - 14,
+                        width: Math.max(60, editingLabel.currentLabel.length * 9 + 20),
+                        padding: '2px 7px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        background: 'rgba(2,6,23,0.95)',
+                        color: '#c7d2fe',
+                        border: '1.5px solid rgba(99,102,241,0.8)',
+                        borderRadius: 6,
+                        outline: 'none',
+                        zIndex: 40,
+                        boxShadow: '0 2px 12px rgba(99,102,241,0.25)',
+                    }}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') applyLabelEdit(e.currentTarget.value);
+                        if (e.key === 'Escape') setEditingLabel(null);
+                        e.stopPropagation();
+                    }}
+                    onBlur={e => applyLabelEdit(e.currentTarget.value)}
+                    onClick={e => e.stopPropagation()}
+                />
+            )}
 
             {/* Titre (HTML Superposé pour gérer KaTeX) */}
             {scene.title && !scene.title.includes('attente') && (
