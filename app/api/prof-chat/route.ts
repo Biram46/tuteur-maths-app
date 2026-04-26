@@ -250,7 +250,15 @@ Utilise OBLIGATOIREMENT ces syntaxes dans tes explications pour un rendu profess
 - Tableaux (Signes/Variations) : <mathtable data='{"xValues": ["-inf", "1", "+inf"], "rows": [{"label": "f(x)", "type": "sign", "content": ["+", "0", "-"]}]}' />
   ⚠️ IMPORTANT : Pour les variations, alterne valeur et flèche dans "content" : ["-inf", "nearrow", "0", "searrow", "-inf"]
 
-- Graphiques : <mathgraph data='{"functions": [{"fn": "x^2", "color": "#ff0000"}], "title": "Courbe"}' />
+- Graphiques (courbes continues) : <mathgraph data='{"functions": [{"fn": "x^2", "color": "#ff0000"}], "title": "Courbe"}' />
+
+- Suites numériques (points discrets) — utilise scatter: dans @@@ graph :
+@@@ graph
+scatter: 0,1; 1,5; 2,13; 3,29; 4,61; 5,125; 6,253; 7,509
+domain: -0.5, 8, -10, 550
+title: Suite (u_n)
+@@@
+⚠️ RÈGLE scatter : format "scatter: n,valeur; n,valeur; ..." — NE PAS utiliser "function:" pour une suite (suite = points discrets, pas une courbe).
 
 - Géométrie : <geometryfigure data='{"objects": [{"id": "A", "kind": "point", "x": 0, "y": 0}], "title": "Figure"}' />
 
