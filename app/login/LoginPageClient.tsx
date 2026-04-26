@@ -240,10 +240,13 @@ export default function LoginPageClient({
                     </div>
                 </div>
 
-                {/* Back to Home Link */}
-                <div className="text-center mt-6">
-                    <a href="/" className="text-[10px] font-['Orbitron'] tracking-widest text-slate-500 hover:text-cyan-400 transition-colors uppercase">
+                {/* Back to Home + Cours Link */}
+                <div className="text-center mt-6 space-y-2">
+                    <a href="/" className="block text-[10px] font-['Orbitron'] tracking-widest text-slate-500 hover:text-cyan-400 transition-colors uppercase">
                         ← Retour au Portail Public
+                    </a>
+                    <a href="/cours" className="block text-[10px] font-mono text-slate-600 hover:text-slate-400 transition-colors">
+                        Parcourir les cours sans compte →
                     </a>
                 </div>
             </div>

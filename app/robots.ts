@@ -8,12 +8,13 @@ export default function robots(): MetadataRoute.Robots {
                 allow: [
                     '/',
                     '/login',
+                    '/cours',
                     '/entraine-toi',
                     '/sujets',
                     '/graph',
                     '/geometre',
-                    '/niveau',
                     '/resource',
+                    '/confidentialite',
                 ],
                 disallow: [
                     '/admin/',
