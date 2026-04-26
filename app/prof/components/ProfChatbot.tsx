@@ -1099,17 +1099,19 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                                     ⬇ .pdf
                                 </button>
                             )}
-                            <button
-                                onClick={handleSaveDraft}
-                                disabled={savingDraft || draftSaved}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                    draftSaved
-                                        ? 'bg-green-600/20 border border-green-500/30 text-green-400'
-                                        : 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30'
-                                } disabled:opacity-50`}
-                            >
-                                {savingDraft ? '⏳' : draftSaved ? '✅ Sauvegardé' : '💾 Brouillon'}
-                            </button>
+                            {!context.free_mode && (
+                                <button
+                                    onClick={handleSaveDraft}
+                                    disabled={savingDraft || draftSaved}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                        draftSaved
+                                            ? 'bg-green-600/20 border border-green-500/30 text-green-400'
+                                            : 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30'
+                                    } disabled:opacity-50`}
+                                >
+                                    {savingDraft ? '⏳' : draftSaved ? '✅ Sauvegardé' : '💾 Brouillon'}
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
@@ -1122,18 +1124,29 @@ export default function ProfChatbot({ context, sequenceId, teacherId }: ProfChat
                     <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 text-center">
-                            <div className="text-5xl mb-4">🎓</div>
+                            <div className="text-5xl mb-4">{context.free_mode ? '🎨' : '🎓'}</div>
                             <p className="text-xs font-mono uppercase tracking-[0.5em] text-indigo-400 mb-2">
-                                Assistant Pédagogique
+                                {context.free_mode ? 'Mode Libre' : 'Assistant Pédagogique'}
                             </p>
                             <p className="text-sm text-slate-500 max-w-md">
-                                Décrivez, dictez ou envoyez des fichiers pour créer votre{' '}
-                                <span className="text-indigo-400 font-medium">
-                                    {RESOURCE_TYPE_LABELS[context.resource_type].toLowerCase()}
-                                </span>
+                                {context.free_mode
+                                    ? 'Posez n\'importe quelle question, demandez une figure, un graphique, un schéma — sans contrainte de chapitre.'
+                                    : <>Décrivez, dictez ou envoyez des fichiers pour créer votre{' '}
+                                        <span className="text-indigo-400 font-medium">
+                                            {RESOURCE_TYPE_LABELS[context.resource_type].toLowerCase()}
+                                        </span></>
+                                }
                             </p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
-                                {getSuggestions(context.resource_type).map((s, i) => (
+                                {(context.free_mode
+                                    ? [
+                                        'Trace un triangle avec ses 3 médianes',
+                                        'Représente graphiquement f(x) = x² - 2x + 1',
+                                        'Dessine un cercle inscrit dans un carré',
+                                        'Trace la suite u_n = 2n + 1 pour n = 0..8',
+                                    ]
+                                    : getSuggestions(context.resource_type)
+                                ).map((s, i) => (
                                     <button
                                         key={i}
                                         onClick={() => setInput(s)}

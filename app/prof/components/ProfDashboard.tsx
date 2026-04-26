@@ -22,7 +22,17 @@ interface ProfDashboardProps {
     teacherId: string;
 }
 
-type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter';
+type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter' | 'free';
+
+const FREE_MODE_CONTEXT: ProfContext = {
+    level_id: 'libre',
+    level_label: 'Mode libre',
+    level_code: 'libre',
+    chapter_id: 'libre',
+    chapter_title: 'Mode libre',
+    resource_type: 'cours',
+    free_mode: true,
+};
 
 export default function ProfDashboard({ initialData, teacherId }: ProfDashboardProps) {
     const { levels, chapters, resources, sequences, chatSessions } = initialData;
@@ -150,6 +160,16 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                     >
                         🔄 Convertisseur
                     </button>
+                    <button
+                        onClick={() => setViewMode('free')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                            viewMode === 'free'
+                                ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        🎨 Mode libre
+                    </button>
                 </div>
 
                 {viewMode === 'chat' && profContext && (
@@ -238,6 +258,17 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                     <p className="text-slate-500 text-sm">
                         Sélectionnez une classe, un chapitre et un type de ressource pour commencer
                     </p>
+                </div>
+            )}
+
+            {/* ── VUE MODE LIBRE ────────────────────────────────── */}
+            {viewMode === 'free' && (
+                <div className="bg-white/[0.02] border border-violet-500/20 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 280px)', minHeight: '500px' }}>
+                    <ProfChatbot
+                        context={FREE_MODE_CONTEXT}
+                        sequenceId="libre"
+                        teacherId={teacherId}
+                    />
                 </div>
             )}
 

@@ -142,6 +142,7 @@ export interface ProfContext {
     chapter_title: string;
     resource_type: ProfResourceType;
     sequence_id?: string;
+    free_mode?: boolean;
 }
 
 /** Payload envoyé à l'API prof-chat */
