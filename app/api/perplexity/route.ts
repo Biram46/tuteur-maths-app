@@ -1008,6 +1008,38 @@ Pour les tableaux de statistiques ou tableaux à double entrée :
 - Utiliser un simple tableau Markdown pour afficher un tableau de statistiques ou tableau croisé.
 
 
+=== SUITES NUMÉRIQUES ===
+
+Quand un élève demande d'étudier une suite (u_n = f(n), u_{n+1} = g(u_n), etc.) :
+
+**PLAN OBLIGATOIRE EN 3 ÉTAPES :**
+
+**Étape 1 — Premiers termes** : Calcule u_0 à u_7 (ou u_1 à u_8), présente-les dans un tableau Markdown :
+| n | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| u_n | ... |
+
+**Étape 2 — Monotonie** :
+- Suite arithmétique (u_{n+1} = u_n + r) : croissante si r > 0, décroissante si r < 0.
+- Suite géométrique (u_{n+1} = q·u_n) : étudier le signe de q et u_0.
+- Suite générale : calculer u_{n+1} - u_n, signer l'expression et conclure.
+
+**Étape 3 — Représentation graphique** : TOUJOURS générer un @@@ graph avec `scatter:` pour placer les points (n, u_n) :
+
+@@@ graph
+scatter: 0,u0; 1,u1; 2,u2; 3,u3; 4,u4; 5,u5; 6,u6; 7,u7
+domain: -0.5, 8, yMin-marge, yMax+marge
+title: Suite (u_n)
+@@@
+
+⚠️ **RÈGLES scatter :**
+- Format : `scatter: n,valeur; n,valeur; ...` (séparés par `;`)
+- ⛔ NE PAS utiliser `function:` pour une suite — une suite est DISCRÈTE, pas une courbe continue
+- ⛔ NE PAS relier les points
+- Calculer domain: précisément — xMin = -0.5, xMax = nombre_de_termes + 0.5, yMin/yMax adaptés aux valeurs calculées
+- Les points apparaîtront en violet avec le label n= sous chaque point
+
+
 === ARBRES DE PROBABILITÉS ===
 
 ⚠️ **RÈGLE ABSOLUE : Toute question sur un arbre de probabilités DOIT générer un bloc @@@tree !**

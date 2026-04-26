@@ -389,6 +389,7 @@ export function useFigureRenderer() {
                 const graphBoxplots: any[] = [];
                 const graphBarcharts: any[] = [];
                 const graphPiecharts: any[] = [];
+                const graphScatterPoints: { x: number; y: number }[] = [];
 
                 sections.slice(1).forEach(sec => {
                     const low = sec.toLowerCase().trim();
@@ -445,10 +446,17 @@ export function useFigureRenderer() {
                             }
                         }
                         if (data.length > 0) graphPiecharts.push({ data });
+                    } else if (low.startsWith('scatter:')) {
+                        // Format: scatter: 0,1; 1,5; 2,13; ...
+                        const argStr = sec.substring(sec.indexOf(':') + 1).trim();
+                        argStr.split(';').forEach(pair => {
+                            const [nx, ny] = pair.trim().split(',').map(Number);
+                            if (!isNaN(nx) && !isNaN(ny)) graphScatterPoints.push({ x: nx, y: ny });
+                        });
                     }
                 });
 
-                if (graphFns.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0 || graphPoints.length > 0) {
+                if (graphFns.length > 0 || graphBoxplots.length > 0 || graphBarcharts.length > 0 || graphPiecharts.length > 0 || graphPoints.length > 0 || graphScatterPoints.length > 0) {
                     return _cacheAndReturn(
                         <div key={rawBlock} className="w-full math-figure-container my-6">
                             <div className="animate-in zoom-in duration-700">
@@ -461,6 +469,7 @@ export function useFigureRenderer() {
                                     boxplots={graphBoxplots}
                                     barcharts={graphBarcharts}
                                     piecharts={graphPiecharts}
+                                    scatterPoints={graphScatterPoints}
                                 />
                             </div>
                         </div>

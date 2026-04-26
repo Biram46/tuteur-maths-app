@@ -45,6 +45,7 @@ export interface MathGraphProps {
     boxplots?: { min: number, q1: number, median: number, q3: number, max: number, label: string, color?: string }[];
     barcharts?: { coords: { x: number, y: number }[], color?: string }[];
     piecharts?: { data: { label: string, value: number, color?: string }[] }[];
+    scatterPoints?: GraphPoint[];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -290,7 +291,8 @@ export default function MathGraph({
     asymptotes = [],
     boxplots = [],
     barcharts = [],
-    piecharts = []
+    piecharts = [],
+    scatterPoints = []
 }: MathGraphProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -771,6 +773,31 @@ export default function MathGraph({
             });
         }
 
+        // ── SCATTER (suites numériques — points discrets isolés) ──
+        if (scatterPoints && scatterPoints.length > 0) {
+            const scatterGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
+            scatterPoints.forEach((pt, i) => {
+                const cx = xScale(pt.x);
+                const cy = yScale(pt.y);
+                scatterGroup.append('circle')
+                    .attr('cx', cx).attr('cy', cy)
+                    .attr('r', isMobile ? 4 : 5)
+                    .attr('fill', '#a855f7')
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', 1.5)
+                    .attr('opacity', 0)
+                    .transition().delay(i * 80).duration(350).attr('opacity', 1);
+                scatterGroup.append('text')
+                    .attr('x', cx).attr('y', cy + (isMobile ? 14 : 16))
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', '#94a3b8')
+                    .style('font-size', isMobile ? '9px' : '10px')
+                    .attr('opacity', 0)
+                    .text(`n=${pt.x}`)
+                    .transition().delay(i * 80 + 200).duration(300).attr('opacity', 1);
+            });
+        }
+
         // ── BARCHARTS ──
         if (barcharts && barcharts.length > 0) {
             const chartGroup = g.append('g').attr('clip-path', `url(#${clipId})`);
@@ -880,7 +907,7 @@ export default function MathGraph({
 
         // ── TITRE ──
         // (Rendu en HTML au lieu du SVG pour gérer le LaTeX/KaTeX proprement)
-    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions, boxplots, barcharts, piecharts]);
+    }, [points, entities, functions, domain, title, isVisible, animationKey, componentId, dimensions, hideAxes, asymptotes, hasTrigFunctions, boxplots, barcharts, piecharts, scatterPoints]);
 
     useEffect(() => {
         renderGraph();
