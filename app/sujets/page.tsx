@@ -132,6 +132,20 @@ export default async function SujetsPage() {
         return match ? parseInt(match[1]) : 9999;
     };
 
+    // Retourne l'href pour un PDF : URL signée si Storage, direct sinon
+    const pdfHref = (url: string | null): string => {
+        if (!url) return '#';
+        if (url.startsWith('/') || !url.includes('supabase')) return url;
+        return `/api/storage/sign?url=${encodeURIComponent(url)}`;
+    };
+
+    // Retourne l'href pour un .tex : proxy /api/download si Storage, direct sinon
+    const texHref = (url: string | null, filename: string): string => {
+        if (!url) return '#';
+        if (url.startsWith('/') || !url.includes('supabase')) return url;
+        return `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+    };
+
     // Grouper les sujets par niveau, triés par numéro
     const sujetsByNiveau = displaySujets.reduce((acc, sujet) => {
         const niveau = sujet.niveau || '1ere_specialite';
@@ -288,7 +302,7 @@ export default async function SujetsPage() {
                                                 {/* Sujet PDF */}
                                                 {sujet.sujet_pdf_url ? (
                                                     <a
-                                                        href={sujet.sujet_pdf_url}
+                                                        href={pdfHref(sujet.sujet_pdf_url)}
                                                         target="_blank"
                                                         className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
                                                     >
@@ -303,7 +317,7 @@ export default async function SujetsPage() {
                                                 {/* Sujet LaTeX */}
                                                 {sujet.sujet_latex_url ? (
                                                     <a
-                                                        href={sujet.sujet_latex_url}
+                                                        href={texHref(sujet.sujet_latex_url, `${sujet.titre}_sujet.tex`)}
                                                         target="_blank"
                                                         className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
                                                     >
@@ -318,7 +332,7 @@ export default async function SujetsPage() {
                                                 {/* Corrigé PDF */}
                                                 {sujet.corrige_disponible && sujet.corrige_pdf_url ? (
                                                     <a
-                                                        href={sujet.corrige_pdf_url}
+                                                        href={pdfHref(sujet.corrige_pdf_url)}
                                                         target="_blank"
                                                         className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
                                                     >
@@ -333,7 +347,7 @@ export default async function SujetsPage() {
                                                 {/* Corrigé LaTeX */}
                                                 {sujet.corrige_disponible && sujet.corrige_latex_url ? (
                                                     <a
-                                                        href={sujet.corrige_latex_url}
+                                                        href={texHref(sujet.corrige_latex_url, `${sujet.titre}_corrige.tex`)}
                                                         target="_blank"
                                                         className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-400 hover:text-white font-bold text-sm transition-all min-h-[40px]"
                                                     >
