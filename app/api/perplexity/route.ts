@@ -1024,7 +1024,7 @@ Quand un élève demande d'étudier une suite (u_n = f(n), u_{n+1} = g(u_n), etc
 - Suite géométrique (u_{n+1} = q·u_n) : étudier le signe de q et u_0.
 - Suite générale : calculer u_{n+1} - u_n, signer l'expression et conclure.
 
-**Étape 3 — Représentation graphique** : TOUJOURS générer un @@@ graph avec `scatter:` pour placer les points (n, u_n) :
+**Étape 3 — Représentation graphique** : TOUJOURS générer un @@@ graph avec scatter: pour placer les points (n, u_n) :
 
 @@@ graph
 scatter: 0,u0; 1,u1; 2,u2; 3,u3; 4,u4; 5,u5; 6,u6; 7,u7
@@ -1033,8 +1033,8 @@ title: Suite (u_n)
 @@@
 
 ⚠️ **RÈGLES scatter :**
-- Format : `scatter: n,valeur; n,valeur; ...` (séparés par `;`)
-- ⛔ NE PAS utiliser `function:` pour une suite — une suite est DISCRÈTE, pas une courbe continue
+- Format : "scatter: n,valeur; n,valeur; ..." (séparés par ";")
+- ⛔ NE PAS utiliser "function:" pour une suite — une suite est DISCRÈTE, pas une courbe continue
 - ⛔ NE PAS relier les points
 - Calculer domain: précisément — xMin = -0.5, xMax = nombre_de_termes + 0.5, yMin/yMax adaptés aux valeurs calculées
 - Les points apparaîtront en violet avec le label n= sous chaque point
