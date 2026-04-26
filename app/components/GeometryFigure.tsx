@@ -149,9 +149,15 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         yMax: defaultDomain.y[1],
     });
 
-    // Resynchronise le viewport quand la scène ou le domaine change
+    // Resynchronise le viewport uniquement quand la structure de la scène change
+    // (nouvelle figure IA), pas quand un point est déplacé (drag → même structure)
+    const sceneSignatureRef = useRef('');
     useEffect(() => {
+        const sig = `${scene.title ?? ''}|${scene.objects.length}|${scene.repere}`;
+        if (sig === sceneSignatureRef.current) return;
+        sceneSignatureRef.current = sig;
         setViewport({ xMin: defaultDomain.x[0], xMax: defaultDomain.x[1], yMin: defaultDomain.y[0], yMax: defaultDomain.y[1] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultDomain]);
 
     const toSvgX = useCallback((mx: number) =>
@@ -287,6 +293,14 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         setDragOverride(new Map());
         isPanning.current = false;
     }, [scene, onSceneChange]);
+
+    // Listener global mouseup — garantit la fin du drag même si la souris quitte le SVG
+    useEffect(() => {
+        if (!isDragging) return;
+        const handleGlobalUp = () => onMouseUp();
+        window.addEventListener('mouseup', handleGlobalUp);
+        return () => window.removeEventListener('mouseup', handleGlobalUp);
+    }, [isDragging, onMouseUp]);
 
     // ── Grille et axes ────────────────────────────────────────────────────
     const renderGrid = () => {
@@ -718,7 +732,6 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
-                onMouseLeave={onMouseUp}
                 style={{ display: 'block', cursor: isDragging ? 'grabbing' : interactive ? 'default' : 'default' }}>
                 {/* Fond */}
                 <rect width={width} height={height} fill={PALETTE.bg} />
@@ -826,62 +839,51 @@ export default function GeometryFigure({ scene }: GeometryFigureProps) {
     }, [scene]);
 
     return (
-        <div style={{ margin: '12px 0', display: 'inline-flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ margin: '12px 0', display: 'inline-flex', flexDirection: 'column', gap: 0, maxWidth: 420 }}>
             {/* Carte principale */}
             <div style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 16px',
                 background: 'linear-gradient(135deg, rgba(30,27,75,0.5), rgba(15,23,42,0.6))',
                 border: '1px solid rgba(99,102,241,0.3)', borderRadius: 16,
                 boxShadow: '0 4px 20px rgba(99,102,241,0.12)',
-            }}>
-                {/* Icône */}
-                <div style={{
-                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        strokeWidth={1.5} stroke="#818cf8" width={20} height={20}>
-                        <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                    </svg>
+                overflow: 'hidden',
+                cursor: 'pointer',
+            }} onClick={openWindow} title="Ouvrir dans le géomètre">
+
+                {/* Aperçu SVG miniature */}
+                <div style={{ pointerEvents: 'none', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+                    <GeoCanvas scene={scene} width={420} height={220} interactive={false} />
                 </div>
 
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
-                        {!scene.title ? 'Figure géométrique' : (
-                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
-                                components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
-                                {scene.title}
-                            </ReactMarkdown>
-                        )}
+                {/* Barre inférieure : titre + bouton */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#c7d2fe', margin: 0 }}>
+                            {!scene.title ? 'Figure géométrique' : (
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
+                                    components={{ p: ({ ...props }) => <p style={{ margin: 0, padding: 0 }} {...props} /> }}>
+                                    {scene.title}
+                                </ReactMarkdown>
+                            )}
+                        </div>
+                        <p style={{ fontSize: 10, color: 'rgba(148,163,184,0.5)', margin: '1px 0 0' }}>
+                            {nPts} point{nPts > 1 ? 's' : ''} · {nObjs} objet{nObjs > 1 ? 's' : ''}
+                            {scene.computed?.length ? ` · ${scene.computed.length} calcul(s)` : ''}
+                        </p>
                     </div>
-                    <p style={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', margin: '2px 0 0' }}>
-                        {nPts} point{nPts > 1 ? 's' : ''} · {nObjs} objet{nObjs > 1 ? 's' : ''}
-                        {scene.computed?.length ? ` · ${scene.computed.length} calcul(s)` : ''}
-                    </p>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '5px 12px', borderRadius: 8,
+                        background: 'rgba(99,102,241,0.75)', color: 'white',
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', flexShrink: 0,
+                    }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            strokeWidth={2} stroke="currentColor" width={12} height={12}>
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                        Ouvrir
+                    </div>
                 </div>
-
-                {/* Bouton Ouvrir */}
-                <button onClick={openWindow} style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '7px 16px', borderRadius: 10,
-                    background: 'rgba(99,102,241,0.8)', color: 'white',
-                    fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
-                    border: 'none', cursor: 'pointer', flexShrink: 0,
-                    transition: 'all 0.15s',
-                }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,1)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.8)')}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        strokeWidth={2} stroke="currentColor" width={14} height={14}>
-                        <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
-                    Ouvrir
-                </button>
             </div>
 
             {/* Mesures exactes */}
