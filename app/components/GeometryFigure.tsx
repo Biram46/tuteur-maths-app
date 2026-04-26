@@ -867,19 +867,23 @@ export function GeoCanvas({ scene, width, height, interactive = true, onSceneCha
         }
 
 
-        // Arc d'angle
+        // Arc d'angle — toujours l'arc intérieur (< 180°)
         const a1 = Math.atan2(toSvgY(P1.y) - sy, toSvgX(P1.x) - sx);
         const a2 = Math.atan2(toSvgY(P2.y) - sy, toSvgX(P2.x) - sx);
         const R = 18;
         const [x1, y1] = [sx + Math.cos(a1) * R, sy + Math.sin(a1) * R];
         const [x2, y2] = [sx + Math.cos(a2) * R, sy + Math.sin(a2) * R];
-        const mid = (a1 + a2) / 2;
-        const lx = sx + Math.cos(mid) * (R + 14);
-        const ly = sy + Math.sin(mid) * (R + 14);
+        // cwDist = distance angulaire en allant dans le sens CW du SVG (y vers le bas)
+        const cwDist = ((a2 - a1) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        const sweep = cwDist <= Math.PI ? 1 : 0; // 1=CW, 0=CCW — on prend le plus court
+        const arcLen = sweep === 1 ? cwDist : (2 * Math.PI - cwDist);
+        const midAngle = sweep === 1 ? a1 + arcLen / 2 : a1 - arcLen / 2;
+        const lx = sx + Math.cos(midAngle) * (R + 14);
+        const ly = sy + Math.sin(midAngle) * (R + 14);
 
         return (
             <g key={`ang${i}`}>
-                <path d={`M ${x1},${y1} A ${R},${R} 0 0,1 ${x2},${y2}`}
+                <path d={`M ${x1},${y1} A ${R},${R} 0 0,${sweep} ${x2},${y2}`}
                     fill="none" stroke={color} strokeWidth={1.5} />
                 {obj.label && (
                     <text x={lx} y={ly} textAnchor="middle" fontSize={11} fill={color} fontFamily="Inter,sans-serif">
