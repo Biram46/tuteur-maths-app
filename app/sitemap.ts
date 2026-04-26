@@ -111,7 +111,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 };
             });
 
-        return [...staticPages, ...coursIndexPage, ...levelPages, ...resourcePages];
+        // /cours/[niveau]/[chapitre] pages
+        const chapterPages: MetadataRoute.Sitemap = (chapters || [])
+            .map((chapter: { id: string; code: string; title: string; level_id: string; published: boolean; updated_at?: string }) => {
+                const level = levels?.find((l: { id: string; code: string }) => l.id === chapter.level_id);
+                if (!level) return null;
+                return {
+                    url: `${baseUrl}/cours/${encodeURIComponent(level.code.toLowerCase())}/${encodeURIComponent(chapter.code.toLowerCase())}`,
+                    lastModified: chapter.updated_at || today,
+                    changeFrequency: 'monthly' as const,
+                    priority: 0.75,
+                };
+            })
+            .filter(Boolean) as MetadataRoute.Sitemap;
+
+        return [...staticPages, ...coursIndexPage, ...levelPages, ...chapterPages, ...resourcePages];
     } catch (error) {
         console.error('Error generating sitemap:', error);
         // Return at least static pages if database fails

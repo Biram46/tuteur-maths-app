@@ -137,7 +137,11 @@ export default async function NiveauPage({ params }: Props) {
                 {chapterList.length > 0 ? (
                     <div className="grid gap-3 sm:grid-cols-2 mb-16">
                         {chapterList.map((chapter) => (
-                            <article key={chapter.id} className="group rounded-xl border border-slate-700/60 bg-slate-900/40 p-5 hover:border-cyan-500/40 hover:bg-slate-800/50 transition-all duration-200">
+                            <Link
+                                key={chapter.id}
+                                href={`/cours/${encodeURIComponent(niveau)}/${encodeURIComponent(chapter.code.toLowerCase())}`}
+                                className="group rounded-xl border border-slate-700/60 bg-slate-900/40 p-5 hover:border-cyan-500/40 hover:bg-slate-800/50 transition-all duration-200 block"
+                            >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <h2 className="text-sm font-semibold text-slate-100 leading-snug mb-1">
@@ -147,15 +151,11 @@ export default async function NiveauPage({ params }: Props) {
                                             Cours · Exercices · Quiz
                                         </p>
                                     </div>
-                                    <Link
-                                        href="/login"
-                                        className="shrink-0 text-xs text-cyan-500/70 group-hover:text-cyan-400 transition-colors whitespace-nowrap"
-                                        aria-label={`Accéder au chapitre ${chapter.title}`}
-                                    >
-                                        Accéder →
-                                    </Link>
+                                    <span className="shrink-0 text-xs text-cyan-500/70 group-hover:text-cyan-400 transition-colors whitespace-nowrap mt-0.5">
+                                        Voir →
+                                    </span>
                                 </div>
-                            </article>
+                            </Link>
                         ))}
                     </div>
                 ) : (
