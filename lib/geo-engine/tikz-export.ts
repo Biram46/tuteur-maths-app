@@ -48,6 +48,11 @@ function pointById(scene: GeoScene, id: string): GeoPoint | undefined {
     return scene.objects.find(o => o.kind === 'point' && o.id === id) as GeoPoint | undefined;
 }
 
+/** Sanitise un ID de point pour TikZ (qui n'accepte pas _ en début ni caractères spéciaux) */
+function tikzId(id: string): string {
+    return id.replace(/^_+/, 'p').replace(/[^a-zA-Z0-9]/g, '');
+}
+
 function dist(a: GeoPoint, b: GeoPoint): number {
     return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
 }
@@ -107,20 +112,22 @@ export function exportTikzSnippet(scene: GeoScene): string {
         L.push(`  \\fill (0,0) circle (1.5pt) node[below left, font=\\small] {$O$};`);
     }
 
-    // ── Coordonnées ──
-    const visiblePts = pts.filter(p => !p.id.startsWith('_'));
-    if (visiblePts.length > 0) {
+    // ── Coordonnées — TOUS les points (y compris internes _O_circ etc.) ──
+    // Les IDs sont sanitisés via tikzId() pour être valides en TikZ
+    if (pts.length > 0) {
         L.push(`  % Coordonnées`);
-        visiblePts.forEach(p => {
-            L.push(`  \\coordinate (${p.id}) at (${fmtN(p.x)},${fmtN(p.y)});`);
+        pts.forEach(p => {
+            L.push(`  \\coordinate (${tikzId(p.id)}) at (${fmtN(p.x)},${fmtN(p.y)});`);
         });
     }
+    // Points rendus à l'écran (pas style:none)
+    const visiblePts = pts.filter(p => p.style !== 'none');
 
     // ── Polygones (fond d'abord) ──
     if (polys.length > 0) {
         L.push(`  % Polygones`);
         polys.forEach(poly => {
-            const verts = poly.vertices.join(') -- (');
+            const verts = poly.vertices.map(tikzId).join(') -- (');
             if (poly.fillColor) {
                 L.push(`  \\fill[${fmtColor(poly.fillColor)}!20] (${verts}) -- cycle;`);
             }
@@ -133,7 +140,7 @@ export function exportTikzSnippet(scene: GeoScene): string {
     if (lines.length > 0) {
         L.push(`  % Droites`);
         lines.forEach(line => {
-            const [id1, id2] = line.through;
+            const [id1, id2] = line.through.map(tikzId);
             const color = fmtColor(line.color);
             const style = line.style === 'dashed' ? 'dashed, ' : line.style === 'dotted' ? 'dotted, ' : '';
             if (line.type === 'line') {
@@ -155,16 +162,16 @@ export function exportTikzSnippet(scene: GeoScene): string {
         segs.forEach(seg => {
             const color = fmtColor(seg.color);
             const style = seg.dashed ? 'dashed, ' : '';
-            L.push(`  \\draw[${style}${color}] (${seg.from}) -- (${seg.to});`);
+            const f = tikzId(seg.from), t = tikzId(seg.to);
+            L.push(`  \\draw[${style}${color}] (${f}) -- (${t});`);
             if (seg.showTicks) {
-                // Petits traits d'égalité au milieu du segment
                 const n = seg.showTicks;
                 for (let i = 0; i < n; i++) {
-                    L.push(`  \\draw[${color}] ($(${seg.from})!.5!(${seg.to}) + (${-0.04 * (n - 1) / 2 + 0.04 * i},0.08)$) -- ($(${seg.from})!.5!(${seg.to}) + (${-0.04 * (n - 1) / 2 + 0.04 * i},-0.08)$);`);
+                    L.push(`  \\draw[${color}] ($(${f})!.5!(${t}) + (${-0.04 * (n - 1) / 2 + 0.04 * i},0.08)$) -- ($(${f})!.5!(${t}) + (${-0.04 * (n - 1) / 2 + 0.04 * i},-0.08)$);`);
                 }
             }
             if (seg.label) {
-                L.push(`  \\node at ($(${seg.from})!.5!(${seg.to}) + (0,0.2)$) {\\small $${seg.label}$};`);
+                L.push(`  \\node at ($(${f})!.5!(${t}) + (0,0.2)$) {\\small $${seg.label}$};`);
             }
         });
     }
@@ -184,9 +191,10 @@ export function exportTikzSnippet(scene: GeoScene): string {
             } else {
                 r = 1;
             }
-            L.push(`  \\draw[${color}] (${c.center}) circle (${fmtN(r)});`);
+            const cid = tikzId(c.center);
+            L.push(`  \\draw[${color}] (${cid}) circle (${fmtN(r)});`);
             if (c.label) {
-                L.push(`  \\node[${color}, above right] at (${c.center}) {\\small $${c.label}$};`);
+                L.push(`  \\node[${color}, above right] at (${cid}) {\\small $${c.label}$};`);
             }
         });
     }
@@ -196,7 +204,8 @@ export function exportTikzSnippet(scene: GeoScene): string {
         L.push(`  % Vecteurs`);
         vecs.forEach(v => {
             const color = fmtColor(v.color);
-            L.push(`  \\draw[->, ${color}, thick] (${v.from}) -- (${v.to});`);
+            const vf = tikzId(v.from), vt = tikzId(v.to);
+            L.push(`  \\draw[->, ${color}, thick] (${vf}) -- (${vt});`);
             if (v.label) {
                 const pF = pointById(scene, v.from);
                 const pT = pointById(scene, v.to);
@@ -223,7 +232,6 @@ export function exportTikzSnippet(scene: GeoScene): string {
             if (!vertex || !pFrom || !pTo) return;
 
             if (a.square) {
-                // Symbole angle droit (carré français)
                 const sz = 0.25;
                 const d1 = dist(vertex, pFrom);
                 const d2 = dist(vertex, pTo);
@@ -235,8 +243,8 @@ export function exportTikzSnippet(scene: GeoScene): string {
                 const my = fmtN(vertex.y + sz * ((pFrom.y - vertex.y) / d1 + (pTo.y - vertex.y) / d2));
                 L.push(`  \\draw[${color}] (${e1x},${e1y}) -- (${mx},${my}) -- (${e2x},${e2y});`);
             } else {
-                // Arc d'angle (nécessite tikzlibrary angles)
-                L.push(`  \\pic[draw=${color}, angle radius=0.5cm${a.label ? `, "$${a.label}$"` : ''}] {angle = ${a.from}--${a.vertex}--${a.to}};`);
+                const af = tikzId(a.from), av = tikzId(a.vertex), at2 = tikzId(a.to);
+                L.push(`  \\pic[draw=${color}, angle radius=0.5cm${a.label ? `, "$${a.label}$"` : ''}] {angle = ${af}--${av}--${at2}};`);
             }
         });
     }
@@ -245,18 +253,17 @@ export function exportTikzSnippet(scene: GeoScene): string {
     if (visiblePts.length > 0) {
         L.push(`  % Points`);
         visiblePts.forEach(p => {
-            if (p.style === 'none') return;
             const color = fmtColor(p.color);
+            const tid = tikzId(p.id);
             if (p.style === 'cross') {
-                // Croix française
-                L.push(`  \\draw[${color}] ($(${p.id}) + (-.07,-.07)$) -- ($(${p.id}) + (.07,.07)$);`);
-                L.push(`  \\draw[${color}] ($(${p.id}) + (-.07,.07)$) -- ($(${p.id}) + (.07,-.07)$);`);
+                L.push(`  \\draw[${color}] ($(${tid}) + (-.07,-.07)$) -- ($(${tid}) + (.07,.07)$);`);
+                L.push(`  \\draw[${color}] ($(${tid}) + (-.07,.07)$) -- ($(${tid}) + (.07,-.07)$);`);
             } else {
-                L.push(`  \\fill[${color}] (${p.id}) circle (2pt);`);
+                L.push(`  \\fill[${color}] (${tid}) circle (2pt);`);
             }
             const lbl = p.label !== undefined ? p.label : p.id;
             if (lbl) {
-                L.push(`  \\node[${color}, font=\\small] at ($(${p.id}) + (0.18,0.18)$) {$${lbl}$};`);
+                L.push(`  \\node[${color}, font=\\small] at ($(${tid}) + (0.18,0.18)$) {$${lbl}$};`);
             }
         });
     }
