@@ -538,18 +538,26 @@ export default function GeometrePage() {
                                 };
                                 const c = cfg[obj.kind] || cfg.label;
 
+                                // Map id → label pour résoudre les références de points renommés
+                                const ptLabel: Record<string, string> = Object.fromEntries(
+                                    scene.objects
+                                        .filter(o => o.kind === 'point')
+                                        .map(o => [(o as any).id, (o as any).label ?? (o as any).id])
+                                );
+                                const pl = (id: string) => ptLabel[id] ?? id;
+
                                 const getName = (): string => {
                                     switch (obj.kind) {
                                         case 'point': { const p = obj as any; return `${p.label ?? p.id}  (${Number(p.x).toFixed(2)} ; ${Number(p.y).toFixed(2)})`; }
-                                        case 'segment': return `[${(obj as any).from}${(obj as any).to}]`;
-                                        case 'line': return (obj as any).label || `(${(obj as any).through?.join('')})`;
+                                        case 'segment': { const s = obj as any; return `[${pl(s.from)}${pl(s.to)}]`; }
+                                        case 'line': { const l = obj as any; return l.label || `(${(l.through || []).map(pl).join('')})`; }
                                         case 'circle': return `⊙ ${(obj as any).center}  r=${(obj as any).radiusValue ?? '?'}`;
                                         case 'vector': {
                                             const v = obj as any;
-                                            const lbl = v.label ? v.label.replace(/\\(?:vec|overrightarrow)\{([^}]+)\}/, '$1') : `${v.from}${v.to}`;
+                                            const lbl = v.label ? v.label.replace(/\\(?:vec|overrightarrow)\{([^}]+)\}/, '$1') : `${pl(v.from)}${pl(v.to)}`;
                                             return `→ ${lbl}`;
                                         }
-                                        case 'angle': return `∠ ${(obj as any).vertex}`;
+                                        case 'angle': return `∠ ${pl((obj as any).vertex)}`;
                                         default: return obj.kind;
                                     }
                                 };
