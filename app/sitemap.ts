@@ -76,24 +76,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             .eq('published', true)
             .order('position', { ascending: true });
 
-        // Generate level pages
+        // /cours pages (public, indexables)
+        const coursIndexPage: MetadataRoute.Sitemap = [{
+            url: `${baseUrl}/cours`,
+            lastModified: today,
+            changeFrequency: 'weekly' as const,
+            priority: 0.9,
+        }];
+
         const levelPages: MetadataRoute.Sitemap = (levels || []).map((level: { id: string; code: string; label: string; updated_at?: string }) => ({
-            url: `${baseUrl}/niveau/${level.code}`,
+            url: `${baseUrl}/cours/${level.code.toLowerCase()}`,
             lastModified: level.updated_at || today,
             changeFrequency: 'weekly' as const,
-            priority: 0.8,
+            priority: 0.85,
         }));
-
-        // Generate chapter pages
-        const chapterPages: MetadataRoute.Sitemap = (chapters || []).map((chapter: { id: string; code: string; title: string; level_id: string; published: boolean; updated_at?: string }) => {
-            const level = levels?.find((l: { id: string; code: string }) => l.id === chapter.level_id);
-            return {
-                url: `${baseUrl}/niveau/${level?.code || 'inconnu'}/${chapter.code}`,
-                lastModified: chapter.updated_at || today,
-                changeFrequency: 'weekly' as const,
-                priority: 0.7,
-            };
-        });
 
         // Fetch resources for additional URLs
         const { data: resources } = await supabase
@@ -115,7 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 };
             });
 
-        return [...staticPages, ...levelPages, ...chapterPages, ...resourcePages];
+        return [...staticPages, ...coursIndexPage, ...levelPages, ...resourcePages];
     } catch (error) {
         console.error('Error generating sitemap:', error);
         // Return at least static pages if database fails
