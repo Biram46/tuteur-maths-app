@@ -146,14 +146,19 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
         if (copyFiles.length === 0) return;
         abortRef.current = false;
 
-        const { id: sessionId } = await createCorrectionSession(teacherId, {
-            title: sessionTitle.trim() || 'Correction sans titre',
-            subject: subject.trim() || undefined,
-            class_label: classLabel.trim() || undefined,
-            bareme,
-            total_points: totalPoints,
-        });
-        setCurrentSessionId(sessionId);
+        // Réutilise la session active si elle existe (ajout de copies), sinon en crée une nouvelle
+        let sessionId = currentSessionId;
+        if (!sessionId) {
+            const created = await createCorrectionSession(teacherId, {
+                title: sessionTitle.trim() || 'Correction sans titre',
+                subject: subject.trim() || undefined,
+                class_label: classLabel.trim() || undefined,
+                bareme,
+                total_points: totalPoints,
+            });
+            sessionId = created.id;
+            setCurrentSessionId(sessionId);
+        }
         setStep('processing');
 
         const totalCopies = copyFiles.length;
@@ -242,7 +247,7 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
             setStep('review');
             loadReviewData(sessionId);
         }, 800);
-    }, [copyFiles, teacherId, sessionTitle, subject, classLabel, bareme, totalPoints]);
+    }, [copyFiles, teacherId, sessionTitle, subject, classLabel, bareme, totalPoints, currentSessionId]);
 
     // ── Step 4 : review ───────────────────────────────────────────
     const [reviewSession, setReviewSession] = useState<CorrectionSession | null>(null);
@@ -313,6 +318,12 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
         setCopies([]);
         setEditedItems({});
         setExpandedId(null);
+    };
+
+    // Ajouter des copies à la session courante sans la recréer
+    const addMoreCopies = () => {
+        setCopyFiles([]);
+        setStep('upload');
     };
 
     // ── Sessions list view ────────────────────────────────────────
@@ -678,7 +689,13 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                         {reviewSession?.class_label && ` · ${reviewSession.class_label}`}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                        onClick={addMoreCopies}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 transition-colors border border-indigo-500/20"
+                    >
+                        + Ajouter des copies
+                    </button>
                     <button
                         onClick={resetToNew}
                         className="px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-400 transition-colors border border-white/10"
