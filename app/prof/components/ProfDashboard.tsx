@@ -48,6 +48,7 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
     // Quand le contexte change via ContextSelector
     const handleContextChange = useCallback((ctx: ProfContext | null) => {
         setProfContext(ctx);
+        setSequenceId(null);
         if (ctx) {
             setSelectedLevelId(ctx.level_id);
         }
