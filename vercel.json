@@ -11,6 +11,9 @@
     },
     "app/api/prof/analyze-copy/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/prof/extract-bareme/route.ts": {
+      "maxDuration": 60
     }
   }
 }
