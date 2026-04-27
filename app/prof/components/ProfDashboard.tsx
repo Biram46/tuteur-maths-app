@@ -9,6 +9,7 @@ import ProfChatbot from './ProfChatbot';
 import ResourceManager from './ResourceManager';
 import CurriculumManager from './CurriculumManager';
 import PdfToLatex from './PdfToLatex';
+import CopyCorrector from './CopyCorrector';
 import { getOrCreateSequence } from '../actions';
 
 interface ProfDashboardProps {
@@ -22,7 +23,7 @@ interface ProfDashboardProps {
     teacherId: string;
 }
 
-type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter' | 'free';
+type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter' | 'free' | 'corrections';
 
 const FREE_MODE_CONTEXT: ProfContext = {
     level_id: 'libre',
@@ -171,6 +172,16 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
                     >
                         🎨 Mode libre
                     </button>
+                    <button
+                        onClick={() => setViewMode('corrections')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                            viewMode === 'corrections'
+                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        📝 Corrections
+                    </button>
                 </div>
 
                 {viewMode === 'chat' && profContext && (
@@ -284,6 +295,13 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
             {viewMode === 'converter' && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
                     <PdfToLatex />
+                </div>
+            )}
+
+            {/* ── VUE CORRECTIONS ──────────────────────────────── */}
+            {viewMode === 'corrections' && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                    <CopyCorrector teacherId={teacherId} />
                 </div>
             )}
 

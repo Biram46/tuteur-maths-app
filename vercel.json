@@ -5,6 +5,12 @@
     },
     "app/api/latex-preview/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/prof/ocr-copy/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/prof/analyze-copy/route.ts": {
+      "maxDuration": 60
     }
   }
 }
