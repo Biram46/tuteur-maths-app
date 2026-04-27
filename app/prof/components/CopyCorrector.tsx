@@ -229,7 +229,7 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                 const res = await fetch('/api/prof/analyze-copy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ transcription: merged, bareme, total_points: totalPoints }),
+                    body: JSON.stringify({ transcription: merged.substring(0, 8000), bareme, total_points: totalPoints }),
                 });
                 const data: { analysis: CopyAnalysis; error?: string } = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
@@ -255,6 +255,7 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [editedItems, setEditedItems] = useState<Record<string, CopyAnalysis['items']>>({});
     const [validating, setValidating] = useState<string | null>(null);
+    const [retrying, setRetrying] = useState<string | null>(null);
 
     const loadReviewData = useCallback(async (sessionId: string) => {
         try {
@@ -282,6 +283,32 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
             ));
         } finally {
             setValidating(null);
+        }
+    };
+
+    const retryAnalysis = async (copy: CopyCorrection) => {
+        if (!copy.transcription) return;
+        setRetrying(copy.id);
+        const activeBareme = (reviewSession?.bareme as BaremeItem[] | undefined) ?? bareme;
+        try {
+            const res = await fetch('/api/prof/analyze-copy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transcription: copy.transcription.substring(0, 8000),
+                    bareme: activeBareme,
+                    total_points: totalPoints,
+                }),
+            });
+            const data: { analysis: CopyAnalysis; error?: string } = await res.json();
+            if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+            await updateCopyAnalysis(copy.id, data.analysis);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            await updateCopyError(copy.id, msg);
+        } finally {
+            setRetrying(null);
+            if (currentSessionId) await loadReviewData(currentSessionId);
         }
     };
 
@@ -745,7 +772,7 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
 
                                     {isError ? (
                                         <span className="text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20 shrink-0">
-                                            Erreur OCR
+                                            {copy.ocr_provider ? 'Erreur analyse' : 'Erreur OCR'}
                                         </span>
                                     ) : copy.analysis ? (
                                         <span className="text-sm font-bold text-white shrink-0">
@@ -756,6 +783,24 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                                     )}
 
                                     <div className="flex items-center gap-2 shrink-0">
+                                        {isError && copy.error_message && (
+                                            <span className="text-xs text-red-400/70 hidden sm:block max-w-[180px] truncate" title={copy.error_message}>
+                                                {copy.error_message.substring(0, 60)}
+                                            </span>
+                                        )}
+                                        {isError && (
+                                            <button
+                                                onClick={e => { e.stopPropagation(); retryAnalysis(copy); }}
+                                                disabled={retrying === copy.id}
+                                                className="px-2 py-1 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors border border-amber-500/20 flex items-center gap-1 shrink-0"
+                                            >
+                                                {retrying === copy.id
+                                                    ? <div className="w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                                                    : '↺'
+                                                }
+                                                Réessayer
+                                            </button>
+                                        )}
                                         {copy.ocr_provider && (
                                             <span className="text-xs text-slate-600">
                                                 {PROVIDER_LABELS[copy.ocr_provider] ?? copy.ocr_provider}
