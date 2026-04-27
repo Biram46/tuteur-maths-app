@@ -61,8 +61,47 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
         { id: 'q4', label: 'Question 4', max_points: 6 },
     ]);
     const [totalPoints, setTotalPoints] = useState(20);
+    const [extracting, setExtracting] = useState(false);
+    const [extractError, setExtractError] = useState<string | null>(null);
+    const subjectFileRef = useRef<HTMLInputElement>(null);
 
     const baremeSum = bareme.reduce((s, b) => s + (Number(b.max_points) || 0), 0);
+
+    const handleSubjectImport = useCallback(async (file: File) => {
+        setExtracting(true);
+        setExtractError(null);
+        try {
+            let body: { text?: string; images?: { base64: string; mimeType: string }[] };
+
+            if (file.name.endsWith('.tex') || file.type === 'text/plain') {
+                const text = await file.text();
+                body = { text };
+            } else if (file.type === 'application/pdf') {
+                const images = await pdfToImages(file);
+                body = { images };
+            } else {
+                throw new Error('Format non supporté. Utilisez un fichier .tex ou .pdf');
+            }
+
+            const res = await fetch('/api/prof/extract-bareme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+
+            setBareme(data.items);
+            if (!sessionTitle) {
+                setSessionTitle(file.name.replace(/\.[^.]+$/, ''));
+            }
+        } catch (err: unknown) {
+            setExtractError(err instanceof Error ? err.message : 'Erreur lors de l\'extraction');
+        } finally {
+            setExtracting(false);
+            if (subjectFileRef.current) subjectFileRef.current.value = '';
+        }
+    }, [sessionTitle]);
 
     const addBaremeItem = () => {
         const n = bareme.length + 1;
@@ -395,6 +434,46 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                             className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500/40 transition-colors"
                         />
                     </div>
+                </div>
+
+                {/* Import sujet */}
+                <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <p className="text-xs font-semibold text-slate-300">Importer le sujet pour extraire les questions</p>
+                            <p className="text-xs text-slate-600 mt-0.5">Fichier .tex ou .pdf — les questions sont détectées automatiquement</p>
+                        </div>
+                        <button
+                            type="button"
+                            disabled={extracting}
+                            onClick={() => subjectFileRef.current?.click()}
+                            className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 disabled:opacity-50 text-indigo-300 transition-colors border border-indigo-500/20 flex items-center gap-2 shrink-0"
+                        >
+                            {extracting ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                                    Extraction…
+                                </>
+                            ) : (
+                                '📄 Importer le sujet'
+                            )}
+                        </button>
+                        <input
+                            ref={subjectFileRef}
+                            type="file"
+                            accept=".tex,.pdf,text/plain,application/pdf"
+                            className="hidden"
+                            onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) handleSubjectImport(file);
+                            }}
+                        />
+                    </div>
+                    {extractError && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1.5">
+                            {extractError}
+                        </p>
+                    )}
                 </div>
 
                 {/* Barème */}
