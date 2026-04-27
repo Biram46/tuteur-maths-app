@@ -6,6 +6,23 @@ import { searchProgrammeRAG } from '@/lib/rag-search';
 import { detectNiveauFromText, getContraintesIA } from '@/lib/niveaux';
 import { sanitizeRagContext, authWithRateLimit } from '@/lib/api-auth';
 
+// Routing Haiku/Sonnet sans appel API — heuristiques pures
+function classifyComplexity(question: string): 'simple' | 'complex' {
+    if (!question || question.length > 300) return 'complex';
+    const q = question.toLowerCase();
+    const hasFormula = /\$|\\frac|\\sqrt|\\int|\\sum|\\lim/.test(question);
+    if (hasFormula) return 'complex';
+    const complexKw = ['calcule', 'calculer', 'résoudre', 'résous', 'démontre', 'démontrer',
+        'montrer que', 'prouver', 'développe', 'développer', 'factoriser', 'factorise',
+        'simplifier', 'simplifie', 'intégrale', 'dériver', 'dérivée de', 'étudier',
+        'tracer', 'exercice', 'résolution'];
+    if (complexKw.some(k => q.includes(k))) return 'complex';
+    const simpleKw = ["c'est quoi", "qu'est-ce que", "qu'est ce", 'définition',
+        'explique', 'signifie', 'rappelle', 'comment ça', "c'est quand"];
+    if (simpleKw.some(k => q.includes(k))) return 'simple';
+    return question.length < 120 ? 'simple' : 'complex';
+}
+
 /**
  * API STREAMING - mimimaths@i
  */
@@ -1175,12 +1192,18 @@ B -> B -> R, 1
 Contexte programme : Programme scolaire français (Seconde, Première, Terminale).`;
 
         // Chaîne de fallback: Claude → OpenAI → DeepSeek → GLM-5
+        const complexity = classifyComplexity(lastUserMessage);
+        const claudeModel = complexity === 'simple' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6';
+        const claudeMaxTokens = complexity === 'simple' ? 4096 : 16384;
+        console.log(`[Perplexity] Complexité: ${complexity} → modèle: ${claudeModel}`);
+
         const providers: any[] = [];
 
         if (anthropicKey) {
             providers.push({
                 name: 'Claude',
-                model: 'claude-sonnet-4-6',
+                model: claudeModel,
+                maxTokens: claudeMaxTokens,
                 key: anthropicKey,
                 temperature: 0,
                 isAnthropic: true
@@ -1250,7 +1273,7 @@ Contexte programme : Programme scolaire français (Seconde, Première, Terminale
                     ];
 
                     const stream = await anthropic.messages.create({
-                        max_tokens: 16384,
+                        max_tokens: provider.maxTokens ?? 16384,
                         messages: messages as any,
                         model: provider.model,
                         system: systemBlocks,
