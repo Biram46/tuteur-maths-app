@@ -1,14 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeMathImageWithOpenAI } from "@/lib/openai-vision";
 import { analyzeMathImage } from "@/lib/gemini";
 import { authWithRateLimit } from "@/lib/api-auth";
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const VISION_PROMPT = `Tu es un assistant expert en transcription mathématique.
+Ta mission est de lire cette image contenant un exercice de mathématiques.
+Transcris l'énoncé EXACTEMENT tel qu'il est écrit.
+- Utilise Markdown pour la structure.
+- Utilise LaTeX pour les formules (ex: $x^2 + 2x + 1 = 0$).
+- Si tu vois un graphique ou un tableau, décris-le brièvement.
+Ne résous pas l'exercice, contente-toi de transcrire l'énoncé.`;
+
+async function analyzeImageWithClaude(base64: string, mimeType: string): Promise<string> {
+    const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2048,
+        messages: [{
+            role: 'user',
+            content: [
+                {
+                    type: 'image',
+                    source: {
+                        type: 'base64',
+                        media_type: mimeType as Anthropic.Base64ImageSource['media_type'],
+                        data: base64,
+                    },
+                },
+                { type: 'text', text: VISION_PROMPT },
+            ],
+        }],
+    });
+    const block = response.content[0];
+    if (block.type !== 'text') throw new Error('Réponse Claude inattendue');
+    return block.text;
+}
 
 export async function POST(request: NextRequest) {
     const auth = await authWithRateLimit(request, 15, 60_000);
     if (auth instanceof NextResponse) return auth;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 1 minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
         const { image, mimeType } = await request.json();
@@ -19,37 +53,20 @@ export async function POST(request: NextRequest) {
 
         let transcription = "";
         const safeMimeType = mimeType || "image/jpeg";
-
         console.log(`[API Vision] Début traitement: ${safeMimeType} (${Math.round(image.length / 1024)} KB)`);
 
-        // --- CAS DU PDF ---
         if (safeMimeType === "application/pdf") {
-            console.log("[API Vision] Cible: PDF. Passage au moteur Gemini (Multi-pages/Multi-modal).");
+            // PDF : Gemini uniquement (lit nativement les PDFs multi-pages)
+            console.log("[API Vision] Cible: PDF → Gemini.");
+            transcription = await analyzeMathImage(image, safeMimeType);
+        } else {
+            // Image : Gemini Flash (gratuit) → Claude Haiku (fallback)
             try {
-                // On tente Gemini qui est le seul capable de lire nativement le PDF scanné ou texte
+                console.log("[API Vision] Cible: IMAGE → Gemini Flash.");
                 transcription = await analyzeMathImage(image, safeMimeType);
-            } catch (visionError: any) {
-                console.error("[API Vision] ❌ Erreur Gemini:", visionError.message);
-
-                // Si Gemini échoue (Quota/404), on donne une instruction claire pour utiliser OpenAI via screenshot
-                if (visionError.message.includes('429') || visionError.message.includes('quota') || visionError.message.includes('404')) {
-                    return NextResponse.json({
-                        error: "QUOTA_EXCEEDED",
-                        message: "Le quota gratuit de Google Gemini est épuisé ou indisponible.",
-                        suggestion: "ASTUCE : Prenez une capture d'écran (Image) de votre PDF et envoyez-la ! Les images passent par OpenAI (GPT-4o) et fonctionnent actuellement parfaitement."
-                    }, { status: 500 });
-                }
-                throw visionError;
-            }
-        }
-        // --- CAS DE L'IMAGE ---
-        else {
-            console.log("[API Vision] Cible: IMAGE. Passage au moteur OpenAI (GPT-4o).");
-            try {
-                transcription = await analyzeMathImageWithOpenAI(image, safeMimeType);
-            } catch (visionError: any) {
-                console.error("[API Vision] ❌ Erreur OpenAI:", visionError.message);
-                throw visionError;
+            } catch (geminiError: any) {
+                console.warn("[API Vision] Gemini échoué, fallback Claude Haiku:", geminiError.message);
+                transcription = await analyzeImageWithClaude(image, safeMimeType);
             }
         }
 
@@ -60,10 +77,8 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         clearTimeout(timeoutId);
         console.error("[API Vision] 💥 Erreur Critique:", error);
-
         let msg = error.message || "Erreur interne lors de l'analyse";
         if (error.name === 'AbortError') msg = "Le traitement a pris trop de temps (timeout 60s).";
-
         return NextResponse.json({ error: msg }, { status: 500 });
     }
 }
