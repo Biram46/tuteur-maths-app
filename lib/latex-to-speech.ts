@@ -11,6 +11,11 @@ export function latexToSpeech(input: string): string {
     text = text.replace(/@@@[^\n]*/g, '');
 
     // ── 2. Supprimer les blocs $$ (display math) → traiter le contenu ────────
+    // Nettoyer les environnements align*, gather*, equation* AVANT de traiter
+    text = text.replace(/\\begin\{[a-z*]+\}/g, '');
+    text = text.replace(/\\end\{[a-z*]+\}/g, '');
+    text = text.replace(/&\s*=/g, ' égal ');
+    text = text.replace(/&/g, ' ');
     text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_m, inner) => ' ' + convertMath(inner.trim()) + ' ');
 
     // ── 3. Supprimer les blocs $ (inline math) → traiter le contenu ──────────
@@ -201,9 +206,15 @@ function convertMath(expr: string): string {
     s = s.replace(/\\right\s*\|/g, '');
     s = s.replace(/\{|\}/g, '');
 
-    // Backslashes restants
-    s = s.replace(/\\\\/g, '');
+    // Sauts de ligne LaTeX \\ → pause
+    s = s.replace(/\\\\/g, '. ');
     s = s.replace(/\\/g, '');
+
+    // Décimaux : point → virgule (convention française)
+    s = s.replace(/(\d)\.(\d)/g, '$1 virgule $2');
+
+    // Fractions textuelles 1/2, 3/4 non capturées par \frac
+    s = s.replace(/\b(\d+)\s*\/\s*(\d+)\b/g, (_m, n, d) => n + ' sur ' + d);
 
     // Multiplication implicite : 2x → deux x, 3x → trois x
     s = s.replace(/(\d)\s*\*/g, '$1 fois ');
