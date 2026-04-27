@@ -6,7 +6,13 @@
 export function latexToSpeech(input: string): string {
     let text = input;
 
-    // ── 1. Supprimer les blocs @@@ (tableaux, figures, graphes) ──────────────
+    // ── 1. Remplacer les blocs @@@ par une description vocale courte ─────────
+    text = text.replace(/^@@@\s*(variation[^\n]*)\n[\s\S]*?^@@@/gm,
+        'Tableau de variations à consulter dans la réponse.');
+    text = text.replace(/^@@@\s*(sign[^\n]*|signe[^\n]*)\n[\s\S]*?^@@@/gm,
+        'Tableau de signes à consulter dans la réponse.');
+    text = text.replace(/^@@@\s*(solve[^\n]*)\n[\s\S]*?^@@@/gm,
+        'Résolution à consulter dans la réponse.');
     text = text.replace(/^@@@[\s\S]*?^@@@/gm, '');
     text = text.replace(/@@@[^\n]*/g, '');
 
