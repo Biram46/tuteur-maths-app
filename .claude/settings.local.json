@@ -23,7 +23,15 @@
       "Bash(curl -s http://localhost:3000/api/prof-chat -X POST -H \"Content-Type: application/json\" -d '{\"test\":true}')",
       "Bash(xargs ls *)",
       "Bash(grep -rn \"table\\\\|@@@table\\\\|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" \"app/api/perplexity/route.ts\")",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(git push *)",
+      "Bash(grep -E \"^-.*\\\\.\\(ts|js|json\\)$\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git rm *)",
+      "Bash(python python-api/app.py)",
+      "Bash(mkdir -p \"c:/Users/HP/Documents/projet/tuteur-maths-app/app/api/prof/ocr-copy\")",
+      "Bash(mkdir -p \"c:/Users/HP/Documents/projet/tuteur-maths-app/app/api/prof/analyze-copy\")"
     ]
   }
 }

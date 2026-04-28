@@ -814,73 +814,95 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
 
                                 {/* Expanded accordion */}
                                 {isExpanded && (
-                                    <div className="border-t border-white/5 px-4 py-4 space-y-4">
+                                    <div className="border-t border-white/5 px-4 py-4">
                                         {isError ? (
                                             <div className="text-xs text-red-400 bg-red-500/10 rounded-lg p-3">
                                                 {copy.error_message ?? 'Erreur inconnue'}
                                             </div>
                                         ) : copy.analysis ? (
-                                            <>
-                                                {/* Items table */}
-                                                <div className="space-y-1.5">
-                                                    {items.map((item, idx) => (
-                                                        <div key={item.id} className="flex items-start gap-3 text-xs">
-                                                            <span className="text-slate-500 w-16 shrink-0 font-mono pt-0.5">{item.id}</span>
-                                                            <span className="text-slate-400 flex-1 min-w-0 pt-0.5 truncate" title={item.label}>{item.label}</span>
-                                                            <div className="flex items-center gap-1 shrink-0">
-                                                                <input
-                                                                    type="number"
-                                                                    min={0}
-                                                                    max={item.max}
-                                                                    step={0.5}
-                                                                    value={item.awarded}
-                                                                    disabled={isValidated}
-                                                                    onChange={e => {
-                                                                        const newAwarded = Math.min(item.max, Math.max(0, Number(e.target.value)));
-                                                                        const newItems = items.map((it, i) =>
-                                                                            i === idx ? { ...it, awarded: newAwarded } : it
-                                                                        );
-                                                                        setEditedItems(prev => ({ ...prev, [copy.id]: newItems }));
-                                                                    }}
-                                                                    className="w-14 bg-slate-950/60 border border-white/10 rounded-md px-1.5 py-0.5 text-right text-slate-200 outline-none focus:border-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                />
-                                                                <span className="text-slate-600">/{item.max}</span>
-                                                            </div>
-                                                            {item.comment && (
-                                                                <span className="text-slate-600 hidden sm:block w-40 shrink-0 truncate" title={item.comment}>
-                                                                    {item.comment}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                            <div className="flex gap-4 min-h-0">
+                                                {/* Left: transcription OCR */}
+                                                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Copie (transcription OCR)</p>
+                                                    <div className="bg-slate-950/60 border border-white/10 rounded-xl p-3 h-72 overflow-y-auto">
+                                                        {copy.transcription ? (
+                                                            <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
+                                                                {copy.transcription}
+                                                            </pre>
+                                                        ) : (
+                                                            <p className="text-xs text-slate-600 italic">Transcription non disponible.</p>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                {/* Note + comment */}
-                                                <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                                                    <div className="space-y-1">
+                                                {/* Right: items + note + validate */}
+                                                <div className="w-80 shrink-0 flex flex-col gap-3">
+                                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Barème</p>
+                                                    {/* Items table */}
+                                                    <div className="space-y-1.5 overflow-y-auto max-h-52">
+                                                        {items.map((item, idx) => (
+                                                            <div key={item.id} className="flex items-start gap-2 text-xs">
+                                                                <span className="text-slate-500 w-14 shrink-0 font-mono pt-0.5">{item.id}</span>
+                                                                <span className="text-slate-400 flex-1 min-w-0 pt-0.5 truncate" title={item.label}>{item.label}</span>
+                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                    <input
+                                                                        type="number"
+                                                                        min={0}
+                                                                        max={item.max}
+                                                                        step={0.5}
+                                                                        value={item.awarded}
+                                                                        disabled={isValidated}
+                                                                        onChange={e => {
+                                                                            const newAwarded = Math.min(item.max, Math.max(0, Number(e.target.value)));
+                                                                            const newItems = items.map((it, i) =>
+                                                                                i === idx ? { ...it, awarded: newAwarded } : it
+                                                                            );
+                                                                            setEditedItems(prev => ({ ...prev, [copy.id]: newItems }));
+                                                                        }}
+                                                                        className="w-14 bg-slate-950/60 border border-white/10 rounded-md px-1.5 py-0.5 text-right text-slate-200 outline-none focus:border-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    />
+                                                                    <span className="text-slate-600">/{item.max}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Comments per item */}
+                                                    {items.some(it => it.comment) && (
+                                                        <div className="space-y-1 border-t border-white/5 pt-2">
+                                                            {items.filter(it => it.comment).map(it => (
+                                                                <p key={it.id} className="text-xs text-slate-500 leading-snug">
+                                                                    <span className="font-mono text-slate-600">{it.id}</span> — {it.comment}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Note + general comment + validate */}
+                                                    <div className="border-t border-white/5 pt-3 space-y-2 mt-auto">
                                                         <p className="text-sm font-bold text-white">
                                                             Note : {currentNote}/{totalPoints}
                                                         </p>
                                                         {copy.analysis.general_comment && (
-                                                            <p className="text-xs text-slate-500 italic max-w-md">
+                                                            <p className="text-xs text-slate-500 italic">
                                                                 {copy.analysis.general_comment}
                                                             </p>
                                                         )}
+                                                        {!isValidated && (
+                                                            <button
+                                                                onClick={() => handleValidate(copy)}
+                                                                disabled={validating === copy.id}
+                                                                className="w-full px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                                                            >
+                                                                {validating === copy.id ? (
+                                                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                ) : '✓'}
+                                                                Valider
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    {!isValidated && (
-                                                        <button
-                                                            onClick={() => handleValidate(copy)}
-                                                            disabled={validating === copy.id}
-                                                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center gap-1.5"
-                                                        >
-                                                            {validating === copy.id ? (
-                                                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                            ) : '✓'}
-                                                            Valider
-                                                        </button>
-                                                    )}
                                                 </div>
-                                            </>
+                                            </div>
                                         ) : (
                                             <p className="text-xs text-slate-500">Analyse non disponible.</p>
                                         )}
