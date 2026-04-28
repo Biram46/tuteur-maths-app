@@ -15,26 +15,10 @@ export function usePdfExport(
         try {
             setLoading(true);
 
-            // ── Récupérer les stylesheets KaTeX ──
-            const katexLinks: string[] = [];
-            document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-                const href = (link as HTMLLinkElement).href;
-                if (href.includes('katex') || href.includes('KaTeX')) {
-                    katexLinks.push(`<link rel="stylesheet" href="${href}" />`);
-                }
-            });
-            if (katexLinks.length === 0) {
-                Array.from(document.styleSheets).forEach(ss => {
-                    try {
-                        if (ss.href && (ss.href.includes('katex') || ss.href.includes('KaTeX'))) {
-                            katexLinks.push(`<link rel="stylesheet" href="${ss.href}" />`);
-                        }
-                    } catch { /* cross-origin */ }
-                });
-            }
-            if (katexLinks.length === 0) {
-                katexLinks.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />');
-            }
+            // ── KaTeX via CDN (chemins de fonts absolus, fiables en blob URL) ──
+            const katexLinks = [
+                '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />',
+            ];
 
             // ── Construire le HTML des messages ──
             let messagesHtml = '';
@@ -87,7 +71,10 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 
 .msg-content * { color: #000 !important; }
 .katex { color: #000 !important; }
 .katex-display { margin: 0.7em 0 !important; }
-svg { max-width: 100% !important; height: auto !important; }
+svg { max-width: 100% !important; height: auto !important; overflow: visible !important; }
+svg foreignObject { overflow: visible !important; }
+.katex .sqrt .hide-tail { visibility: visible !important; }
+.katex .sqrt > .root { overflow: visible !important; }
 strong, b { font-weight: 700; }
 h2, h3, h4 { margin-top: 0.8em; margin-bottom: 0.3em; }
 ul, ol { margin: 0.4em 0; padding-left: 1.5em; }

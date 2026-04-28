@@ -277,7 +277,9 @@ def get_polynomial_factors(poly_expr, role, niveau="terminale_spe"):
                 zeros_q = sorted([z1_q, z2_q], key=lambda z: float(z.evalf()))
                 steps_q = [
                     f'$\\Delta = ({sp.latex(b_q)})^2 - 4\\times({sp.latex(a_q)})\\times({sp.latex(c_q)}) = {sp.latex(ds_q)}$',
-                    f'$\\Delta > 0$ : $x_1={sp.latex(zeros_q[0])}$, $x_2={sp.latex(zeros_q[1])}$',
+                    f'$\\Delta > 0$ : deux racines réelles distinctes',
+                    f'$$x_1 = \\dfrac{{-b - \\sqrt{{\\Delta}}}}{{2a}} = {sp.latex(zeros_q[0])}$$',
+                    f'$$x_2 = \\dfrac{{-b + \\sqrt{{\\Delta}}}}{{2a}} = {sp.latex(zeros_q[1])}$$',
                     f'Signe de $a={sp.latex(a_q)}$ : trinôme {"négatif" if float(a_q.evalf()) > 0 else "positif"} entre les racines.',
                 ]
             elif abs(df_q) < 1e-10:

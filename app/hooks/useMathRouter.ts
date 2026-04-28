@@ -276,7 +276,7 @@ export function useMathRouter({
                                     if (data.discriminantSteps?.length) {
                                         ctxParts.push('Discriminants :');
                                         for (const s of data.discriminantSteps) {
-                                            ctxParts.push(`• ${s.factor} : ${s.steps.join(' ; ')}`);
+                                            ctxParts.push(`• ${s.factor} :\n${s.steps.join('\n')}`);
                                         }
                                     }
                                     if (data.numZeros?.length) ctxParts.push(`Racines : x = ${data.numZeros.join(', ')}`);
@@ -444,7 +444,7 @@ export function useMathRouter({
                                 `Étape 1 : Calculer Δ pour trouver les racines de f(x) (OBLIGATOIRE, même si les racines sont évidentes) :\n` +
                                 `  - Identifier a, b, c dans f(x) = ax² + bx + c\n` +
                                 `  - Calculer Δ = b² - 4ac (montrer le calcul numérique)\n` +
-                                `  - Calculer x₁ = (-b - √Δ) / 2a et x₂ = (-b + √Δ) / 2a (montrer le calcul)\n` +
+                                `  - Calculer x₁ et x₂ : présenter chaque racine sur sa propre ligne en display math ($$...$$)\n` +
                                 `Étape 2 : Étudier le signe du trinôme : rappeler la règle du signe de 'a' à l'extérieur des racines.\n` +
                                 `Étape 3 : Dresser le tableau de signes de f(x)${signCtx}\n` +
                                 `Termine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n` +
