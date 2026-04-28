@@ -435,6 +435,21 @@ export function round4(x: number): number {
     return Math.round(x * 10000) / 10000;
 }
 
+function gcd(a: number, b: number): number {
+    a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b));
+    while (b) { const t = b; b = a % b; a = t; }
+    return a || 1;
+}
+
+/** Retourne [k, m] tel que n = k²·m avec m sans facteur carré. Ex: 20 → [2, 5] */
+function squareFree(n: number): [number, number] {
+    let k = 1, m = n;
+    for (let p = 2; p * p <= m; p++) {
+        while (m % (p * p) === 0) { k *= p; m = Math.round(m / (p * p)); }
+    }
+    return [k, m];
+}
+
 /**
  * Formate un nombre pour l'affichage dans un tableau @@@
  * Ex: -0.5 → "-1/2", 1.5 → "3/2", 3 → "3"
@@ -492,6 +507,39 @@ export function formatForTable(x: number): string {
         if (Math.abs(n / d - x) < 5e-4) {
             if (n < 0) return `-${Math.abs(n)}/${d}`;
             return `${n}/${d}`;
+        }
+    }
+
+    // Détection des irrationnels de la forme (p ± k√m) / q
+    // Algorithme : pour chaque dénominateur q, tester si q·x − p est un multiple d'une racine entière
+    const RTOL = 1.5e-2; // tolérance sur R² après round4 (erreur ≤ 2·k·√m·q·5e-5 ≈ 1.2e-2 au pire)
+    for (let q = 1; q <= 24; q++) {
+        const r = q * x;
+        const rBase = Math.round(r);
+        for (let dp = -5; dp <= 5; dp++) {
+            const p = rBase + dp;
+            const R = r - p;
+            if (Math.abs(R) < RTOL) continue;
+            const R2 = R * R;
+            const n = Math.round(R2);
+            if (n <= 0 || Math.abs(R2 - n) > RTOL) continue;
+            const [k, m] = squareFree(n);
+            if (m <= 1) continue; // racine parfaite → rationnel déjà traité
+            // Simplification par pgcd(|p|, k, q)
+            const g = gcd(gcd(Math.abs(p), k), q);
+            const ps = Math.round(p / g);
+            const ks = Math.round(k / g);
+            const qs = Math.round(q / g);
+            const sqrtStr = ks === 1 ? `\\sqrt{${m}}` : `${ks}\\sqrt{${m}}`;
+            let numer: string;
+            if (ps === 0) {
+                numer = R > 0 ? sqrtStr : `-${sqrtStr}`;
+            } else if (R > 0) {
+                numer = `${ps}+${sqrtStr}`;
+            } else {
+                numer = `${ps}-${sqrtStr}`;
+            }
+            return qs === 1 ? numer : `\\dfrac{${numer}}{${qs}}`;
         }
     }
 
