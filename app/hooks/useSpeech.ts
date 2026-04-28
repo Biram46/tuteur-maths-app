@@ -138,6 +138,7 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
     const speechQueue = useRef<string[]>([]);
     const isSpeakingQueue = useRef(false);
+    const prefetchCache = useRef<Map<string, string>>(new Map());
 
     // ── Setup STT (SpeechRecognition) ──
     useEffect(() => {
@@ -168,18 +169,46 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
         }
     }, [isRecording]);
 
+    // ── prefetchTTS : lance la requête TTS en avance pour la prochaine phrase ──
+    const prefetchTTS = useCallback(async (text: string) => {
+        if (prefetchCache.current.has(text)) return;
+        prefetchCache.current.set(text, '__loading__');
+        try {
+            const cleaned = cleanMathForSpeech(text);
+            const truncated = cleaned.length > 1500 ? cleaned.substring(0, 1500) + '.' : cleaned;
+            const res = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: truncated, voice: 'shimmer' }),
+            });
+            if (res.ok) {
+                const url = URL.createObjectURL(await res.blob());
+                prefetchCache.current.set(text, url);
+            } else {
+                prefetchCache.current.delete(text);
+            }
+        } catch {
+            prefetchCache.current.delete(text);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // ── processSpeechQueue ──
     const processSpeechQueue = useCallback(() => {
         if (isSpeakingQueue.current || speechQueue.current.length === 0) return;
         isSpeakingQueue.current = true;
         const next = speechQueue.current.shift();
         if (next) {
+            // Pré-charger la phrase suivante pendant que celle-ci est spoken
+            if (speechQueue.current.length > 0) {
+                prefetchTTS(speechQueue.current[0]);
+            }
             speakMessage(next, -2);
         } else {
             isSpeakingQueue.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [prefetchTTS]);
 
     // ── speakMessage ──
     const speakMessage = useCallback(async (text: string, index: number, audioData?: string): Promise<void> => {
@@ -231,18 +260,46 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                     const cleanedText = cleanMathForSpeech(text);
                     const truncatedText = cleanedText.length > 1500 ? cleanedText.substring(0, 1500) + '.' : cleanedText;
 
-                    const response = await fetch('/api/tts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: truncatedText, voice: 'shimmer' }),
-                    });
-
-                    if (!response.ok) {
-                        console.warn(`TTS API indisponible (${response.status}) → fallback navigateur`);
-                        fallbackSpeak(truncatedText, resolve);
-                        return;
+                    // Utiliser le cache de pré-chargement si disponible et prêt
+                    const cached = prefetchCache.current.get(text);
+                    if (cached && cached !== '__loading__') {
+                        prefetchCache.current.delete(text);
+                        url = cached;
+                    } else {
+                        // Attendre si pré-chargement en cours, sinon fetch direct
+                        if (cached === '__loading__') {
+                            await new Promise<void>(res => {
+                                const interval = setInterval(() => {
+                                    const ready = prefetchCache.current.get(text);
+                                    if (ready && ready !== '__loading__') {
+                                        clearInterval(interval);
+                                        url = ready;
+                                        prefetchCache.current.delete(text);
+                                        res();
+                                    } else if (!ready) {
+                                        clearInterval(interval);
+                                        res();
+                                    }
+                                }, 100);
+                                setTimeout(() => { clearInterval(interval); res(); }, 5000);
+                            });
+                        }
                     }
-                    url = URL.createObjectURL(await response.blob());
+
+                    if (!url) {
+                        const response = await fetch('/api/tts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: truncatedText, voice: 'shimmer' }),
+                        });
+
+                        if (!response.ok) {
+                            console.warn(`TTS API indisponible (${response.status}) → fallback navigateur`);
+                            fallbackSpeak(truncatedText, resolve);
+                            return;
+                        }
+                        url = URL.createObjectURL(await response.blob());
+                    }
                 }
 
                 const audio = new Audio(url);

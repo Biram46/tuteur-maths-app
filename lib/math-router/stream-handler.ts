@@ -136,8 +136,11 @@ export async function streamPerplexityResponse({
                             if (aaaCount % 2 !== 0) inMathBlock = !inMathBlock;
                             
                             if (!inMathBlock) {
-                                const sentenceEndings = /[.!?](\s|$)/;
-                                if (sentenceEndings.test(currentSentence) && currentSentence.trim().length > 15) {
+                                const len = currentSentence.trim().length;
+                                const hardEnd = /[.!?](\s|$)/.test(currentSentence);
+                                // Aussi couper sur : ou \n\n quand la phrase est assez longue
+                                const softEnd = len > 50 && /[:\n]/.test(currentSentence.slice(-3));
+                                if ((hardEnd && len > 8) || softEnd) {
                                     speechQueue.current.push(currentSentence.trim());
                                     currentSentence = '';
                                     processSpeechQueue();
