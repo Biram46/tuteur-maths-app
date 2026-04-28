@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { authWithRateLimit } from '@/lib/api-auth';
 import { latexToSpeech } from '@/lib/latex-to-speech';
 
+export const maxDuration = 30;
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Gemini TTS retourne du PCM brut (24kHz, 16-bit, mono) → wrapper WAV
@@ -38,7 +40,7 @@ async function ttsWithGemini(text: string): Promise<Buffer> {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
         {
             method: 'POST',
-            signal: AbortSignal.timeout(12000),
+            signal: AbortSignal.timeout(8000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text }] }],
