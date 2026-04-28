@@ -179,7 +179,7 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
             const res = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: truncated, voice: 'nova' }),
+                body: JSON.stringify({ text: truncated, voice: 'fable' }),
             });
             if (res.ok) {
                 const url = URL.createObjectURL(await res.blob());
@@ -290,7 +290,7 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                         const response = await fetch('/api/tts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ text: truncatedText, voice: 'nova' }),
+                            body: JSON.stringify({ text: truncatedText, voice: 'fable' }),
                         });
 
                         if (!response.ok) {

@@ -27,7 +27,28 @@ export function latexToSpeech(input: string): string {
     // ── 3. Supprimer les blocs $ (inline math) → traiter le contenu ──────────
     text = text.replace(/\$([^$\n]+)\$/g, (_m, inner) => ' ' + convertMath(inner.trim()) + ' ');
 
-    // ── 4. Supprimer le Markdown ─────────────────────────────────────────────
+    // ── 4. Symboles mathématiques bruts (hors LaTeX) ─────────────────────────
+    // f'(x), f''(x) sans délimiteurs $
+    text = text.replace(/f''\s*\(([^)]+)\)/g, 'f seconde de $1');
+    text = text.replace(/f'\s*\(([^)]+)\)/g, 'f prime de $1');
+    // Opérateurs unicode ou textuels
+    text = text.replace(/×/g, ' fois ');
+    text = text.replace(/÷/g, ' divisé par ');
+    text = text.replace(/≤/g, ' inférieur ou égal à ');
+    text = text.replace(/≥/g, ' supérieur ou égal à ');
+    text = text.replace(/≠/g, ' différent de ');
+    text = text.replace(/≈/g, ' environ ');
+    text = text.replace(/→/g, ' tend vers ');
+    text = text.replace(/⟹|⇒/g, ' implique ');
+    text = text.replace(/⟺|⇔/g, ' si et seulement si ');
+    text = text.replace(/∈/g, ' appartient à ');
+    text = text.replace(/∉/g, ' n\'appartient pas à ');
+    text = text.replace(/∞/g, ' l\'infini ');
+    text = text.replace(/√/g, 'racine carrée de ');
+    // = entouré d'espaces ou en fin/début de contexte mathématique
+    text = text.replace(/([a-zA-Z0-9)\]])\s*=\s*(?=[a-zA-Z0-9([\-])/g, '$1 égal ');
+
+    // ── 5. Supprimer le Markdown ─────────────────────────────────────────────
     text = text
         .replace(/#{1,6}\s+/g, '')           // titres
         .replace(/\*\*([^*]+)\*\*/g, '$1')   // gras
@@ -43,7 +64,7 @@ export function latexToSpeech(input: string): string {
         .replace(/\|[^\n]+\|/g, '')          // tableaux markdown
         .replace(/⛔|✅|⚠️|❌|👉/g, '');    // emojis techniques
 
-    // ── 5. Nettoyage final ───────────────────────────────────────────────────
+    // ── 6. Nettoyage final ───────────────────────────────────────────────────
     text = text
         .replace(/\$\$/g, '')          // $$ résiduels (math non fermé / splitté)
         .replace(/\$/g, '')            // $ résiduels

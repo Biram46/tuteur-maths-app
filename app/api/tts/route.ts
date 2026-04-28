@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     try {
-        const { text, voice = 'nova' } = await req.json();
+        const { text, voice = 'fable' } = await req.json();
         if (!text) return NextResponse.json({ error: 'Texte manquant' }, { status: 400 });
 
         const rawText = typeof text === 'string' && text.length > 1500 ? text.substring(0, 1500) : text;
