@@ -45,7 +45,7 @@ async function ttsWithGemini(text: string): Promise<Buffer> {
                 generationConfig: {
                     responseModalities: ['AUDIO'],
                     speechConfig: {
-                        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } },
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
                     },
                 },
             }),
