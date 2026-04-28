@@ -38,7 +38,7 @@ async function ttsWithGemini(text: string): Promise<Buffer> {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
         {
             method: 'POST',
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(12000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text }] }],
