@@ -76,21 +76,28 @@ export async function POST(req: NextRequest) {
         const spokenText = latexToSpeech(rawText);
 
         // Gemini TTS (abonnement fixe, coût marginal = 0) → OpenAI fallback
-        try {
-            const wavBuffer = await ttsWithGemini(spokenText);
-            console.log('[TTS] Gemini ✅');
-            const wavAb = wavBuffer.buffer.slice(wavBuffer.byteOffset, wavBuffer.byteOffset + wavBuffer.byteLength) as ArrayBuffer;
-            return new NextResponse(wavAb, {
-                headers: {
-                    'Content-Type': 'audio/wav',
-                    'Content-Length': wavBuffer.length.toString(),
-                },
-            });
-        } catch (geminiErr: any) {
-            console.warn('[TTS] Gemini échoué, fallback OpenAI:', geminiErr.message);
+        const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+        console.log('[TTS] Gemini key présente:', hasGeminiKey);
+
+        if (hasGeminiKey) {
+            try {
+                const wavBuffer = await ttsWithGemini(spokenText);
+                console.log('[TTS] Gemini ✅');
+                const wavAb = wavBuffer.buffer.slice(wavBuffer.byteOffset, wavBuffer.byteOffset + wavBuffer.byteLength) as ArrayBuffer;
+                return new NextResponse(wavAb, {
+                    headers: {
+                        'Content-Type': 'audio/wav',
+                        'Content-Length': wavBuffer.length.toString(),
+                        'X-TTS-Provider': 'gemini',
+                    },
+                });
+            } catch (geminiErr: any) {
+                console.warn('[TTS] Gemini échoué, fallback OpenAI:', geminiErr.message);
+            }
         }
 
         // Fallback OpenAI tts-1-hd
+        console.log('[TTS] Tentative OpenAI, key présente:', !!process.env.OPENAI_API_KEY);
         const mp3 = await openai.audio.speech.create({
             model: 'tts-1-hd',
             voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
@@ -98,9 +105,12 @@ export async function POST(req: NextRequest) {
             speed: 0.80,
         });
         const arrayBuf = await mp3.arrayBuffer();
-        console.log('[TTS] OpenAI fallback ✅');
+        console.log('[TTS] OpenAI ✅');
         return new NextResponse(arrayBuf, {
-            headers: { 'Content-Type': 'audio/mpeg' },
+            headers: {
+                'Content-Type': 'audio/mpeg',
+                'X-TTS-Provider': 'openai',
+            },
         });
 
     } catch (error: any) {

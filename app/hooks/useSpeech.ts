@@ -294,10 +294,12 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                         });
 
                         if (!response.ok) {
-                            console.warn(`TTS API indisponible (${response.status}) → fallback navigateur`);
+                            console.warn(`[TTS] API indisponible (${response.status}) → fallback navigateur`);
                             fallbackSpeak(truncatedText, resolve);
                             return;
                         }
+                        const provider = response.headers.get('X-TTS-Provider') ?? 'inconnu';
+                        console.log(`[TTS] Provider utilisé: ${provider}`);
                         url = URL.createObjectURL(await response.blob());
                     }
                 }
