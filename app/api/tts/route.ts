@@ -5,7 +5,7 @@ import { latexToSpeech } from '@/lib/latex-to-speech';
 
 export const maxDuration = 30;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 10000 });
 
 // Gemini TTS retourne du PCM brut (24kHz, 16-bit, mono) → wrapper WAV
 function pcmToWav(pcm: Buffer): Buffer {
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         // Fallback OpenAI tts-1-hd
         try {
             const mp3 = await openai.audio.speech.create({
-                model: 'tts-1-hd',
+                model: 'tts-1',
                 voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
                 input: spokenText,
                 speed: 0.85,
