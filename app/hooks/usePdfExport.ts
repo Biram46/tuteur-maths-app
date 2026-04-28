@@ -87,7 +87,14 @@ img { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
-<button class="print-btn no-print" onclick="window.print()">📄 Enregistrer en PDF</button>
+<button class="print-btn no-print" id="printBtn" onclick="window.print()" disabled>⏳ Chargement…</button>
+<script>
+document.fonts.ready.then(function(){
+  var btn = document.getElementById('printBtn');
+  btn.disabled = false;
+  btn.textContent = '📄 Enregistrer en PDF';
+});
+</script>
 <div class="print-header">
   <h1>BILAN PÉDAGOGIQUE</h1>
   <div class="sub">mimimaths@i · Rapport d'apprentissage · ${dateStr}</div>

@@ -198,7 +198,7 @@ function MathSvgText({
     // Sanitize color: only allow valid CSS color characters to prevent style injection
     const safeColor = /^[a-zA-Z0-9#(),.\s%+-]+$/.test(color) ? color : '#1e293b';
     const styledHtml = `<style>.katex,.katex *,.katex .mord,.katex .mbin,.katex .mrel,.katex .mopen,.katex .mclose,.katex .mpunct,.katex .minner{color:${safeColor}!important;}</style>${html}`;
-    const W = 130; const H = fontSize * 2.2;
+    const W = 130; const H = fontSize * 3.2;
     return (
         <foreignObject x={x - W / 2} y={y - H / 2} width={W} height={H} style={{ overflow: 'visible' }}>
             <div
