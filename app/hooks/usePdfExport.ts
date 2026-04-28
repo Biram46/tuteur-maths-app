@@ -35,6 +35,33 @@ export function usePdfExport(
                 clone.querySelectorAll('button').forEach(b => b.remove());
                 clone.querySelectorAll('[class*="avatar"], [class*="Avatar"], [class*="robot"]').forEach(a => a.remove());
 
+                // Expand foreignObject + SVG viewport pour éviter le clipping impression
+                clone.querySelectorAll('foreignObject').forEach((fo: Element) => {
+                    fo.setAttribute('overflow', 'visible');
+                    const h = parseFloat(fo.getAttribute('height') || '0');
+                    const y = parseFloat(fo.getAttribute('y') || '0');
+                    if (h > 0) {
+                        fo.setAttribute('height', String(h + 28));
+                        fo.setAttribute('y', String(y - 14));
+                    }
+                });
+                clone.querySelectorAll('svg').forEach((svg: Element) => {
+                    svg.setAttribute('overflow', 'visible');
+                    const svgH = parseFloat(svg.getAttribute('height') || '0');
+                    if (svgH > 0 && svgH < 800) {
+                        svg.setAttribute('height', String(svgH + 28));
+                        const vb = svg.getAttribute('viewBox');
+                        if (vb) {
+                            const parts = vb.split(' ').map(Number);
+                            if (parts.length === 4) {
+                                parts[1] -= 14;
+                                parts[3] += 28;
+                                svg.setAttribute('viewBox', parts.join(' '));
+                            }
+                        }
+                    }
+                });
+
                 messagesHtml += `
           <div class="msg-block">
             <div class="role-label">${roleLabel}</div>
@@ -71,10 +98,8 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 
 .msg-content * { color: #000 !important; }
 .katex { color: #000 !important; }
 .katex-display { margin: 0.7em 0 !important; }
-svg { max-width: 100% !important; height: auto !important; overflow: visible !important; }
+svg { overflow: visible !important; }
 svg foreignObject { overflow: visible !important; }
-.katex .sqrt .hide-tail { visibility: visible !important; }
-.katex .sqrt > .root { overflow: visible !important; }
 strong, b { font-weight: 700; }
 h2, h3, h4 { margin-top: 0.8em; margin-bottom: 0.3em; }
 ul, ol { margin: 0.4em 0; padding-left: 1.5em; }

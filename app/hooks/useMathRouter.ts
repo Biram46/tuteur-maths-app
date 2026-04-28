@@ -317,7 +317,7 @@ export function useMathRouter({
                                     if (data.success && data.aaaBlock) {
                                         signTableBlock = data.aaaBlock.replace(/sign:\s*f\(x\)/g, "sign: f'(x)");
                                         signCtx = `\nInfo : f'(x) = ${derivExprForSympy}` + (data.discriminantSteps?.length
-                                            ? '\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `- ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            ? '\nDécomposition des racines :\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `• ${s.factor} :\n${s.steps.join('\n')}`).join('\n')
                                             : '');
                                     }
                                 }
@@ -339,7 +339,7 @@ export function useMathRouter({
                                     signTableBlock = data.aaaBlock;
                                     signCtx = `\nInfo: tableau de signes de f(x) = ${exprClean} pré-calculé` +
                                         (data.discriminantSteps?.length
-                                            ? '\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `- Δ de ${s.factor}: ${s.steps.join('; ')}`).join('\n')
+                                            ? '\nDécomposition des racines :\n' + data.discriminantSteps.map((s: { factor: string; steps: string[] }) => `• ${s.factor} :\n${s.steps.join('\n')}`).join('\n')
                                             : '');
                                     console.log(`[ExerciceMode] ✅ Tableau de signes f(x) via ${data.engine || 'moteur'}`);
                                 } else {
@@ -436,7 +436,7 @@ export function useMathRouter({
                             );
                         } else if (q.type === 'sign_table') {
                             aiParts.push(
-                                `**${q.num})** ${q.text}\nExplique la méthode en suivant ces étapes :\n1. Factorisation : utilise EXACTEMENT la factorisation SymPy ci-dessous, NE la modifie PAS.\n${signCtx}\n2. Pour chaque facteur de degré 2 (trinôme) : calcule Δ = b² - 4ac. Si Δ > 0 : présente x₁ et x₂ chacun sur sa PROPRE LIGNE en display math $$...$$ (JAMAIS dans le même bloc inline). NE FACTORISE PAS le trinôme en produit de facteurs de degré 1. Utilise la règle : signe de a à l'extérieur des racines, signe opposé entre les racines.\n3. Pour chaque facteur de degré 1 : indique le signe de part et d'autre de la racine.\n4. Applique la règle des signes du produit.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\\\\\begin{array})`
+                                `**${q.num})** ${q.text}\nExplique la méthode en suivant ces étapes :\n1. Factorisation : utilise EXACTEMENT la factorisation SymPy ci-dessous, NE la modifie PAS.\n${signCtx}\n2. Pour chaque facteur de degré 2 (trinôme) : calcule Δ = b² - 4ac. Si Δ > 0 : recopie exactement les étapes du contexte. CHAQUE racine dans son propre bloc display (format IMPOSÉ) :\n$$x_1 = \\dfrac{-b-\\sqrt{\\Delta}}{2a} = [valeur]$$\n$$x_2 = \\dfrac{-b+\\sqrt{\\Delta}}{2a} = [valeur]$$\n⛔ INTERDIT : x₁ et x₂ dans le même bloc $$ ou sur la même ligne. NE FACTORISE PAS le trinôme. Signe de a à l'extérieur des racines, opposé entre les racines.\n3. Pour chaque facteur de degré 1 : indique le signe de part et d'autre de la racine.\n4. Applique la règle des signes du produit.\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\\\\\begin{array})`
                             );
                         } else if (q.type === 'sign_table_f') {
                             aiParts.push(
@@ -444,7 +444,10 @@ export function useMathRouter({
                                 `Étape 1 : Calculer Δ pour trouver les racines de f(x) (OBLIGATOIRE, même si les racines sont évidentes) :\n` +
                                 `  - Identifier a, b, c dans f(x) = ax² + bx + c\n` +
                                 `  - Calculer Δ = b² - 4ac (montrer le calcul numérique)\n` +
-                                `  - Calculer x₁ et x₂ : présenter chaque racine sur sa propre ligne en display math ($$...$$)\n` +
+                                `  - Calculer x₁ et x₂ chacune dans son propre bloc display math (format IMPOSÉ) :\n` +
+                                `    $$x_1 = \\dfrac{-b - \\sqrt{\\Delta}}{2a} = [valeur]$$\n` +
+                                `    $$x_2 = \\dfrac{-b + \\sqrt{\\Delta}}{2a} = [valeur]$$\n` +
+                                `    ⛔ INTERDIT : x₁ et x₂ dans le même bloc $$ ou sur la même ligne\n` +
                                 `Étape 2 : Étudier le signe du trinôme : rappeler la règle du signe de 'a' à l'extérieur des racines.\n` +
                                 `Étape 3 : Dresser le tableau de signes de f(x)${signCtx}\n` +
                                 `Termine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n` +
