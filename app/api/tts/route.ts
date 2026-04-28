@@ -40,7 +40,7 @@ async function ttsWithGemini(text: string): Promise<Buffer> {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
         {
             method: 'POST',
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(15000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text }] }],
@@ -77,7 +77,26 @@ export async function POST(req: NextRequest) {
         const rawText = typeof text === 'string' && text.length > 1500 ? text.substring(0, 1500) : text;
         const spokenText = latexToSpeech(rawText);
 
-        // OpenAI tts-1-hd (primaire — fiable, ~1s) → Gemini fallback
+        // Gemini TTS (primaire — voix Kore naturelle) → OpenAI tts-1-hd fallback
+        const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+        if (hasGeminiKey) {
+            try {
+                const wavBuffer = await ttsWithGemini(spokenText);
+                console.log('[TTS] Gemini ✅');
+                const wavAb = wavBuffer.buffer.slice(wavBuffer.byteOffset, wavBuffer.byteOffset + wavBuffer.byteLength) as ArrayBuffer;
+                return new NextResponse(wavAb, {
+                    headers: {
+                        'Content-Type': 'audio/wav',
+                        'Content-Length': wavBuffer.length.toString(),
+                        'X-TTS-Provider': 'gemini',
+                    },
+                });
+            } catch (geminiErr: any) {
+                console.warn('[TTS] Gemini échoué, fallback OpenAI:', geminiErr?.message);
+            }
+        }
+
+        // Fallback OpenAI tts-1-hd
         try {
             const mp3 = await openai.audio.speech.create({
                 model: 'tts-1-hd',
@@ -94,26 +113,7 @@ export async function POST(req: NextRequest) {
                 },
             });
         } catch (openaiErr: any) {
-            console.warn('[TTS] OpenAI échoué, fallback Gemini:', openaiErr?.message);
-        }
-
-        // Fallback Gemini TTS
-        const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-        if (hasGeminiKey) {
-            try {
-                const wavBuffer = await ttsWithGemini(spokenText);
-                console.log('[TTS] Gemini ✅');
-                const wavAb = wavBuffer.buffer.slice(wavBuffer.byteOffset, wavBuffer.byteOffset + wavBuffer.byteLength) as ArrayBuffer;
-                return new NextResponse(wavAb, {
-                    headers: {
-                        'Content-Type': 'audio/wav',
-                        'Content-Length': wavBuffer.length.toString(),
-                        'X-TTS-Provider': 'gemini',
-                    },
-                });
-            } catch (geminiErr: any) {
-                console.warn('[TTS] Gemini échoué:', geminiErr.message);
-            }
+            console.warn('[TTS] OpenAI échoué:', openaiErr?.message);
         }
 
         throw new Error('Tous les providers TTS ont échoué');
