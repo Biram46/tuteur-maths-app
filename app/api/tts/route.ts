@@ -97,21 +97,27 @@ export async function POST(req: NextRequest) {
         }
 
         // Fallback OpenAI tts-1-hd
-        console.log('[TTS] Tentative OpenAI, key présente:', !!process.env.OPENAI_API_KEY);
-        const mp3 = await openai.audio.speech.create({
-            model: 'tts-1-hd',
-            voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
-            input: spokenText,
-            speed: 0.80,
-        });
-        const arrayBuf = await mp3.arrayBuffer();
-        console.log('[TTS] OpenAI ✅');
-        return new NextResponse(arrayBuf, {
-            headers: {
-                'Content-Type': 'audio/mpeg',
-                'X-TTS-Provider': 'openai',
-            },
-        });
+        const openaiKey = process.env.OPENAI_API_KEY;
+        console.log('[TTS] Tentative OpenAI, key présente:', !!openaiKey, '| longueur:', openaiKey?.length ?? 0);
+        try {
+            const mp3 = await openai.audio.speech.create({
+                model: 'tts-1-hd',
+                voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
+                input: spokenText,
+                speed: 0.80,
+            });
+            const arrayBuf = await mp3.arrayBuffer();
+            console.log('[TTS] OpenAI ✅');
+            return new NextResponse(arrayBuf, {
+                headers: {
+                    'Content-Type': 'audio/mpeg',
+                    'X-TTS-Provider': 'openai',
+                },
+            });
+        } catch (openaiErr: any) {
+            console.error('[TTS] OpenAI échoué:', openaiErr?.message, '| status:', openaiErr?.status);
+            throw openaiErr;
+        }
 
     } catch (error: any) {
         console.error('Erreur TTS:', error);
