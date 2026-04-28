@@ -229,7 +229,7 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
                     url = URL.createObjectURL(new Blob([byteArray], { type: 'audio/mp3' }));
                 } else {
                     const cleanedText = cleanMathForSpeech(text);
-                    const truncatedText = cleanedText.length > 4000 ? cleanedText.substring(0, 4000) + ' (texte tronqué)' : cleanedText;
+                    const truncatedText = cleanedText.length > 1500 ? cleanedText.substring(0, 1500) + '.' : cleanedText;
 
                     const response = await fetch('/api/tts', {
                         method: 'POST',

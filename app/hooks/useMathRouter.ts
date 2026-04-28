@@ -938,7 +938,6 @@ RÈGLES ABSOLUES :
                             enrichedMessages[enrichedMessages.length - 1].content += `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS] Le tableau de variations de f(x) = ${expr} est DÉJÀ affiché au-dessus. ⛔ NE REPRODUIS PAS le tableau (ni en @@@, ni en texte, ni en markdown, ni en ASCII). Fais UNIQUEMENT les explications pédagogiques des étapes.\n${engineData.aiContext || 'Explique les étapes de l\'étude des variations sans refaire le tableau.'}`;
                         }
                         const tablePrefix = tableBlock + '\n\n';
-                        setMessages(prev => [...prev, { role: 'assistant', content: tablePrefix }]);
 
                         setLoading(true);
                         setIsTalking(true);

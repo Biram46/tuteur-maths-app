@@ -38,6 +38,7 @@ async function ttsWithGemini(text: string): Promise<Buffer> {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
         {
             method: 'POST',
+            signal: AbortSignal.timeout(6000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text }] }],
@@ -71,7 +72,8 @@ export async function POST(req: NextRequest) {
         const { text, voice = 'shimmer' } = await req.json();
         if (!text) return NextResponse.json({ error: 'Texte manquant' }, { status: 400 });
 
-        const spokenText = latexToSpeech(text);
+        const rawText = typeof text === 'string' && text.length > 1500 ? text.substring(0, 1500) : text;
+        const spokenText = latexToSpeech(rawText);
 
         // Gemini TTS (abonnement fixe, coût marginal = 0) → OpenAI fallback
         try {
