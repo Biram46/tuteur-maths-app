@@ -77,10 +77,28 @@ export async function POST(req: NextRequest) {
         const rawText = typeof text === 'string' && text.length > 1500 ? text.substring(0, 1500) : text;
         const spokenText = latexToSpeech(rawText);
 
-        // Gemini TTS (abonnement fixe, coût marginal = 0) → OpenAI fallback
-        const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-        console.log('[TTS] Gemini key présente:', hasGeminiKey);
+        // OpenAI tts-1-hd (primaire — fiable, ~1s) → Gemini fallback
+        try {
+            const mp3 = await openai.audio.speech.create({
+                model: 'tts-1-hd',
+                voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
+                input: spokenText,
+                speed: 0.85,
+            });
+            const arrayBuf = await mp3.arrayBuffer();
+            console.log('[TTS] OpenAI ✅');
+            return new NextResponse(arrayBuf, {
+                headers: {
+                    'Content-Type': 'audio/mpeg',
+                    'X-TTS-Provider': 'openai',
+                },
+            });
+        } catch (openaiErr: any) {
+            console.warn('[TTS] OpenAI échoué, fallback Gemini:', openaiErr?.message);
+        }
 
+        // Fallback Gemini TTS
+        const hasGeminiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         if (hasGeminiKey) {
             try {
                 const wavBuffer = await ttsWithGemini(spokenText);
@@ -94,32 +112,11 @@ export async function POST(req: NextRequest) {
                     },
                 });
             } catch (geminiErr: any) {
-                console.warn('[TTS] Gemini échoué, fallback OpenAI:', geminiErr.message);
+                console.warn('[TTS] Gemini échoué:', geminiErr.message);
             }
         }
 
-        // Fallback OpenAI tts-1-hd
-        const openaiKey = process.env.OPENAI_API_KEY;
-        console.log('[TTS] Tentative OpenAI, key présente:', !!openaiKey, '| longueur:', openaiKey?.length ?? 0);
-        try {
-            const mp3 = await openai.audio.speech.create({
-                model: 'tts-1-hd',
-                voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
-                input: spokenText,
-                speed: 0.80,
-            });
-            const arrayBuf = await mp3.arrayBuffer();
-            console.log('[TTS] OpenAI ✅');
-            return new NextResponse(arrayBuf, {
-                headers: {
-                    'Content-Type': 'audio/mpeg',
-                    'X-TTS-Provider': 'openai',
-                },
-            });
-        } catch (openaiErr: any) {
-            console.error('[TTS] OpenAI échoué:', openaiErr?.message, '| status:', openaiErr?.status);
-            throw openaiErr;
-        }
+        throw new Error('Tous les providers TTS ont échoué');
 
     } catch (error: any) {
         console.error('Erreur TTS:', error);
