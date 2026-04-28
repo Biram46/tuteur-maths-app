@@ -19,6 +19,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { katexSanitizeSchema } from '@/lib/rehype-sanitize-katex';
 import { fixLatexContent } from '@/lib/latex-fixer';
+import { fixRootDisplay } from '@/lib/math-router/math-text-utils';
 
 
 // ─── Hook de rendu des figures mathématiques et messages ─────────────────────
@@ -1302,7 +1303,7 @@ export function useFigureRenderer() {
             // pour convertir \( \) \[ \] → $ $$ AVANT que ReactMarkdown + remark-math
             // ne les traite. Sans ça, les formules mathématiques de l'IA restent en
             // notation brute et ne sont pas rendues par KaTeX.
-            const fixedSection = fixLatexContent(section).content;
+            const fixedSection = fixRootDisplay(fixLatexContent(section).content);
 
             return (
                 <div key={idx} className="katex-scroll-wrapper overflow-x-auto overflow-y-visible py-2 custom-scrollbar-horizontal w-full">

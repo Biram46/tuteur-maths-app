@@ -169,18 +169,26 @@ export function stripDdx(t: string): string {
 /**
  * Convertit les notations inline $x_1 = ...$ et $x_2 = ...$ en blocs display $$...$$
  * pour que x₁ et x₂ apparaissent chacun sur sa propre ligne.
- * Appliqué en post-traitement du stream IA pour corriger le non-respect de l'instruction.
+ * Appliqué en post-traitement du stream IA ET au moment du rendu.
  */
 export function fixRootDisplay(text: string): string {
     // Cas 1 : inline $x_1 = ...$ ou $x_2 = ...$ (pas précédé/suivi d'un $)
     let result = text.replace(
-        /(?<!\$)\$(x_\{?[12]\}?\s*=\s*[^$\n]{1,200})\$(?!\$)/g,
+        /(?<!\$)\$(x_\{?[12]\}?\s*=\s*[^$\n]{1,300})\$(?!\$)/g,
         (_, content) => `\n\n$$${content.trim()}$$\n\n`
     );
-    // Cas 2 : les deux racines dans un seul bloc $$x_1 = ... \text{ et } x_2 = ...$$
+    // Cas 2 : n'importe quel bloc $$...$$ contenant à la fois x_1 ET x_2 → deux blocs séparés
     result = result.replace(
-        /\$\$(x_\{?[12]\}?\s*=\s*[^$]*?)(?:\\text\s*\{[^}]*\}|,|\s+et\s+)(x_\{?[12]\}?\s*=\s*[^$]*?)\$\$/g,
-        (_, p1, p2) => `\n\n$$${p1.trim()}$$\n\n$$${p2.trim()}$$\n\n`
+        /\$\$([\s\S]*?)\$\$/g,
+        (match, content) => {
+            if (!/x_\{?1\}?/.test(content) || !/x_\{?2\}?/.test(content)) return match;
+            const splitIdx = content.search(/x_\{?2\}?\s*=/);
+            if (splitIdx === -1) return match;
+            const p1 = content.substring(0, splitIdx).replace(/[\s\\,;:]+$/g, '').trim();
+            const p2 = content.substring(splitIdx).trim();
+            if (!p1 || !p2) return match;
+            return `\n\n$$${p1}$$\n\n$$${p2}$$\n\n`;
+        }
     );
     return result;
 }
