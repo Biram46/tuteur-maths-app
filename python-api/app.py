@@ -385,13 +385,27 @@ def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
     num_factors_all = num_trans + num_poly
     den_factors_all = den_trans + den_poly
 
+    # Table de correspondance float → forme LaTeX exacte pour les irrationnels
+    sym_map = {}
+
+    def register_sym(z):
+        """Enregistre la forme LaTeX exacte de z si SymPy le considère irrationnel."""
+        try:
+            fv = float(z.evalf())
+            if hasattr(z, 'is_rational') and z.is_rational is False:
+                sym_map[fv] = sp.latex(z)
+        except:
+            pass
+
     # Trouver les zéros
     def zf(factors):
         r = []
         for f in factors:
             for z in f['zeros']:
                 try:
-                    r.append(float(z.evalf()))
+                    fv = float(z.evalf())
+                    r.append(fv)
+                    register_sym(z)
                 except:
                     pass
         return sorted(set(r))
@@ -407,6 +421,7 @@ def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
             try:
                 if z.is_real:
                     zv = float(z.evalf())
+                    register_sym(z)
                     if not any(abs(zv - nz) < 1e-9 for nz in num_zeros_f):
                         num_zeros_f.append(zv)
             except:
@@ -420,6 +435,7 @@ def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
             try:
                 if z.is_real:
                     zv = float(z.evalf())
+                    register_sym(z)
                     if not any(abs(zv - dz) < 1e-9 for dz in den_zeros_f):
                         den_zeros_f.append(zv)
             except:
@@ -636,7 +652,14 @@ def compute_sign_table(expression, niveau='terminale_spe', **kwargs):
                 row['values'] = row['values'][2:]
         if len(fx_vals) >= 2:
             fx_vals = fx_vals[2:]
-    x_str = ', '.join([left_label] + [fmt(c) for c in critical_display] + ['+inf'])
+    def fmt_cp(c):
+        """Formate un point critique : forme exacte si irrationnel (sym_map), fmt sinon."""
+        for fv, latex_str in sym_map.items():
+            if abs(c - fv) < 1e-9:
+                return latex_str
+        return fmt(c)
+
+    x_str = ', '.join([left_label] + [fmt_cp(c) for c in critical_display] + ['+inf'])
     lines = ['table |', f'x: {x_str} |']
 
     for row in rows:
