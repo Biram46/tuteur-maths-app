@@ -16,7 +16,7 @@ import type { TableSpec, TableRow, SignRow } from '../math-spec-types';
 import {
     evalAt, findZeros, findDiscontinuities,
     signOnInterval, buildXValues, formatForTable, round4,
-    sanitizeExpression
+    sanitizeExpression, gcd, squareFree,
 } from './expression-parser';
 
 // ─────────────────────────────────────────────────────────────
@@ -44,7 +44,9 @@ interface FactorAnalysis {
     zeros: number[];        // Valeurs qui annulent ce facteur
     discontinuities: number[]; // Valeurs interdites propres à ce facteur
     /** Pour les trinômes : coefficients a, b, c et Δ */
-    trinomialInfo?: { a: number; b: number; c: number; delta: number; x1?: number; x2?: number };
+    trinomialInfo?: { a: number; b: number; c: number; delta: number; x1?: number; x2?: number; x1Exact?: string; x2Exact?: string };
+    /** Formes exactes (LaTeX) des racines : float → chaîne exacte */
+    exactStrings?: Map<number, string>;
     /** Pour ln : valeur de x où u(x) = 1 */
     lnOnePoint?: number;
 }
@@ -169,7 +171,49 @@ function detectAffine(expr: string, domain: [number, number]): { a: number; b: n
  * Détecte si une expression est un trinôme ax² + bx + c.
  * Retourne les coefficients et le discriminant si c'est le cas.
  */
-function detectTrinomial(expr: string): { a: number; b: number; c: number; delta: number; x1?: number; x2?: number } | null {
+/**
+ * Retourne la forme LaTeX exacte d'une racine du trinôme a·x²+b·x+c.
+ * sign = +1 → (-b + √Δ)/(2a),  sign = -1 → (-b - √Δ)/(2a)
+ * Retourne null si a ou b ne sont pas des entiers.
+ */
+function symbolicRoot(a: number, b: number, deltaInt: number, sign: 1 | -1): string | null {
+    const aInt = Math.round(a), bInt = Math.round(b);
+    if (Math.abs(a - aInt) > 1e-6 || Math.abs(b - bInt) > 1e-6 || aInt === 0) return null;
+
+    const [k, m] = squareFree(deltaInt);
+
+    if (m <= 1) {
+        // Racine rationnelle : (-b ± k) / (2a)
+        const num = -bInt + sign * k;
+        const den = 2 * aInt;
+        const g = gcd(Math.abs(num), Math.abs(den));
+        let p = Math.round(num / g), q = Math.round(den / g);
+        if (q < 0) { p = -p; q = -q; }
+        return q === 1 ? String(p) : `\\dfrac{${p}}{${q}}`;
+    }
+
+    // Racine irrationnelle : (p + r·√m) / q
+    let p = -bInt;
+    let r = sign * k;    // coefficient signé du radical
+    let q = 2 * aInt;
+
+    const g = gcd(gcd(Math.abs(p), Math.abs(r)), Math.abs(q));
+    p = Math.round(p / g);
+    r = Math.round(r / g);
+    q = Math.round(q / g);
+    if (q < 0) { p = -p; r = -r; q = -q; }
+
+    const absR = Math.abs(r);
+    const radStr = absR === 1 ? `\\sqrt{${m}}` : `${absR}\\sqrt{${m}}`;
+    let numer: string;
+    if (p === 0)      numer = r > 0 ? radStr : `-${radStr}`;
+    else if (r > 0)   numer = `${p}+${radStr}`;
+    else              numer = `${p}-${radStr}`;
+
+    return q === 1 ? numer : `\\dfrac{${numer}}{${q}}`;
+}
+
+function detectTrinomial(expr: string): { a: number; b: number; c: number; delta: number; x1?: number; x2?: number; x1Exact?: string; x2Exact?: string } | null {
     // Évaluer en 4 points pour déterminer a, b, c
     const y0 = evalAt(expr, 0);   // c
     const y1 = evalAt(expr, 1);   // a + b + c
@@ -198,16 +242,29 @@ function detectTrinomial(expr: string): { a: number; b: number; c: number; delta
 
     const delta = b * b - 4 * a * c;
     let x1: number | undefined, x2: number | undefined;
+    let x1Exact: string | undefined, x2Exact: string | undefined;
 
     if (delta > 1e-10) {
         x1 = round4((-b - Math.sqrt(delta)) / (2 * a));
         x2 = round4((-b + Math.sqrt(delta)) / (2 * a));
-        if (x1 > x2) { const tmp = x1; x1 = x2; x2 = tmp; }
+        // Calcul symbolique (seulement si delta est proche d'un entier)
+        const deltaInt = Math.round(delta);
+        if (Math.abs(delta - deltaInt) < 1e-4 && deltaInt > 0) {
+            // sign=-1 donne (-b-√Δ)/(2a), sign=+1 donne (-b+√Δ)/(2a)
+            const r1 = symbolicRoot(a, b, deltaInt, -1);
+            const r2 = symbolicRoot(a, b, deltaInt, +1);
+            if (r1 !== null && r2 !== null) {
+                // Associer chaque label au bon float (tri croissant comme x1/x2)
+                if (x1! <= x2!) { x1Exact = r1; x2Exact = r2; }
+                else             { x1Exact = r2; x2Exact = r1; }
+            }
+        }
+        if (x1! > x2!) { const tmp = x1; x1 = x2; x2 = tmp; }
     } else if (Math.abs(delta) < 1e-10) {
         x1 = round4(-b / (2 * a));
     }
 
-    return { a: round4(a), b: round4(b), c: round4(c), delta: round4(delta), x1, x2 };
+    return { a: round4(a), b: round4(b), c: round4(c), delta: round4(delta), x1, x2, x1Exact, x2Exact };
 }
 
 /**
@@ -323,12 +380,17 @@ function classifyFactor(
         const filteredZeros = zeros
             .filter(z => z >= domain[0] - 1e-6 && z <= domain[1] + 1e-6)
             .sort((a, b) => a - b);
+        // ── Formes exactes (symboliques) des racines ──
+        const exactStrings = new Map<number, string>();
+        if (tri.x1 !== undefined && tri.x1Exact) exactStrings.set(tri.x1, tri.x1Exact);
+        if (tri.x2 !== undefined && tri.x2Exact) exactStrings.set(tri.x2, tri.x2Exact);
         return {
             ...base,
             factorType: 'trinomial',
             zeros: filteredZeros,
             discontinuities: [],
             trinomialInfo: tri,
+            exactStrings,
         } as FactorAnalysis;
     }
 
@@ -1336,7 +1398,12 @@ export function generateSignTable(input: SignTableInput): SignTableResult {
             if (Math.abs(l) < 1e-9) return '0';
             return formatForTable(l);
         })();
-        const xValues = [leftLabel, ...criticalPoints.map(formatForTable), '+inf'];
+        // Fusionner les formes exactes de tous les facteurs trinomiaux
+        const exactMap = new Map<number, string>();
+        for (const f of factors) {
+            if (f.exactStrings) f.exactStrings.forEach((label, val) => exactMap.set(val, label));
+        }
+        const xValues = [leftLabel, ...criticalPoints.map(cp => exactMap.get(cp) ?? formatForTable(cp)), '+inf'];
 
 
 

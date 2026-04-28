@@ -435,14 +435,14 @@ export function round4(x: number): number {
     return Math.round(x * 10000) / 10000;
 }
 
-function gcd(a: number, b: number): number {
+export function gcd(a: number, b: number): number {
     a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b));
     while (b) { const t = b; b = a % b; a = t; }
     return a || 1;
 }
 
 /** Retourne [k, m] tel que n = k²·m avec m sans facteur carré. Ex: 20 → [2, 5] */
-function squareFree(n: number): [number, number] {
+export function squareFree(n: number): [number, number] {
     let k = 1, m = n;
     for (let p = 2; p * p <= m; p++) {
         while (m % (p * p) === 0) { k *= p; m = Math.round(m / (p * p)); }
