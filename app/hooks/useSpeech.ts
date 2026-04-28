@@ -140,6 +140,16 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
     const isSpeakingQueue = useRef(false);
     const prefetchCache = useRef<Map<string, string>>(new Map());
 
+    // ── Nettoyage au démontage (navigation, rechargement) ──
+    useEffect(() => {
+        return () => {
+            if (typeof window === 'undefined') return;
+            window.speechSynthesis.cancel();
+            speechQueue.current = [];
+            isSpeakingQueue.current = false;
+        };
+    }, []);
+
     // ── Setup STT (SpeechRecognition) ──
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -222,7 +232,7 @@ export function useSpeech(isVoiceEnabled: boolean): UseSpeechReturn {
             return;
         }
 
-        if (!isVoiceEnabled && index !== -1) return;
+        if (!isVoiceEnabled) return;
 
         audioElement?.pause();
         window.speechSynthesis.cancel();
