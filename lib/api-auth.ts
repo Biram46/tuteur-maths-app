@@ -29,7 +29,8 @@ export async function getAuthUser() {
 /**
  * Rate limiting par utilisateur — persistant et partagé entre toutes les instances Vercel.
  * Utilise la fonction RPC `check_api_rate_limit` en base Supabase.
- * Fallback permissif si la DB est indisponible (ne bloque jamais par erreur).
+ * En production : bloque si la DB est indisponible (fail-closed).
+ * En développement : laisse passer pour ne pas bloquer le dev local.
  */
 export async function checkRateLimit(
     identifier: string,
@@ -43,9 +44,21 @@ export async function checkRateLimit(
                 p_max_requests: maxRequests,
                 p_window_ms: windowMs,
             });
-        if (error || !data?.[0]) return { allowed: true, remaining: maxRequests };
+        if (error || !data?.[0]) {
+            // RPC OK mais résultat vide → bloquer par précaution en prod
+            if (process.env.NODE_ENV === 'production') {
+                console.warn('[RateLimit] RPC vide pour', identifier, error?.message);
+                return { allowed: false, remaining: 0 };
+            }
+            return { allowed: true, remaining: maxRequests };
+        }
         return { allowed: data[0].allowed, remaining: data[0].remaining };
-    } catch {
+    } catch (err) {
+        // DB indisponible → fail-closed en prod, fail-open en dev
+        if (process.env.NODE_ENV === 'production') {
+            console.error('[RateLimit] DB indisponible, accès refusé par sécurité:', err);
+            return { allowed: false, remaining: 0 };
+        }
         return { allowed: true, remaining: maxRequests };
     }
 }
