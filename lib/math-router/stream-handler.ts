@@ -1,5 +1,5 @@
 import { fixLatexContent } from '@/lib/latex-fixer';
-import { patchMarkdownTables, stripDdx } from './math-text-utils';
+import { patchMarkdownTables, stripDdx, fixRootDisplay } from './math-text-utils';
 import type { ChatMessage } from '@/lib/perplexity';
 import { MutableRefObject } from 'react';
 import type { NiveauLycee } from '@/lib/niveaux';
@@ -114,7 +114,7 @@ export async function streamPerplexityResponse({
                             
                             let disp = prependText + postProcess(aiText);
                             if (applyStripDdx) disp = stripDdx(disp);
-                            const fixedDisp = patchMarkdownTables(fixLatexContent(disp).content);
+                            const fixedDisp = patchMarkdownTables(fixLatexContent(fixRootDisplay(disp)).content);
 
                             // We use requestAnimationFrame to prevent depth issues when rapidly streaming
                             requestAnimationFrame(() => {
@@ -167,7 +167,7 @@ export async function streamPerplexityResponse({
 
         let finalDisp = prependText + postProcess(aiText) + appendText;
         if (applyStripDdx) finalDisp = stripDdx(finalDisp);
-        const finalContent = patchMarkdownTables(fixLatexContent(finalDisp).content);
+        const finalContent = patchMarkdownTables(fixLatexContent(fixRootDisplay(finalDisp)).content);
 
         setMessages(prev => {
             const u = [...prev];

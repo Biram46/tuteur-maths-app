@@ -167,6 +167,25 @@ export function stripDdx(t: string): string {
 }
 
 /**
+ * Convertit les notations inline $x_1 = ...$ et $x_2 = ...$ en blocs display $$...$$
+ * pour que x₁ et x₂ apparaissent chacun sur sa propre ligne.
+ * Appliqué en post-traitement du stream IA pour corriger le non-respect de l'instruction.
+ */
+export function fixRootDisplay(text: string): string {
+    // Cas 1 : inline $x_1 = ...$ ou $x_2 = ...$ (pas précédé/suivi d'un $)
+    let result = text.replace(
+        /(?<!\$)\$(x_\{?[12]\}?\s*=\s*[^$\n]{1,200})\$(?!\$)/g,
+        (_, content) => `\n\n$$${content.trim()}$$\n\n`
+    );
+    // Cas 2 : les deux racines dans un seul bloc $$x_1 = ... \text{ et } x_2 = ...$$
+    result = result.replace(
+        /\$\$(x_\{?[12]\}?\s*=\s*[^$]*?)(?:\\text\s*\{[^}]*\}|,|\s+et\s+)(x_\{?[12]\}?\s*=\s*[^$]*?)\$\$/g,
+        (_, p1, p2) => `\n\n$$${p1.trim()}$$\n\n$$${p2.trim()}$$\n\n`
+    );
+    return result;
+}
+
+/**
  * Convertit les tableaux Markdown (| x | ... |) générés par l'IA en blocs
  * @@@table si aucun bloc @@@ n'existe déjà dans le contenu.
  * Garde-fou contre le non-déterminisme de l'IA.
