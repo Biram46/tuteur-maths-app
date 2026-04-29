@@ -2617,53 +2617,139 @@ def probability_route():
 # 7. STATISTIQUES (moyenne, médiane, écart-type)
 # ─────────────────────────────────────────────────────────────
 
+def _stat_median(sorted_lst):
+    """Médiane — méthode lycée France (programme officiel).
+    Série de n valeurs triées x1 ≤ x2 ≤ ... ≤ xn :
+      - n impair  → Me = x_{(n+1)/2}   (valeur au rang central)
+      - n pair    → Me = (x_{n/2} + x_{n/2+1}) / 2
+    """
+    m = len(sorted_lst)
+    if m == 0:
+        return None
+    if m % 2 == 1:
+        return sorted_lst[m // 2]           # rang (m+1)/2 en base 1
+    else:
+        return (sorted_lst[m // 2 - 1] + sorted_lst[m // 2]) / 2
+
+
+def _stat_quartiles(sorted_v):
+    """Q1 / Q3 — méthode lycée France.
+    On divise la série triée en deux moitiés de taille ⌊n/2⌋ :
+      - demi-série inférieure  : les ⌊n/2⌋ premières valeurs → Q1 = médiane
+      - demi-série supérieure  : les ⌊n/2⌋ dernières valeurs → Q3 = médiane
+    (si n impair, la valeur médiane centrale n'est incluse dans aucune moitié)
+    """
+    n = len(sorted_v)
+    half = n // 2
+    lower = sorted_v[:half]
+    upper = sorted_v[n - half:]
+    return _stat_median(lower), _stat_median(upper)
+
+
+def _fmt_val(v):
+    return str(int(v)) if v == int(v) else str(round(v, 4))
+
+
 @app.route('/statistics-ops', methods=['POST'])
 def statistics_route():
     try:
         data = request.get_json()
-        text = data.get('text', '').strip()
+        text = data.get('text', data.get('expression', '')).strip()
         if not text:
             return jsonify({'success': False, 'error': 'texte manquant'}), 400
 
-        # Extraire la série de valeurs
-        values_m = re.findall(r'[+-]?\d+(?:[.,]\d+)?', text)
-        values = [float(v.replace(',', '.')) for v in values_m]
-        # Filtrer les valeurs qui semblent être des paramètres (ex: n=10)
-        # On garde les valeurs qui apparaissent après ":" ou ";"
+        # ── Tentative de détection d'un tableau xi/ni ──
+        # Format : "xi : 2 5 7  ni : 3 2 1" ou tableau Markdown
+        xi_m = re.search(r'x_?i?\s*[:|]\s*([\d.,;\s]+)', text, re.IGNORECASE)
+        ni_m = re.search(r'n_?i?\s*[:|]\s*([\d.,;\s]+)', text, re.IGNORECASE)
+
+        values = []  # série développée
+
+        if xi_m and ni_m:
+            xi_raw = re.findall(r'[+-]?\d+(?:[.,]\d+)?', xi_m.group(1))
+            ni_raw = re.findall(r'\d+', ni_m.group(1))
+            xi_vals = [float(v.replace(',', '.')) for v in xi_raw]
+            ni_vals = [int(v) for v in ni_raw]
+            if len(xi_vals) == len(ni_vals):
+                for xi_v, ni_v in zip(xi_vals, ni_vals):
+                    values.extend([xi_v] * ni_v)
+
+        if not values:
+            # Série brute : extraire tous les nombres
+            raw_nums = re.findall(r'[+-]?\d+(?:[.,]\d+)?', text)
+            values = [float(v.replace(',', '.')) for v in raw_nums]
+
         if not values or len(values) < 2:
             return jsonify({'success': False, 'error': 'Série de données insuffisante (minimum 2 valeurs)'}), 422
 
         n = len(values)
-        mean_v = sum(values) / n
         sorted_v = sorted(values)
-        median_v = sorted_v[n // 2] if n % 2 == 1 else (sorted_v[n // 2 - 1] + sorted_v[n // 2]) / 2
+        mean_v = sum(values) / n
+        median_v = _stat_median(sorted_v)
+        q1_v, q3_v = _stat_quartiles(sorted_v)
+        iqr_v = (q3_v - q1_v) if q1_v is not None and q3_v is not None else None
         variance_v = sum((v - mean_v) ** 2 for v in values) / n
         std_v = math.sqrt(variance_v)
         min_v, max_v = min(values), max(values)
         range_v = max_v - min_v
-        q1_v = sorted_v[n // 4] if n >= 4 else sorted_v[0]
-        q3_v = sorted_v[3 * n // 4] if n >= 4 else sorted_v[-1]
+
+        # ── Effectifs cumulés croissants ──
+        ecc = []
+        cumul = 0
+        for v in sorted_v:
+            cumul += 1
+            ecc.append((v, cumul))
+
+        # ── Explication rang médian (méthode officielle lycée) ──
+        half = n // 2
+        if n % 2 == 1:
+            rang_median_str = f"$n = {n}$ est **impair** → rang médian $= \\frac{{n+1}}{{2}} = \\frac{{{n}+1}}{{2}} = {(n+1)//2}$"
+            median_detail = f"La valeur au rang ${(n+1)//2}$ dans la série triée est $\\mathbf{{{_fmt_val(median_v)}}}$"
+        else:
+            rang_median_str = f"$n = {n}$ est **pair** → on prend la moyenne des valeurs aux rangs $\\frac{{n}}{{2}} = {n//2}$ et $\\frac{{n}}{{2}}+1 = {n//2+1}$"
+            v1, v2 = sorted_v[n//2 - 1], sorted_v[n//2]
+            median_detail = f"$M_e = \\frac{{{_fmt_val(v1)} + {_fmt_val(v2)}}}{{2}} = {_fmt_val(median_v)}$"
+
+        # Explication Q1/Q3
+        lower_half = sorted_v[:half]
+        upper_half = sorted_v[n - half:]
+        q1_str = f"Demi-série inférieure ($\\{{{', '.join(_fmt_val(v) for v in lower_half)}\\}}$, $p={half}$) → $Q_1 = {_fmt_val(q1_v)}$"
+        q3_str = f"Demi-série supérieure ($\\{{{', '.join(_fmt_val(v) for v in upper_half)}\\}}$, $p={half}$) → $Q_3 = {_fmt_val(q3_v)}$"
+
+        serie_str = '; '.join(_fmt_val(v) for v in sorted_v)
+        mean_sum = ' + '.join(_fmt_val(v) for v in values) if n <= 10 else f'\\text{{(somme des {n} valeurs)}}'
 
         steps = [
-            f"Série : $\\{{{', '.join(str(int(v) if v == int(v) else v) for v in values)}\\}}$, $n = {n}$",
-            f"Moyenne : $\\bar{{x}} = \\frac{{{' + '.join(str(int(v) if v == int(v) else v) for v in values)}}}{{{n}}} = {round(mean_v, 4)}$",
-            f"Médiane : ${round(median_v, 4)}$ (valeur centrale de la série triée)",
-            f"Variance : $\\sigma^2 = \\frac{{\\sum(x_i - \\bar{{x}})^2}}{{{n}}} = {round(variance_v, 4)}$",
-            f"Écart-type : $\\sigma = {round(std_v, 4)}$",
-            f"Étendue : ${round(range_v, 4)}$ (max $-$ min $= {max_v} - {min_v}$)",
-            f"Quartiles : $Q_1 = {q1_v}$, $Q_3 = {q3_v}$",
+            f"Série triée ($n = {n}$) : ${serie_str}$",
+            f"**Moyenne** : $\\bar{{x}} = \\dfrac{{{mean_sum}}}{{{n}}} = {round(mean_v, 4)}$",
+            f"**Médiane** : {rang_median_str}",
+            f"→ {median_detail}",
+            f"**Quartiles** (méthode demi-séries, programme lycée France) :",
+            f"→ {q1_str}",
+            f"→ {q3_str}",
+            f"→ Écart interquartile : $Q_3 - Q_1 = {_fmt_val(q3_v)} - {_fmt_val(q1_v)} = {round(iqr_v, 4)}$",
+            f"**Variance** : $\\sigma^2 = \\dfrac{{\\sum(x_i - \\bar{{x}})^2}}{{{n}}} = {round(variance_v, 4)}$",
+            f"**Écart-type** : $\\sigma = {round(std_v, 4)}$",
+            f"**Étendue** : $e = x_{{max}} - x_{{min}} = {_fmt_val(max_v)} - {_fmt_val(min_v)} = {round(range_v, 4)}$",
         ]
 
         ai_ctx = (
-            "[MODE STATISTIQUES DÉTERMINISTE]\n"
+            "[MODE STATISTIQUES DÉTERMINISTE — MÉTHODE LYCÉE FRANCE]\n"
             f"Série de {n} valeurs.\n"
-            "Résultats :\n" + "\n".join(f"- {s}" for s in steps) +
-            "\n\nExplique chaque indicateur statistique à un élève."
+            "Résultats (utilise EXACTEMENT ces valeurs sans les recalculer) :\n"
+            + "\n".join(f"- {s}" for s in steps) +
+            "\n\nIMPORTANT : explique la médiane avec le rang médian (méthode officielle lycée France)."
+            " Pour Q1/Q3 : explique la méthode des demi-séries."
+            " Pas de méthode par interpolation (hors programme au lycée)."
         )
         return jsonify({
             'success': True,
-            'results': {'mean': round(mean_v, 4), 'median': round(median_v, 4), 'std': round(std_v, 4),
-                        'variance': round(variance_v, 4), 'min': min_v, 'max': max_v, 'Q1': q1_v, 'Q3': q3_v},
+            'results': {
+                'mean': round(mean_v, 4), 'median': median_v, 'std': round(std_v, 4),
+                'variance': round(variance_v, 4), 'min': min_v, 'max': max_v,
+                'Q1': q1_v, 'Q3': q3_v, 'IQR': round(iqr_v, 4) if iqr_v is not None else None,
+                'n': n,
+            },
             'steps': steps,
             'aiContext': ai_ctx,
         })
