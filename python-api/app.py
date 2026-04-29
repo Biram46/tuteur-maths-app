@@ -2099,15 +2099,26 @@ def latex_preview():
 # UTILITAIRE COMMUN — Pré-traitement d'expression
 # ─────────────────────────────────────────────────────────────
 
+_MATH_FUNCS = frozenset({
+    'sqrt', 'exp', 'log', 'ln',
+    'sin', 'cos', 'tan', 'cot', 'sec', 'cosec',
+    'asin', 'acos', 'atan', 'arcsin', 'arccos', 'arctan',
+    'abs', 'floor', 'ceiling',
+})
+
+
 def _preprocess(s: str) -> str:
     s = s.replace('^', '**').replace(',', '.').strip()
     s = s.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
     s = s.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
     s = s.replace('√', 'sqrt').replace('π', 'pi')
-    s = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', s)   # 2x → 2*x
-    s = re.sub(r'([a-zA-Z])e\*\*', r'\1*e**', s)      # xe^y → x*e^y (avant )*( pour ne pas casser exp)
-    s = re.sub(r'\)\s*\(', r')*(', s)
-    s = re.sub(r'([a-zA-Z])\s*\(', lambda m: m.group(0) if m.group(1) in ('sqrt','exp','log','ln','sin','cos','tan','abs') else m.group(1)+'*(', s)
+    s = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', s)   # 2cos(x)→2*cos(x), 4sin(5x)→4*sin(5*x)
+    s = re.sub(r'([a-zA-Z])e\*\*', r'\1*e**', s)      # xe^y → x*e^y
+    s = re.sub(r'\)\s*\(', r')*(', s)                 # )(→)*(
+    # Insérer * entre un nom de variable et ( — mais pas pour les fonctions mathématiques
+    s = re.sub(r'\b([a-zA-Z]+)\s*\(',
+               lambda m: m.group(0) if m.group(1) in _MATH_FUNCS else m.group(1) + '*(',
+               s)
     s = s.replace('ln(', 'log(')
     return s
 
