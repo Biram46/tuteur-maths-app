@@ -180,7 +180,7 @@ export function computeDerivative(expr: string): string {
             .replace(/e\^([a-zA-Z])\b/g, 'exp($1)'); // e^x → exp(x)
         const parsed = parse(sanitized);
         const derived = derivative(parsed, 'x');
-        return simplify(derived).toString();
+        return derived.toString();
     } catch (err) {
         console.warn('[MathEngine] Erreur dérivée:', err);
         return '';
