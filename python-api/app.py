@@ -2356,6 +2356,54 @@ _TRIG_EXACT = {
 }
 
 
+# ── Méthode des doigts de la main gauche ─────────────────────
+# Table : (angle SymPy, LaTeX angle, n_dessous, n_dessus)
+_FINGER_TABLE = [
+    (sp.Integer(0),   "0",                        0, 4),
+    (sp.pi / 6,       "\\frac{\\pi}{6}",           1, 3),
+    (sp.pi / 4,       "\\frac{\\pi}{4}",           2, 2),
+    (sp.pi / 3,       "\\frac{\\pi}{3}",           3, 1),
+    (sp.pi / 2,       "\\frac{\\pi}{2}",           4, 0),
+]
+
+def _finger_hint(expr_sym):
+    """
+    Retourne (steps_list, used_finger) pour les sin/cos d'angles remarquables.
+    Formules : sin(θ) = √(n_dessous)/2 , cos(θ) = √(n_dessus)/2
+    """
+    hints = []
+    for func_atom in expr_sym.atoms(sp.sin, sp.cos):
+        angle = sp.simplify(func_atom.args[0])
+        for ref_val, ref_latex, n_below, n_above in _FINGER_TABLE:
+            if sp.simplify(angle - ref_val) == 0:
+                if isinstance(func_atom, sp.sin):
+                    val_latex = sp.latex(sp.sqrt(n_below) / 2)
+                    hints.append(
+                        f"**Méthode des doigts** ($\\theta = {ref_latex}$) : "
+                        f"{n_below} doigt(s) en dessous → "
+                        f"$\\sin\\left({ref_latex}\\right) = \\dfrac{{\\sqrt{{{n_below}}}}}{{2}} = {val_latex}$"
+                    )
+                elif isinstance(func_atom, sp.cos):
+                    val_latex = sp.latex(sp.sqrt(n_above) / 2)
+                    hints.append(
+                        f"**Méthode des doigts** ($\\theta = {ref_latex}$) : "
+                        f"{n_above} doigt(s) au-dessus → "
+                        f"$\\cos\\left({ref_latex}\\right) = \\dfrac{{\\sqrt{{{n_above}}}}}{{2}} = {val_latex}$"
+                    )
+                break
+    return hints
+
+
+_FINGER_TABLE_STR = (
+    "Tableau des doigts (sin = √n_dessous/2, cos = √n_dessus/2) :\n"
+    "- $0$ : 0↓ 4↑ → $\\sin 0=0$, $\\cos 0=1$\n"
+    "- $\\frac{\\pi}{6}$ : 1↓ 3↑ → $\\sin\\frac{\\pi}{6}=\\frac{1}{2}$, $\\cos\\frac{\\pi}{6}=\\frac{\\sqrt{3}}{2}$\n"
+    "- $\\frac{\\pi}{4}$ : 2↓ 2↑ → $\\sin\\frac{\\pi}{4}=\\frac{\\sqrt{2}}{2}$, $\\cos\\frac{\\pi}{4}=\\frac{\\sqrt{2}}{2}$\n"
+    "- $\\frac{\\pi}{3}$ : 3↓ 1↑ → $\\sin\\frac{\\pi}{3}=\\frac{\\sqrt{3}}{2}$, $\\cos\\frac{\\pi}{3}=\\frac{1}{2}$\n"
+    "- $\\frac{\\pi}{2}$ : 4↓ 0↑ → $\\sin\\frac{\\pi}{2}=1$, $\\cos\\frac{\\pi}{2}=0$"
+)
+
+
 @app.route('/trig-exact', methods=['POST'])
 def trig_exact_route():
     try:
@@ -2385,17 +2433,22 @@ def trig_exact_route():
             eq = lhs - rhs
             sols = sp.solve(eq, x)
             valid_sols = [s for s in sols if s.is_real]
-            # Solutions sur [0, 2pi]
             sols_general = []
             for s in valid_sols:
                 steps.append(f"Solution : $x = {sp.latex(s)}$")
                 sols_general.append(sp.latex(s))
-            steps.append(f"Solutions générales : $x = {sp.latex(valid_sols[0])} + 2k\\pi$, $k \\in \\mathbb{{Z}}$" if valid_sols else "Aucune solution réelle.")
+            steps.append(
+                f"Solutions générales : $x = {sp.latex(valid_sols[0])} + 2k\\pi$, $k \\in \\mathbb{{Z}}$"
+                if valid_sols else "Aucune solution réelle."
+            )
             ai_ctx = (
                 "[MODE TRIGONOMÉTRIE DÉTERMINISTE]\n"
+                "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+                "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
                 f"Équation : ${sp.latex(eq)} = 0$\n"
                 "Étapes :\n" + "\n".join(f"- {s}" for s in steps) +
-                "\n\nExplique la résolution pas à pas : isoler le cosinus/sinus/tangente, utiliser le cercle trigonométrique."
+                "\n\nExplique la résolution pas à pas : isoler le cosinus/sinus/tangente, "
+                "utiliser le cercle trigonométrique et les valeurs remarquables."
             )
             return jsonify({'success': True, 'solutions': sols_general, 'steps': steps, 'aiContext': ai_ctx})
 
@@ -2405,15 +2458,31 @@ def trig_exact_route():
             result_simplified = sp.simplify(result)
             numeric = float(result_simplified.evalf()) if result_simplified.is_real else None
 
-            steps.append(f"Valeur exacte : $${sp.latex(result_simplified)}$$")
+            # Insérer l'explication méthode des doigts si applicable
+            finger_hints = _finger_hint(expr_sym)
+            for hint in finger_hints:
+                steps.append(hint)
+
+            steps.append(f"Valeur exacte : ${sp.latex(result_simplified)}$")
             if numeric is not None:
                 steps.append(f"Valeur approchée : $\\approx {round(numeric, 4)}$")
 
+            finger_section = (
+                "\n\nMÉTHODE PÉDAGOGIQUE OBLIGATOIRE — Méthode des doigts de la main gauche :\n"
+                "Formules : $\\sin(\\theta) = \\dfrac{\\sqrt{n_{\\text{dessous}}}}{2}$, "
+                "$\\cos(\\theta) = \\dfrac{\\sqrt{n_{\\text{dessus}}}}{2}$\n"
+                + _FINGER_TABLE_STR +
+                "\nExplique TOUJOURS avec cette méthode pour les angles remarquables."
+            ) if finger_hints else (
+                "\n\nExplique comment obtenir cette valeur exacte (cercle trigonométrique ou formules)."
+            )
+
             ai_ctx = (
                 "[MODE TRIGONOMÉTRIE DÉTERMINISTE]\n"
-                f"Expression : ${sp.latex(expr_sym)}$\n"
-                "Résultat :\n" + "\n".join(f"- {s}" for s in steps) +
-                "\n\nExplique comment obtenir cette valeur exacte (cercle trigonométrique ou formules)."
+                "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+                "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
+                "Calcul :\n" + "\n".join(f"- {s}" for s in steps) +
+                finger_section
             )
             return jsonify({'success': True, 'result_latex': sp.latex(result_simplified), 'steps': steps, 'aiContext': ai_ctx})
 
