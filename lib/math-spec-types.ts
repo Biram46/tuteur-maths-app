@@ -27,6 +27,7 @@ export type MathOutputType =
     | 'literal_calc'      // Calcul littéral SymPy → future Couche 3
     | 'derivative'        // Dérivation analytique -> Module Dérivation (Python)
     | 'expand'            // Développement / réduction (Python/SymPy)
+    | 'factorize'         // Factorisation — polynômes, exp, ln (Python/SymPy)
     | 'solve_system'      // Systèmes d'équations 2×2 (Python/SymPy)
     | 'sequence'          // Suites arithmétiques / géométriques (Python)
     | 'trig'              // Trigonométrie exacte (Python/SymPy)

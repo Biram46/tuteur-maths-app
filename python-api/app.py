@@ -2845,7 +2845,59 @@ def complex_calc_route():
 
 
 # ─────────────────────────────────────────────────────────────
-# 9. EXPONENTIELLE / LOGARITHME (équations et simplifications)
+# 9. FACTORISATION (sp.factor — polynômes, exp, ln, tout type)
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/factorize-expr', methods=['POST'])
+def factorize_expr_route():
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '').strip()
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        raw = _preprocess(expression)
+        FLOC = {**LOCALS, 'e': sp.E, 'E': sp.E}
+        expr_sym = sp.sympify(raw, locals=FLOC)
+
+        factored = sp.factor(expr_sym)
+        expanded = sp.expand(expr_sym)
+
+        steps = [f"Expression : ${sp.latex(expr_sym)}$"]
+
+        if factored != expr_sym and factored != expanded:
+            steps.append(f"Forme factorisée : ${sp.latex(factored)}$")
+            # Détailler le facteur commun si c'est un Mul
+            if isinstance(factored, sp.Mul):
+                factors = [f for f in factored.args if f != 1]
+                steps.append(
+                    "Facteurs : " + " $\\times$ ".join(f"${sp.latex(f)}$" for f in factors)
+                )
+        else:
+            # Pas de factorisation possible → essayer GCF manuel (facteur commun évident)
+            steps.append("Forme développée équivalente (pas de factorisation supplémentaire) : "
+                         f"${sp.latex(expanded)}$")
+
+        ai_ctx = (
+            "[MODE FACTORISATION DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
+            "Résultat :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique la méthode : facteur commun, identité remarquable ou autre technique utilisée."
+        )
+        return jsonify({
+            'success': True,
+            'result_latex': sp.latex(factored),
+            'steps': steps,
+            'aiContext': ai_ctx,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 10. EXPONENTIELLE / LOGARITHME (équations et simplifications)
 # ─────────────────────────────────────────────────────────────
 
 @app.route('/exp-log', methods=['POST'])

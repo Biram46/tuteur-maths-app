@@ -397,6 +397,7 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
 
             // ───────────────────────────────────────────────────────
             case 'expand':
+            case 'factorize':
             case 'solve_system':
             case 'sequence':
             case 'trig':
@@ -411,6 +412,7 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
                 }
                 const endpointMap: Record<string, string> = {
                     expand: '/expand',
+                    factorize: '/factorize-expr',
                     solve_system: '/solve-system',
                     sequence: '/sequence',
                     trig: '/trig-exact',

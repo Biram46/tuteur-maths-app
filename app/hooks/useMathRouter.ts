@@ -2215,6 +2215,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
 
         const deterministicIntentMap: Record<string, { type: string; label: string; textBased: boolean }> = {
             expand:       { type: 'expand',       label: 'Développement',       textBased: false },
+            factorize:    { type: 'factorize',    label: 'Factorisation',        textBased: false },
             solve_system: { type: 'solve_system', label: 'Système d\'équations', textBased: true },
             sequence:     { type: 'sequence',     label: 'Suites',               textBased: true },
             trig:         { type: 'trig',         label: 'Trigonométrie',        textBased: false },
