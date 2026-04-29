@@ -420,7 +420,7 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
                 };
                 const endpoint = endpointMap[type];
                 // Envoyer `expression` pour tous (Python accepte aussi `text` = même champ)
-                const textBased = ['solve_system', 'sequence', 'vector', 'probability', 'statistics'];
+                const textBased = ['solve_system', 'sequence', 'vector', 'probability', 'statistics', 'complex_calc'];
                 const payload = textBased.includes(type)
                     ? { text: expression, niveau }
                     : { expression, niveau };

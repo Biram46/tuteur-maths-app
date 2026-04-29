@@ -1015,6 +1015,7 @@ RÈGLES ABSOLUES :
             && !/in(?:é|e)quation/i.test(inputNorm)
             && !/[<≤>≥]/.test(inputText) // ⛔ Ne JAMAIS capturer les inéquations ici
             && !/=[^0-9]*[1-9]/i.test(inputText) // Essayer d'éviter "f(x) = 2" si ce n'est pas géré
+            && !/\b(?:cos|sin|tan|cot|sec|cosec|arccos|arcsin|arctan)\b/i.test(inputText) // ⛔ Laisser les équations trig au module dédié
         );
 
         if (wantsSolveEquation) {
@@ -2219,7 +2220,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
             vector:       { type: 'vector',       label: 'Vecteurs',             textBased: true },
             probability:  { type: 'probability',  label: 'Probabilités',         textBased: true },
             statistics:   { type: 'statistics',   label: 'Statistiques',         textBased: true },
-            complex_calc: { type: 'complex_calc', label: 'Nombres complexes',    textBased: false },
+            complex_calc: { type: 'complex_calc', label: 'Nombres complexes',    textBased: true },
         };
 
         const detectedDeterministicIntent = analysis.intents.find(i => i.intent in deterministicIntentMap);

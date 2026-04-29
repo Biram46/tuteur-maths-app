@@ -2515,6 +2515,8 @@ def vector_ops_route():
 
         ai_ctx = (
             "[MODE VECTEURS DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*}, \\begin{equation}, \\begin{array} ni aucun environnement LaTeX.\n"
             "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
             "\n\nExplique chaque calcul à un élève : formule norme, produit scalaire, déterminant et colinéarité."
         )
@@ -2675,8 +2677,13 @@ def statistics_route():
                     values.extend([xi_v] * ni_v)
 
         if not values:
-            # Série brute : extraire tous les nombres
-            raw_nums = re.findall(r'[+-]?\d+(?:[.,]\d+)?', text)
+            # Chercher une liste de nombres après ":" (évite d'extraire les chiffres des mots)
+            colon_m = re.search(r'[:]\s*((?:[+-]?\d+(?:[.,]\d+)?[\s,;]+)+[+-]?\d+(?:[.,]\d+)?)', text)
+            if colon_m:
+                raw_nums = re.findall(r'[+-]?\d+(?:[.,]\d+)?', colon_m.group(1))
+            else:
+                # Fallback : extraire tous les nombres du texte
+                raw_nums = re.findall(r'[+-]?\d+(?:[.,]\d+)?', text)
             values = [float(v.replace(',', '.')) for v in raw_nums]
 
         if not values or len(values) < 2:
@@ -2766,9 +2773,23 @@ def statistics_route():
 def complex_calc_route():
     try:
         data = request.get_json()
-        expression = data.get('expression', '').strip()
-        if not expression:
+        raw_input = data.get('text', data.get('expression', '')).strip()
+        if not raw_input:
             return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        # Extraire l'expression complexe depuis un texte potentiellement long
+        # Pattern 1 : "z = a + bi" ou "z = a - bi"
+        z_assign = re.search(r'\bz\s*=\s*([0-9.,+\-\s*/^πi√]+(?:\s*[+\-]\s*[0-9]*\s*i)?)', raw_input, re.IGNORECASE)
+        if z_assign:
+            expression = z_assign.group(1).strip().rstrip('.,')
+        else:
+            # Pattern 2 : nombre complexe direct "a + bi" ou "a - bi"
+            z_pat = re.search(r'([+-]?\s*\d+(?:[.,]\d+)?\s*[+\-]\s*\d*\s*i\b)', raw_input)
+            if z_pat:
+                expression = z_pat.group(1).strip()
+            else:
+                # Fallback : prendre tout le texte (peut être juste "3+4i")
+                expression = raw_input
 
         raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
         raw = re.sub(r'(\d)\s*i\b', r'\1*I', raw)
