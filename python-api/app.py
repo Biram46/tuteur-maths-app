@@ -14,6 +14,7 @@ import os
 import re
 import json
 import math
+import base64
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -2356,6 +2357,78 @@ _TRIG_EXACT = {
 }
 
 
+# ── Cercle trigonométrique SVG ────────────────────────────────
+
+def _trig_circle_svg(queried_angle_rad=None):
+    """
+    Génère un SVG du cercle trigonométrique (1er quadrant) avec 5 flèches.
+    L'angle demandé est mis en rouge, les autres en bleu.
+    Retourne une data URI base64.
+    """
+    W, H = 280, 240
+    cx, cy, r = 90, 145, 95  # centre décalé à gauche pour laisser place aux labels
+
+    ANGLES = [
+        (0,           "0"),
+        (math.pi / 6, "π/6"),
+        (math.pi / 4, "π/4"),
+        (math.pi / 3, "π/3"),
+        (math.pi / 2, "π/2"),
+    ]
+
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
+        '<defs>',
+        # Flèche bleue
+        '<marker id="ab" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">',
+        '<path d="M0,0.5 L0,6.5 L6,3.5 z" fill="#3b82f6"/></marker>',
+        # Flèche rouge (angle interrogé)
+        '<marker id="ar" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">',
+        '<path d="M0,0.5 L0,6.5 L6,3.5 z" fill="#dc2626"/></marker>',
+        '</defs>',
+        # Zone de fond (1er quadrant)
+        f'<path d="M{cx},{cy} L{cx + r + 14},{cy} A{r + 14},{r + 14} 0 0,0 {cx},{cy - r - 14} Z" '
+        'fill="#f0f9ff" stroke="none"/>',
+        # Axes
+        f'<line x1="{cx - 12}" y1="{cy}" x2="{cx + r + 18}" y2="{cy}" stroke="#94a3b8" stroke-width="1.2"/>',
+        f'<line x1="{cx}" y1="{cy + 12}" x2="{cx}" y2="{cy - r - 18}" stroke="#94a3b8" stroke-width="1.2"/>',
+        # Cercle (pointillés)
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#94a3b8" '
+        'stroke-width="1.3" stroke-dasharray="5,3"/>',
+        # Label O
+        f'<text x="{cx - 15}" y="{cy + 16}" font-size="13" fill="#64748b" font-family="Georgia,serif">O</text>',
+    ]
+
+    label_r = r + 20
+    for angle_rad, label in ANGLES:
+        is_q = queried_angle_rad is not None and abs(angle_rad - queried_angle_rad) < 1e-9
+        color   = '#dc2626' if is_q else '#3b82f6'
+        marker  = 'url(#ar)' if is_q else 'url(#ab)'
+        weight  = '2.5' if is_q else '2'
+
+        # Pointe de la flèche légèrement en deçà du cercle pour que le triangle reste dedans
+        ax = cx + 0.87 * r * math.cos(angle_rad)
+        ay = cy - 0.87 * r * math.sin(angle_rad)
+
+        svg.append(
+            f'<line x1="{cx}" y1="{cy}" x2="{ax:.1f}" y2="{ay:.1f}" '
+            f'stroke="{color}" stroke-width="{weight}" marker-end="{marker}"/>'
+        )
+
+        # Label à l'extérieur du cercle
+        lx = cx + label_r * math.cos(angle_rad)
+        ly = cy - label_r * math.sin(angle_rad)
+        svg.append(
+            f'<text x="{lx:.1f}" y="{ly:.1f}" font-size="12" fill="{color}" '
+            f'text-anchor="middle" dominant-baseline="middle" '
+            f'font-family="Georgia,serif">{label}</text>'
+        )
+
+    svg.append('</svg>')
+    b64 = base64.b64encode(''.join(svg).encode('utf-8')).decode()
+    return f'data:image/svg+xml;base64,{b64}'
+
+
 # ── Méthode des doigts de la main gauche ─────────────────────
 # Table : (angle SymPy, LaTeX angle, n_dessous, n_dessus)
 _FINGER_TABLE = [
@@ -2458,8 +2531,19 @@ def trig_exact_route():
             result_simplified = sp.simplify(result)
             numeric = float(result_simplified.evalf()) if result_simplified.is_real else None
 
-            # Insérer l'explication méthode des doigts si applicable
+            # Méthode des doigts + angle interrogé pour le SVG
             finger_hints = _finger_hint(expr_sym)
+            queried_angle_rad = None
+            for func_atom in expr_sym.atoms(sp.sin, sp.cos, sp.tan):
+                angle = sp.simplify(func_atom.args[0])
+                for ref_val, _, _, _ in _FINGER_TABLE:
+                    if sp.simplify(angle - ref_val) == 0:
+                        try:
+                            queried_angle_rad = float(ref_val.evalf())
+                        except Exception:
+                            pass
+                        break
+
             for hint in finger_hints:
                 steps.append(hint)
 
@@ -2484,7 +2568,11 @@ def trig_exact_route():
                 "Calcul :\n" + "\n".join(f"- {s}" for s in steps) +
                 finger_section
             )
-            return jsonify({'success': True, 'result_latex': sp.latex(result_simplified), 'steps': steps, 'aiContext': ai_ctx})
+
+            resp = {'success': True, 'result_latex': sp.latex(result_simplified), 'steps': steps, 'aiContext': ai_ctx}
+            if finger_hints:
+                resp['figure_url'] = _trig_circle_svg(queried_angle_rad)
+            return jsonify(resp)
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500

@@ -2261,6 +2261,20 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         processSpeechQueue,
                         applyStripDdx: true,
                     });
+                    // Prépendre le cercle trigonométrique SVG si disponible (valeurs remarquables)
+                    if (engineData.figure_url) {
+                        setMessages(prev => {
+                            const msgs = [...prev];
+                            const last = msgs[msgs.length - 1];
+                            if (last?.role === 'assistant') {
+                                msgs[msgs.length - 1] = {
+                                    ...last,
+                                    content: `![Cercle trigonométrique](${engineData.figure_url as string})\n\n${last.content}`,
+                                };
+                            }
+                            return msgs;
+                        });
+                    }
                     return;
                 }
                 console.warn(`[MathEngine] Module ${label}: API échouée:`, engineData.error);
