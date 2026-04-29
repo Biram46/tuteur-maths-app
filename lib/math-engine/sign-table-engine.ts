@@ -492,11 +492,12 @@ function isPolynomialDegreeAtMost2(expr: string): boolean {
     try {
         const xs = [0, 1, 2, 3, 4, 5];
         const ys = xs.map(xv => evalAt(expr, xv));
-        if (ys.some(v => !isFinite(v) || isNaN(v))) return false;
+        if (ys.some(v => v === null || !isFinite(v as number) || isNaN(v as number))) return false;
+        const nums = ys as number[];
         // Si contient e^, ln, sqrt, sin, cos → pas un polynôme pur
         if (/\b(exp|e\^|ln|log|sqrt|sin|cos|tan)\b/i.test(expr)) return false;
         // 3e différences finies : doivent être ≈ 0 pour degré ≤ 2
-        const d1 = ys.slice(1).map((v, i) => v - ys[i]);
+        const d1 = nums.slice(1).map((v, i) => v - nums[i]);
         const d2 = d1.slice(1).map((v, i) => v - d1[i]);
         const d3 = d2.slice(1).map((v, i) => v - d2[i]);
         return d3.every(v => Math.abs(v) < 1e-6);
