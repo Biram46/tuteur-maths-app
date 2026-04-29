@@ -1280,9 +1280,11 @@ def solve_equation():
                             if isinstance(arg, sp.FiniteSet):
                                 forbidden_pts += [float(p.evalf()) for p in arg]
                         forbidden_pts.sort()
-            steps.append('**Etape 1 - Domaine de definition**\n\n$D_f = ' + domain_latex + '$')
+            # N'afficher le domaine que s'il est different de R
+            if domain_latex != '\\mathbb{R}':
+                steps.append('**Domaine de définition**\n\n$D_f = ' + domain_latex + '$')
         except Exception:
-            steps.append('**Etape 1 - Domaine de definition**\n\n$D_f = \\mathbb{R}$')
+            pass  # Domaine R implicite, pas besoin de l'afficher
 
         # ══════════════════════════════════════════════════════════════
         # PRODUIT NUL — DÉTECTION PRIORITAIRE (tous niveaux)
@@ -1302,7 +1304,7 @@ def solve_equation():
             if len(linear_factors) >= 2:
                 lhs_latex = sp.latex(lhs_sym)
                 steps.append(
-                    '**Etape 2 - Équation produit nul**\n\n'
+                    '**Équation produit nul**\n\n'
                     'L\'équation est déjà sous forme factorisée :\n\n'
                     '$' + lhs_latex + ' = 0$\n\n'
                     '**Propriété :** Un produit de facteurs est nul si et seulement si l\'un au moins de ses facteurs est nul.'
@@ -1321,7 +1323,7 @@ def solve_equation():
 
                 sol_set = ' ; '.join(sp.latex(s) for s in all_solutions_pn)
                 steps.append(
-                    '**Etape 3 - Solutions**\n\n' +
+                    '**Solutions**\n\n' +
                     '\n\n'.join(sol_parts) + '\n\n' +
                     ('**Conclusion :** $S = \\left\\{' + sol_set + '\\right\\}$' if all_solutions_pn else '**Conclusion :** $S = \\emptyset$')
                 )
@@ -1341,21 +1343,16 @@ def solve_equation():
                 SOLVE_CACHE[cache_key] = result
                 return jsonify(result)
 
-        # ── Etape 2 : Mise sous forme f(x) = 0 (uniquement si pas produit nul) ──
+        # ── Mise sous forme standard = 0 (uniquement si pas produit nul) ──
         eq_disp = sp.latex(lhs_sym) + ' = ' + sp.latex(rhs_sym)
         f_latex = sp.latex(f_sym)
         if rhs_str != '0':
             steps.append(
-                '**Etape 2 - Mise sous forme f(x) = 0**\n\n'
+                '**Mise sous forme standard**\n\n'
                 '$' + eq_disp + '$\n\n'
                 '$\\Leftrightarrow ' + f_latex + ' = 0$'
             )
-        else:
-            steps.append(
-                '**Etape 2 - Forme f(x) = 0**\n\n'
-                "L'equation est deja sous la forme $f(x) = 0$ :\n\n"
-                '$f(x) = ' + f_latex + '$'
-            )
+        # Si l'équation est déjà = 0, pas besoin d'un bloc dédié
 
         # ── Analyse du degre ──────────────────────────────────────────
         poly_obj    = f_sym.as_poly(x)
@@ -1517,8 +1514,7 @@ def solve_equation():
 
 
             steps.append(
-                '**Etape 3 - Identification des coefficients**\n\n'
-                "L'equation est de la forme $ax^2 + bx + c = 0$ avec :\n\n"
+                "L'équation est de la forme $ax^2 + bx + c = 0$ avec :\n\n"
                 '$a = ' + al + '$,  $b = ' + bl + '$,  $c = ' + cl + '$'
             )
 
@@ -1527,7 +1523,7 @@ def solve_equation():
             dl = sp.latex(delta_s)
 
             steps.append(
-                '**Etape 4 - Calcul du discriminant**\n\n'
+                '**Calcul du discriminant**\n\n'
                 '$\\Delta = b^2 - 4ac = (' + bl + ')^2 - 4 \\times (' + al + ') \\times (' + cl + ')$\n\n'
                 '$\\Delta = ' + dl + '$'
             )
@@ -1542,8 +1538,7 @@ def solve_equation():
                 all_solutions.extend([x1s, x2s])
                 x1l, x2l = sp.latex(x1s), sp.latex(x2s)
                 steps.append(
-                    '**Etape 5 - Resolution** ($\\Delta > 0$)\n\n'
-                    '$\\Delta = ' + dl + ' > 0$ : deux solutions reelles distinctes :\n\n'
+                    '$\\Delta = ' + dl + ' > 0$ : deux solutions réelles distinctes :\n\n'
                     '$$x_1 = \\dfrac{-b - \\sqrt{\\Delta}}{2a} = '
                     '\\dfrac{-(' + bl + ') - ' + sqd_l + '}{2 \\times (' + al + ')} = ' + x1l + '$$\n\n'
                     '$$x_2 = \\dfrac{-b + \\sqrt{\\Delta}}{2a} = '
@@ -1560,7 +1555,6 @@ def solve_equation():
                 all_solutions.append(x0s)
                 x0l  = sp.latex(x0s)
                 steps.append(
-                    '**Etape 5 - Resolution** ($\\Delta = 0$)\n\n'
                     '$\\Delta = 0$ : solution double :\n\n'
                     '$$x_0 = \\dfrac{-b}{2a} = \\dfrac{-(' + bl + ')}{2 \\times (' + al + ')} = ' + x0l + '$$'
                 )
@@ -1568,17 +1562,14 @@ def solve_equation():
 
             else:
                 steps.append(
-                    '**Etape 5 - Resolution** ($\\Delta < 0$)\n\n'
-                    '$\\Delta = ' + dl + ' < 0$ : **aucune solution reelle.**'
+                    '$\\Delta = ' + dl + ' < 0$ : **aucune solution réelle.**'
                 )
                 factor_details.append({'type': 'quadratic_no_real', 'delta': str(delta_val), 'roots': []})
 
         else:
             # ── Degre != 2 : factorisation puis Delta sur facteurs deg 2 ──
             if factored != f_sym:
-                steps.append('**Etape 3 - Factorisation**\n\n$f(x) = ' + fact_latex + '$')
-            else:
-                steps.append('**Etape 3 - Expression**\n\n$f(x) = ' + fact_latex + '$')
+                steps.append('**Factorisation**\n\n$' + fact_latex + ' = 0$')
 
             poly_factors = []
             if factored.is_Mul:
@@ -1663,7 +1654,7 @@ def solve_equation():
                     pass
 
             if sol_details:
-                steps.append('**Etape 4 - Resolution de chaque facteur**\n\n' + '\n\n---\n\n'.join(sol_details))
+                steps.append('**Résolution de chaque facteur**\n\n' + '\n\n---\n\n'.join(sol_details))
 
         # ── Conclusion ────────────────────────────────────────────────
         seen_k = set()

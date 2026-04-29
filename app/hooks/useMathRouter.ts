@@ -295,8 +295,10 @@ export function useMathRouter({
                                 });
                                 const drData = await drRes.json();
                                 let derivExprForSympy = '';
-                                if (drData.success && drData.factored_derivative_str) {
-                                    derivExprForSympy = drData.factored_derivative_str.replace(/\*\*/g, '^');
+                                if (drData.success && drData.raw_derivative_str) {
+                                    // On utilise la forme DÉVELOPPÉE (non factorisée) pour le tableau de signes :
+                                    // évite d'obtenir 3 lignes (x+1)(x-2)(6) quand f'(x) est un trinôme du 2nd degré.
+                                    derivExprForSympy = drData.raw_derivative_str.replace(/\*\*/g, '^');
                                 } else {
                                     // Fallback mathjs si Python indisponible 
                                     const { computeDerivative } = require('@/lib/math-engine/expression-parser');
@@ -429,7 +431,7 @@ export function useMathRouter({
                             );
                         } else if (q.type === 'derivative_sign') {
                             aiParts.push(
-                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Factorise f'(x) au maximum.\n- Étudie le signe de f'(x) : trouve les valeurs où f'(x) = 0, détermine le signe sur chaque intervalle.` +
+                                `**${q.num})** ${q.text}\nCalcule f'(x) :\n- Utilise les formules de dérivation du programme (dérivée d'une somme, d'un produit, d'un quotient, de xⁿ).\n- NE PAS utiliser la notation d/dx qui est HORS PROGRAMME Lycée. Utilise f'(x).\n- Donne f'(x) sous forme développée réduite. NE factorise PAS f'(x).\n- Étudie le signe de f'(x) : calcule Δ pour trouver les racines, énonce la règle du signe de a à l'extérieur des racines.\n- ⛔ JAMAIS d'environnement LaTeX multiligne (\\begin{align*}, \\begin{cases}, etc.). Écris chaque calcul sur UNE SEULE LIGNE avec $...$.` +
                                 (hasStudyVarTable 
                                     ? `\n⚠️ NE DESSINE PAS DE TABLEAU DE SIGNES ICI et n'écris pas le marqueur [TABLE_SIGNES]. Contente-toi du texte, car le signe sera intégré au [TABLE_VARIATIONS] de la question suivante.`
                                     : `\n- Présente le résultat dans un tableau de signes clair de f'(x).\nTermine en écrivant EXACTEMENT sur une ligne seule : [TABLE_SIGNES]\n(le tableau SymPy sera inséré automatiquement, NE fais PAS de tableau toi-même, NE génère PAS de \\\\begin{array})`)
@@ -513,6 +515,7 @@ RÈGLES ABSOLUES :
 - ⛔ NE GÉNÈRE JAMAIS de tableaux LaTeX \\begin{array} ni de tableaux Markdown pour les signes ou les variations.
 - ✅ L'unique façon d'afficher un tableau est d'utiliser le bloc @@@ fourni par le moteur.
 - ✅ TU DOIS RECOPIER EXACTEMENT ET ENTIÈREMENT le(s) bloc(s) @@@ fournis dans les questions, SANS CHANGER UN SEUL CARACTÈRE. N'ajoute AUCUN espace ou tube '|' à l'intérieur du bloc @@@.
+- ⛔ N'ajoute JAMAIS de titre de section ni d'en-tête Markdown (### ..., ## ..., **Titre :**) entre les questions. Commence chaque réponse DIRECTEMENT par le numéro de la question en gras (ex: **1) a)**) sans titre de section avant.
 - Pour chaque question commence par le numéro en gras
 - Détaille TOUTES les étapes de calcul
 - ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔
