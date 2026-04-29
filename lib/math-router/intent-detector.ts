@@ -22,6 +22,14 @@ export type MathIntent =
     | 'factorize'         // Factoriser
     | 'limits'            // Calculer des limites
     | 'literal_calc'      // Calcul symbolique général
+    | 'expand'            // Développer / réduire une expression
+    | 'solve_system'      // Résoudre un système d'équations
+    | 'sequence'          // Suites arithmétiques / géométriques
+    | 'trig'              // Trigonométrie — valeurs exactes + équations
+    | 'vector'            // Vecteurs — produit scalaire, norme, colinéarité
+    | 'probability'       // Probabilités — loi binomiale, P(X=k)...
+    | 'statistics'        // Statistiques — moyenne, médiane, écart-type
+    | 'complex_calc'      // Nombres complexes — module, argument, forme
     | 'unknown';          // IA pure sans routing
 
 export interface DetectedIntent {
@@ -141,6 +149,108 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
             /factori(?:ser|ser|sez)\s+/i,
             /factorisation/i,
             /mise\s+en\s+facteur/i,
+        ],
+    },
+    {
+        intent: 'expand',
+        patterns: [
+            /développ(?:er|ez|ons)\s+/i,
+            /développement\s+de/i,
+            /réduire?\s+(?:l['']expression|cette\s+expression|le\s+développement)/i,
+            /développer?\s+et\s+réduire?/i,
+            /\(.*[+\-].*\)\s*[\^²]\s*[23]/,
+            /\(.*[+\-].*\)\s*\(.*[+\-].*\)/,
+            /identit[eé]\s+remarquable/i,
+        ],
+    },
+    {
+        intent: 'solve_system',
+        patterns: [
+            /syst[eè]me\s+d[''](?:é|e)quation/i,
+            /r[eé]soudre?\s+le\s+syst[eè]me/i,
+            /r[eé]solution\s+du\s+syst[eè]me/i,
+            /syst[eè]me\s*\{/i,
+            /\{\s*[0-9a-z].*=.*\n?\s*[0-9a-z].*=/i,
+        ],
+    },
+    {
+        intent: 'sequence',
+        patterns: [
+            /suite\s+arithm[eé]tique/i,
+            /suite\s+g[eé]om[eé]trique/i,
+            /terme\s+g[eé]n[eé]ral\s+(?:de\s+)?(?:la\s+)?suite/i,
+            /suite\s+(?:\(u_?n\)|u_?n)/i,
+            /u_?(?:n|0|1)\s*=/i,
+            /raison\s+[rq]\s*=/i,
+            /premier\s+terme/i,
+            /somme\s+des\s+(?:n\s+)?premiers?\s+termes?/i,
+            /S_?n\s*=/i,
+        ],
+    },
+    {
+        intent: 'trig',
+        patterns: [
+            /(?:valeur\s+(?:exacte|de)\s+)?(?:cos|sin|tan)\s*\(/i,
+            /valeurs?\s+remarquables?\s+(?:de\s+)?(?:cos|sin|tan)/i,
+            /(?:r[eé]soudre?|r[eé]solution)\s+.*(?:cos|sin|tan)/i,
+            /[eé]quation\s+(?:trig|trigonom[eé]trique)/i,
+            /cercle\s+trigonom[eé]trique/i,
+            /cos\s*\(\s*(?:\d+|pi|π)/i,
+            /sin\s*\(\s*(?:\d+|pi|π)/i,
+            /tan\s*\(\s*(?:\d+|pi|π)/i,
+        ],
+    },
+    {
+        intent: 'vector',
+        patterns: [
+            /produit\s+scalaire/i,
+            /vecteurs?\s+colin[eé]aires?/i,
+            /norme\s+(?:du\s+)?vecteur/i,
+            /\\\s*overrightarrow/i,
+            /\bvec(?:teur)?\s+[A-Z]{2}/i,
+            /\b[A-Z]{2}\s*(?:→|⃗)/,
+            /colin[eé]arit[eé]/i,
+            /coordonn[eé]es\s+du\s+vecteur/i,
+        ],
+    },
+    {
+        intent: 'probability',
+        patterns: [
+            /loi\s+binomiale/i,
+            /[Xx]\s*~\s*[Bb]\s*\(/,
+            /[Pp]\s*\(\s*[Xx]\s*=\s*\d/i,
+            /[Pp]\s*\(\s*[Xx]\s*[≤≥<>]/i,
+            /esp[eé]rance\s+(?:math[eé]matique\s+)?de\s+[Xx]/i,
+            /variance\s+de\s+[Xx]/i,
+            /[eé]cart-type\s+de\s+[Xx]/i,
+            /tirage?\s+(?:avec|sans)\s+remise/i,
+            /probabilit[eé]\s+(?:que|d[''])/i,
+        ],
+    },
+    {
+        intent: 'statistics',
+        patterns: [
+            /calculer?\s+(?:la\s+)?moyenne/i,
+            /m[eé]diane\s+(?:de\s+)?(?:la\s+)?s[eé]rie/i,
+            /[eé]cart[\s-]type\s+(?:de\s+)?(?:la\s+)?s[eé]rie/i,
+            /variance\s+(?:de\s+)?(?:la\s+)?s[eé]rie/i,
+            /s[eé]rie\s+statistique/i,
+            /quartiles?\s+[Qq][13]/i,
+            /indicateurs?\s+statistiques?/i,
+            /(?:les?\s+)?notes?\s+(?:sont|de\s+la\s+classe)/i,
+        ],
+    },
+    {
+        intent: 'complex_calc',
+        patterns: [
+            /nombre\s+complexe/i,
+            /module\s+(?:de\s+)?z/i,
+            /argument\s+(?:de\s+)?z/i,
+            /partie\s+(?:r[eé]elle|imaginaire)/i,
+            /conjugu[eé]\s+de\s+z/i,
+            /forme\s+(?:alg[eé]brique|trigonom[eé]trique|exponentielle)/i,
+            /z\s*=\s*[0-9.+-]+\s*[+\-]\s*[0-9.]*\s*i/i,
+            /\bi\s*=\s*\\?sqrt\s*\{?-1\}?/i,
         ],
     },
 ];
@@ -328,5 +438,13 @@ export const INTENT_LABELS: Record<MathIntent, string> = {
     factorize: '🔣 Factorisation',
     limits: '→ Calcul de limites',
     literal_calc: '🧮 Calcul symbolique',
+    expand: '🔄 Développement/Réduction',
+    solve_system: '⚙ Système d\'équations',
+    sequence: '🔢 Suites',
+    trig: '📐 Trigonométrie',
+    vector: '→ Vecteurs',
+    probability: '🎲 Probabilités',
+    statistics: '📊 Statistiques',
+    complex_calc: '🔵 Nombres complexes',
     unknown: '💬 Réponse IA',
 };

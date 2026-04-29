@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
         const body: MathEngineRequest = await req.json();
         const { type, expression, niveau, options = {} } = body;
 
-        if (!type || !expression) {
+        if (!type || (!expression && !body.options)) {
             return NextResponse.json(
-                { success: false, error: 'Paramètres manquants : type et expression requis' },
+                { success: false, error: 'Paramètres manquants : type requis' },
                 { status: 400 }
             );
         }
@@ -393,6 +393,49 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
                 // Pour les calculs symboliques complexes → appel à la Supabase Edge Function SymPy
                 const sympyResult = await callSympyEngine(expression, niveau);
                 return NextResponse.json(sympyResult);
+            }
+
+            // ───────────────────────────────────────────────────────
+            case 'expand':
+            case 'solve_system':
+            case 'sequence':
+            case 'trig':
+            case 'vector':
+            case 'probability':
+            case 'statistics':
+            case 'complex_calc': {
+                const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
+                if (!pythonApiUrl) {
+                    return NextResponse.json({ success: false, error: 'Aucune API Python configurée' }, { status: 500 });
+                }
+                const endpointMap: Record<string, string> = {
+                    expand: '/expand',
+                    solve_system: '/solve-system',
+                    sequence: '/sequence',
+                    trig: '/trig-exact',
+                    vector: '/vector-ops',
+                    probability: '/probability',
+                    statistics: '/statistics-ops',
+                    complex_calc: '/complex-calc',
+                };
+                const endpoint = endpointMap[type];
+                // Envoyer `expression` pour tous (Python accepte aussi `text` = même champ)
+                const textBased = ['solve_system', 'sequence', 'vector', 'probability', 'statistics'];
+                const payload = textBased.includes(type)
+                    ? { text: expression, niveau }
+                    : { expression, niveau };
+
+                const res = await fetch(`${pythonApiUrl}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: AbortSignal.timeout(30000),
+                });
+                if (!res.ok) {
+                    return NextResponse.json({ success: false, error: `Python API HTTP ${res.status}` }, { status: res.status });
+                }
+                const pyData = await res.json();
+                return NextResponse.json(pyData);
             }
 
             // ───────────────────────────────────────────────────────

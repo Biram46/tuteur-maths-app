@@ -2094,6 +2094,652 @@ def latex_preview():
         }), 500
 
 
+# ─────────────────────────────────────────────────────────────
+# UTILITAIRE COMMUN — Pré-traitement d'expression
+# ─────────────────────────────────────────────────────────────
+
+def _preprocess(s: str) -> str:
+    s = s.replace('^', '**').replace(',', '.').strip()
+    s = s.replace('²', '**2').replace('³', '**3').replace('⁴', '**4')
+    s = s.replace('×', '*').replace('·', '*').replace('−', '-').replace('÷', '/')
+    s = s.replace('√', 'sqrt').replace('π', 'pi')
+    s = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', s)
+    s = re.sub(r'\)\s*\(', r')*(', s)
+    s = re.sub(r'([a-zA-Z])\s*\(', lambda m: m.group(0) if m.group(1) in ('sqrt','exp','log','ln','sin','cos','tan','abs') else m.group(1)+'*(', s)
+    s = s.replace('ln(', 'log(')
+    return s
+
+
+# ─────────────────────────────────────────────────────────────
+# 1. DÉVELOPPEMENT / RÉDUCTION
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/expand', methods=['POST'])
+def expand_expr():
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '').strip()
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        raw = _preprocess(expression)
+        expr_sym = sp.sympify(raw, locals=LOCALS)
+        expanded = sp.expand(expr_sym)
+        simplified = sp.simplify(expr_sym)
+
+        steps = []
+        steps.append(f"Expression : $${sp.latex(expr_sym)}$$")
+
+        # Détection identités remarquables
+        args = expr_sym.args if hasattr(expr_sym, 'args') else ()
+        if expr_sym.is_Pow and len(expr_sym.args) == 2 and expr_sym.args[1] == 2:
+            base = expr_sym.args[0]
+            if base.is_Add and len(base.args) == 2:
+                a, b = base.args
+                steps.append(f"Identité $(a+b)^2 = a^2 + 2ab + b^2$ avec $a={sp.latex(a)}$, $b={sp.latex(b)}$")
+
+        steps.append(f"Développé : $${sp.latex(expanded)}$$")
+        if simplified != expanded:
+            steps.append(f"Simplifié : $${sp.latex(simplified)}$$")
+            final = simplified
+        else:
+            final = expanded
+
+        ai_ctx = (
+            "[MODE DÉVELOPPEMENT DÉTERMINISTE]\n"
+            f"Moteur SymPy a calculé :\n"
+            + "\n".join(f"- {s}" for s in steps) +
+            f"\n\nTâche : explique chaque étape à un élève. Mentionne les identités remarquables si pertinentes.\n"
+            f"Résultat final : $${sp.latex(final)}$$"
+        )
+        return jsonify({'success': True, 'result_latex': sp.latex(final), 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 2. SYSTÈMES D'ÉQUATIONS (2×2, substitution + résolution)
+# ─────────────────────────────────────────────────────────────
+
+def _parse_equations(text: str):
+    """Extrait deux équations d'un texte. Retourne (eq1_str, eq2_str) ou None."""
+    # Normaliser séparateurs
+    t = text.replace(';', '\n').replace('et', '\n').replace('{', '').replace('}', '')
+    lines = [l.strip() for l in re.split(r'[\n]+', t) if l.strip()]
+    # Garder les lignes qui ressemblent à des équations (contiennent =, x ou y)
+    eqs = [l for l in lines if '=' in l and re.search(r'[xy]', l, re.IGNORECASE)]
+    if len(eqs) >= 2:
+        return eqs[0], eqs[1]
+    return None
+
+
+def _eq_to_sympy(eq_str: str, syms: dict):
+    """Convertit 'ax + by = c' en expression SymPy (lhs - rhs)."""
+    raw = _preprocess(eq_str)
+    if '=' in raw:
+        lhs_s, rhs_s = raw.split('=', 1)
+        lhs = sp.sympify(lhs_s.strip(), locals=syms)
+        rhs = sp.sympify(rhs_s.strip(), locals=syms)
+        return lhs - rhs
+    return sp.sympify(raw, locals=syms)
+
+
+@app.route('/solve-system', methods=['POST'])
+def solve_system_route():
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({'success': False, 'error': 'texte manquant'}), 400
+
+        y = sp.Symbol('y', real=True)
+        syms = {**LOCALS, 'y': y}
+        parsed = _parse_equations(text)
+        if not parsed:
+            return jsonify({'success': False, 'error': 'Impossible d\'extraire deux équations du texte fourni'}), 422
+
+        eq1_str, eq2_str = parsed
+        eq1 = _eq_to_sympy(eq1_str, syms)
+        eq2 = _eq_to_sympy(eq2_str, syms)
+
+        solutions = sp.solve([eq1, eq2], [x, y])
+
+        steps = [
+            f"Équation (1) : ${sp.latex(eq1)} = 0$",
+            f"Équation (2) : ${sp.latex(eq2)} = 0$",
+        ]
+
+        if not solutions:
+            steps.append("Système incompatible (aucune solution).")
+            ai_ctx = "[MODE SYSTÈME DÉTERMINISTE]\n" + "\n".join(f"- {s}" for s in steps)
+            return jsonify({'success': True, 'solutions': [], 'steps': steps, 'aiContext': ai_ctx})
+
+        if isinstance(solutions, dict):
+            sol_x = solutions.get(x)
+            sol_y = solutions.get(y)
+            steps.append(f"Solution unique : $x = {sp.latex(sol_x)}$, $y = {sp.latex(sol_y)}$")
+            sol_list = [{'x': sp.latex(sol_x), 'y': sp.latex(sol_y)}]
+        elif isinstance(solutions, list):
+            sol_list = []
+            for s in solutions:
+                if isinstance(s, (list, tuple)) and len(s) == 2:
+                    steps.append(f"$x = {sp.latex(s[0])}$, $y = {sp.latex(s[1])}$")
+                    sol_list.append({'x': sp.latex(s[0]), 'y': sp.latex(s[1])})
+        else:
+            sol_list = [str(solutions)]
+
+        ai_ctx = (
+            "[MODE SYSTÈME D'ÉQUATIONS DÉTERMINISTE]\n"
+            f"Système :\n- {eq1_str}\n- {eq2_str}\n\n"
+            "Étapes :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique la méthode (substitution ou combinaison linéaire) et détaille les calculs."
+        )
+        return jsonify({'success': True, 'solutions': sol_list, 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 3. SUITES ARITHMÉTIQUES / GÉOMÉTRIQUES / EXPLICITES
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/sequence', methods=['POST'])
+def sequence_ops():
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        niveau = data.get('niveau', 'premiere_spe')
+
+        n_sym = sp.Symbol('n', positive=True, integer=True)
+        steps = []
+        results = {}
+
+        # ── Détection suite explicite : u_n = f(n) ──
+        explicit_m = re.search(r'u_?\s*n\s*=\s*([^,;\n]+)', text, re.IGNORECASE)
+        # ── Détection suite arithmétique ──
+        arith_m = re.search(r'(?:arithm[eé]tique|raison\s+r\s*=|r\s*=)\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+        geo_m = re.search(r'(?:g[eé]om[eé]trique|raison\s+q\s*=|q\s*=)\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+
+        # Extraire premier terme u0 ou u1
+        u0_m = re.search(r'u_?\s*0\s*=\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+        u1_m = re.search(r'u_?\s*1\s*=\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+        first_term_val = None
+        first_term_idx = None
+        if u0_m:
+            first_term_val = float(u0_m.group(1).replace(',', '.').replace(' ', ''))
+            first_term_idx = 0
+        elif u1_m:
+            first_term_val = float(u1_m.group(1).replace(',', '.').replace(' ', ''))
+            first_term_idx = 1
+
+        # Extraire rang cible
+        target_m = re.search(r'(?:calculer?|calculez|trouver?|d[eé]terminer?)\s+u_?\s*(\d+)', text, re.IGNORECASE)
+        target_n = int(target_m.group(1)) if target_m else None
+
+        # Extraire borne somme
+        sum_m = re.search(r'[Ss]_?\s*(\d+)', text)
+        sum_n = int(sum_m.group(1)) if sum_m else target_n
+
+        if explicit_m:
+            expr_str = explicit_m.group(1).strip()
+            raw = _preprocess(expr_str)
+            u_n_sym = sp.sympify(raw, locals={**LOCALS, 'n': n_sym})
+            steps.append(f"Suite explicite : $u_n = {sp.latex(u_n_sym)}$")
+            if target_n is not None:
+                val = u_n_sym.subs(n_sym, target_n)
+                steps.append(f"$u_{{{target_n}}} = {sp.latex(val)} = {fmt(val)}$")
+                results['u_n'] = fmt(val)
+            if sum_n is not None:
+                s = sum(float(u_n_sym.subs(n_sym, k).evalf()) for k in range(1, sum_n + 1))
+                steps.append(f"$S_{{{sum_n}}} = \\sum_{{k=1}}^{{{sum_n}}} u_k \\approx {round(s, 4)}$")
+                results['S_n'] = round(s, 4)
+
+        elif arith_m and first_term_val is not None:
+            r_val = float(arith_m.group(1).replace(',', '.').replace(' ', ''))
+            u0 = first_term_val - (0 - first_term_idx) * r_val if first_term_idx else first_term_val
+            steps.append(f"Suite arithmétique de premier terme $u_{{{first_term_idx}}} = {fmt(sp.Rational(first_term_val).limit_denominator(1000))}$ et de raison $r = {fmt(sp.Rational(r_val).limit_denominator(1000))}$")
+            steps.append(f"Terme général : $u_n = u_{{{first_term_idx}}} + (n - {first_term_idx}) \\times r = {fmt(sp.Rational(first_term_val).limit_denominator(1000))} + (n - {first_term_idx}) \\times {fmt(sp.Rational(r_val).limit_denominator(1000))}$")
+            if target_n is not None:
+                val = first_term_val + (target_n - first_term_idx) * r_val
+                steps.append(f"$u_{{{target_n}}} = {fmt(sp.Rational(val).limit_denominator(1000))}$")
+                results['u_n'] = fmt(sp.Rational(val).limit_denominator(1000))
+            if sum_n is not None:
+                s = (sum_n - first_term_idx + 1) * (first_term_val + (first_term_val + (sum_n - first_term_idx) * r_val)) / 2
+                steps.append(f"$S_{{{sum_n}}} = \\frac{{(u_{{{first_term_idx}}} + u_{{{sum_n}}}) \\times ({sum_n} - {first_term_idx} + 1)}}{{2}} = {fmt(sp.Rational(s).limit_denominator(1000))}$")
+                results['S_n'] = fmt(sp.Rational(s).limit_denominator(1000))
+
+        elif geo_m and first_term_val is not None:
+            q_val = float(geo_m.group(1).replace(',', '.').replace(' ', ''))
+            steps.append(f"Suite géométrique de premier terme $u_{{{first_term_idx}}} = {fmt(sp.Rational(first_term_val).limit_denominator(1000))}$ et de raison $q = {fmt(sp.Rational(q_val).limit_denominator(1000))}$")
+            steps.append(f"Terme général : $u_n = u_{{{first_term_idx}}} \\times q^{{n - {first_term_idx}}}$")
+            if target_n is not None:
+                val = first_term_val * (q_val ** (target_n - first_term_idx))
+                steps.append(f"$u_{{{target_n}}} = {fmt(sp.Rational(first_term_val).limit_denominator(1000))} \\times {fmt(sp.Rational(q_val).limit_denominator(1000))}^{{{target_n - first_term_idx}}} = {round(val, 6)}$")
+                results['u_n'] = round(val, 6)
+            if sum_n is not None and q_val != 1:
+                nb = sum_n - first_term_idx + 1
+                s = first_term_val * (1 - q_val ** nb) / (1 - q_val)
+                q_latex = fmt(sp.Rational(q_val).limit_denominator(1000))
+                steps.append(f"$S_{{{sum_n}}} = u_{{{first_term_idx}}} \\times \\dfrac{{1 - q^{{{nb}}}}}{{1 - q}} = {round(s, 6)}$")
+                results['S_n'] = round(s, 6)
+        else:
+            return jsonify({'success': False, 'error': 'Impossible de parser la suite depuis le texte fourni'}), 422
+
+        ai_ctx = (
+            "[MODE SUITES DÉTERMINISTE]\n"
+            "Étapes calculées :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique la méthode pas à pas à un élève. Détaille la formule utilisée."
+        )
+        return jsonify({'success': True, 'results': results, 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 4. TRIGONOMÉTRIE EXACTE (valeurs remarquables + équations)
+# ─────────────────────────────────────────────────────────────
+
+_TRIG_EXACT = {
+    '0': {'cos': '1', 'sin': '0', 'tan': '0'},
+    'pi/6': {'cos': r'\frac{\sqrt{3}}{2}', 'sin': r'\frac{1}{2}', 'tan': r'\frac{\sqrt{3}}{3}'},
+    'pi/4': {'cos': r'\frac{\sqrt{2}}{2}', 'sin': r'\frac{\sqrt{2}}{2}', 'tan': '1'},
+    'pi/3': {'cos': r'\frac{1}{2}', 'sin': r'\frac{\sqrt{3}}{2}', 'tan': r'\sqrt{3}'},
+    'pi/2': {'cos': '0', 'sin': '1', 'tan': r'\text{indéfini}'},
+    '2*pi/3': {'cos': r'-\frac{1}{2}', 'sin': r'\frac{\sqrt{3}}{2}', 'tan': r'-\sqrt{3}'},
+    '3*pi/4': {'cos': r'-\frac{\sqrt{2}}{2}', 'sin': r'\frac{\sqrt{2}}{2}', 'tan': '-1'},
+    '5*pi/6': {'cos': r'-\frac{\sqrt{3}}{2}', 'sin': r'\frac{1}{2}', 'tan': r'-\frac{\sqrt{3}}{3}'},
+    'pi': {'cos': '-1', 'sin': '0', 'tan': '0'},
+}
+
+
+@app.route('/trig-exact', methods=['POST'])
+def trig_exact_route():
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '').strip()
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
+        raw = raw.replace('ln(', 'log(')
+        # Degré → radian
+        deg_m = re.search(r'(\d+)\s*°', raw)
+        if deg_m:
+            deg = int(deg_m.group(1))
+            raw = raw.replace(deg_m.group(0), f'pi*{deg}/180')
+
+        raw = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', raw)
+
+        expr_sym = sp.sympify(raw, locals=LOCALS)
+        steps = [f"Expression : ${sp.latex(expr_sym)}$"]
+
+        # Vérifier si c'est une équation trig
+        is_equation = '=' in expression and re.search(r'[xy]', raw)
+
+        if is_equation:
+            # Équation trig : ex "2cos(x) + 1 = 0"
+            lhs_s, rhs_s = raw.split('=', 1)
+            lhs = sp.sympify(lhs_s.strip(), locals=LOCALS)
+            rhs = sp.sympify(rhs_s.strip(), locals=LOCALS)
+            eq = lhs - rhs
+            sols = sp.solve(eq, x)
+            valid_sols = [s for s in sols if s.is_real]
+            # Solutions sur [0, 2pi]
+            sols_general = []
+            for s in valid_sols:
+                steps.append(f"Solution : $x = {sp.latex(s)}$")
+                sols_general.append(sp.latex(s))
+            steps.append(f"Solutions générales : $x = {sp.latex(valid_sols[0])} + 2k\\pi$, $k \\in \\mathbb{{Z}}$" if valid_sols else "Aucune solution réelle.")
+            ai_ctx = (
+                "[MODE TRIGONOMÉTRIE DÉTERMINISTE]\n"
+                f"Équation : ${sp.latex(eq)} = 0$\n"
+                "Étapes :\n" + "\n".join(f"- {s}" for s in steps) +
+                "\n\nExplique la résolution pas à pas : isoler le cosinus/sinus/tangente, utiliser le cercle trigonométrique."
+            )
+            return jsonify({'success': True, 'solutions': sols_general, 'steps': steps, 'aiContext': ai_ctx})
+
+        else:
+            # Valeur exacte d'une expression trigonométrique
+            result = sp.trigsimp(expr_sym)
+            result_simplified = sp.simplify(result)
+            numeric = float(result_simplified.evalf()) if result_simplified.is_real else None
+
+            steps.append(f"Valeur exacte : $${sp.latex(result_simplified)}$$")
+            if numeric is not None:
+                steps.append(f"Valeur approchée : $\\approx {round(numeric, 4)}$")
+
+            ai_ctx = (
+                "[MODE TRIGONOMÉTRIE DÉTERMINISTE]\n"
+                f"Expression : ${sp.latex(expr_sym)}$\n"
+                "Résultat :\n" + "\n".join(f"- {s}" for s in steps) +
+                "\n\nExplique comment obtenir cette valeur exacte (cercle trigonométrique ou formules)."
+            )
+            return jsonify({'success': True, 'result_latex': sp.latex(result_simplified), 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 5. VECTEURS (produit scalaire, norme, colinéarité)
+# ─────────────────────────────────────────────────────────────
+
+def _parse_vector(text: str):
+    """Extrait les coordonnées d'un vecteur depuis un texte. Retourne (x, y) ou None."""
+    # Patterns: u(2;3), u(2,3), u⃗(2;-1), A(1;2)
+    m = re.search(r'\(\s*([+-]?\s*\d+(?:[.,]\d+)?)\s*[;,]\s*([+-]?\s*\d+(?:[.,]\d+)?)\s*\)', text)
+    if m:
+        return (float(m.group(1).replace(',', '.').replace(' ', '')),
+                float(m.group(2).replace(',', '.').replace(' ', '')))
+    return None
+
+
+def _extract_vectors(text: str):
+    """Extrait tous les vecteurs nommés du texte."""
+    vecs = {}
+    # Pattern: lettre(x;y) ou lettre(x,y)
+    for m in re.finditer(r'([A-Za-z⃗⃗])\s*\(\s*([+-]?\s*[\d.]+)\s*[;,]\s*([+-]?\s*[\d.]+)\s*\)', text):
+        name = m.group(1)
+        try:
+            vecs[name] = (float(m.group(2).replace(' ', '')), float(m.group(3).replace(' ', '')))
+        except Exception:
+            pass
+    return vecs
+
+
+@app.route('/vector-ops', methods=['POST'])
+def vector_ops_route():
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({'success': False, 'error': 'texte manquant'}), 400
+
+        vecs = _extract_vectors(text)
+        steps = []
+        results = {}
+
+        # Calculer les vecteurs AB si des points sont fournis
+        points = {}
+        for m in re.finditer(r'([A-Z])\s*\(\s*([+-]?\s*[\d.]+)\s*[;,]\s*([+-]?\s*[\d.]+)\s*\)', text):
+            points[m.group(1)] = (float(m.group(2)), float(m.group(3)))
+
+        # Construire vecteurs AB, CD...
+        vec_names = re.findall(r'([A-Z]{2})\s*⃗|\\overrightarrow\{([A-Z]{2})\}', text)
+        for match in vec_names:
+            name = match[0] or match[1]
+            if len(name) == 2 and name[0] in points and name[1] in points:
+                P, Q = points[name[0]], points[name[1]]
+                vecs[name] = (Q[0] - P[0], Q[1] - P[1])
+                steps.append(f"$\\overrightarrow{{{name}}} = ({fmt(sp.Rational(vecs[name][0]).limit_denominator(100))} ; {fmt(sp.Rational(vecs[name][1]).limit_denominator(100))})$")
+
+        if len(vecs) < 2 and len(points) >= 2:
+            # Créer un vecteur entre les deux premiers points nommés
+            names = list(points.keys())
+            for i in range(0, len(names) - 1, 2):
+                P, Q = points[names[i]], points[names[i + 1]]
+                name = names[i] + names[i + 1]
+                vecs[name] = (Q[0] - P[0], Q[1] - P[1])
+                steps.append(f"$\\overrightarrow{{{name}}} = ({fmt(sp.Rational(vecs[name][0]).limit_denominator(100))} ; {fmt(sp.Rational(vecs[name][1]).limit_denominator(100))})$")
+
+        if len(vecs) < 1:
+            return jsonify({'success': False, 'error': 'Impossible d\'extraire des vecteurs du texte'}), 422
+
+        vec_list = list(vecs.items())
+
+        # Norme du premier vecteur
+        n0, (x0, y0) = vec_list[0]
+        norm0 = math.sqrt(x0 ** 2 + y0 ** 2)
+        norm0_exact = sp.sqrt(sp.Rational(x0).limit_denominator(100) ** 2 + sp.Rational(y0).limit_denominator(100) ** 2)
+        steps.append(f"$\\|\\overrightarrow{{{n0}}}\\| = \\sqrt{{{fmt(sp.Rational(x0).limit_denominator(100))}^2 + {fmt(sp.Rational(y0).limit_denominator(100))}^2}} = {sp.latex(norm0_exact)}$")
+        results[f'norm_{n0}'] = float(norm0_exact.evalf())
+
+        if len(vec_list) >= 2:
+            n1, (x1, y1) = vec_list[1]
+            # Produit scalaire
+            dot = x0 * x1 + y0 * y1
+            dot_r = sp.Rational(x0).limit_denominator(100) * sp.Rational(x1).limit_denominator(100) + sp.Rational(y0).limit_denominator(100) * sp.Rational(y1).limit_denominator(100)
+            steps.append(f"Produit scalaire : $\\overrightarrow{{{n0}}} \\cdot \\overrightarrow{{{n1}}} = {fmt(sp.Rational(x0).limit_denominator(100))} \\times {fmt(sp.Rational(x1).limit_denominator(100))} + {fmt(sp.Rational(y0).limit_denominator(100))} \\times {fmt(sp.Rational(y1).limit_denominator(100))} = {sp.latex(dot_r)}$")
+            results['dot_product'] = float(dot_r)
+            # Colinéarité
+            det = x0 * y1 - y0 * x1
+            det_r = sp.Rational(x0).limit_denominator(100) * sp.Rational(y1).limit_denominator(100) - sp.Rational(y0).limit_denominator(100) * sp.Rational(x1).limit_denominator(100)
+            colinear = abs(det) < 1e-9
+            steps.append(f"Déterminant : ${fmt(sp.Rational(x0).limit_denominator(100))} \\times {fmt(sp.Rational(y1).limit_denominator(100))} - {fmt(sp.Rational(y0).limit_denominator(100))} \\times {fmt(sp.Rational(x1).limit_denominator(100))} = {sp.latex(det_r)}$")
+            steps.append("→ Vecteurs **colinéaires** (det = 0)" if colinear else "→ Vecteurs **non colinéaires** (det ≠ 0)")
+            results['collinear'] = colinear
+            results['determinant'] = float(det_r)
+
+        ai_ctx = (
+            "[MODE VECTEURS DÉTERMINISTE]\n"
+            "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique chaque calcul à un élève : formule norme, produit scalaire, déterminant et colinéarité."
+        )
+        return jsonify({'success': True, 'results': results, 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 6. PROBABILITÉS (loi binomiale, calculs)
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/probability', methods=['POST'])
+def probability_route():
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({'success': False, 'error': 'texte manquant'}), 400
+
+        steps = []
+        results = {}
+
+        # Détecter loi binomiale B(n, p)
+        binom_m = re.search(r'[Bb]\s*\(\s*(\d+)\s*[;,]\s*([\d.,/]+)\s*\)', text)
+        n_param = int(binom_m.group(1)) if binom_m else None
+        p_str = binom_m.group(2).replace(',', '.') if binom_m else None
+        if p_str and '/' in p_str:
+            num_d, den_d = p_str.split('/')
+            p_param = float(num_d) / float(den_d)
+        elif p_str:
+            p_param = float(p_str)
+        else:
+            p_param = None
+
+        # Extraire k pour P(X=k), P(X≤k), P(X≥k)
+        k_eq_m = re.search(r'[Pp]\s*\(\s*[Xx]\s*=\s*(\d+)\s*\)', text)
+        k_le_m = re.search(r'[Pp]\s*\(\s*[Xx]\s*[≤<=]+\s*(\d+)\s*\)', text)
+        k_ge_m = re.search(r'[Pp]\s*\(\s*[Xx]\s*[≥>=]+\s*(\d+)\s*\)', text)
+
+        if n_param is not None and p_param is not None:
+            q_param = 1 - p_param
+            steps.append(f"$X \\sim B(n={n_param},\\ p={p_str})$")
+            steps.append(f"Espérance : $E(X) = n \\times p = {n_param} \\times {p_str} = {fmt(sp.Rational(n_param * p_param).limit_denominator(1000))}$")
+            steps.append(f"Variance : $V(X) = n \\times p \\times q = {n_param} \\times {p_str} \\times {fmt(sp.Rational(q_param).limit_denominator(100))} = {fmt(sp.Rational(n_param * p_param * q_param).limit_denominator(1000))}$")
+            sigma = math.sqrt(n_param * p_param * q_param)
+            steps.append(f"Écart-type : $\\sigma(X) = \\sqrt{{V(X)}} \\approx {round(sigma, 4)}$")
+            results['E'] = n_param * p_param
+            results['V'] = n_param * p_param * q_param
+            results['sigma'] = round(sigma, 4)
+
+            if k_eq_m:
+                k = int(k_eq_m.group(1))
+                from math import comb
+                prob = comb(n_param, k) * (p_param ** k) * (q_param ** (n_param - k))
+                steps.append(f"$P(X={k}) = \\binom{{{n_param}}}{{{k}}} \\times p^{k} \\times q^{{{n_param - k}}} \\approx {round(prob, 6)}$")
+                results[f'P_X_eq_{k}'] = round(prob, 6)
+
+            if k_le_m:
+                k = int(k_le_m.group(1))
+                from math import comb
+                prob = sum(comb(n_param, j) * (p_param ** j) * (q_param ** (n_param - j)) for j in range(k + 1))
+                steps.append(f"$P(X \\leq {k}) = \\sum_{{j=0}}^{{{k}}} P(X=j) \\approx {round(prob, 6)}$")
+                results[f'P_X_le_{k}'] = round(prob, 6)
+
+            if k_ge_m:
+                k = int(k_ge_m.group(1))
+                from math import comb
+                prob = sum(comb(n_param, j) * (p_param ** j) * (q_param ** (n_param - j)) for j in range(k, n_param + 1))
+                steps.append(f"$P(X \\geq {k}) = 1 - P(X \\leq {k-1}) \\approx {round(prob, 6)}$")
+                results[f'P_X_ge_{k}'] = round(prob, 6)
+        else:
+            # Probabilité simple (non binomiale) : chercher fractions
+            prob_m = re.search(r'[Pp]\s*\(\s*[^)]+\)\s*=\s*([\d./]+)', text)
+            if prob_m:
+                val_str = prob_m.group(1)
+                if '/' in val_str:
+                    a, b2 = val_str.split('/')
+                    val = float(a) / float(b2)
+                else:
+                    val = float(val_str)
+                steps.append(f"Probabilité donnée : $p = {val_str} \\approx {round(val, 4)}$")
+                results['p'] = round(val, 4)
+            else:
+                return jsonify({'success': False, 'error': 'Impossible de parser les paramètres de probabilité'}), 422
+
+        ai_ctx = (
+            "[MODE PROBABILITÉS DÉTERMINISTE]\n"
+            "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique chaque formule (binomiale, espérance, variance) à un élève de lycée."
+        )
+        return jsonify({'success': True, 'results': results, 'steps': steps, 'aiContext': ai_ctx})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 7. STATISTIQUES (moyenne, médiane, écart-type)
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/statistics-ops', methods=['POST'])
+def statistics_route():
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({'success': False, 'error': 'texte manquant'}), 400
+
+        # Extraire la série de valeurs
+        values_m = re.findall(r'[+-]?\d+(?:[.,]\d+)?', text)
+        values = [float(v.replace(',', '.')) for v in values_m]
+        # Filtrer les valeurs qui semblent être des paramètres (ex: n=10)
+        # On garde les valeurs qui apparaissent après ":" ou ";"
+        if not values or len(values) < 2:
+            return jsonify({'success': False, 'error': 'Série de données insuffisante (minimum 2 valeurs)'}), 422
+
+        n = len(values)
+        mean_v = sum(values) / n
+        sorted_v = sorted(values)
+        median_v = sorted_v[n // 2] if n % 2 == 1 else (sorted_v[n // 2 - 1] + sorted_v[n // 2]) / 2
+        variance_v = sum((v - mean_v) ** 2 for v in values) / n
+        std_v = math.sqrt(variance_v)
+        min_v, max_v = min(values), max(values)
+        range_v = max_v - min_v
+        q1_v = sorted_v[n // 4] if n >= 4 else sorted_v[0]
+        q3_v = sorted_v[3 * n // 4] if n >= 4 else sorted_v[-1]
+
+        steps = [
+            f"Série : $\\{{{', '.join(str(int(v) if v == int(v) else v) for v in values)}\\}}$, $n = {n}$",
+            f"Moyenne : $\\bar{{x}} = \\frac{{{' + '.join(str(int(v) if v == int(v) else v) for v in values)}}}{{{n}}} = {round(mean_v, 4)}$",
+            f"Médiane : ${round(median_v, 4)}$ (valeur centrale de la série triée)",
+            f"Variance : $\\sigma^2 = \\frac{{\\sum(x_i - \\bar{{x}})^2}}{{{n}}} = {round(variance_v, 4)}$",
+            f"Écart-type : $\\sigma = {round(std_v, 4)}$",
+            f"Étendue : ${round(range_v, 4)}$ (max $-$ min $= {max_v} - {min_v}$)",
+            f"Quartiles : $Q_1 = {q1_v}$, $Q_3 = {q3_v}$",
+        ]
+
+        ai_ctx = (
+            "[MODE STATISTIQUES DÉTERMINISTE]\n"
+            f"Série de {n} valeurs.\n"
+            "Résultats :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique chaque indicateur statistique à un élève."
+        )
+        return jsonify({
+            'success': True,
+            'results': {'mean': round(mean_v, 4), 'median': round(median_v, 4), 'std': round(std_v, 4),
+                        'variance': round(variance_v, 4), 'min': min_v, 'max': max_v, 'Q1': q1_v, 'Q3': q3_v},
+            'steps': steps,
+            'aiContext': ai_ctx,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# 8. NOMBRES COMPLEXES (module, argument, forme algébrique)
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/complex-calc', methods=['POST'])
+def complex_calc_route():
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '').strip()
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
+        raw = re.sub(r'(\d)\s*i\b', r'\1*I', raw)
+        raw = re.sub(r'(?<![a-zA-Z])i\b', 'I', raw)
+        raw = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', raw)
+        raw = raw.replace('ln(', 'log(')
+
+        CLOCALS = {**LOCALS, 'I': sp.I, 'i': sp.I, 'j': sp.I}
+        z = sp.sympify(raw, locals=CLOCALS)
+
+        re_part = sp.re(z)
+        im_part = sp.im(z)
+        modulus = sp.Abs(z)
+        modulus_simplified = sp.simplify(modulus)
+        argument = sp.atan2(im_part, re_part)
+        argument_simplified = sp.simplify(argument)
+        conjugate = sp.conjugate(z)
+
+        steps = [
+            f"$z = {sp.latex(z)}$",
+            f"Forme algébrique : $z = {sp.latex(re_part)} + {sp.latex(im_part)}i$",
+            f"Partie réelle : $\\text{{Re}}(z) = {sp.latex(re_part)}$",
+            f"Partie imaginaire : $\\text{{Im}}(z) = {sp.latex(im_part)}$",
+            f"Module : $|z| = \\sqrt{{{sp.latex(re_part)}^2 + ({sp.latex(im_part)})^2}} = {sp.latex(modulus_simplified)}$",
+            f"Argument : $\\arg(z) = {sp.latex(argument_simplified)}$",
+            f"Conjugué : $\\bar{{z}} = {sp.latex(conjugate)}$",
+        ]
+
+        # Forme trigonométrique si le module n'est pas 0
+        try:
+            r_val = float(modulus_simplified.evalf())
+            if r_val > 1e-10:
+                steps.append(f"Forme trigonométrique : $z = {sp.latex(modulus_simplified)}(\\cos({sp.latex(argument_simplified)}) + i\\sin({sp.latex(argument_simplified)}))$")
+        except Exception:
+            pass
+
+        ai_ctx = (
+            "[MODE NOMBRES COMPLEXES DÉTERMINISTE]\n"
+            "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
+            "\n\nExplique chaque notion (module, argument, conjugué, forme trigonométrique) à un élève."
+        )
+        return jsonify({
+            'success': True,
+            'steps': steps,
+            'result_latex': sp.latex(z),
+            're': sp.latex(re_part),
+            'im': sp.latex(im_part),
+            'modulus': sp.latex(modulus_simplified),
+            'argument': sp.latex(argument_simplified),
+            'conjugate': sp.latex(conjugate),
+            'aiContext': ai_ctx,
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', '0') == '1')

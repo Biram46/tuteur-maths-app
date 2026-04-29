@@ -2207,6 +2207,65 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
         }
 
         // ═══════════════════════════════════════════════════════════
+        // HANDLER GÉNÉRIQUE DÉTERMINISTE (8 nouveaux modules Python)
+        // Pour chaque intent : appel Python → injection aiContext → stream
+        // ═══════════════════════════════════════════════════════════
+
+        const deterministicIntentMap: Record<string, { type: string; label: string; textBased: boolean }> = {
+            expand:       { type: 'expand',       label: 'Développement',       textBased: false },
+            solve_system: { type: 'solve_system', label: 'Système d\'équations', textBased: true },
+            sequence:     { type: 'sequence',     label: 'Suites',               textBased: true },
+            trig:         { type: 'trig',         label: 'Trigonométrie',        textBased: false },
+            vector:       { type: 'vector',       label: 'Vecteurs',             textBased: true },
+            probability:  { type: 'probability',  label: 'Probabilités',         textBased: true },
+            statistics:   { type: 'statistics',   label: 'Statistiques',         textBased: true },
+            complex_calc: { type: 'complex_calc', label: 'Nombres complexes',    textBased: false },
+        };
+
+        const detectedDeterministicIntent = analysis.intents.find(i => i.intent in deterministicIntentMap);
+
+        if (detectedDeterministicIntent) {
+            const { type, label, textBased } = deterministicIntentMap[detectedDeterministicIntent.intent];
+            // Pour les intents basés sur le texte brut, on envoie inputText ; sinon on extrait l'expression
+            const expression = textBased
+                ? inputText
+                : (detectedDeterministicIntent.expression ?? inputCleaned);
+
+            try {
+                console.log(`[MathEngine] 🎯 Module ${label} pour: "${expression.substring(0, 80)}"`);
+                const engineRes = await fetch('/api/math-engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, expression, niveau: resolveNiveau(inputText) }),
+                });
+                const engineData = await engineRes.json();
+                if (engineData.success && engineData.aiContext) {
+                    const enrichedMessages: ChatMessage[] = JSON.parse(JSON.stringify(newMessages));
+                    if (enrichedMessages.length > 0) {
+                        enrichedMessages[enrichedMessages.length - 1].content +=
+                            `\n\n[INSTRUCTIONS CACHÉES DU SYSTÈME AUTOMATIQUE DE MATHS]\n${engineData.aiContext}`;
+                    }
+                    await streamPerplexityResponse({
+                        messages: enrichedMessages,
+                        baseContext,
+                        niveau: resolveNiveau(inputText),
+                        setMessages,
+                        setLoading,
+                        setIsTalking,
+                        isVoiceEnabled,
+                        speechQueue,
+                        processSpeechQueue,
+                        applyStripDdx: true,
+                    });
+                    return;
+                }
+                console.warn(`[MathEngine] Module ${label}: API échouée:`, engineData.error);
+            } catch (err) {
+                console.warn(`[MathEngine] Module ${label}: erreur, fallback IA:`, err);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
         // HANDLER ARBRES DE PROBABILITÉS
         // Détecte les demandes d'arbres et injecte un prompt dédié.
         // ═══════════════════════════════════════════════════════════

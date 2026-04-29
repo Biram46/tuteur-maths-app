@@ -26,6 +26,14 @@ export type MathOutputType =
     | 'interval'          // Axe intervalles → IntervalAxis
     | 'literal_calc'      // Calcul littéral SymPy → future Couche 3
     | 'derivative'        // Dérivation analytique -> Module Dérivation (Python)
+    | 'expand'            // Développement / réduction (Python/SymPy)
+    | 'solve_system'      // Systèmes d'équations 2×2 (Python/SymPy)
+    | 'sequence'          // Suites arithmétiques / géométriques (Python)
+    | 'trig'              // Trigonométrie exacte (Python/SymPy)
+    | 'vector'            // Vecteurs — produit scalaire, norme, colinéarité (Python)
+    | 'probability'       // Probabilités — loi binomiale, E(X), V(X) (Python)
+    | 'statistics'        // Statistiques — moyenne, médiane, écart-type (Python)
+    | 'complex_calc'      // Nombres complexes — module, argument, forme (Python/SymPy)
     | 'explanation';      // Réponse textuelle + LaTeX uniquement
 
 // ─────────────────────────────────────────────────────────────
