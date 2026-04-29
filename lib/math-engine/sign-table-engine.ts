@@ -483,6 +483,26 @@ function extractFactors(input: SignTableInput): FactorAnalysis[] {
 /**
  * Auto-détecte les facteurs d'une expression.
  */
+/**
+ * Vérifie numériquement si une expression est un polynôme de degré ≤ 2.
+ * Méthode : les 3e différences finies d'un polynôme de degré ≤ 2 sont nulles.
+ * Utilisé pour forcer une ligne unique dans le tableau de signes (pas de décomposition).
+ */
+function isPolynomialDegreeAtMost2(expr: string): boolean {
+    try {
+        const xs = [0, 1, 2, 3, 4, 5];
+        const ys = xs.map(xv => evalAt(expr, xv));
+        if (ys.some(v => !isFinite(v) || isNaN(v))) return false;
+        // Si contient e^, ln, sqrt, sin, cos → pas un polynôme pur
+        if (/\b(exp|e\^|ln|log|sqrt|sin|cos|tan)\b/i.test(expr)) return false;
+        // 3e différences finies : doivent être ≈ 0 pour degré ≤ 2
+        const d1 = ys.slice(1).map((v, i) => v - ys[i]);
+        const d2 = d1.slice(1).map((v, i) => v - d1[i]);
+        const d3 = d2.slice(1).map((v, i) => v - d2[i]);
+        return d3.every(v => Math.abs(v) < 1e-6);
+    } catch { return false; }
+}
+
 function autoExtractFactors(expression: string, domain: [number, number]): FactorAnalysis[] {
     const expr = expression.trim();
 
@@ -502,6 +522,16 @@ function autoExtractFactors(expression: string, domain: [number, number]): Facto
         const numFactors = parseProductFactors(numPart, 'numerator', domain);
         const denFactors = parseProductFactors(denPart, 'denominator', domain);
         return [...numFactors, ...denFactors];
+    }
+
+    // ── 2a. GARDE-FOU PÉDAGOGIQUE : polynôme de degré ≤ 2 = UNE SEULE LIGNE ──
+    // Si l'expression est un polynôme de degré ≤ 2 (quelle que soit sa forme :
+    // développée "6x²-6x-12" ou factorisée "6*(x+1)*(x-2)"), on la traite comme
+    // UN SEUL facteur (trinôme). Cela évite les tableaux avec 3 lignes (x+1)(x-2)(6).
+    if (!expr.includes('/') && isPolynomialDegreeAtMost2(expr)) {
+        const label = expr.startsWith('(') && expr.endsWith(')') && isBalancedSingleGroup(expr)
+            ? expr.slice(1, -1) : expr;
+        return [classifyFactor(label, expr, 'numerator', domain)];
     }
 
     // ── 2b. Factorisation de expressions du type : P(x)·e^x + Q(x)·e^x ou P(x)·ln(x) + Q(x)·ln(x)

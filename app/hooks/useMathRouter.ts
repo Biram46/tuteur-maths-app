@@ -295,10 +295,11 @@ export function useMathRouter({
                                 });
                                 const drData = await drRes.json();
                                 let derivExprForSympy = '';
-                                if (drData.success && drData.raw_derivative_str) {
-                                    // On utilise la forme DÉVELOPPÉE (non factorisée) pour le tableau de signes :
-                                    // évite d'obtenir 3 lignes (x+1)(x-2)(6) quand f'(x) est un trinôme du 2nd degré.
-                                    derivExprForSympy = drData.raw_derivative_str.replace(/\*\*/g, '^');
+                                // La route math-engine encapsule la réponse Python dans rawData
+                                const rawDerivStr = drData.raw_derivative_str ?? drData.rawData?.raw_derivative_str;
+                                if (drData.success && rawDerivStr) {
+                                    // Forme DÉVELOPPÉE → sign-table reçoit un polynôme non factorisé
+                                    derivExprForSympy = rawDerivStr.replace(/\*\*/g, '^');
                                 } else {
                                     // Fallback mathjs si Python indisponible 
                                     const { computeDerivative } = require('@/lib/math-engine/expression-parser');
@@ -516,6 +517,7 @@ RÈGLES ABSOLUES :
 - ✅ L'unique façon d'afficher un tableau est d'utiliser le bloc @@@ fourni par le moteur.
 - ✅ TU DOIS RECOPIER EXACTEMENT ET ENTIÈREMENT le(s) bloc(s) @@@ fournis dans les questions, SANS CHANGER UN SEUL CARACTÈRE. N'ajoute AUCUN espace ou tube '|' à l'intérieur du bloc @@@.
 - ⛔ N'ajoute JAMAIS de titre de section ni d'en-tête Markdown (### ..., ## ..., **Titre :**) entre les questions. Commence chaque réponse DIRECTEMENT par le numéro de la question en gras (ex: **1) a)**) sans titre de section avant.
+- ⛔⛔ FORMAT STRICT : JAMAIS d'environnement LaTeX multiligne (\\begin{align*}, \\end{align*}, \\begin{aligned}, \\begin{cases}, \\begin{array}). Écris CHAQUE calcul sur UNE SEULE LIGNE avec $...$. Sépare les étapes par des sauts de ligne.
 - Pour chaque question commence par le numéro en gras
 - Détaille TOUTES les étapes de calcul
 - ⛔⛔⛔ NOTATION d/dx STRICTEMENT INTERDITE (HORS PROGRAMME LYCÉE) ⛔⛔⛔
