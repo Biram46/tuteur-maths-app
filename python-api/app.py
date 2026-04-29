@@ -2363,15 +2363,12 @@ def trig_exact_route():
         if not expression:
             return jsonify({'success': False, 'error': 'expression manquante'}), 400
 
-        raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
-        raw = raw.replace('ln(', 'log(')
+        raw = _preprocess(expression)
         # Degré → radian
         deg_m = re.search(r'(\d+)\s*°', raw)
         if deg_m:
             deg = int(deg_m.group(1))
             raw = raw.replace(deg_m.group(0), f'pi*{deg}/180')
-
-        raw = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', raw)
 
         expr_sym = sp.sympify(raw, locals=LOCALS)
         steps = [f"Expression : ${sp.latex(expr_sym)}$"]
@@ -2859,10 +2856,8 @@ def exp_log_route():
         if not expression:
             return jsonify({'success': False, 'error': 'expression manquante'}), 400
 
-        # Prétraitement : e^x → E**x, ln → log (SymPy), etc.
-        raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
-        raw = raw.replace('ln(', 'log(').replace('Ln(', 'log(').replace('LN(', 'log(')
-        raw = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', raw)
+        # Prétraitement complet : )(→)*( , e^x→E**x, ln→log, 2x→2*x, etc.
+        raw = _preprocess(expression)
 
         ELOG_LOCALS = {**LOCALS, 'e': sp.E, 'E': sp.E}
 
