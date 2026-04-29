@@ -30,6 +30,7 @@ export type MathIntent =
     | 'probability'       // Probabilités — loi binomiale, P(X=k)...
     | 'statistics'        // Statistiques — moyenne, médiane, écart-type
     | 'complex_calc'      // Nombres complexes — module, argument, forme
+    | 'exp_log'           // Équations / simplifications exp et ln
     | 'unknown';          // IA pure sans routing
 
 export interface DetectedIntent {
@@ -241,6 +242,20 @@ const INTENT_PATTERNS: { intent: MathIntent; patterns: RegExp[] }[] = [
         ],
     },
     {
+        intent: 'exp_log',
+        patterns: [
+            /[eé]quation\s+(?:exponentielle|logarithmique)/i,
+            /r[eé]soudre?\s+.*(?:\bln\b|\blog\b|\bexp\b)/i,
+            /r[eé]soudre?\s+.*\be\^/i,
+            /\bln\s*\(.*\)\s*=/i,
+            /\bexp\s*\(.*\)\s*=/i,
+            /\be\s*\^\s*(?:\w+|\([^)]+\))\s*=/i,
+            /simplif(?:ier|ier)\s+.*(?:\bln\b|\bexp\b)/i,
+            /propri[eé]t[eé]s?\s+(?:de\s+)?(?:ln|exp|logarithm)/i,
+            /r[eé]soudre?\s+.*(?:e\^|e\*\*\d|ln\b)/i,
+        ],
+    },
+    {
         intent: 'complex_calc',
         patterns: [
             /nombre\s+complexe/i,
@@ -446,5 +461,6 @@ export const INTENT_LABELS: Record<MathIntent, string> = {
     probability: '🎲 Probabilités',
     statistics: '📊 Statistiques',
     complex_calc: '🔵 Nombres complexes',
+    exp_log: '📈 Exponentielle / Logarithme',
     unknown: '💬 Réponse IA',
 };

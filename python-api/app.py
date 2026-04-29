@@ -2847,6 +2847,95 @@ def complex_calc_route():
         return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
 
 
+# ─────────────────────────────────────────────────────────────
+# 9. EXPONENTIELLE / LOGARITHME (équations et simplifications)
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/exp-log', methods=['POST'])
+def exp_log_route():
+    try:
+        data = request.get_json()
+        expression = data.get('expression', '').strip()
+        if not expression:
+            return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        # Prétraitement : e^x → E**x, ln → log (SymPy), etc.
+        raw = expression.replace('^', '**').replace('π', 'pi').replace('−', '-')
+        raw = raw.replace('ln(', 'log(').replace('Ln(', 'log(').replace('LN(', 'log(')
+        raw = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', raw)
+
+        ELOG_LOCALS = {**LOCALS, 'e': sp.E, 'E': sp.E}
+
+        is_equation = '=' in expression and not re.search(r'[<>≤≥]', expression)
+
+        if is_equation:
+            lhs_s, rhs_s = raw.split('=', 1)
+            lhs = sp.sympify(lhs_s.strip(), locals=ELOG_LOCALS)
+            rhs = sp.sympify(rhs_s.strip(), locals=ELOG_LOCALS)
+            eq = lhs - rhs
+
+            sols = sp.solve(eq, x)
+            # Filtrer les solutions réelles uniquement
+            valid_sols = [s for s in sols if s.is_real]
+            if not valid_sols and sols:
+                valid_sols = sols  # garder tout si pas de solution purement réelle
+
+            steps = [f"Équation : ${sp.latex(lhs)} = {sp.latex(rhs)}$"]
+            for s in valid_sols:
+                try:
+                    approx = float(s.evalf())
+                    steps.append(f"$x = {sp.latex(s)} \\approx {round(approx, 4)}$")
+                except Exception:
+                    steps.append(f"$x = {sp.latex(s)}$")
+            if not valid_sols:
+                steps.append("Aucune solution réelle.")
+
+            ai_ctx = (
+                "[MODE EXPONENTIELLE/LOGARITHME DÉTERMINISTE]\n"
+                "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+                "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
+                "Résolution :\n" + "\n".join(f"- {s}" for s in steps) +
+                "\n\nExplique la résolution pas à pas : isoler exp ou ln, appliquer ln ou exp des deux côtés, domaine de définition."
+            )
+            return jsonify({
+                'success': True,
+                'solutions': [sp.latex(s) for s in valid_sols],
+                'steps': steps,
+                'aiContext': ai_ctx,
+            })
+
+        else:
+            # Expression à simplifier / évaluer
+            expr_sym = sp.sympify(raw, locals=ELOG_LOCALS)
+            simplified = sp.simplify(expr_sym)
+            steps = [
+                f"Expression : ${sp.latex(expr_sym)}$",
+                f"Simplifiée : ${sp.latex(simplified)}$",
+            ]
+            try:
+                numeric = float(simplified.evalf())
+                steps.append(f"Valeur approchée : $\\approx {round(numeric, 4)}$")
+            except Exception:
+                pass
+
+            ai_ctx = (
+                "[MODE EXPONENTIELLE/LOGARITHME DÉTERMINISTE]\n"
+                "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+                "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
+                "Calcul :\n" + "\n".join(f"- {s}" for s in steps) +
+                "\n\nExplique les propriétés utilisées : $\\ln(e^a)=a$, $e^{\\ln(a)}=a$, $\\ln(ab)=\\ln(a)+\\ln(b)$, etc."
+            )
+            return jsonify({
+                'success': True,
+                'result_latex': sp.latex(simplified),
+                'steps': steps,
+                'aiContext': ai_ctx,
+            })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()[:800]}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', '0') == '1')

@@ -34,6 +34,7 @@ export type MathOutputType =
     | 'probability'       // Probabilités — loi binomiale, E(X), V(X) (Python)
     | 'statistics'        // Statistiques — moyenne, médiane, écart-type (Python)
     | 'complex_calc'      // Nombres complexes — module, argument, forme (Python/SymPy)
+    | 'exp_log'           // Équations exp/ln — résolution et simplification (Python/SymPy)
     | 'explanation';      // Réponse textuelle + LaTeX uniquement
 
 // ─────────────────────────────────────────────────────────────

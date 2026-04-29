@@ -403,7 +403,8 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
             case 'vector':
             case 'probability':
             case 'statistics':
-            case 'complex_calc': {
+            case 'complex_calc':
+            case 'exp_log': {
                 const pythonApiUrl = process.env.SYMPY_API_URL || process.env.NEXT_PUBLIC_SYMPY_API_URL;
                 if (!pythonApiUrl) {
                     return NextResponse.json({ success: false, error: 'Aucune API Python configurée' }, { status: 500 });
@@ -417,6 +418,7 @@ Conclus toujours en affichant l'expression finale factorisée entourée de $$ (L
                     probability: '/probability',
                     statistics: '/statistics-ops',
                     complex_calc: '/complex-calc',
+                    exp_log: '/exp-log',
                 };
                 const endpoint = endpointMap[type];
                 // Envoyer `expression` pour tous (Python accepte aussi `text` = même champ)
