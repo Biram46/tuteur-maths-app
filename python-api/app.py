@@ -2869,28 +2869,60 @@ def exp_log_route():
             rhs = sp.sympify(rhs_s.strip(), locals=ELOG_LOCALS)
             eq = lhs - rhs
 
+            steps = [f"Équation : ${sp.latex(lhs)} = {sp.latex(rhs)}$"]
+
+            # ── Tentative de factorisation ──────────────────────────
+            factored = sp.factor(eq)
+            did_factor = False
+
+            if isinstance(factored, sp.Mul):
+                x_factors = [f for f in factored.args if f.has(x)]
+                if len(x_factors) >= 2:
+                    did_factor = True
+                    steps.append(f"Forme factorisée : ${sp.latex(factored)} = 0$")
+                    steps.append("Règle du produit nul : $A \\times B = 0 \\Leftrightarrow A = 0$ ou $B = 0$")
+                    for i, factor in enumerate(x_factors):
+                        steps.append(f"**Facteur {i + 1}** : ${sp.latex(factor)} = 0$")
+                        f_sols = sp.solve(factor, x)
+                        f_valid = [s for s in f_sols if s.is_real]
+                        if not f_valid and f_sols:
+                            f_valid = f_sols
+                        if f_valid:
+                            for s in f_valid:
+                                try:
+                                    approx = float(s.evalf())
+                                    steps.append(f"→ $x = {sp.latex(s)} \\approx {round(approx, 4)}$")
+                                except Exception:
+                                    steps.append(f"→ $x = {sp.latex(s)}$")
+                        else:
+                            steps.append("→ Pas de solution réelle pour ce facteur.")
+
+            # ── Résolution globale (toujours effectuée) ─────────────
             sols = sp.solve(eq, x)
-            # Filtrer les solutions réelles uniquement
             valid_sols = [s for s in sols if s.is_real]
             if not valid_sols and sols:
-                valid_sols = sols  # garder tout si pas de solution purement réelle
+                valid_sols = sols
 
-            steps = [f"Équation : ${sp.latex(lhs)} = {sp.latex(rhs)}$"]
-            for s in valid_sols:
-                try:
-                    approx = float(s.evalf())
-                    steps.append(f"$x = {sp.latex(s)} \\approx {round(approx, 4)}$")
-                except Exception:
-                    steps.append(f"$x = {sp.latex(s)}$")
-            if not valid_sols:
-                steps.append("Aucune solution réelle.")
+            if not did_factor:
+                for s in valid_sols:
+                    try:
+                        approx = float(s.evalf())
+                        steps.append(f"$x = {sp.latex(s)} \\approx {round(approx, 4)}$")
+                    except Exception:
+                        steps.append(f"$x = {sp.latex(s)}$")
+                if not valid_sols:
+                    steps.append("Aucune solution réelle.")
 
+            extra_hint = (
+                "\n\nExplique la factorisation (règle du produit nul) puis résous chaque facteur."
+                if did_factor else
+                "\n\nExplique la résolution pas à pas : isoler exp ou ln, appliquer ln ou exp des deux côtés, domaine de définition."
+            )
             ai_ctx = (
                 "[MODE EXPONENTIELLE/LOGARITHME DÉTERMINISTE]\n"
                 "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
                 "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
-                "Résolution :\n" + "\n".join(f"- {s}" for s in steps) +
-                "\n\nExplique la résolution pas à pas : isoler exp ou ln, appliquer ln ou exp des deux côtés, domaine de définition."
+                "Résolution :\n" + "\n".join(f"- {s}" for s in steps) + extra_hint
             )
             return jsonify({
                 'success': True,
