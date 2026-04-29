@@ -2229,7 +2229,13 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
             exp_log:      { type: 'exp_log',      label: 'Exponentielle/Ln',     textBased: true },
         };
 
-        const detectedDeterministicIntent = analysis.intents.find(i => i.intent in deterministicIntentMap);
+        const detectedDeterministicIntent = (() => {
+            // Si l'input contient un signe = et que exp_log est détecté, le prioriser sur expand/factorize
+            if (/[^<>=!]=(?!=)/.test(inputText) && analysis.intents.some(i => i.intent === 'exp_log')) {
+                return analysis.intents.find(i => i.intent === 'exp_log');
+            }
+            return analysis.intents.find(i => i.intent in deterministicIntentMap);
+        })();
 
         if (detectedDeterministicIntent) {
             const { type, label, textBased } = deterministicIntentMap[detectedDeterministicIntent.intent];

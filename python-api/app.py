@@ -2283,6 +2283,14 @@ def sequence_ops():
         # ── Détection suite arithmétique ──
         arith_m = re.search(r'(?:arithm[eé]tique|raison\s+r\s*=|r\s*=)\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
         geo_m = re.search(r'(?:g[eé]om[eé]trique|raison\s+q\s*=|q\s*=)\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+        # Fallback : "raison N" sans signe égal (ex: "raison 3", "raison -2")
+        if not arith_m and not geo_m:
+            raison_m = re.search(r'\braison\s*[=:]?\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
+            if raison_m:
+                if re.search(r'g[eé]om[eé]trique', text, re.IGNORECASE):
+                    geo_m = raison_m
+                else:
+                    arith_m = raison_m
 
         # Extraire premier terme u0 ou u1
         u0_m = re.search(r'u_?\s*0\s*=\s*([+-]?\s*\d+(?:[.,]\d+)?)', text, re.IGNORECASE)
