@@ -2551,12 +2551,19 @@ def trig_exact_route():
             # Valeur exacte d'une expression trigonométrique
             result = sp.trigsimp(expr_sym)
             result_simplified = sp.simplify(result)
-            numeric = float(result_simplified.evalf()) if result_simplified.is_real else None
+            # Protéger contre les expressions symboliques (ex: 4*sin(5*x) → is_real=True mais pas float)
+            try:
+                numeric = float(result_simplified.evalf()) if (result_simplified.is_real and not result_simplified.free_symbols) else None
+            except (TypeError, AttributeError):
+                numeric = None
 
             # Méthode des doigts + angle interrogé pour le SVG
-            finger_hints = _finger_hint(expr_sym)
+            # ⚠️ sympify évalue cos(pi/3)→1/2 donc les atomes sin/cos disparaissent.
+            # On utilise evaluate=False pour garder la forme symbolique cos(π/3).
+            expr_sym_unevaluated = sp.sympify(raw, locals=LOCALS, evaluate=False)
+            finger_hints = _finger_hint(expr_sym_unevaluated)
             queried_angle_rad = None
-            for func_atom in expr_sym.atoms(sp.sin, sp.cos, sp.tan):
+            for func_atom in expr_sym_unevaluated.atoms(sp.sin, sp.cos, sp.tan):
                 angle = sp.simplify(func_atom.args[0])
                 for ref_val, _, _, _ in _FINGER_TABLE:
                     if sp.simplify(angle - ref_val) == 0:
