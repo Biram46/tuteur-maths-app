@@ -1244,6 +1244,18 @@ export function useFigureRenderer() {
             if (section.startsWith('@@@') && section.endsWith('@@@')) {
                 const rawBlock = section.substring(3, section.length - 3).trim(); // .trim() CRITIQUE : le bloc commence souvent par \n
 
+                // ── Cercle trigonométrique SVG (bypass pipeline rehype complet) ──
+                if (rawBlock.startsWith('trig_circle:')) {
+                    const svgUrl = rawBlock.slice('trig_circle:'.length);
+                    return (
+                        <div key={`trig-${idx}`} className="flex justify-center my-3">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={svgUrl} alt="Cercle trigonométrique" width={280} height={240}
+                                 style={{ borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)' }} />
+                        </div>
+                    );
+                }
+
                 // ── Intercepter les faux @@@figure (arbre probabiliste déguisé) ──
                 if (isFakeProbabilityFigure(rawBlock)) {
                     console.warn('[Figure] ⚠️ @@@figure supprimé : contexte probabilité détecté — utiliser @@@tree', rawBlock.slice(0, 80));

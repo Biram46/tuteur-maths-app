@@ -2264,18 +2264,16 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         processSpeechQueue,
                         applyStripDdx: true,
                     });
-                    // Prépendre le cercle trigonométrique SVG si disponible (valeurs remarquables)
-                    // ⚠️ HTML brut (pas markdown ![...]) : rehypeRaw traite <img> directement,
-                    // évitant que fixLatexContent ou remark-math ne corrompe l'URL data:
+                    // Prépendre le cercle trigonométrique SVG via un bloc @@@trig_circle:URL@@@
+                    // → traité directement par useFigureRenderer en JSX pur (bypass pipeline rehype)
                     if (engineData.figure_url) {
                         setMessages(prev => {
                             const msgs = [...prev];
                             const last = msgs[msgs.length - 1];
                             if (last?.role === 'assistant') {
-                                const imgHtml = `<img src="${engineData.figure_url as string}" alt="Cercle trigonométrique" width="280" height="240" style="display:block;margin:8px auto;border-radius:8px"/>`;
                                 msgs[msgs.length - 1] = {
                                     ...last,
-                                    content: `${imgHtml}\n\n${last.content}`,
+                                    content: `@@@trig_circle:${engineData.figure_url as string}@@@\n\n${last.content}`,
                                 };
                             }
                             return msgs;
