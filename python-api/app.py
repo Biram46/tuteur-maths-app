@@ -2633,17 +2633,17 @@ def _stat_median(sorted_lst):
 
 
 def _stat_quartiles(sorted_v):
-    """Q1 / Q3 — méthode lycée France.
-    On divise la série triée en deux moitiés de taille ⌊n/2⌋ :
-      - demi-série inférieure  : les ⌊n/2⌋ premières valeurs → Q1 = médiane
-      - demi-série supérieure  : les ⌊n/2⌋ dernières valeurs → Q3 = médiane
-    (si n impair, la valeur médiane centrale n'est incluse dans aucune moitié)
+    """Q1 / Q3 — méthode lycée France (programme officiel).
+    Rang de Q1 = ⌈n/4⌉   (entier supérieur ou égal à n/4)
+    Rang de Q3 = ⌈3n/4⌉  (entier supérieur ou égal à 3n/4)
+    Q1 = valeur au rang ⌈n/4⌉ dans la série triée (base 1)
+    Q3 = valeur au rang ⌈3n/4⌉ dans la série triée (base 1)
     """
+    import math as _math
     n = len(sorted_v)
-    half = n // 2
-    lower = sorted_v[:half]
-    upper = sorted_v[n - half:]
-    return _stat_median(lower), _stat_median(upper)
+    rank_q1 = _math.ceil(n / 4)
+    rank_q3 = _math.ceil(3 * n / 4)
+    return sorted_v[rank_q1 - 1], sorted_v[rank_q3 - 1], rank_q1, rank_q3
 
 
 def _fmt_val(v):
@@ -2686,8 +2686,8 @@ def statistics_route():
         sorted_v = sorted(values)
         mean_v = sum(values) / n
         median_v = _stat_median(sorted_v)
-        q1_v, q3_v = _stat_quartiles(sorted_v)
-        iqr_v = (q3_v - q1_v) if q1_v is not None and q3_v is not None else None
+        q1_v, q3_v, rank_q1, rank_q3 = _stat_quartiles(sorted_v)
+        iqr_v = q3_v - q1_v
         variance_v = sum((v - mean_v) ** 2 for v in values) / n
         std_v = math.sqrt(variance_v)
         min_v, max_v = min(values), max(values)
@@ -2701,7 +2701,6 @@ def statistics_route():
             ecc.append((v, cumul))
 
         # ── Explication rang médian (méthode officielle lycée) ──
-        half = n // 2
         if n % 2 == 1:
             rang_median_str = f"$n = {n}$ est **impair** → rang médian $= \\frac{{n+1}}{{2}} = \\frac{{{n}+1}}{{2}} = {(n+1)//2}$"
             median_detail = f"La valeur au rang ${(n+1)//2}$ dans la série triée est $\\mathbf{{{_fmt_val(median_v)}}}$"
@@ -2710,11 +2709,12 @@ def statistics_route():
             v1, v2 = sorted_v[n//2 - 1], sorted_v[n//2]
             median_detail = f"$M_e = \\frac{{{_fmt_val(v1)} + {_fmt_val(v2)}}}{{2}} = {_fmt_val(median_v)}$"
 
-        # Explication Q1/Q3
-        lower_half = sorted_v[:half]
-        upper_half = sorted_v[n - half:]
-        q1_str = f"Demi-série inférieure ($\\{{{', '.join(_fmt_val(v) for v in lower_half)}\\}}$, $p={half}$) → $Q_1 = {_fmt_val(q1_v)}$"
-        q3_str = f"Demi-série supérieure ($\\{{{', '.join(_fmt_val(v) for v in upper_half)}\\}}$, $p={half}$) → $Q_3 = {_fmt_val(q3_v)}$"
+        # Explication Q1/Q3 — méthode rang ⌈n/4⌉ / ⌈3n/4⌉
+        import math as _math
+        q1_frac = f"\\frac{{n}}{{4}} = \\frac{{{n}}}{{4}} = {round(n/4, 4)}"
+        q3_frac = f"\\frac{{3n}}{{4}} = \\frac{{3 \\times {n}}}{{4}} = {round(3*n/4, 4)}"
+        q1_str = f"Rang de $Q_1$ : $\\lceil {q1_frac} \\rceil = {rank_q1}$ → $Q_1 = x_{{{rank_q1}}} = {_fmt_val(q1_v)}$"
+        q3_str = f"Rang de $Q_3$ : $\\lceil {q3_frac} \\rceil = {rank_q3}$ → $Q_3 = x_{{{rank_q3}}} = {_fmt_val(q3_v)}$"
 
         serie_str = '; '.join(_fmt_val(v) for v in sorted_v)
         mean_sum = ' + '.join(_fmt_val(v) for v in values) if n <= 10 else f'\\text{{(somme des {n} valeurs)}}'
@@ -2724,7 +2724,7 @@ def statistics_route():
             f"**Moyenne** : $\\bar{{x}} = \\dfrac{{{mean_sum}}}{{{n}}} = {round(mean_v, 4)}$",
             f"**Médiane** : {rang_median_str}",
             f"→ {median_detail}",
-            f"**Quartiles** (méthode demi-séries, programme lycée France) :",
+            f"**Quartiles** (rang $\\lceil n/4 \\rceil$ et $\\lceil 3n/4 \\rceil$, programme lycée France) :",
             f"→ {q1_str}",
             f"→ {q3_str}",
             f"→ Écart interquartile : $Q_3 - Q_1 = {_fmt_val(q3_v)} - {_fmt_val(q1_v)} = {round(iqr_v, 4)}$",
@@ -2739,7 +2739,7 @@ def statistics_route():
             "Résultats (utilise EXACTEMENT ces valeurs sans les recalculer) :\n"
             + "\n".join(f"- {s}" for s in steps) +
             "\n\nIMPORTANT : explique la médiane avec le rang médian (méthode officielle lycée France)."
-            " Pour Q1/Q3 : explique la méthode des demi-séries."
+            " Pour Q1/Q3 : explique la méthode des rangs ⌈n/4⌉ et ⌈3n/4⌉ (entier supérieur ou égal)."
             " Pas de méthode par interpolation (hors programme au lycée)."
         )
         return jsonify({
