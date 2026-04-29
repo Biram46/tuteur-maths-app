@@ -185,6 +185,10 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                 copyFile.student_label || null,
                 pages.length
             );
+            // Stocker les pages en mémoire client pour l'affichage en révision (jamais envoyé en DB)
+            setCopyFiles(prev => prev.map((cf, i) =>
+                i === ci ? { ...cf, pages, dbId: copyDbId } : cf
+            ));
 
             const pageTranscriptions: string[] = [];
             let minConfidence = 1.0;
@@ -813,7 +817,9 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                                 </div>
 
                                 {/* Expanded accordion */}
-                                {isExpanded && (
+                                {isExpanded && (() => {
+                                    const copyPages = copyFiles.find(cf => cf.dbId === copy.id)?.pages ?? [];
+                                    return (
                                     <div className="border-t border-white/5 px-4 py-4">
                                         {isError ? (
                                             <div className="text-xs text-red-400 bg-red-500/10 rounded-lg p-3">
@@ -821,16 +827,29 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                                             </div>
                                         ) : copy.analysis ? (
                                             <div className="flex gap-4 min-h-0">
-                                                {/* Left: transcription OCR */}
+                                                {/* Left: original image or transcription fallback */}
                                                 <div className="flex-1 min-w-0 flex flex-col gap-2">
-                                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Copie (transcription OCR)</p>
+                                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                                                        {copyPages.length > 0 ? 'Copie originale' : 'Copie (transcription OCR)'}
+                                                    </p>
                                                     <div className="bg-slate-950/60 border border-white/10 rounded-xl p-3 h-72 overflow-y-auto">
-                                                        {copy.transcription ? (
+                                                        {copyPages.length > 0 ? (
+                                                            <div className="space-y-3">
+                                                                {copyPages.map((page, pi) => (
+                                                                    <img
+                                                                        key={pi}
+                                                                        src={`data:${page.mimeType};base64,${page.base64}`}
+                                                                        alt={`Page ${pi + 1}`}
+                                                                        className="w-full rounded border border-white/10"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        ) : copy.transcription ? (
                                                             <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
                                                                 {copy.transcription}
                                                             </pre>
                                                         ) : (
-                                                            <p className="text-xs text-slate-600 italic">Transcription non disponible.</p>
+                                                            <p className="text-xs text-slate-600 italic">Copie non disponible.</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -907,7 +926,8 @@ export default function CopyCorrector({ teacherId }: { teacherId: string }) {
                                             <p className="text-xs text-slate-500">Analyse non disponible.</p>
                                         )}
                                     </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         );
                     })}
