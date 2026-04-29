@@ -2160,10 +2160,12 @@ def expand_expr():
 
         ai_ctx = (
             "[MODE DÉVELOPPEMENT DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             f"Moteur SymPy a calculé :\n"
             + "\n".join(f"- {s}" for s in steps) +
             f"\n\nTâche : explique chaque étape à un élève. Mentionne les identités remarquables si pertinentes.\n"
-            f"Résultat final : $${sp.latex(final)}$$"
+            f"Résultat final : ${sp.latex(final)}$"
         )
         return jsonify({'success': True, 'result_latex': sp.latex(final), 'steps': steps, 'aiContext': ai_ctx})
 
@@ -2225,7 +2227,12 @@ def solve_system_route():
 
         if not solutions:
             steps.append("Système incompatible (aucune solution).")
-            ai_ctx = "[MODE SYSTÈME DÉTERMINISTE]\n" + "\n".join(f"- {s}" for s in steps)
+            ai_ctx = (
+                "[MODE SYSTÈME D'ÉQUATIONS DÉTERMINISTE]\n"
+                "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+                "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
+                + "\n".join(f"- {s}" for s in steps)
+            )
             return jsonify({'success': True, 'solutions': [], 'steps': steps, 'aiContext': ai_ctx})
 
         if isinstance(solutions, dict):
@@ -2244,6 +2251,8 @@ def solve_system_route():
 
         ai_ctx = (
             "[MODE SYSTÈME D'ÉQUATIONS DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             f"Système :\n- {eq1_str}\n- {eq2_str}\n\n"
             "Étapes :\n" + "\n".join(f"- {s}" for s in steps) +
             "\n\nExplique la méthode (substitution ou combinaison linéaire) et détaille les calculs."
@@ -2342,6 +2351,8 @@ def sequence_ops():
 
         ai_ctx = (
             "[MODE SUITES DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             "Étapes calculées :\n" + "\n".join(f"- {s}" for s in steps) +
             "\n\nExplique la méthode pas à pas à un élève. Détaille la formule utilisée."
         )
@@ -2582,7 +2593,10 @@ def trig_exact_route():
 
             resp = {'success': True, 'result_latex': sp.latex(result_simplified), 'steps': steps, 'aiContext': ai_ctx}
             if finger_hints:
-                resp['figure_url'] = _trig_circle_svg(queried_angle_rad)
+                try:
+                    resp['figure_url'] = _trig_circle_svg(queried_angle_rad)
+                except Exception:
+                    pass  # SVG optionnel — ne pas crasher si erreur de génération
             return jsonify(resp)
 
     except Exception as e:
@@ -2772,6 +2786,8 @@ def probability_route():
 
         ai_ctx = (
             "[MODE PROBABILITÉS DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
             "\n\nExplique chaque formule (binomiale, espérance, variance) à un élève de lycée."
         )
@@ -2908,6 +2924,8 @@ def statistics_route():
 
         ai_ctx = (
             "[MODE STATISTIQUES DÉTERMINISTE — MÉTHODE LYCÉE FRANCE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             f"Série de {n} valeurs.\n"
             "Résultats (utilise EXACTEMENT ces valeurs sans les recalculer) :\n"
             + "\n".join(f"- {s}" for s in steps) +
@@ -2994,6 +3012,8 @@ def complex_calc_route():
 
         ai_ctx = (
             "[MODE NOMBRES COMPLEXES DÉTERMINISTE]\n"
+            "⚠️ FORMAT STRICT : utilise UNIQUEMENT des formules inline $...$ pour le LaTeX. "
+            "N'utilise JAMAIS \\begin{align*} ni aucun environnement LaTeX.\n"
             "Calculs :\n" + "\n".join(f"- {s}" for s in steps) +
             "\n\nExplique chaque notion (module, argument, conjugué, forme trigonométrique) à un élève."
         )
@@ -3073,9 +3093,17 @@ def factorize_expr_route():
 def exp_log_route():
     try:
         data = request.get_json()
-        expression = data.get('expression', '').strip()
-        if not expression:
+        # Accepte 'text' (textBased depuis le router) OU 'expression'
+        raw_input = (data.get('text') or data.get('expression', '')).strip()
+        if not raw_input:
             return jsonify({'success': False, 'error': 'expression manquante'}), 400
+
+        # Si le texte brut contient un mot-clé, extraire ce qui suit
+        kw_m = re.search(
+            r'(?:r[eé]sou[ds]\w*|calculer?\w*|simplifier?\w*|[eé]valuer?\w*)\s+(.+)$',
+            raw_input, re.IGNORECASE | re.DOTALL
+        )
+        expression = kw_m.group(1).strip() if kw_m else raw_input
 
         # Prétraitement complet : )(→)*( , e^x→E**x, ln→log, 2x→2*x, etc.
         raw = _preprocess(expression)

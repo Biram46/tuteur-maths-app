@@ -1016,7 +1016,7 @@ RÈGLES ABSOLUES :
             && !/[<≤>≥]/.test(inputText) // ⛔ Ne JAMAIS capturer les inéquations ici
             && !/=[^0-9]*[1-9]/i.test(inputText) // Essayer d'éviter "f(x) = 2" si ce n'est pas géré
             && !/\b(?:cos|sin|tan|cot|sec|cosec|arccos|arcsin|arctan)\b/i.test(inputText) // ⛔ Laisser les équations trig au module dédié
-            && !/\b(?:ln|exp)\b|\be\^/i.test(inputText) // ⛔ Laisser les équations exp/ln au module dédié
+            && !/\b(?:ln|exp)\b|e\^/i.test(inputText) // ⛔ Laisser les équations exp/ln au module dédié (sans \b : 2e^x)
         );
 
         if (wantsSolveEquation) {
@@ -1516,7 +1516,10 @@ RÈGLES ABSOLUES :
             || /\b[A-Z]\s*\(\s*-?\d/.test(inputText) // Coordonnées A(x,y) ou A(x; y)
 
         ) && !/\bfonction\b|\btableau?\b|\bsigne\b|\bvariation\b|\bdérivée?\b/i.test(inputLower)
-          && !/\b(probabilit[eé]s?|proba|binomiale?|tirage|urne|boule|pile|face|bernoulli|arbre\s+de\s+proba)\b/i.test(inputLower);
+          && !/\b(probabilit[eé]s?|proba|binomiale?|tirage|urne|boule|pile|face|bernoulli|arbre\s+de\s+proba)\b/i.test(inputLower)
+          && !/[~]/.test(inputText) // Loi proba : X~B(n;p), X~N(μ,σ²)
+          && !/\b(statistique|moyenne|[eé]cart.?type|donn[eé]es|effectif|fr[eé]quence)\b/i.test(inputLower) // Stats → pas géométrie
+          && !/calculer.*(m[eé]dian|moyenne|[eé]cart)/i.test(inputLower); // médiane stats ≠ médiane triangle
 
         if (wantsGeometry) {
             try {
@@ -2223,7 +2226,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
             probability:  { type: 'probability',  label: 'Probabilités',         textBased: true },
             statistics:   { type: 'statistics',   label: 'Statistiques',         textBased: true },
             complex_calc: { type: 'complex_calc', label: 'Nombres complexes',    textBased: true },
-            exp_log:      { type: 'exp_log',      label: 'Exponentielle/Ln',     textBased: false },
+            exp_log:      { type: 'exp_log',      label: 'Exponentielle/Ln',     textBased: true },
         };
 
         const detectedDeterministicIntent = analysis.intents.find(i => i.intent in deterministicIntentMap);
