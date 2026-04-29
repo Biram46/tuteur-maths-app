@@ -2602,8 +2602,8 @@ def trig_exact_route():
             if finger_hints:
                 try:
                     resp['figure_url'] = _trig_circle_svg(queried_angle_rad)
-                except Exception:
-                    pass  # SVG optionnel — ne pas crasher si erreur de génération
+                except Exception as svg_err:
+                    resp['svg_error'] = str(svg_err)  # debug: exposer l'erreur sans crasher
             return jsonify(resp)
 
     except Exception as e:
