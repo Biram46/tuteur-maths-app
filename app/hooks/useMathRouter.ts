@@ -2240,7 +2240,7 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                 const engineRes = await fetch('/api/math-engine', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, expression, niveau: resolveNiveau(inputText) }),
+                    body: JSON.stringify({ type, expression, niveau: resolveNiveau(inputText) ?? 'terminale_spe' }),
                 });
                 const engineData = await engineRes.json();
                 if (engineData.success && engineData.aiContext) {

@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
 
     try {
         const body: MathEngineRequest = await req.json();
-        const { type, expression, niveau, options = {} } = body;
+        const { type, expression, options = {} } = body;
+        const niveau: NiveauLycee = body.niveau || 'terminale_spe';
 
         if (!type || (!expression && !body.options)) {
             return NextResponse.json(
