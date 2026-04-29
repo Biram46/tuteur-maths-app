@@ -1247,7 +1247,6 @@ export function useFigureRenderer() {
                 // ── Cercle trigonométrique SVG (bypass pipeline rehype complet) ──
                 if (rawBlock.startsWith('trig_circle:')) {
                     const svgUrl = rawBlock.slice('trig_circle:'.length);
-                    console.log('[TrigCircle] Rendu SVG, url longueur:', svgUrl.length, 'début:', svgUrl.slice(0, 40));
                     return (
                         <div key={`trig-${idx}`} className="flex justify-center my-3">
                             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -2265,19 +2265,16 @@ La figure s'ouvrira automatiquement dans la fenêtre géomètre.`;
                         applyStripDdx: true,
                     });
                     // Prépendre le cercle trigonométrique SVG via un bloc @@@trig_circle:URL@@@
-                    console.log('[TrigSVG] engineData keys:', Object.keys(engineData));
-                    console.log('[TrigSVG] figure_url présent:', !!engineData.figure_url, 'longueur:', (engineData.figure_url as string | undefined)?.length ?? 0);
+                    // → traité directement par useFigureRenderer en JSX pur (bypass pipeline rehype)
                     if (engineData.figure_url) {
                         setMessages(prev => {
                             const msgs = [...prev];
                             const last = msgs[msgs.length - 1];
-                            console.log('[TrigSVG] last message role:', last?.role, 'content length:', last?.content?.length);
                             if (last?.role === 'assistant') {
                                 msgs[msgs.length - 1] = {
                                     ...last,
                                     content: `@@@trig_circle:${engineData.figure_url as string}@@@\n\n${last.content}`,
                                 };
-                                console.log('[TrigSVG] content préfixé avec trig_circle block');
                             }
                             return msgs;
                         });
