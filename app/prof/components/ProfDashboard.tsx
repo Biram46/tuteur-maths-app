@@ -10,6 +10,7 @@ import ResourceManager from './ResourceManager';
 import CurriculumManager from './CurriculumManager';
 import PdfToLatex from './PdfToLatex';
 import CopyCorrector from './CopyCorrector';
+import MathAssistant from '@/app/components/MathAssistant';
 import { getOrCreateSequence } from '../actions';
 
 interface ProfDashboardProps {
@@ -25,15 +26,6 @@ interface ProfDashboardProps {
 
 type ViewMode = 'grid' | 'chat' | 'resources' | 'curriculum' | 'converter' | 'free' | 'corrections';
 
-const FREE_MODE_CONTEXT: ProfContext = {
-    level_id: 'libre',
-    level_label: 'Mode libre',
-    level_code: 'libre',
-    chapter_id: 'libre',
-    chapter_title: 'Mode libre',
-    resource_type: 'cours',
-    free_mode: true,
-};
 
 export default function ProfDashboard({ initialData, teacherId }: ProfDashboardProps) {
     const { levels, chapters, resources, sequences, chatSessions } = initialData;
@@ -276,11 +268,7 @@ export default function ProfDashboard({ initialData, teacherId }: ProfDashboardP
             {/* ── VUE MODE LIBRE ────────────────────────────────── */}
             {viewMode === 'free' && (
                 <div className="bg-white/[0.02] border border-violet-500/20 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 280px)', minHeight: '500px' }}>
-                    <ProfChatbot
-                        context={FREE_MODE_CONTEXT}
-                        sequenceId="libre"
-                        teacherId={teacherId}
-                    />
+                    <MathAssistant baseContext="Tu parles à un professeur de lycée français. Tu peux utiliser toutes les fonctionnalités mathématiques." />
                 </div>
             )}
 
