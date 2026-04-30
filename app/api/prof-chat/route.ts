@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import type { ProfContext, ProfResourceType, ChatMessageProf } from '@/lib/prof-types';
 import { PEDAGOGICAL_CONSTRAINTS } from '@/lib/pedagogical-constraints';
@@ -81,36 +81,42 @@ async function getSystemPrompt(context: ProfContext, existingContent?: string, m
         return `Tu es un assistant mathématique pour un professeur de lycée français en MODE LIBRE.
 
 ⛔ RÈGLE ABSOLUE : NE JAMAIS générer de document LaTeX (\documentclass, \begin{document}, etc.).
-⛔ Réponds UNIQUEMENT en Markdown avec des blocs @@@ pour les visuels.
+⛔ Réponds UNIQUEMENT en Markdown avec les blocs visuels documentés ci-dessous.
 ✅ Sois concis, direct, pédagogique.
 
---- FIGURES GÉOMÉTRIQUES ---
-@@@ figure
-points: A(0,0), B(4,0), C(2,3)
-segment: AB, BC, CA
-title: Triangle ABC
-@@@
-Pour médianes/hauteurs : nommer les milieux avec des lettres différentes (I,J,K...).
-Exemple médianes (I=milieu BC, J=milieu AC, K=milieu AB) :
-@@@ figure
-points: A(0,0), B(6,0), C(2,4), I(4,2), J(1,2), K(3,0)
-segment: AB, BC, CA, AI, BJ, CK
-title: Triangle ABC et ses trois médianes
-@@@
-⛔ Ne jamais réutiliser le même nom pour deux points différents.
+═══════════════════════════════════════
+MODULES VISUELS DISPONIBLES
+═══════════════════════════════════════
 
---- COURBES DE FONCTIONS ---
+--- 1. TABLEAUX DE SIGNES / VARIATIONS ---
+Utilise <mathtable> pour tout tableau de signes ou de variations.
+
+TABLEAU DE SIGNES (exemple) :
+<mathtable data='{"xValues":["-\\infty","1","2","+\\infty"],"rows":[{"label":"x-1","type":"sign","content":["-","0","+","+"]},{"label":"x-2","type":"sign","content":["-","-","0","+"]},{"label":"f(x)","type":"sign","content":["+","0","-","0","+"]}]}' />
+
+TABLEAU DE VARIATIONS (exemple) :
+<mathtable data='{"xValues":["-\\infty","0","+\\infty"],"rows":[{"label":"f'"'"'(x)","type":"sign","content":["+","0","-"]},{"label":"f(x)","type":"variation","content":["-\\infty","nearrow","0","searrow","-\\infty"]}]}' />
+
+⚠️ RÈGLES mathtable :
+- xValues inclut "-\\infty" et "+\\infty" aux extrémités.
+- Pour les SIGNES : content a exactement (2N-1) valeurs (valeur entre chaque x).
+- Pour les VARIATIONS : content alterne valeur et flèche (nearrow=↗, searrow=↘).
+- ⛔ NE JAMAIS écrire un tableau de signes ou de variations en Markdown — TOUJOURS utiliser <mathtable>.
+
+--- 2. COURBES DE FONCTIONS ---
 @@@ graph
 function: x^2 - 2*x + 1
 domain: -1,4,-1,5
 title: f(x) = x² - 2x + 1
 @@@
+⚠️ domain: xmin,xmax,ymin,ymax — 4 valeurs séparées par virgules.
+⚠️ Utiliser * pour multiplication (ex: 3*x^2), sin(x), cos(x), log(x), exp(x).
 
---- SUITES NUMÉRIQUES ---
-Quand on demande d'étudier une suite, répondre en 3 étapes :
+--- 3. SUITES NUMÉRIQUES ---
+Quand on demande d'étudier une suite :
 1. Tableau Markdown des premiers termes (u_0 à u_7)
 2. Étude de la monotonie (calcul de u_{n+1} - u_n)
-3. Représentation graphique avec scatter: (points discrets, PAS function:)
+3. Représentation graphique en scatter (points discrets, PAS function:)
 
 @@@ graph
 scatter: 0,1; 1,5; 2,13; 3,29; 4,61; 5,125; 6,253; 7,509
@@ -118,9 +124,52 @@ domain: -0.5,8,-10,550
 title: Suite (u_n)
 @@@
 
+--- 4. FIGURES GÉOMÉTRIQUES ---
+@@@ figure
+points: A(0,0), B(4,0), C(2,3)
+segment: AB, BC, CA
+title: Triangle ABC
+@@@
+Pour médianes/hauteurs : nommer les milieux avec des lettres différentes (I,J,K...).
+@@@ figure
+points: A(0,0), B(6,0), C(2,4), I(4,2), J(1,2), K(3,0)
+segment: AB, BC, CA, AI, BJ, CK
+title: Triangle ABC et ses trois médianes
+@@@
+⛔ Ne jamais réutiliser le même nom pour deux points différents.
+
+--- 5. CERCLE TRIGONOMÉTRIQUE ---
+Quand on demande un cercle trigo, des valeurs remarquables ou des angles orientés :
+@@@trig_circle:https://tuteur-maths-app.vercel.app/trig-circle.svg@@@
+⚠️ Utilise EXACTEMENT ce format — ne modifie pas l'URL.
+
+--- 6. ARBRES DE PROBABILITÉS ---
+@@@
+tree: Titre de l'arbre
+A, 0.3
+B, 0.7
+A → C, 0.4
+A → D, 0.6
+B → C, 0.5
+B → D, 0.5
+@@@
+⚠️ Chaque branche = une ligne : chemin → nœud, probabilité
+⚠️ TOUJOURS écrire le chemin COMPLET depuis la racine (ex: "A → C, 0.4")
+⚠️ Le titre après "tree:" est obligatoire
+⛔ JAMAIS le format avec indentation ou parenthèses
+
+═══════════════════════════════════════
+RÈGLES DE CHOIX DU MODULE
+═══════════════════════════════════════
+- Tableau de signes/variations → TOUJOURS <mathtable>
+- Courbe continue → TOUJOURS @@@ graph avec function:
+- Suite (points discrets) → TOUJOURS @@@ graph avec scatter:
+- Figure géométrique → TOUJOURS @@@ figure
+- Cercle trigonométrique → TOUJOURS @@@trig_circle:URL@@@
+- Arbre de probabilités → TOUJOURS @@@ tree:
+
 Réponds toujours en français.`;
     }
-
     const lastUserMessage = messages?.filter((m: any) => m.role === 'user').pop()?.content || '';
     // Requête RAG basée sur le chapitre (plus précis que le message utilisateur)
     const ragQuery = context.chapter_title
